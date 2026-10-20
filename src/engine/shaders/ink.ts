@@ -71,17 +71,18 @@ uniform float uPect;       // pectoral fin flap
 uniform float uL;          // body length, px
 uniform float uMaxW;       // half-width scale, px
 uniform float uShadow;     // 1 = render as soft shadow on the lake bed
-varying vec2 vSV;
+varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
 
 ${noiseGLSL}
 ${fishProfileGLSL}
 
 void main() {
   float s = vSV.x;
-  float v = vSV.y;
   float env = envW(s, uPect);
   float body = bodyW(s);
-  float w = abs(v) * env;          // offset from spine, in maxW units
+  float gw = max(smoothstep(0.0, 1.0, uGrow), 1e-3);
+  float w = abs(vSV.y) / gw;       // offset from spine, in maxW units
+  float v = vSV.y / (gw * env);    // -1..1 across the outline
   float n = noise(vec2(s * 16.0 + uSeed * 7.0, v * 4.0)) - 0.5;
 
   vec3 col;

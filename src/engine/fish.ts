@@ -108,6 +108,8 @@ export class Fish {
       new THREE.ShaderMaterial({
         vertexShader: ribbonVert,
         fragmentShader: fishFrag,
+        // The spine runs head to tail, against the drawing direction, so the ribbon's winding flips.
+        side: THREE.DoubleSide,
         transparent: true,
         depthTest: false,
         depthWrite: false,
@@ -289,6 +291,8 @@ export class Fish {
   private rebuild(): void {
     const pos = this.geometry.getAttribute('position') as THREE.BufferAttribute;
     const P = pos.array as Float32Array;
+    const sv = this.geometry.getAttribute('aSV') as THREE.BufferAttribute;
+    const SV = sv.array as Float32Array;
     const growW = smooth(0, 1, this.grow);
     const swimAmp = this.amp * (this.state === 'forming' ? this.grow * 0.3 : 0.6 + Math.min(this.speed / this.baseSpeed, 2) * 0.4);
     const pect = 1 + 0.25 * Math.sin(this.phase * 0.5);
@@ -308,15 +312,21 @@ export class Fish {
       const lateral = swimAmp * Math.sin(this.phase - s * 5.5) * (0.12 + Math.pow(s, 1.3));
       const cx = this.xs[i] + nx * lateral;
       const cy = this.ys[i] + ny * lateral;
-      const half = envW(s, pect) * this.maxW * growW;
+      const halfU = envW(s, pect) * growW; // in maxW units
+      const half = halfU * this.maxW;
       P[i * 6 + 0] = cx + nx * half;
       P[i * 6 + 1] = cy + ny * half;
       P[i * 6 + 2] = 0;
       P[i * 6 + 3] = cx - nx * half;
       P[i * 6 + 4] = cy - ny * half;
       P[i * 6 + 5] = 0;
+      // Side offset rather than a ±1 flag: it interpolates without the
+      // zigzag a flag shows across trapezoid segments.
+      SV[i * 4 + 1] = halfU;
+      SV[i * 4 + 3] = -halfU;
     }
     pos.needsUpdate = true;
+    sv.needsUpdate = true;
   }
 
   dispose(): void {

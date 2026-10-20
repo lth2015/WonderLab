@@ -37,6 +37,7 @@ export class Stroke {
     this.material = new THREE.ShaderMaterial({
       vertexShader: ribbonVert,
       fragmentShader: strokeFrag,
+      side: THREE.DoubleSide,
       transparent: true,
       depthTest: false,
       depthWrite: false,
