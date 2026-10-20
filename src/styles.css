@@ -173,3 +173,118 @@ body {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+.hint.words {
+  top: auto;
+  bottom: calc(96px + env(safe-area-inset-bottom) + var(--kb, 0px));
+}
+
+/* The one-sentence box (docs/03 §5.1, §5.3). */
+.words {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom) + var(--kb, 0px));
+  transform: translateX(-50%);
+  width: min(480px, calc(100vw - 32px));
+  height: 48px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 20px;
+  border-radius: 24px;
+  background: rgba(12, 15, 21, 0.62);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 0 1px rgba(239, 234, 223, 0.08);
+  transition: opacity 220ms var(--ease-ink);
+}
+.words.dim {
+  opacity: 0.15;
+  transition-duration: 200ms;
+}
+.words input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--paper-100);
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.words input::placeholder {
+  color: #c9c3b6;
+}
+.words:focus-within {
+  box-shadow:
+    inset 0 0 0 1px rgba(239, 234, 223, 0.08),
+    0 0 0 2px #e9d9a6;
+}
+.count {
+  font-size: 14px;
+  color: #c9c3b6;
+}
+.send {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-100);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: opacity 160ms var(--ease-ink);
+}
+.send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.send:focus-visible {
+  outline: 2px solid #e9d9a6;
+  outline-offset: 2px;
+}
+
+/* Submitted words drift up into the sky as ink dots. */
+.flight {
+  position: fixed;
+  pointer-events: none;
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  font-size: 18px;
+  color: var(--paper-100);
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+.flight span {
+  display: inline-block;
+  animation: rise 1.2s var(--ease-ink) both;
+}
+@keyframes rise {
+  0% {
+    opacity: 0.9;
+    transform: none;
+    filter: blur(0);
+  }
+  60% {
+    opacity: 0.6;
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), -38vh) scale(0.3);
+    filter: blur(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flight span {
+    animation-duration: 0.6s;
+  }
+}

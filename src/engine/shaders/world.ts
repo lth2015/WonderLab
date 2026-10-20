@@ -30,6 +30,9 @@ uniform int uStarCount;
 uniform vec4 uMeteors[MAX_METEORS];   // from x, y, to x, y
 uniform float uMeteorT[MAX_METEORS];  // progress 0..1, 0 = inactive
 uniform vec4 uClouds[MAX_CLOUDS];     // x, y, half width, presence
+uniform float uWaveT;                 // wave phase, advances faster with wind
+uniform float uWind;
+uniform float uDusk;
 varying vec2 vUv;
 
 ${noiseGLSL}
@@ -89,7 +92,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
       glow += (exp(-abs(d.x) / 1.1 - abs(d.y) / 13.0) + exp(-abs(d.y) / 1.1 - abs(d.x) / 13.0)) * 0.7;
       tw = 1.0;
     }
-    c += starCol * glow * s.z * tw * open;
+    c += starCol * glow * s.z * tw * open * (1.0 - 0.5 * uDusk);
   }
   for (int i = 0; i < MAX_METEORS; i++) {
     float t = uMeteorT[i];
@@ -116,7 +119,7 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   vec3 c = land.rgb;
   float t = clamp((p.y - hpx) / (uRes.y - hpx), 0.0, 1.0);
   float stars = starLayer(p, 46.0, 0.32, 1.6) + 0.6 * starLayer(p + 13.0, 19.0, 0.18, 0.9);
-  stars *= smoothstep(0.04, 0.4, t) * land.a;
+  stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - 0.75 * uDusk);
   c += vec3(0.96, 0.93, 0.86) * stars;
   // Slow ink-wash cloud drifting across the upper sky.
   vec2 q = vec2(p.x / S * 1.2 + uTime * 0.006, p.y / S * 3.2);
@@ -140,10 +143,10 @@ void main() {
     float dn = d / S;
     // Waves: compressed near the horizon, larger toward the viewer.
     float z = 1.0 / (dn + 0.06);
-    vec2 wq = vec2(p.x / S * 0.9 * z, z * 1.6 - uTime * 0.22);
+    vec2 wq = vec2(p.x / S * 0.9 * z, z * 1.6 - uWaveT * 0.22);
     float wave = fbm(wq) - 0.5;
-    float wave2 = noise(vec2(p.x / S * 2.0 * z, z * 6.0 - uTime * 0.5)) - 0.5;
-    vec2 disp = vec2(wave * 0.6 + wave2 * 0.25, wave * 0.25) * S * (0.004 + dn * 0.03);
+    float wave2 = noise(vec2(p.x / S * 2.0 * z, z * 6.0 - uWaveT * 0.5)) - 0.5;
+    vec2 disp = vec2(wave * 0.6 + wave2 * 0.25, wave * 0.25) * S * (0.004 + dn * 0.03) * (0.5 + uWind * 1.5);
 
     // Ripples: squashed rings for a sense of perspective.
     float sheen = 0.0;

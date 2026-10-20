@@ -2,7 +2,10 @@ import * as THREE from 'three';
 import { fullscreenVert } from './shaders/common';
 import { landscapeFrag } from './shaders/landscape';
 import { MAX_RIPPLES, worldFrag } from './shaders/world';
-import { serene, type Palette } from './palette';
+import type { Palette } from './palette';
+import { Atmosphere } from './atmosphere';
+import type { SceneCommand } from './intent';
+import { weatherFrag } from './shaders/weather';
 import { Stroke, type StrokePoint } from './stroke';
 import { Fish } from './fish';
 import { Sky, type MoonSpec } from './sky';
@@ -15,9 +18,10 @@ const EDGE_GUARD = 16;
 const MAX_FISH = 12;
 const UNDO_DEPTH = 20;
 
-export type CreationKind = 'fish' | 'moon' | 'star' | 'meteor' | 'cloud';
+export type CreationKind = 'fish' | 'moon' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
 
 export interface Creation {
+  id: number;
   kind: CreationKind;
   /** Where to put the undo button, in CSS pixels from the top left. */
   x: number;
@@ -33,6 +37,7 @@ export interface EngineEvents {
 }
 
 interface HistoryEntry {
+  id: number;
   kind: CreationKind;
   undo: () => void;
 }
@@ -69,9 +74,13 @@ export class Engine {
   private landscapeTarget: THREE.WebGLRenderTarget | null = null;
   private readonly landscapeMat: THREE.ShaderMaterial;
   private readonly worldMat: THREE.ShaderMaterial;
-  private readonly palette: Palette = serene;
+  private readonly atmosphere = new Atmosphere();
+  private readonly palette: Palette = this.atmosphere.palette;
+  private readonly weatherMat: THREE.ShaderMaterial;
   private readonly sky = new Sky();
   private history: HistoryEntry[] = [];
+  private nextHistoryId = 1;
+  private waveT = 0;
   private nextMoonLure = 6;
 
   private width = 1;
@@ -130,11 +139,39 @@ export class Engine {
         uRipples: { value: Array.from({ length: MAX_RIPPLES }, () => new THREE.Vector4()) },
         uRippleCount: { value: 0 },
         uPaper: { value: p.paper },
+        uWaveT: { value: 0 },
+        uWind: { value: this.atmosphere.wind },
+        uDusk: { value: 0 },
         ...this.sky.uniforms,
       },
       depthTest: false,
       depthWrite: false,
     });
+    this.weatherMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
+      fragmentShader: weatherFrag,
+      uniforms: {
+        uRes: { value: new THREE.Vector2() },
+        uTime: { value: 0 },
+        uHorizon: { value: this.horizon },
+        uRain: { value: 0 },
+        uMist: { value: 0 },
+        uFireflies: { value: 0 },
+        uWind: { value: 0 },
+        uSkyLow: { value: p.skyLow },
+        uAccent: { value: p.accent },
+      },
+      transparent: true,
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneMinusSrcAlphaFactor,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const weather = new THREE.Mesh(quad, this.weatherMat);
+    weather.renderOrder = 2.5; // over the fish, under the brush
+    weather.frustumCulled = false;
+    this.scene.add(weather);
     const bg = new THREE.Mesh(quad, this.worldMat);
     bg.renderOrder = 0;
     bg.frustumCulled = false;
@@ -181,10 +218,17 @@ export class Engine {
     this.demo = { points: pts, stroke, start: this.time };
   }
 
-  /** Undo the latest creation. Returns false when there is nothing to undo. */
-  undo(): boolean {
-    const entry = this.history.pop();
-    if (!entry) return false;
+  /** Change the mood of the world (一句成境). Undoable like a creation. */
+  applyScene(cmd: SceneCommand): void {
+    const prev = this.atmosphere.apply(cmd);
+    this.record('atmosphere', this.width / 2, this.horizonY, () => this.atmosphere.set(prev));
+  }
+
+  /** Undo the latest creation, or a given one. Returns false when there is nothing to undo. */
+  undo(id?: number): boolean {
+    const at = id === undefined ? this.history.length - 1 : this.history.findIndex((h) => h.id === id);
+    if (at < 0) return false;
+    const [entry] = this.history.splice(at, 1);
     entry.undo();
     this.events.onUndo?.(this.history.length);
     return true;
@@ -200,6 +244,7 @@ export class Engine {
     this.landscapeTarget?.dispose();
     this.landscapeMat.dispose();
     this.worldMat.dispose();
+    this.weatherMat.dispose();
     this.renderer.dispose();
   }
 
@@ -243,7 +288,23 @@ export class Engine {
     }
     this.fishes = alive;
 
-    this.sky.update(dt, t, this.horizonY, this.width);
+    const atmos = this.atmosphere;
+    const recolouring = atmos.changing;
+    atmos.update(dt);
+    if (recolouring) this.renderLandscape();
+    this.waveT += dt * (0.6 + atmos.wind * 1.6);
+    const wu = this.worldMat.uniforms;
+    wu.uWaveT.value = this.waveT;
+    wu.uWind.value = atmos.wind;
+    wu.uDusk.value = atmos.dusk;
+    const weu = this.weatherMat.uniforms;
+    weu.uTime.value = t;
+    weu.uRain.value = atmos.rain;
+    weu.uMist.value = atmos.mist;
+    weu.uFireflies.value = atmos.fireflies;
+    weu.uWind.value = atmos.wind;
+
+    this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
     this.lureToMoon(dt);
 
     this.fading = this.fading.filter((f) => {
@@ -321,9 +382,10 @@ export class Engine {
   }
 
   private record(kind: CreationKind, x: number, y: number, undo: () => void): void {
-    this.history.push({ kind, undo });
+    const id = this.nextHistoryId++;
+    this.history.push({ id, kind, undo });
     if (this.history.length > UNDO_DEPTH) this.history.shift();
-    this.events.onCreated?.({ kind, x, y: this.height - y });
+    this.events.onCreated?.({ id, kind, x, y: this.height - y });
   }
 
   // ---------------------------------------------------------------- sky
@@ -598,12 +660,20 @@ export class Engine {
     });
     this.landscapeMat.uniforms.uRes.value.set(w, h);
     this.landscapeMat.uniforms.uHorizon.value = this.horizon;
-    this.renderer.setRenderTarget(this.landscapeTarget);
-    this.renderer.render(this.landscapeScene, this.quadCamera);
-    this.renderer.setRenderTarget(null);
+    this.renderLandscape();
 
     this.worldMat.uniforms.uLandscape.value = this.landscapeTarget.texture;
     this.worldMat.uniforms.uRes.value.set(w, h);
     this.worldMat.uniforms.uHorizon.value = this.horizon;
+    this.weatherMat.uniforms.uRes.value.set(w, h);
+    this.weatherMat.uniforms.uHorizon.value = this.horizon;
+  }
+
+  /** The static sky and mountains; redrawn only while the palette changes. */
+  private renderLandscape(): void {
+    if (!this.landscapeTarget) return;
+    this.renderer.setRenderTarget(this.landscapeTarget);
+    this.renderer.render(this.landscapeScene, this.quadCamera);
+    this.renderer.setRenderTarget(null);
   }
 }

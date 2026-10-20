@@ -168,7 +168,7 @@ export class Sky {
     }
   }
 
-  update(dt: number, time: number, horizonY: number, width: number): void {
+  update(dt: number, time: number, horizonY: number, width: number, wind: number): void {
     this.time = time;
     this.updateMoon(dt, horizonY);
 
@@ -217,7 +217,7 @@ export class Sky {
         cv[i].set(0, 0, 0, 0);
         continue;
       }
-      c.x += CLOUD_DRIFT * dt;
+      c.x += CLOUD_DRIFT * (0.4 + wind * 2.4) * dt;
       if (c.x - c.w > width) c.x = -c.w;
       let p = Math.min((time - c.born) / 1.5, 1);
       if (c.fading >= 0) p *= Math.max(1 - (time - c.fading) / 1.2, 0);
