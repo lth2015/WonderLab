@@ -71,6 +71,7 @@ uniform float uPect;       // pectoral fin flap
 uniform float uL;          // body length, px
 uniform float uMaxW;       // half-width scale, px
 uniform float uShadow;     // 1 = render as soft shadow on the lake bed
+uniform float uSpread;     // > 1 while the fish dissolves (undo)
 varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
 
 ${noiseGLSL}
@@ -80,7 +81,7 @@ void main() {
   float s = vSV.x;
   float env = envW(s, uPect);
   float body = bodyW(s);
-  float gw = max(smoothstep(0.0, 1.0, uGrow), 1e-3);
+  float gw = max(smoothstep(0.0, 1.0, uGrow), 1e-3) * uSpread;
   float w = abs(vSV.y) / gw;       // offset from spine, in maxW units
   float v = vSV.y / (gw * env);    // -1..1 across the outline
   float n = noise(vec2(s * 16.0 + uSeed * 7.0, v * 4.0)) - 0.5;
@@ -116,6 +117,9 @@ void main() {
 
   // Reveal from head to tail during birth.
   a *= smoothstep(0.0, 0.08, uGrow * 1.15 - s);
+  // Dissolving: the ink breaks up into blotches as it spreads.
+  float loose = uSpread - 1.0;
+  a *= 1.0 - smoothstep(0.0, 0.35, loose * 1.6 - fbm(vec2(s * 6.0, v * 2.0) + uSeed) + 0.25);
   // Seen through a little water.
   col = mix(col, uWater, 0.12);
 

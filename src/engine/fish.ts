@@ -55,6 +55,9 @@ export class Fish {
   private startleDir = 0;
   private attract: { x: number; y: number; until: number } | null = null;
   private nextWake = 2 + Math.random() * 2;
+  private fadeTime: number;
+  private spread = 1;
+  private dispersing = false;
   private readonly geometry = new THREE.BufferGeometry();
   private readonly material: THREE.ShaderMaterial;
   private readonly shadowMaterial: THREE.ShaderMaterial;
@@ -69,6 +72,7 @@ export class Fish {
     readonly ghost = false,
   ) {
     this.opacity = ghost ? 0.38 : 1;
+    this.fadeTime = ghost ? 1.2 : 2.2;
     // Length follows the stroke, within limits.
     this.L = THREE.MathUtils.clamp(strokeLength, minDim * 0.1, minDim * 0.26);
     this.maxW = this.L * 0.12;
@@ -103,6 +107,7 @@ export class Fish {
       uL: { value: this.L },
       uMaxW: { value: this.maxW },
       uShadow: { value: shadow },
+      uSpread: { value: 1 },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
@@ -183,6 +188,17 @@ export class Fish {
     if (this.state !== 'leaving') this.state = 'leaving';
   }
 
+  /** Undo: the ink loosens and dissolves into the water. */
+  disperse(): void {
+    this.state = 'leaving';
+    this.dispersing = true;
+    this.fadeTime = 0.8;
+  }
+
+  get undone(): boolean {
+    return this.dispersing;
+  }
+
   update(dt: number, ctx: SwimContext): void {
     this.age += dt;
     if (this.state === 'forming') {
@@ -198,7 +214,8 @@ export class Fish {
 
     if (this.ghost && this.age > 4) this.leave();
     if (this.state === 'leaving') {
-      this.opacity -= dt / (this.ghost ? 1.2 : 2.2);
+      this.opacity -= dt / this.fadeTime;
+      if (this.dispersing) this.spread += dt * 0.6;
       if (this.opacity <= 0) this.dead = true;
     }
     this.material.uniforms.uGrow.value = this.grow;
@@ -207,6 +224,8 @@ export class Fish {
     this.shadowMaterial.uniforms.uGrow.value = this.grow;
     this.shadowMaterial.uniforms.uOpacity.value = Math.max(this.opacity, 0);
     this.shadowMaterial.uniforms.uPect.value = this.material.uniforms.uPect.value;
+    this.material.uniforms.uSpread.value = this.spread;
+    this.shadowMaterial.uniforms.uSpread.value = this.spread;
     this.rebuild();
   }
 
@@ -312,7 +331,7 @@ export class Fish {
       const lateral = swimAmp * Math.sin(this.phase - s * 5.5) * (0.12 + Math.pow(s, 1.3));
       const cx = this.xs[i] + nx * lateral;
       const cy = this.ys[i] + ny * lateral;
-      const halfU = envW(s, pect) * growW; // in maxW units
+      const halfU = envW(s, pect) * growW * this.spread; // in maxW units
       const half = halfU * this.maxW;
       P[i * 6 + 0] = cx + nx * half;
       P[i * 6 + 1] = cy + ny * half;

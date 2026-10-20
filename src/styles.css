@@ -116,3 +116,60 @@ body {
     animation: none;
   }
 }
+
+.hint.sky {
+  top: 22%;
+}
+
+/* 墨散: a small ink dot beside the new creation (docs/03 §5.1.1). */
+.undo {
+  position: fixed;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  animation: undo-life 4s var(--ease-ink) forwards;
+}
+.undo-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(239, 234, 223, 0.85), rgba(239, 234, 223, 0.35) 55%, rgba(239, 234, 223, 0) 72%);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  transition: transform 160ms var(--ease-ink);
+}
+.undo:hover .undo-dot,
+.undo:focus-visible .undo-dot {
+  transform: scale(1.35);
+}
+.undo:focus-visible {
+  outline: 2px solid #e9d9a6;
+  outline-offset: 2px;
+}
+@keyframes undo-life {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  75% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
