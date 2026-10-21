@@ -12,10 +12,21 @@ interface Session {
   me: MeView | null;
   loading: boolean;
   signIn(token: string, me: MeView): void;
+  /**
+   * Finish a first-factor login (dev or Google). A staff account with a
+   * second factor gets a challenge instead of a session; the account sheet
+   * then asks for the code.
+   */
+  finishLogin(res: LoginResult): void;
+  /** The pending second-factor challenge, if a login is waiting on one. */
+  challenge: string | null;
+  clearChallenge(): void;
   signOut(): void;
   /** Re-read the account, e.g. after a purchase landed. */
   refresh(): Promise<void>;
 }
+
+export type LoginResult = { token: string; user: MeView } | { mfaRequired: true; challengeToken: string };
 
 const SessionContext = createContext<Session | null>(null);
 
@@ -23,6 +34,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [runtime, setRuntime] = useState<RuntimeInfo | null>(null);
   const [me, setMe] = useState<MeView | null>(null);
   const [loading, setLoading] = useState(true);
+  // In memory only: the challenge lives five minutes and dies with the tab.
+  const [challenge, setChallenge] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!getToken()) {
@@ -63,12 +76,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setMe(user);
   }, []);
 
+  const finishLogin = useCallback(
+    (res: LoginResult) => {
+      if ('mfaRequired' in res) return setChallenge(res.challengeToken);
+      setChallenge(null);
+      signIn(res.token, res.user);
+    },
+    [signIn],
+  );
+  const clearChallenge = useCallback(() => setChallenge(null), []);
+
   const signOut = useCallback(() => {
     setToken(null);
     setMe(null);
   }, []);
 
-  const value = useMemo(() => ({ runtime, me, loading, signIn, signOut, refresh }), [runtime, me, loading, signIn, signOut, refresh]);
+  const value = useMemo(
+    () => ({ runtime, me, loading, signIn, finishLogin, challenge, clearChallenge, signOut, refresh }),
+    [runtime, me, loading, signIn, finishLogin, challenge, clearChallenge, signOut, refresh],
+  );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 

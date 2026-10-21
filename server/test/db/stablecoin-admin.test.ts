@@ -8,9 +8,11 @@
  * did it.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createHmac } from 'node:crypto';
 import { privateKeyToAccount } from 'viem/accounts';
 import { query } from '@wonderlab/db';
 import { encodeTransferCalldata, type ChainObservation } from '@wonderlab/providers';
+import { base32Decode } from '../../src/auth/totp.js';
 import { settleStablecoinObservation } from '../../src/services/stablecoin-settle.js';
 import { decideStablecoinReview } from '../../src/services/stablecoin-admin.js';
 import { balanceOf, createHarness, resetData, teardown, type Harness, type TestUser, seedScanCursor, verifiedChainStub } from './helpers/harness.js';
@@ -24,6 +26,17 @@ const JPYC = '0xe7c3d8c9a439fede00d2600032d5db0be71c3c29';
 const AMOUNT = 980n * 10n ** 18n;
 const accountA = privateKeyToAccount('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d');
 const PAYER = accountA.address.toLowerCase();
+
+function totpAt(secret: string, atMs: number): string {
+  const counter = Math.floor(atMs / 30_000);
+  const buf = Buffer.alloc(8);
+  buf.writeUInt32BE(counter % 2 ** 32, 4);
+  const digest = createHmac('sha1', base32Decode(secret)).update(buf).digest();
+  const offset = digest[digest.length - 1]! & 0x0f;
+  const code =
+    ((digest[offset]! & 0x7f) << 24) | (digest[offset + 1]! << 16) | (digest[offset + 2]! << 8) | digest[offset + 3]!;
+  return String(code % 1_000_000).padStart(6, '0');
+}
 
 beforeAll(async () => {
   h = await createHarness({
@@ -72,7 +85,18 @@ afterAll(async () => {
 /** A staff account that has done what the console now requires of staff. */
 async function staffUser(email: string, role: 'support' | 'admin'): Promise<TestUser> {
   const user = await h.createUser({ email, role });
-  // yuha enrols a TOTP factor here; WonderLab's console has no second factor yet.
+  const enroll = await h.app.inject({
+    method: 'POST',
+    url: '/v1/auth/mfa/enroll',
+    headers: { ...user.authHeader, ...freshIp() },
+  });
+  expect(enroll.statusCode, enroll.body).toBe(200);
+  await h.app.inject({
+    method: 'POST',
+    url: '/v1/auth/mfa/confirm',
+    headers: { ...user.authHeader, ...freshIp() },
+    payload: { code: totpAt(enroll.json().secret as string, Date.now()) } as never,
+  });
   return user;
 }
 

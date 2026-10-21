@@ -7,3 +7,4 @@ export * from './outbox.js';
 export * from './misc.js';
 export * from './auth_codes.js';
 export * from './stablecoin.js';
+export * from './mfa.js';

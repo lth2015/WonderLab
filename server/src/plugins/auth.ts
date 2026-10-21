@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { AppError, type UserRole } from '@wonderlab/contracts';
-import type { UserRow } from '@wonderlab/db';
+import { getEnabledMfaFactor, type UserRow } from '@wonderlab/db';
 import type { AuthAdapter } from '../auth/index.js';
 
 declare module 'fastify' {
@@ -20,7 +20,7 @@ declare module 'fastify' {
 
 export default fp(async function authPlugin(
   app: FastifyInstance,
-  opts: { adapter: AuthAdapter },
+  opts: { adapter: AuthAdapter; adminMfaRequired: boolean },
 ) {
   const { adapter } = opts;
 
@@ -62,9 +62,18 @@ export default fp(async function authPlugin(
     if (!roles.includes(req.user!.role)) {
       throw new AppError('FORBIDDEN', 'insufficient privileges');
     }
-    // yuha also requires a staff second factor here (TOTP). WonderLab has not
-    // ported MFA yet, so the staff console relies on the sign-in alone: give a
-    // staff role only to accounts whose Google sign-in is itself 2-step.
+    /*
+     * A second factor, checked at the gate rather than at sign-in.
+     *
+     * Enforcing it here means an account that is GIVEN a staff role later
+     * cannot use the console until it enrols — where a login-time check would
+     * have let an already-open session straight through. The way out is open:
+     * enrolment is an ordinary authenticated route, so a locked-out admin can
+     * still set up their authenticator and come back.
+     */
+    if (opts.adminMfaRequired && !(await getEnabledMfaFactor(req.user!.id))) {
+      throw new AppError('MFA_REQUIRED', 'staff accounts need two-factor authentication — enrol first');
+    }
   });
 
   /** Generation and purchase are limited to confirmed 18+ accounts. */

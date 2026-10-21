@@ -4,8 +4,9 @@ import { GOOGLE_WEB_RETURN_PATH } from '../../server/src/auth/google-paths';
 import { API_BASE, ApiError, apiFetch, newIdempotencyKey } from './api';
 import { canBePaid, firstAvailableMethod, paymentMethodsOf } from '../lib/purchase';
 import { AUTH_NEXT_KEY, safeInternalPath } from '../lib/paths';
-import { useSession } from './session';
+import { useSession, type LoginResult } from './session';
 import { StablecoinPay } from './StablecoinPay';
+import { MfaChallenge, TwoFactor } from './TwoFactor';
 
 // The account panel: sign-in, credits and buying, opened from 更多. It is a
 // sheet over the canvas rather than a page, so the world keeps breathing
@@ -24,7 +25,7 @@ function messageOf(err: unknown): string {
 }
 
 export function AccountSheet({ onClose }: { onClose: () => void }) {
-  const { runtime, me, loading } = useSession();
+  const { runtime, me, loading, challenge } = useSession();
   const closeBtn = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeBtn.current?.focus();
@@ -38,6 +39,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
   let body;
   if (loading) body = <p className="note">……</p>;
   else if (!runtime?.accountsEnabled) body = <p className="note">账户功能尚未开启。画画、写字都不需要账户。</p>;
+  else if (!me && challenge) body = <MfaChallenge challengeToken={challenge} />;
   else if (!me) body = <SignIn />;
   else if (!me.ageConfirmed) body = <Consent />;
   else body = <Signed me={me} />;
@@ -58,7 +60,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
 }
 
 function SignIn() {
-  const { runtime, signIn } = useSession();
+  const { runtime, finishLogin } = useSession();
   const [email, setEmail] = useState('');
   const [age, setAge] = useState(false);
   const [terms, setTerms] = useState(false);
@@ -80,11 +82,11 @@ function SignIn() {
     setBusy(true);
     setError('');
     try {
-      const res = await apiFetch<{ token: string; user: MeView }>('/v1/auth/dev-login', {
+      const res = await apiFetch<LoginResult>('/v1/auth/dev-login', {
         method: 'POST',
         body: { email, ageConfirmed: true, termsAccepted: true, marketingOptIn: false },
       });
-      signIn(res.token, res.user);
+      finishLogin(res);
     } catch (err) {
       setError(messageOf(err));
     } finally {
@@ -235,6 +237,7 @@ function Signed({ me }: { me: MeView }) {
         </ul>
       )}
       {error && <p className="error" role="alert">{error}</p>}
+      {me.role !== 'user' && <TwoFactor />}
       <button type="button" className="link-btn" onClick={signOut}>
         退出登录
       </button>
@@ -244,7 +247,7 @@ function Signed({ me }: { me: MeView }) {
 
 /** After Google: exchange the one-time code for a session (yuha GoogleCallback.tsx). */
 export function useGoogleReturn(onDone: (next: string) => void): string {
-  const { signIn } = useSession();
+  const { finishLogin } = useSession();
   const [state, setState] = useState('');
   const tried = useRef(false);
   useEffect(() => {
@@ -264,14 +267,15 @@ export function useGoogleReturn(onDone: (next: string) => void): string {
       return;
     }
     setState('正在完成登录……');
-    apiFetch<{ token: string; user: MeView }>('/v1/auth/google/exchange', { method: 'POST', body: { code } })
+    apiFetch<LoginResult>('/v1/auth/google/exchange', { method: 'POST', body: { code } })
       .then((res) => {
-        signIn(res.token, res.user);
+        // A staff account comes back with a challenge; the sheet asks for the code.
+        finishLogin(res);
         setState('');
         onDone(next);
       })
       .catch((err) => setState(messageOf(err)));
-  }, [signIn, onDone]);
+  }, [finishLogin, onDone]);
   return state;
 }
 

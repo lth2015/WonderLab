@@ -43,12 +43,13 @@ npm run art -- --process-only
 
 ## 账户与支付（移植自 yuha）
 
-Google 登录、Stripe 卡支付、JPYC/USDC 稳定币支付和额度账本，代码来自 [yuha](https://github.com/lth2015/yuha)（Apache-2.0，见 `NOTICE`），保留了它的校验和幂等规则，去掉了曲目、市场授权、MFA、邮件通知等 yuha 专属部分。
+Google 登录、员工两步验证、Stripe 卡支付、JPYC/USDC 稳定币支付和额度账本，代码来自 [yuha](https://github.com/lth2015/yuha)（Apache-2.0，见 `NOTICE`），保留了它的校验和幂等规则，去掉了曲目、市场授权、邮件通知等 yuha 专属部分。
 
 - 都依赖 MySQL：不设 `DATABASE_URL` 时，服务端照常提供「一句成境」，账户和支付关闭，画布完全不受影响。
 - **卖什么还没定**：商品由 `.env` 的 `CATALOGUE_JSON` 配置（价格、额度、有效期），Stripe 价格 id 按 `STRIPE_PRICE_ID_<商品键>` 读取；不配置就什么都不卖。
 - 本地试用：`npm run db:up`（Docker 起 MySQL），`.env` 里设 `DATABASE_URL`、`DEV_AUTH_SECRET` 和一个 `CATALOGUE_JSON`，`npm run server`。演示模式（`RUN_MODE=demo`）下登录和付款都是模拟的。入口在「更多 → 账户」。
-- `npm run test:db`：支付、退款、争议、订阅对账、稳定币报价/扫链/结算、账本等 252 项数据库测试（需要 `npm run db:up`）。
+- 员工两步验证（TOTP）：角色为 support/admin 的账户在开启两步验证之前进不了 `/v1/admin/*`；在「更多 → 账户」里扫码开启，之后登录（开发登录或 Google）都要再输入验证器里的 6 位码，或一个一次性恢复码。连续输错会锁定这个账户几分钟。相关配置见 `.env.example` 的 `MFA_*`、`ADMIN_MFA_REQUIRED`（生产环境不能关）。
+- `npm run test:db`：支付、退款、争议、订阅对账、稳定币报价/扫链/结算、账本、两步验证等 271 项数据库测试（需要 `npm run db:up`）。
 - 上线前要配置的服务器路由：`/auth/google/callback`、`/checkout/complete`、`/checkout/simulate`、`/pricing` 都返回 `index.html`（开发服务器已经这样做）。
 
 ## 测试主持

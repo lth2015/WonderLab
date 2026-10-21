@@ -99,7 +99,7 @@ export async function buildServer({ config, chat, usage: givenUsage, aiReady = t
 
   if (ctx) {
     const adapter = createAuthAdapter(config);
-    await app.register(authPlugin, { adapter });
+    await app.register(authPlugin, { adapter, adminMfaRequired: config.ADMIN_MFA_REQUIRED });
     await app.register(authRoutes, { ctx, adapter });
     await app.register(billingRoutes, { ctx });
     await app.register(stablecoinRoutes, { ctx });

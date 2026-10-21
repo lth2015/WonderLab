@@ -10,7 +10,7 @@ import { parseCatalogue, type CatalogueRow } from './catalogue.js';
  * Configuration and mode validation, ported from yuha (apps/api/src/config.ts,
  * Apache-2.0). Kept: run modes, identity, payments, stablecoin, purchase caps
  * and card review, with yuha's start-up checks. Cut: music, storage, queues,
- * email, MFA, lyric alignment and generation tuning, which WonderLab does not
+ * email, lyric alignment and generation tuning, which WonderLab does not
  * have. Added: the 一句成境 settings (invites and the three AI caps).
  *
  * The central rule, from yuha: a run mode is a single explicit value, and the
@@ -156,6 +156,17 @@ const envSchema = z.object({
   GOOGLE_REDIRECT_URI: z.string().optional(),
   /** Signing secret for Google-issued sessions; falls back to DEV_AUTH_SECRET outside production. */
   GOOGLE_SESSION_SECRET: secret(),
+  /** Key material for encrypting TOTP secrets at rest. Falls back outside production. */
+  MFA_ENCRYPTION_SECRET: secret(),
+  /** Issuer shown in Google Authenticator. */
+  MFA_ISSUER: z.string().default('WonderLab'),
+  /*
+   * Staff accounts must carry a second factor (yuha). An operations console
+   * can decide held orders and stablecoin payments, so a stolen staff
+   * password is a different class of incident from a stolen customer one.
+   * Default on, and production refuses to start with it off.
+   */
+  ADMIN_MFA_REQUIRED: bool(true),
 
   /*
    * Stablecoin payments. Three switches, all off, and they stay off until the
@@ -436,6 +447,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     if (adapters.auth === 'dev') problems.push('production mode cannot use the dev auth adapter');
     if (adapters.payments !== 'stripe') problems.push('production mode cannot use simulated payments');
     if (e.DEV_AUTH_SECRET) problems.push('DEV_AUTH_SECRET must not be set in production');
+    if (!e.ADMIN_MFA_REQUIRED) problems.push('production mode cannot disable the staff second factor');
     if (accountsEnabled && (!e.LEGAL_ENTITY_NAME || !e.LEGAL_ENTITY_CONTACT)) {
       problems.push(
         'production mode requires LEGAL_ENTITY_NAME and LEGAL_ENTITY_CONTACT ' +

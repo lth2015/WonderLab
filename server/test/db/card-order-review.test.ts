@@ -15,15 +15,32 @@
  * the stablecoin round made with its review state, which was set correctly and
  * reached nobody.
  */
+import { createHmac } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { query, withTx } from '@wonderlab/db';
 import { cardOrderRiskReasons } from '../../src/services/order-review.js';
+import { base32Decode } from '../../src/auth/totp.js';
 import { balanceOf, createHarness, resetData, teardown, type Harness, type TestUser } from './helpers/harness.js';
 
 let h: Harness;
 let callNo = 0;
 const freshIp = () => ({ 'x-forwarded-for': `198.19.0.${(callNo++ % 200) + 10}` });
 
+/** A TOTP code, because the console requires staff to have a second factor. */
+function totpAt(secret: string, atMs: number): string {
+  const counter = Math.floor(atMs / 1000 / 30);
+  const buf = Buffer.alloc(8);
+  buf.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);
+  buf.writeUInt32BE(counter % 2 ** 32, 4);
+  const hmac = createHmac('sha1', base32Decode(secret)).update(buf).digest();
+  const offset = hmac[hmac.length - 1]! & 0x0f;
+  const code =
+    ((hmac[offset]! & 0x7f) << 24) |
+    ((hmac[offset + 1]! & 0xff) << 16) |
+    ((hmac[offset + 2]! & 0xff) << 8) |
+    (hmac[offset + 3]! & 0xff);
+  return (code % 1_000_000).toString().padStart(6, '0');
+}
 
 beforeAll(async () => {
   h = await createHarness({
@@ -43,7 +60,18 @@ afterAll(async () => {
 
 async function staffUser(email: string, role: 'support' | 'admin'): Promise<TestUser> {
   const user = await h.createUser({ email, role });
-  // yuha enrols a TOTP factor here; WonderLab's console has no second factor yet.
+  const enroll = await h.app.inject({
+    method: 'POST',
+    url: '/v1/auth/mfa/enroll',
+    headers: { ...user.authHeader, ...freshIp() },
+  });
+  expect(enroll.statusCode, enroll.body).toBe(200);
+  await h.app.inject({
+    method: 'POST',
+    url: '/v1/auth/mfa/confirm',
+    headers: { ...user.authHeader, ...freshIp() },
+    payload: { code: totpAt(enroll.json().secret as string, Date.now()) } as never,
+  });
   return user;
 }
 

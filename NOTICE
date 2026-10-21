@@ -2,10 +2,12 @@ WonderLab · 万象生
 
 This product includes software from YUHA (https://github.com/lth2015/yuha),
 licensed under the Apache License, Version 2.0, stewarded by the NETX
-technical community. The ported parts — sign-in and sessions, Stripe and
-stablecoin payments, the credits ledger, their database migrations and tests —
-live under server/ and were adapted for WonderLab (yuha-only features such as
-songs, the market licence, MFA and e-mail notices were removed). A copy of
+technical community. The ported parts — sign-in and sessions, the staff second
+factor (TOTP), Stripe and stablecoin payments, the credits ledger, their
+database migrations and tests — live under server/, with the matching account
+screens under src/account and src/lib, and were adapted for WonderLab
+(yuha-only features such as songs, the market licence and e-mail notices were
+removed). A copy of
 the Apache License 2.0 is in server/YUHA-LICENSE.
 
 The poetic typeface is LXGW WenKai (https://github.com/lxgw/LxgwWenKai),

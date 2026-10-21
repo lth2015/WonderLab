@@ -598,7 +598,8 @@ body {
   margin: 12px 0;
   font-size: 14px;
 }
-.sheet .dev-login input[type='email'] {
+.sheet .dev-login input[type='email'],
+.sheet input.code {
   display: block;
   width: 100%;
   box-sizing: border-box;
@@ -611,6 +612,50 @@ body {
   color: var(--paper-100);
   font: inherit;
   font-size: 16px;
+}
+/* Staff second factor. */
+.sheet input.code {
+  margin-top: 0;
+  letter-spacing: 0.15em;
+}
+.sheet .mfa .row input.code {
+  flex: 1;
+  min-width: 0;
+}
+.sheet .mfa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(239, 234, 223, 0.08);
+}
+.sheet .mfa h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+.sheet .mfa .note {
+  margin: 0;
+}
+.sheet .mfa .qr {
+  align-self: flex-start;
+  border-radius: 8px;
+  background: #fff;
+}
+.sheet .mfa .key,
+.sheet .mfa .recovery code {
+  font-size: 13px;
+  word-break: break-all;
+  user-select: all;
+}
+.sheet .mfa .recovery ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
 }
 .sheet .check {
   display: flex;

@@ -23,6 +23,14 @@ import {
 } from '../auth/index.js';
 import { GOOGLE_CALLBACK_PATH } from '../auth/google-paths.js';
 import { grantTrialIfEligible } from '../services/billing.js';
+import {
+  confirmMfa,
+  disableMfa,
+  enrollMfa,
+  issueMfaChallenge,
+  sessionIssuerFor,
+  verifyMfaChallenge,
+} from '../services/mfa.js';
 import { devLoginAllowed, parseDevLoginAllowlist } from '../auth/allowlist.js';
 
 const devLoginSchema = z.object({
@@ -235,6 +243,11 @@ export default async function authRoutes(
         runMode: ctx.config.mode,
         isInternal: true,
       });
+      // Second factor first: an enrolled account gets a challenge, not a session.
+      const challenge = await issueMfaChallenge(ctx, user.id, body.email);
+      if (challenge) {
+        return { mfaRequired: true, challengeToken: challenge, demo: ctx.config.isDemo };
+      }
       const token = dev.issue({ externalId, email: body.email });
       return {
         token: token.token,
@@ -374,6 +387,11 @@ export default async function authRoutes(
         if (!user || user.deleted_at) throw new AppError('UNAUTHENTICATED', 'account no longer exists');
         refuseInactive(user);
 
+        // Second factor first: an enrolled account gets a challenge, not a session.
+        const challenge = await issueMfaChallenge(ctx, user.id, user.email);
+        if (challenge) {
+          return { mfaRequired: true, challengeToken: challenge, demo: ctx.config.isDemo };
+        }
         const sessionAdapter = new GoogleSessionAdapter({ secret: stateSecret(ctx) });
         const token = sessionAdapter.sessionIssuer().issue({
           provider: 'google',
@@ -420,5 +438,69 @@ export default async function authRoutes(
       // Kept for wire compatibility with yuha's web client; WonderLab has no Cognito.
       cognito: null,
     };
+  });
+
+  // ------------------------------------------------------------- MFA (TOTP)
+
+  /**
+   * Enroll: returns the secret and the otpauth:// URI for the Google
+   * Authenticator QR. The factor stays inactive until confirmed with a live
+   * code, so a botched enrollment can never lock an account out.
+   */
+  app.post('/v1/auth/mfa/enroll', { preHandler: app.requireAuth }, async (req) => {
+    return enrollMfa(ctx, req.user!.id);
+  });
+
+  app.post('/v1/auth/mfa/confirm', { preHandler: app.requireAuth }, async (req) => {
+    const body = z.object({ code: z.string().regex(/^\d{6}$/) }).parse(req.body);
+    const result = await confirmMfa(ctx, { userId: req.user!.id, code: body.code });
+    return result;
+  });
+
+  app.post('/v1/auth/mfa/disable', { preHandler: app.requireAuth }, async (req) => {
+    const body = z.object({ code: z.string().min(6).max(16) }).parse(req.body);
+    await disableMfa(ctx, { userId: req.user!.id, code: body.code });
+    // The one an attacker performs. Turning a second factor off is the change
+    // most worth telling somebody about.
+    return { disabled: true };
+  });
+
+  /** The session minting endpoint a challenge holder reaches after a valid code. */
+  app.post(
+    '/v1/auth/mfa/verify',
+    {
+      config: {
+        rateLimit: { max: 12, timeWindow: '1 minute' },
+      },
+    },
+    async (req) => {
+      const body = z
+        .object({ challengeToken: z.string().min(20), code: z.string().min(6).max(16) })
+        .parse(req.body);
+      const { userId, usedRecoveryCode } = await verifyMfaChallenge(ctx, body);
+
+      const user = await getUser(userId);
+      if (!user || user.deleted_at) throw new AppError('UNAUTHENTICATED', 'account no longer exists');
+      refuseInactive(user);
+      const token = sessionIssuerFor(ctx).issue({
+        provider: user.auth_provider === 'google' ? 'google' : 'dev',
+        externalId: user.external_id,
+        email: user.email,
+      });
+      return {
+        token: token.token,
+        expiresAt: token.expiresAt.toISOString(),
+        user: await toMeView(user),
+        usedRecoveryCode,
+        demo: ctx.config.isDemo,
+      };
+    },
+  );
+
+  /** Account settings reads whether MFA is on. */
+  app.get('/v1/auth/mfa/status', { preHandler: app.requireAuth }, async (req) => {
+    const { getEnabledMfaFactor } = await import('@wonderlab/db');
+    const factor = await getEnabledMfaFactor(req.user!.id);
+    return { enabled: !!factor, confirmedAt: factor?.confirmed_at?.toISOString() ?? null };
   });
 }

@@ -238,6 +238,7 @@ const BUSINESS_TABLES = [
   'stablecoin_quotes',
   'verified_wallets',
   'wallet_challenges',
+  'mfa_factors',
   'auth_codes',
   'ledger_entries',
   'entitlement_batches',
