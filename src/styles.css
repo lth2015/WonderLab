@@ -710,6 +710,9 @@ body {
   color: #e9d9a6;
 }
 /* Recording (docs/02 §6.2; docs/03 §5.1, §5.4, §11). */
+.icon-btn.sound.off {
+  opacity: 0.6;
+}
 .icon-btn.record.on {
   color: var(--cinnabar);
 }

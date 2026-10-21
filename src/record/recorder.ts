@@ -16,14 +16,26 @@ const MIME_CANDIDATES: { type: string; bitrate: number; ext: 'mp4' | 'webm' }[] 
   { type: 'video/webm', bitrate: 5_000_000, ext: 'webm' },
 ];
 
+// With sound on, the same order with an audio codec named; a browser that
+// cannot encode audio in either container still records, silently.
+const MIME_WITH_AUDIO: { type: string; bitrate: number; ext: 'mp4' | 'webm' }[] = [
+  { type: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', bitrate: 6_000_000, ext: 'mp4' },
+  { type: 'video/webm;codecs=vp9,opus', bitrate: 5_000_000, ext: 'webm' },
+  { type: 'video/webm;codecs=vp8,opus', bitrate: 5_000_000, ext: 'webm' },
+];
+
 export interface Format {
   type: string;
   bitrate: number;
   ext: 'mp4' | 'webm';
+  audio: boolean;
 }
 
-export function pickFormat(isSupported: (t: string) => boolean): Format | null {
-  return MIME_CANDIDATES.find((c) => isSupported(c.type)) ?? null;
+export function pickFormat(isSupported: (t: string) => boolean, withAudio = false): Format | null {
+  const audio = withAudio ? MIME_WITH_AUDIO.find((c) => isSupported(c.type)) : undefined;
+  if (audio) return { ...audio, audio: true };
+  const video = MIME_CANDIDATES.find((c) => isSupported(c.type));
+  return video ? { ...video, audio: false } : null;
 }
 
 export function canRecord(): boolean {
@@ -140,18 +152,22 @@ export class Recording {
   private readonly startedAt = performance.now();
   private readonly done: Promise<Take>;
 
-  constructor(source: HTMLCanvasElement) {
-    this.format = pickFormat((t) => MediaRecorder.isTypeSupported(t))!;
+  /** `audio`: what the sound is playing (src/sound.ts), or null for a silent take. */
+  constructor(source: HTMLCanvasElement, audio: MediaStream | null = null) {
+    this.format = pickFormat((t) => MediaRecorder.isTypeSupported(t), !!audio)!;
     this.compositor = new Compositor(source);
     this.compositor.draw(source);
-    const stream = this.compositor.canvas.captureStream(FPS);
+    const video = this.compositor.canvas.captureStream(FPS);
+    const stream =
+      audio && this.format.audio ? new MediaStream([...video.getVideoTracks(), ...audio.getAudioTracks()]) : video;
     this.recorder = new MediaRecorder(stream, { mimeType: this.format.type, videoBitsPerSecond: this.format.bitrate });
     this.recorder.ondataavailable = (e) => {
       if (e.data.size) this.chunks.push(e.data);
     };
     this.done = new Promise((resolve) => {
       this.recorder.onstop = () => {
-        for (const t of stream.getTracks()) t.stop();
+        // Only our own canvas track: the audio track belongs to the live sound.
+        for (const t of video.getTracks()) t.stop();
         const blob = new Blob(this.chunks, { type: this.format.type.split(';')[0] });
         resolve({ blob, url: URL.createObjectURL(blob), ext: this.format.ext, seconds: this.elapsed });
       };

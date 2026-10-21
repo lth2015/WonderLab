@@ -6,6 +6,7 @@ import type { Palette } from './palette';
 import { Atmosphere } from './atmosphere';
 import type { SceneCommand } from './intent';
 import { weatherFrag } from './shaders/weather';
+import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { Fish } from './fish';
 import { Sky, type MoonSpec } from './sky';
@@ -52,6 +53,12 @@ export interface EngineEvents {
   onRestartSettled?: (undone: boolean) => void;
   /** Right after each render, while the drawing buffer is still readable. */
   onFrame?: (canvas: HTMLCanvasElement) => void;
+}
+
+/** Where the engine sends its sounds (src/sound.ts); absent means silence. */
+export interface SoundSink {
+  play(kind: SoundKind, opts?: { pan?: number; strength?: number }): void;
+  ambient(levels: AmbientLevels): void;
 }
 
 interface PendingRestart {
@@ -131,6 +138,7 @@ export class Engine {
   private demo: { points: StrokePoint[]; stroke: Stroke; start: number } | null = null;
   private hadFirstStroke = false;
   private tierHeld = false;
+  private sound: SoundSink | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -269,6 +277,14 @@ export class Engine {
 
   get canUndo(): boolean {
     return this.history.length > 0;
+  }
+
+  setSound(sink: SoundSink | null): void {
+    this.sound = sink;
+  }
+
+  private sfx(kind: SoundKind, x: number, strength = 1): void {
+    this.sound?.play(kind, { pan: panFor(x, this.width), strength });
   }
 
   /** Keep the current quality tier, e.g. while recording (docs/03 §10). */
@@ -549,6 +565,7 @@ export class Engine {
     weu.uMist.value = atmos.mist;
     weu.uFireflies.value = atmos.fireflies;
     weu.uWind.value = atmos.wind;
+    this.sound?.ambient({ rain: atmos.rain, wind: atmos.wind, fireflies: atmos.fireflies, dusk: atmos.dusk });
 
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
     this.echo.update(t);
@@ -623,6 +640,7 @@ export class Engine {
     const maxFish = TIERS[this.monitor.tier].maxFish;
     while (real.length > maxFish) real.shift()!.leave();
     if (ghost) return;
+    this.sfx('drop', fish.headX);
     this.events.onFishCreated?.(real.length);
     this.record('fish', fish.headX, fish.headY, () => {
       fish.disperse();
@@ -664,6 +682,7 @@ export class Engine {
     };
     const prev = this.sky.moonSpec;
     this.sky.setMoon(spec);
+    this.sfx('chime', x);
     this.fadeStroke(stroke, fromLake ? 0.1 : 0.3, fromLake ? 0.7 : 1.0);
     if (fromLake) this.addRipple(fit.cx, fit.cy, 0.8);
     const anchorY = fromLake ? fit.cy : y;
@@ -672,6 +691,7 @@ export class Engine {
 
   private placeStar(x: number, y: number): void {
     const id = this.sky.addStar(x, y);
+    this.sfx('star', x);
     this.record('star', x, y, () => this.sky.removeStar(id));
   }
 
@@ -681,6 +701,7 @@ export class Engine {
     const b = pts[pts.length - 1];
     let starId = 0;
     let cancelled = false;
+    this.sfx('meteor', (a.x + b.x) / 2);
     this.sky.meteor(a.x, a.y, b.x, b.y, () => {
       if (!cancelled) starId = this.sky.addStar(b.x, b.y);
     });
@@ -759,6 +780,7 @@ export class Engine {
       stroke = new Stroke(this.palette, this.minDim, e.pointerType === 'pen');
       stroke.add({ x, y, t: e.timeStamp, pressure: e.pressure || 0.5 });
       this.scene.add(stroke.mesh);
+      this.sfx('stroke', x);
     }
     this.input = { id: e.pointerId, stroke, downX: x, downY: y, downT: e.timeStamp, moved: 0, fish };
   };
@@ -811,8 +833,10 @@ export class Engine {
     switch (c.kind) {
       case 'short':
         this.fadeStroke(stroke, 0.1, 0.6);
-        if (lake) this.addRipple(centroid.x, centroid.y, 0.5);
-        else this.placeStar(centroid.x, centroid.y);
+        if (lake) {
+          this.addRipple(centroid.x, centroid.y, 0.5);
+          this.sfx('ripple', centroid.x, 0.5);
+        } else this.placeStar(centroid.x, centroid.y);
         return;
       case 'circle':
         this.placeMoon(c, stroke, lake);
@@ -849,10 +873,12 @@ export class Engine {
       // Moonlight brightens for a moment and the reflection trembles.
       this.sky.pulseMoon();
       this.addRipple(moon!.x, 2 * this.horizonY - moon!.y, 0.8);
+      this.sfx('chime', moon!.x, 0.4);
       return;
     }
     if (y >= this.horizonY && !fish) {
       this.sky.flash(x, y);
+      this.sfx('star', x);
       return;
     }
     if (fish) {
@@ -863,14 +889,17 @@ export class Engine {
       if (again && fish.canLeap) {
         fish.leap();
         this.addRipple(fish.headX, fish.headY, 1.1);
+        this.sfx('ripple', fish.headX, 1.1);
         this.lastFishTouch = null;
         return;
       }
       fish.scare(x, y, 1);
       this.addRipple(x, y, 0.6);
+      this.sfx('ripple', x, 0.6);
       return;
     }
     this.addRipple(x, y, 1);
+    this.sfx('ripple', x, 1);
     const r = this.minDim * 0.12;
     for (const f of this.fishes) {
       const d = Math.hypot(f.headX - x, f.headY - y);
@@ -882,9 +911,11 @@ export class Engine {
   private longPress(x: number, y: number): void {
     if (y >= this.horizonY) {
       this.sky.flash(x, y);
+      this.sfx('star', x);
       return;
     }
     this.addRipple(x, y, 0.5);
+    this.sfx('ripple', x, 0.5);
     for (const f of this.fishes) f.lure(x, y, this.time);
   }
 

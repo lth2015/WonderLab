@@ -12,6 +12,8 @@ import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } fro
 import { clearWorld, loadWorld, saveWorld } from './engine/persist';
 import { loadArt } from './engine/art';
 import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
+import { sound } from './sound';
+import { SoundToggle } from './SoundToggle';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
 const DEMO_IDLE_MS = 4000;
@@ -216,6 +218,8 @@ export function App() {
       canvas,
       {
         onFirstStroke: () => {
+          // Inside the pointerdown: the gesture browsers require before audio.
+          sound.wake();
           logEvent('first_stroke', { after: Math.round(performance.now() - readyAt) });
           drawn = true;
           cancel(demoTimer);
@@ -253,6 +257,7 @@ export function App() {
       },
     );
     engineRef.current = engine;
+    engine.setSound(sound);
     setTier(engine.tier);
     const saved = fresh ? null : loadWorld();
     if (saved) {
@@ -360,6 +365,7 @@ export function App() {
             cancel(demoTimer);
             setHint(null);
           }
+          sound.wake();
           engine.keyAction(action);
         }
       }
@@ -584,6 +590,7 @@ export function App() {
         </div>
       ))}
       <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} onAccount={() => setOverlay({ kind: 'account' })} onWallpaper={() => void saveWallpaper()} dim={dim}>
+        <SoundToggle />
         <RecordButton api={recorder} />
       </Menu>
       <RecordOverlays api={recorder} />
