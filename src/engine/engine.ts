@@ -14,6 +14,8 @@ import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
 import { SAVE_VERSION, type WorldSave } from './persist';
+import type { Art } from './art';
+import { EchoLayer } from './echo-layer';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
@@ -48,6 +50,8 @@ export interface EngineEvents {
   onTierChange?: (tier: Tier) => void;
   /** The pending restart became final (or was taken back: `undone`). */
   onRestartSettled?: (undone: boolean) => void;
+  /** Right after each render, while the drawing buffer is still readable. */
+  onFrame?: (canvas: HTMLCanvasElement) => void;
 }
 
 interface PendingRestart {
@@ -109,6 +113,8 @@ export class Engine {
   private calm: boolean;
   private restartPending: PendingRestart | null = null;
   private lastFishTouch: { fish: Fish; time: number } | null = null;
+  private art: Art | null = null;
+  private readonly echo = new EchoLayer();
 
   private width = 1;
   private height = 1;
@@ -124,6 +130,7 @@ export class Engine {
   private input: ActiveInput | null = null;
   private demo: { points: StrokePoint[]; stroke: Stroke; start: number } | null = null;
   private hadFirstStroke = false;
+  private tierHeld = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -175,6 +182,8 @@ export class Engine {
         uWind: { value: this.atmosphere.wind },
         uDusk: { value: 0 },
         uPost: { value: 1 },
+        uMoonTex: { value: null as THREE.Texture | null },
+        uMoonTexOn: { value: 0 },
         ...this.sky.uniforms,
       },
       depthTest: false,
@@ -207,6 +216,7 @@ export class Engine {
     weather.renderOrder = 2.5; // over the fish, under the brush
     weather.frustumCulled = false;
     this.scene.add(weather);
+    this.scene.add(this.echo.mesh);
     const bg = new THREE.Mesh(quad, this.worldMat);
     bg.renderOrder = 0;
     bg.frustumCulled = false;
@@ -230,8 +240,41 @@ export class Engine {
     cancelAnimationFrame(this.raf);
   }
 
+  /** Use generated koi and moon textures (scripts/gen-art.mjs) from now on, existing fish included. */
+  setArt(art: Art): void {
+    this.art = art;
+    for (const f of this.fishes) f.setSkins(art.koi);
+    this.worldMat.uniforms.uMoonTex.value = art.moon;
+    this.worldMat.uniforms.uMoonTexOn.value = art.moon ? 1 : 0;
+  }
+
+  /**
+   * Render the current world at high resolution and return it as a PNG
+   * (保存为壁纸). Local and free: the same frame, drawn with more pixels, so
+   * the long edge reaches about `longEdge`. The echo line in the sky is part
+   * of the frame; the page's buttons and hints are not.
+   */
+  async captureWallpaper(longEdge = 3840): Promise<Blob | null> {
+    const base = this.renderer.getPixelRatio();
+    const ratio = Math.min(longEdge / Math.max(this.width, this.height), 4);
+    this.renderer.setPixelRatio(ratio);
+    this.resize(ratio);
+    this.renderer.render(this.scene, this.camera);
+    // Read back in the same task as the render (the drawing buffer is not preserved).
+    const blob = await new Promise<Blob | null>((resolve) => this.canvas.toBlob(resolve, 'image/png'));
+    this.renderer.setPixelRatio(base);
+    this.resize();
+    return blob;
+  }
+
   get canUndo(): boolean {
     return this.history.length > 0;
+  }
+
+  /** Keep the current quality tier, e.g. while recording (docs/03 §10). */
+  holdTier(on: boolean): void {
+    this.tierHeld = on;
+    if (!on) this.monitor.settle(performance.now());
   }
 
   get tier(): Tier {
@@ -319,6 +362,7 @@ export class Engine {
         calm: this.calm,
         look: { seed: f.seed, patch: f.patch },
       });
+      if (this.art) fish.setSkins(this.art.koi);
       this.fishes.push(fish);
       this.scene.add(fish.group);
     }
@@ -398,6 +442,21 @@ export class Engine {
     this.record('atmosphere', this.width / 2, this.horizonY, () => this.atmosphere.set(prev));
   }
 
+  /** Show an echo line from the poem library in the sky. */
+  showEcho(text: string, author: string): void {
+    const skyTop = this.height;
+    const y = this.horizonY + (skyTop - this.horizonY) * 0.6;
+    void this.echo.show(text, author, this.width / 2, y, this.width, this.width < 600);
+  }
+
+  /**
+   * Fill in a scene command that arrived late (the AI), without a new undo
+   * step: undoing still returns to the state before the sentence.
+   */
+  amendScene(cmd: SceneCommand): void {
+    this.atmosphere.apply(cmd);
+  }
+
   /** Undo the latest creation, or a given one. Returns false when there is nothing to undo. */
   undo(id?: number): boolean {
     const at = id === undefined ? this.history.length - 1 : this.history.findIndex((h) => h.id === id);
@@ -421,6 +480,7 @@ export class Engine {
     this.landscapeMat.dispose();
     this.worldMat.dispose();
     this.weatherMat.dispose();
+    this.echo.dispose();
     this.renderer.dispose();
   }
 
@@ -437,7 +497,7 @@ export class Engine {
     const interval = now - this.last;
     const dt = Math.min(interval / 1000, 1 / 20);
     this.last = now;
-    if (!this.pinnedTier) {
+    if (!this.pinnedTier && !this.tierHeld) {
       const next = this.monitor.frame(now, interval);
       if (next) {
         this.applyTier();
@@ -448,6 +508,7 @@ export class Engine {
     this.time += dt;
     this.update(dt);
     this.renderer.render(this.scene, this.camera);
+    this.events.onFrame?.(this.canvas);
     this.raf = requestAnimationFrame(this.frame);
   };
 
@@ -490,6 +551,7 @@ export class Engine {
     weu.uWind.value = atmos.wind;
 
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
+    this.echo.update(t);
     this.lureToMoon(dt);
 
     this.fading = this.fading.filter((f) => {
@@ -552,6 +614,7 @@ export class Engine {
       for (let i = 1; i < spine.length; i++) length += Math.hypot(spine[i].x - spine[i - 1].x, spine[i].y - spine[i - 1].y);
     }
     const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, { ghost, calm: this.calm });
+    if (this.art) fish.setSkins(this.art.koi);
     this.fishes.push(fish);
     this.scene.add(fish.group);
     // The line lingers briefly, then the fish's body takes over.
@@ -863,7 +926,7 @@ export class Engine {
     while (real.length > t.maxFish) real.shift()!.leave();
   }
 
-  private resize(): void {
+  private resize(forcedDpr?: number): void {
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     const sx = w / this.width;
@@ -872,7 +935,7 @@ export class Engine {
     this.width = w;
     this.height = h;
     this.horizon = h > w ? 0.55 : 0.5; // portrait: lake takes 55%
-    const dpr = Math.min(window.devicePixelRatio || 1, TIERS[this.monitor.tier].maxDpr);
+    const dpr = forcedDpr ?? Math.min(window.devicePixelRatio || 1, TIERS[this.monitor.tier].maxDpr);
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
     this.camera.left = 0;

@@ -26,6 +26,8 @@ uniform vec4 uMoon;                   // x, y, radius (px), presence
 uniform vec3 uMoonShade;              // direction to the dark side, shadow disc offset in radii
 uniform float uMoonLight;             // 0..1, how much the moon lifts the night
 uniform float uMoonPulse;             // 0..1, brief brightening when the moon is touched
+uniform sampler2D uMoonTex;           // generated moon face (public/art), when present
+uniform float uMoonTexOn;
 uniform vec4 uStars[MAX_STARS];       // x, y, brightness, flash
 uniform int uStarCount;
 uniform vec4 uMeteors[MAX_METEORS];   // from x, y, to x, y
@@ -65,8 +67,33 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   // The glow comes from the lit limb, not from the dark part of the disc.
   float halo = (exp(-max(dist - r, 0.0) / (r * 0.8)) * 0.2 + exp(-max(dist - r, 0.0) / (r * 4.0)) * 0.07) * (1.0 + 1.8 * uMoonPulse);
   c += uAccent * halo * lit * uMoon.w * mix(0.5, 1.0, open) * (1.0 - disc * shade * 0.6);
-  float mottle = fbm(d / r * 2.2 + 5.0);
-  vec3 face = mix(uPaper, uAccent, 0.5) * (0.86 + 0.2 * mottle) * (1.0 + 0.12 * uMoonPulse);
+  vec2 q = d / r;
+  float z = sqrt(max(1.0 - dot(q, q), 0.0));
+  vec3 tone = mix(uPaper, uAccent, 0.5);
+  vec3 face;
+  if (uMoonTexOn > 0.5) {
+    face = texture2D(uMoonTex, q * 0.5 + 0.5).rgb;
+    face = mix(face, face * tone * 1.2, 0.35);
+  } else {
+    // Maria, highland grain and a scatter of craters.
+    float maria = smoothstep(0.47, 0.66, fbm(q * 1.7 + 4.3));
+    float grain = fbm(q * 7.0 + 1.1) - 0.5;
+    float crater = 0.0;
+    for (int k = 0; k < 2; k++) {
+      float sc = k == 0 ? 3.2 : 7.5;
+      vec2 g = q * sc + float(k) * 13.1;
+      vec2 id = floor(g);
+      vec2 f = fract(g);
+      float h = hash(id + 3.7);
+      vec2 cc = vec2(hash(id + 1.3), hash(id + 8.1)) * 0.4 + 0.3;
+      float rc = 0.06 + 0.16 * hash(id + 5.9);
+      float cd = length(f - cc);
+      float w = 0.03 + 0.03 * hash(id + 2.2);
+      crater += step(0.72, h) * (exp(-pow((cd - rc) / w, 2.0)) * 0.12 - smoothstep(rc, rc * 0.4, cd) * 0.06) * (k == 0 ? 1.0 : 0.6);
+    }
+    face = tone * (0.97 - maria * 0.3 + grain * 0.12 + crater);
+  }
+  face *= (0.8 + 0.2 * z) * (1.0 + 0.12 * uMoonPulse);
   c = mix(c, c + uAccent * 0.02, disc * shade * uMoon.w * open);    // faint earthshine
   return mix(c, face, disc * (1.0 - shade) * uMoon.w * open);
 }
@@ -172,15 +199,43 @@ void main() {
       sheen += (ring + ring2) * max(0.0, sin(k * 3.1416 + 1.2));
     }
 
+    // The moon's reflection is not a mirror image but a column of light that
+    // the waves break up: shred the reflected disc inside that column.
+    float moonCol = 0.0;
+    float discDim = 0.0;
+    if (uMoon.w > 0.0) {
+      float dxm = p.x - uMoon.x;
+      float cw = uMoon.z * (0.75 + dn * 5.0);
+      moonCol = exp(-dxm * dxm / (cw * cw)) * uMoon.w * uSkyVeil;
+      disp += vec2(wave2 * cw * 1.4, wave * S * 0.08) * moonCol;
+      // Fade the mirrored disc itself, leaving the mountains' reflection alone.
+      float dy = (p.y - (2.0 * hpx - uMoon.y)) / (uMoon.z * 1.8);
+      discDim = moonCol * exp(-dy * dy);
+    }
+
     vec2 rp = vec2(p.x + disp.x, hpx + d + disp.y);
     rp.y = min(rp.y, uRes.y - 1.0);
     vec3 refl = skyAt(rp, hpx, S).rgb;
     float fresnel = mix(0.82, 0.32, smoothstep(0.0, 0.45, dn));
+    refl = mix(refl, min(refl, uSkyLow * 0.95), discDim);
     col = mix(uWater, refl * 0.92, fresnel);
     // Thin moonlit glints on the wave crests.
     float glint = smoothstep(0.78, 1.0, noise(vec2(p.x / S * 26.0 * z * 0.25, p.y / S * 160.0 + uTime * 0.4)));
     col += uAccent * glint * 0.035 * (1.0 - smoothstep(0.0, 0.5, dn));
     col += uAccent * sheen * 0.10;
+    // 浮光跃金: short horizontal glints along the moon's column, brightest
+    // a little below the horizon and thinning out toward the viewer.
+    if (moonCol > 0.001) {
+      float lit = clamp(uMoonShade.z / 2.4, 0.3, 1.0);
+      float zz = 1.0 / (dn + 0.04);
+      float crest = noise(vec2(p.x / (S * 0.016 * (1.0 + dn * 1.2)), zz * 5.0 - uWaveT * 0.9));
+      float crest2 = noise(vec2(p.x / (S * 0.007 * (1.0 + dn * 1.2)), zz * 10.0 - uWaveT * 1.4 + 7.0));
+      float glit = smoothstep(0.66, 0.95, crest * 0.6 + crest2 * 0.5);
+      float fade = smoothstep(0.0, 0.015, dn) * (1.0 - 0.8 * smoothstep(0.12, 0.55, dn));
+      vec3 light = mix(uAccent, uPaper, 0.35);
+      col += light * glit * moonCol * lit * fade * 0.5 * (1.0 + uMoonPulse);
+      col += uAccent * moonCol * lit * fade * 0.035;
+    }
     col *= 1.0 - smoothstep(0.0, 0.6, dn) * 0.35;
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;
   }
@@ -191,7 +246,8 @@ void main() {
 
   // Rice-paper grain and a soft vignette.
   if (uPost > 0.5) {
-    float grain = hash(floor(p)) - 0.5;
+    // Per device pixel, so a high-resolution wallpaper keeps a fine grain.
+    float grain = hash(floor(gl_FragCoord.xy)) - 0.5;
     float fibre = fbm(p * vec2(0.02, 0.09)) - 0.5;
     col += grain * 0.028 + fibre * 0.02;
   }

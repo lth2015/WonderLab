@@ -1,0 +1,104 @@
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import fp from 'fastify-plugin';
+import { AppError, type UserRole } from '@wonderlab/contracts';
+import { getEnabledMfaFactor, type UserRow } from '@wonderlab/db';
+import type { AuthAdapter } from '../auth/index.js';
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    /** Populated by `requireAuth`; absent on public routes. */
+    user?: UserRow;
+  }
+  interface FastifyInstance {
+    requireAuth: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    /** Sets `req.user` when a valid bearer token is present; never rejects. */
+    optionalAuth: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    requireRole: (roles: UserRole[]) => (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    requireAgeConfirmed: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
+  }
+}
+
+export default fp(async function authPlugin(
+  app: FastifyInstance,
+  opts: { adapter: AuthAdapter; adminMfaRequired: boolean },
+) {
+  const { adapter } = opts;
+
+  app.decorateRequest('user', undefined);
+
+  app.decorate('requireAuth', async (req: FastifyRequest, _reply: FastifyReply) => {
+    const header = req.headers.authorization;
+    if (!header?.startsWith('Bearer ')) {
+      throw new AppError('UNAUTHENTICATED', 'a bearer token is required');
+    }
+    const user = await adapter.verify(header.slice('Bearer '.length).trim());
+    refuseInactive(user);
+    req.user = user;
+  });
+
+  /**
+   * For routes a visitor with no account may read (a published song's page).
+   * A missing, invalid or expired token, or an inactive account, leaves the
+   * request anonymous rather than failing it: the reader still gets what
+   * anyone may see, and nothing an account would add.
+   */
+  app.decorate('optionalAuth', async (req: FastifyRequest, _reply: FastifyReply) => {
+    const header = req.headers.authorization;
+    if (!header?.startsWith('Bearer ')) return;
+    try {
+      const user = await adapter.verify(header.slice('Bearer '.length).trim());
+      if (user.status === 'active' && !user.deleted_at) req.user = user;
+    } catch {
+      /* treated as anonymous */
+    }
+  });
+
+  /**
+   * Role gate for the operations console. Roles come from our own users table,
+   * never from a token claim, so an IdP attribute cannot escalate (SEC-02).
+   */
+  app.decorate('requireRole', (roles: UserRole[]) => async (req: FastifyRequest, reply: FastifyReply) => {
+    await app.requireAuth(req, reply);
+    if (!roles.includes(req.user!.role)) {
+      throw new AppError('FORBIDDEN', 'insufficient privileges');
+    }
+    /*
+     * A second factor, checked at the gate rather than at sign-in.
+     *
+     * Enforcing it here means an account that is GIVEN a staff role later
+     * cannot use the console until it enrols — where a login-time check would
+     * have let an already-open session straight through. The way out is open:
+     * enrolment is an ordinary authenticated route, so a locked-out admin can
+     * still set up their authenticator and come back.
+     */
+    if (opts.adminMfaRequired && !(await getEnabledMfaFactor(req.user!.id))) {
+      throw new AppError('MFA_REQUIRED', 'staff accounts need two-factor authentication — enrol first');
+    }
+  });
+
+  /** Generation and purchase are limited to confirmed 18+ accounts. */
+  app.decorate('requireAgeConfirmed', async (req: FastifyRequest, reply: FastifyReply) => {
+    await app.requireAuth(req, reply);
+    if (!req.user!.age_confirmed_at) {
+      throw new AppError('AGE_NOT_CONFIRMED', '18歳以上であることの確認が必要です');
+    }
+  });
+});
+
+/**
+ * The one test for "may this account act at all", used by every request and
+ * by every place a session is minted (dev login, the Google exchange, the MFA
+ * verify). Sign-in used to skip it, so a suspended person signed in
+ * successfully and then watched every screen fail.
+ */
+export function refuseInactive(user: { status: string; deleted_at: Date | null }): void {
+  if (user.deleted_at || user.status === 'deleted') {
+    throw new AppError('FORBIDDEN', 'this account is not active');
+  }
+  if (user.status === 'suspended') {
+    throw new AppError('ACCOUNT_SUSPENDED', 'this account has been suspended');
+  }
+  if (user.status !== 'active') {
+    throw new AppError('FORBIDDEN', 'this account is not active');
+  }
+}

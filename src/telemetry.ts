@@ -14,8 +14,11 @@ export type EventType =
   | 'hint_followed'
   | 'undo'
   | 'restart'
+  | 'save'
   | 'tier_change'
-  | 'phase_change';
+  | 'phase_change'
+  | 'record_start'
+  | 'record_complete';
 
 export interface LoggedEvent {
   t: number; // ms since the page started

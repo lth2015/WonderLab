@@ -1,6 +1,7 @@
 :root {
   --ink-950: #0b0e13;
   --paper-100: #efeadf;
+  --cinnabar: #c8553d;
   --ease-ink: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-exit: cubic-bezier(0.55, 0, 1, 0.45);
 }
@@ -526,5 +527,288 @@ body {
   from {
     opacity: 0;
     transform: scale(0.96);
+  }
+}
+
+/* Poetic text: LXGW WenKai, subset to the echo library and the hints
+   (scripts/subset-font.mjs, SIL OFL 1.1). If it is not ready in time the
+   system kaiti is used and kept, with no swap mid-display (docs/03 §4). */
+@font-face {
+  font-family: 'LXGW WenKai';
+  src: url('./assets/fonts/wenkai-subset.woff2') format('woff2');
+  font-display: optional;
+}
+
+/* Rate-limit note under the words box (docs/03 §5.3, §13). */
+.quiet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  text-align: center;
+  font-size: 14px;
+  color: #c9c3b6;
+  pointer-events: none;
+}
+
+/* Account sheet (sign-in, credits, buying). */
+.sheet.account {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+}
+.sheet .demo-note {
+  margin: 6px 0 14px;
+  font-size: 13px;
+  color: #e9d9a6;
+}
+.sheet .who {
+  margin: 12px 0 16px;
+  font-size: 14px;
+  color: #c9c3b6;
+}
+.sheet .credits {
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  font-size: 20px;
+  color: var(--paper-100);
+}
+.sheet .products {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.sheet .products li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(239, 234, 223, 0.08);
+}
+.sheet .products strong {
+  display: block;
+  font-weight: 500;
+}
+.sheet .products .meta {
+  font-size: 13px;
+  color: #c9c3b6;
+}
+.sheet .dev-login {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.sheet .dev-login input[type='email'],
+.sheet input.code {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(239, 234, 223, 0.08);
+  color: var(--paper-100);
+  font: inherit;
+  font-size: 16px;
+}
+/* Staff second factor. */
+.sheet input.code {
+  margin-top: 0;
+  letter-spacing: 0.15em;
+}
+.sheet .mfa .row input.code {
+  flex: 1;
+  min-width: 0;
+}
+.sheet .mfa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(239, 234, 223, 0.08);
+}
+.sheet .mfa h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+.sheet .mfa .note {
+  margin: 0;
+}
+.sheet .mfa .qr {
+  align-self: flex-start;
+  border-radius: 8px;
+  background: #fff;
+}
+.sheet .mfa .key,
+.sheet .mfa .recovery code {
+  font-size: 13px;
+  word-break: break-all;
+  user-select: all;
+}
+.sheet .mfa .recovery ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sheet .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.sheet .error {
+  color: #e8a08e;
+  font-size: 14px;
+}
+.sheet .row {
+  display: flex;
+  gap: 8px;
+}
+.text-btn.primary {
+  background: #e9d9a6;
+  color: #121721;
+}
+.text-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.link-btn {
+  display: block;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #c9c3b6;
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.hint.account-note {
+  top: 40%;
+}
+.sheet .scpay {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+}
+.sheet .scpay .amount {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+.sheet .scpay a {
+  color: #e9d9a6;
+}
+/* Recording (docs/02 §6.2; docs/03 §5.1, §5.4, §11). */
+.icon-btn.record.on {
+  color: var(--cinnabar);
+}
+.icon-btn.record .ring {
+  stroke: var(--cinnabar);
+  stroke-width: 1.5;
+  stroke-dasharray: 62.83;
+  stroke-dashoffset: 62.83;
+  transform: rotate(-90deg);
+  transform-origin: 12px 12px;
+  animation: ring linear forwards;
+}
+@keyframes ring {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.countdown {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  font-size: 96px;
+  color: var(--paper-100);
+  text-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  animation: count 1s var(--ease-ink) both;
+}
+@keyframes count {
+  from {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  30% {
+    opacity: 0.9;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.rec-badge {
+  position: fixed;
+  top: calc(22px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-100);
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cinnabar);
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+.sheet.preview {
+  width: min(560px, calc(100vw - 32px));
+  padding: 16px;
+}
+.sheet.preview video {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 10px;
+  background: var(--ink-950);
+}
+.preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.preview-actions .text-btn {
+  margin-top: 0;
+}
+.preview-actions .confirm-q {
+  margin-right: auto;
+  font-size: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .countdown {
+    animation: none;
+  }
+  .rec-dot {
+    animation: none;
   }
 }

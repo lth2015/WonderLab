@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 // The 更多 menu and the About panel (docs/03 §5.1, §5.4).
 
@@ -6,10 +6,14 @@ interface MenuProps {
   canUndo: () => boolean;
   onUndo: () => void;
   onRestart: () => void;
+  onAccount: () => void;
+  onWallpaper: () => void;
   dim: boolean;
+  /** Other top-right controls, placed before 更多. */
+  children?: ReactNode;
 }
 
-export function Menu({ canUndo, onUndo, onRestart, dim }: MenuProps) {
+export function Menu({ canUndo, onUndo, onRestart, onAccount, onWallpaper, dim, children }: MenuProps) {
   const [open, setOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [undoable, setUndoable] = useState(false);
@@ -38,6 +42,7 @@ export function Menu({ canUndo, onUndo, onRestart, dim }: MenuProps) {
   return (
     <>
       <div className={`chrome${dim ? ' dim' : ''}`}>
+        {children}
         <button
           ref={trigger}
           type="button"
@@ -67,6 +72,12 @@ export function Menu({ canUndo, onUndo, onRestart, dim }: MenuProps) {
             </button>
             <button ref={undoable ? undefined : first} type="button" role="menuitem" onClick={pick(onRestart)}>
               重新开始
+            </button>
+            <button type="button" role="menuitem" onClick={pick(onWallpaper)}>
+              保存为壁纸
+            </button>
+            <button type="button" role="menuitem" onClick={pick(onAccount)}>
+              账户
             </button>
             <button type="button" role="menuitem" onClick={pick(() => setAbout(true))}>
               关于

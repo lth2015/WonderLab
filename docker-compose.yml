@@ -1,0 +1,22 @@
+# Local MySQL for accounts and payments (as in yuha): `npm run db:up`.
+#   dev:  mysql://wonderlab:wonderlab_local@127.0.0.1:53306/wonderlab
+#   test: mysql://root:root@127.0.0.1:53307/wonderlab_test
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wonderlab
+      MYSQL_USER: wonderlab
+      MYSQL_PASSWORD: wonderlab_local
+    ports: ['127.0.0.1:53306:3306']
+    volumes: ['wonderlab-mysql:/var/lib/mysql']
+  mysql-test:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wonderlab_test
+    ports: ['127.0.0.1:53307:3306']
+    tmpfs: ['/var/lib/mysql']
+volumes:
+  wonderlab-mysql:

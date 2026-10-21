@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Engine, type Creation, type CreationKind } from './engine/engine';
-import { interpret, type SceneCommand } from './engine/intent';
+import { interpret, mergeAi, type SceneCommand } from './engine/intent';
+import { askScene, captureInvite } from './ai';
+import { rankPoems } from './echo';
+import { poemById } from './poems';
 import type { Tier } from './engine/quality';
 import { Menu } from './Menu';
+import { AccountSheet, CheckoutComplete, SimulatedCheckout, useGoogleReturn } from './account/AccountSheet';
+import { GOOGLE_WEB_RETURN_PATH } from '../server/src/auth/google-paths';
 import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
 import { clearWorld, loadWorld, saveWorld } from './engine/persist';
+import { loadArt } from './engine/art';
+import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
 const DEMO_IDLE_MS = 4000;
@@ -23,6 +30,10 @@ const TOAST_MS = 5000;
 const params = new URLSearchParams(location.search);
 const forcedTier = params.get('tier');
 const SAVE_EVERY_MS = 3000;
+const ECHO_DELAY_MS = 900;   // after the words have risen into the sky
+const ECHO_SHORTLIST = 24;
+const RECENT_ECHOES = 10;
+const invite = captureInvite(params);
 // ?fresh starts from an empty world (docs/02 §3.1), then drops out of the
 // address so a refresh mid-session keeps the tester's world.
 const fresh = params.has('fresh');
@@ -38,6 +49,17 @@ type HintPlace = 'lake' | 'sky' | 'input';
 type Hint = { text: string; place: HintPlace; key: number } | null;
 type HintId = 'draw_lake' | 'touch_fish' | 'draw_circle' | 'write_words';
 type UndoButton = { id: number; x: number; y: number } | null;
+/** Overlays reached by address: back from Google or checkout, or a link to the account. */
+type Overlay = { kind: 'account' } | { kind: 'complete'; orderId: string } | { kind: 'simulate' } | null;
+
+function overlayFromLocation(): Overlay {
+  const path = location.pathname;
+  const q = new URLSearchParams(location.search);
+  if (path === '/checkout/complete' && q.get('order_id')) return { kind: 'complete', orderId: q.get('order_id')! };
+  if (path === '/checkout/simulate') return { kind: 'simulate' };
+  if (q.has('account') || path === '/pricing' || path === '/settings/billing') return { kind: 'account' };
+  return null;
+}
 type Flight = { key: number; chars: { ch: string; dx: number; delay: number }[]; x: number; y: number };
 
 const ANNOUNCE: Record<Exclude<CreationKind, 'atmosphere'>, string> = {
@@ -78,6 +100,7 @@ export function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<Engine | null>(null);
   const wordsUsedRef = useRef<() => void>(() => {});
+  const frameSinkRef = useRef<((c: HTMLCanvasElement) => void) | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [hint, setHint] = useState<Hint>(null);
@@ -91,6 +114,20 @@ export function App() {
   const [tier, setTier] = useState<Tier>('standard');
   const [staticDemo, setStaticDemo] = useState(0);
   const [hostNote, setHostNote] = useState('');
+  const [quiet, setQuiet] = useState('');
+  // The lake is the only page; these addresses only open a sheet over it.
+  const [overlay, setOverlay] = useState<Overlay>(() => (location.pathname === GOOGLE_WEB_RETURN_PATH ? null : overlayFromLocation()));
+  const closeOverlay = useCallback(() => {
+    setOverlay(null);
+    history.replaceState(null, '', '/' + (forcedTier ? `?tier=${forcedTier}` : ''));
+  }, []);
+  const googleState = useGoogleReturn(
+    useCallback((next: string) => {
+      history.replaceState(null, '', next);
+      setOverlay(overlayFromLocation());
+    }, []),
+  );
+  const recentEchoes = useRef<number[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -98,19 +135,45 @@ export function App() {
       setFailed(true);
       return;
     }
-    const timers = new Set<number>();
-    const later = (fn: () => void, ms: number) => {
-      const id = window.setTimeout(() => {
+    // Timers run on visible time only: a link opened in a background tab must
+    // not use up the first-run hints and demos before anyone sees the world.
+    interface Timer {
+      fn: () => void;
+      left: number;
+      armedAt: number;
+      handle: number;
+    }
+    const timers = new Map<number, Timer>();
+    let nextTimer = 1;
+    const arm = (id: number, t: Timer) => {
+      t.armedAt = performance.now();
+      t.handle = window.setTimeout(() => {
         timers.delete(id);
-        fn();
-      }, ms);
-      timers.add(id);
+        t.fn();
+      }, t.left);
+    };
+    const later = (fn: () => void, ms: number) => {
+      const id = nextTimer++;
+      const t: Timer = { fn, left: ms, armedAt: 0, handle: 0 };
+      timers.set(id, t);
+      if (!document.hidden) arm(id, t);
       return id;
     };
     const cancel = (id: number) => {
-      clearTimeout(id);
+      const t = timers.get(id);
+      if (!t) return;
+      clearTimeout(t.handle);
       timers.delete(id);
     };
+    const onTimerVisibility = () => {
+      for (const [id, t] of timers) {
+        if (document.hidden) {
+          clearTimeout(t.handle);
+          t.left = Math.max(0, t.left - (performance.now() - t.armedAt));
+        } else arm(id, t);
+      }
+    };
+    document.addEventListener('visibilitychange', onTimerVisibility);
 
     let drawn = false;
     let drawing = false;
@@ -182,6 +245,7 @@ export function App() {
         },
         onTierChange: setTier,
         onRestartSettled: () => setToast(false),
+        onFrame: (c) => frameSinkRef.current?.(c),
       },
       {
         tier: forcedTier === 'light' || forcedTier === 'standard' ? forcedTier : undefined,
@@ -209,6 +273,10 @@ export function App() {
     requestAnimationFrame(() => {
       setReady(true);
       logEvent('world_ready', { ms: Math.round(performance.now()), device: deviceType(), tier: engine.tier });
+    });
+    // Painted koi and moon, when generated textures are present (public/art).
+    loadArt().then((art) => {
+      if (art && engineRef.current === engine) engine.setArt(art);
     });
     const onReduced = () => engine.setReducedMotion(reducedQuery.matches);
     reducedQuery.addEventListener('change', onReduced);
@@ -309,7 +377,8 @@ export function App() {
     vv?.addEventListener('scroll', onViewport);
 
     return () => {
-      for (const id of timers) clearTimeout(id);
+      for (const t of timers.values()) clearTimeout(t.handle);
+      document.removeEventListener('visibilitychange', onTimerVisibility);
       canvas.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
@@ -332,6 +401,14 @@ export function App() {
     return () => clearInterval(id);
   }, [text]);
 
+  const noteTimer = useRef(0);
+  const showNote = useCallback((text: string) => {
+    setHostNote(text);
+    clearTimeout(noteTimer.current);
+    noteTimer.current = window.setTimeout(() => setHostNote(''), 3000);
+  }, []);
+  const recorder = useRecorder(engineRef, frameSinkRef, showNote);
+
   const undo = useCallback((id?: number) => {
     engineRef.current?.undo(id);
   }, []);
@@ -341,6 +418,30 @@ export function App() {
     setUndoBtn(null);
     setToast(true);
     setAnnounce('世界已重置');
+  }, []);
+  // 保存为壁纸: the current frame at high resolution, shared on phones, downloaded elsewhere.
+  const saveWallpaper = useCallback(async () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    const blob = await engine.captureWallpaper();
+    if (!blob) return;
+    logEvent('save', { kind: 'wallpaper' });
+    const name = `wonderlab-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '')}.png`;
+    const file = new File([blob], name, { type: 'image/png' });
+    if (coarse() && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch {
+        // Cancelled or refused: fall back to a download.
+      }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    setAnnounce('壁纸已保存');
   }, []);
   const undoRestart = useCallback(() => {
     engineRef.current?.undoRestart();
@@ -364,11 +465,34 @@ export function App() {
       const value = text.trim();
       const engine = engineRef.current;
       if (!value || !engine) return;
-      const { command, source } = interpret(value);
-      logEvent('text_submit', { source: 'local', rule: source, prompted: prompted('text_submit') });
+      const local = interpret(value);
+      const { command, source } = local;
+      const wasPrompted = prompted('text_submit');
       engine.applyScene(command);
       wordsUsedRef.current();
       setAnnounce(describe(command));
+
+      // Echo: the AI picks from a local shortlist within 2.5 s; otherwise the
+      // best local match. Either way the line comes from the library.
+      const shortlist = rankPoems(command, local.mood, value, recentEchoes.current).slice(0, ECHO_SHORTLIST);
+      const started = performance.now();
+      void askScene(invite, value, shortlist.map((p) => p.id)).then((ai) => {
+        if (engineRef.current !== engine) return;
+        let poem = shortlist[0];
+        if (ai.status === 'ok') {
+          const extra = mergeAi(local, ai.command);
+          if (Object.keys(extra).length) engine.amendScene(extra);
+          poem = (ai.echoId && poemById(ai.echoId)) || poem;
+        }
+        if (ai.status === 'limited') {
+          setQuiet('灵感歇一会儿，画笔仍在');
+          window.setTimeout(() => setQuiet(''), 5000);
+        }
+        logEvent('text_submit', { source: ai.status === 'ok' ? 'ai' : ai.status === 'off' ? 'local' : ai.status, rule: source, prompted: wasPrompted });
+        recentEchoes.current = [poem.id, ...recentEchoes.current].slice(0, RECENT_ECHOES);
+        const wait = Math.max(ECHO_DELAY_MS - (performance.now() - started), 0);
+        window.setTimeout(() => engine.showEcho(poem.text, poem.author), wait);
+      });
 
       // The words rise into the sky as ink dots (docs/03 §5.3).
       const box = inputRef.current!.getBoundingClientRect();
@@ -433,6 +557,11 @@ export function App() {
           enterKeyHint="send"
           autoComplete="off"
         />
+        {quiet && (
+          <span className="quiet" aria-live="polite">
+            {quiet}
+          </span>
+        )}
         {count >= COUNT_FROM && (
           <span className="count" aria-live="polite">
             {count}/{MAX_CHARS}
@@ -454,7 +583,18 @@ export function App() {
           ))}
         </div>
       ))}
-      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} dim={dim} />
+      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} onAccount={() => setOverlay({ kind: 'account' })} onWallpaper={() => void saveWallpaper()} dim={dim}>
+        <RecordButton api={recorder} />
+      </Menu>
+      <RecordOverlays api={recorder} />
+      {overlay?.kind === 'account' && <AccountSheet onClose={closeOverlay} />}
+      {overlay?.kind === 'complete' && <CheckoutComplete orderId={overlay.orderId} onClose={closeOverlay} />}
+      {overlay?.kind === 'simulate' && <SimulatedCheckout onClose={closeOverlay} />}
+      {googleState && (
+        <p className="hint on account-note" role="status">
+          {googleState}
+        </p>
+      )}
       <div className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">
         {toast && (
           <>

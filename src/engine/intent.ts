@@ -47,7 +47,7 @@ const KEYWORDS: Rule[] = [
 // "不要下雨" should not start rain; it simply cancels that rule.
 const NEGATIONS = ['不要', '不想', '别', '不', '没有', '停'];
 
-const BRIGHT = ['好', '美', '笑', '光', '亮', '希望', '自由', '喜', '乐', '明', '花', '阳光', '温柔', '期待', '轻松', '舒服', '可爱', '晴朗'];
+const BRIGHT = ['美好', '真好', '很好', '好美', '笑', '光', '亮', '希望', '自由', '喜', '乐', '明', '花', '阳光', '温柔', '期待', '轻松', '舒服', '可爱', '晴朗'];
 const LOW = ['累', '哭', '泪', '痛', '苦', '愁', '冷', '黑', '暗', '丢', '失', '烦', '怕', '孤', '遗憾', '叹', '寒', '凉', '老', '远'];
 
 const MOOD_COMMAND: Record<Mood, SceneCommand> = {
@@ -83,7 +83,8 @@ export function interpret(input: string): Interpretation {
     }
   }
 
-  const mood = moodOf(text);
+  // A palette a keyword chose says more about the mood than counting words.
+  const mood: Mood = command.palette === 'melancholy' ? 'low' : command.palette === 'warm' ? 'bright' : moodOf(text);
   if (!hit) return { command: { ...MOOD_COMMAND[mood] }, source: 'sentiment', mood };
   if (command.intensity === undefined) command.intensity = mood === 'calm' ? 0.5 : 0.7;
   return { command, source: 'keyword', mood };
@@ -101,4 +102,38 @@ export function moodOf(text: string): Mood {
 function negated(text: string, at: number): boolean {
   const before = text.slice(Math.max(0, at - 3), at);
   return NEGATIONS.some((n) => before.endsWith(n) || before.slice(0, -1).endsWith(n));
+}
+
+/**
+ * Validate an untrusted scene command (from the AI) field by field: unknown
+ * fields and values outside the enums are dropped, numbers are clamped
+ * (docs/02 §5.3).
+ */
+export function validateCommand(raw: unknown): SceneCommand {
+  const out: SceneCommand = {};
+  if (typeof raw !== 'object' || raw === null) return out;
+  const r = raw as Record<string, unknown>;
+  if (r.timeOfDay === 'night' || r.timeOfDay === 'dusk') out.timeOfDay = r.timeOfDay;
+  if (r.weather === 'clear' || r.weather === 'rain' || r.weather === 'mist' || r.weather === 'fireflies') out.weather = r.weather;
+  if (r.palette === 'serene' || r.palette === 'warm' || r.palette === 'melancholy') out.palette = r.palette;
+  for (const k of ['wind', 'intensity'] as const) {
+    const v = r[k];
+    if (typeof v === 'number' && Number.isFinite(v)) out[k] = Math.min(Math.max(v, 0), 1);
+  }
+  return out;
+}
+
+/**
+ * Merge a late AI command into what the local rules already did. Fields a
+ * keyword set are kept (no rain turning into snow a moment later); fields
+ * the sentiment fallback only guessed may be refined, and so may intensity.
+ */
+export function mergeAi(local: Interpretation, ai: SceneCommand): SceneCommand {
+  const out: SceneCommand = {};
+  const locked = local.source === 'keyword' ? local.command : {};
+  for (const k of ['timeOfDay', 'weather', 'palette', 'wind'] as const) {
+    if (ai[k] !== undefined && locked[k] === undefined && ai[k] !== local.command[k]) (out as Record<string, unknown>)[k] = ai[k];
+  }
+  if (ai.intensity !== undefined) out.intensity = ai.intensity;
+  return out;
 }

@@ -1,0 +1,54 @@
+WonderLab · 万象生
+Copyright 2026 WonderLab contributors
+
+Licensed under the Apache License, Version 2.0. The full text is in LICENSE.
+The code is donated to the NETX technical community (https://www.netx.world/),
+its upstream steward; what that does and does not cover is in GOVERNANCE.md.
+
+
+What that licence covers
+------------------------
+
+The source in this repository, except the items listed below, which keep
+their own licences.
+
+LXGW WenKai. The poetic typeface (https://github.com/lxgw/LxgwWenKai), subset
+in src/assets/fonts, is licensed under the SIL Open Font License 1.1
+(src/assets/fonts/OFL-LXGW-WenKai.txt), not under Apache-2.0.
+
+The echo poems. src/poems.ts quotes lines of classical Chinese poetry that
+have long been in the public domain; the selection and tags are part of this
+project.
+
+
+Software from YUHA
+------------------
+
+This product includes software from YUHA (https://github.com/lth2015/yuha),
+licensed under the Apache License, Version 2.0 and also stewarded by the NETX
+technical community. The ported parts — sign-in and sessions, the staff second
+factor (TOTP), Stripe and stablecoin payments, the credits ledger, their
+database migrations and tests — live under server/, with the matching account
+screens under src/account and src/lib, and were adapted for WonderLab
+(yuha-only features such as songs, the market licence and e-mail notices were
+removed). YUHA's own copy of the licence, with its copyright line, is in
+server/YUHA-LICENSE.
+
+
+Name and marks
+--------------
+
+Apache-2.0 grants no trademark rights (LICENSE, section 6). The names
+"WonderLab" and "万象生" and any marks for them are not conveyed by this
+licence. Whether they transfer with the code is a question for the donation
+agreement — see GOVERNANCE.md.
+
+
+The hosted service
+------------------
+
+This repository is the software. Anyone who runs it for the public is the
+operator of their own deployment, and the obligations that attach to selling
+to consumers (the 特定商取引法 disclosure, privacy, refunds, support, and the
+money itself) attach to that operator, not to this project or its steward.
+The operator's details are configuration and appear in no file here.
