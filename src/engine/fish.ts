@@ -5,6 +5,7 @@ import type { StrokePoint } from './stroke';
 
 const N = 32;
 const FORM_TIME = 0.9; // s, mirrors docs/03 §6.3 (creation 1.2–1.8 s incl. ink bleed)
+const CALM_FADE = 0.6; // s, reduced motion: fade in instead of growing (docs/03 §8)
 
 // Mirrors fishProfileGLSL in shaders/ink.ts.
 const smooth = (a: number, b: number, x: number) => {
@@ -15,6 +16,22 @@ const bodyW = (s: number) => Math.sqrt(Math.min(Math.max(s / 0.1, 0), 1)) * (1 -
 const pectW = (s: number, k: number) => k * 0.75 * Math.exp(-(((s - 0.27) / 0.07) ** 2));
 const tailW = (s: number) => 1.5 * smooth(0.8, 1, s);
 const envW = (s: number, k: number) => Math.max(bodyW(s) + pectW(s, k), tailW(s), 0.02);
+
+/** How a fish looks, kept so a saved fish comes back the same. */
+export interface FishLook {
+  seed: number;
+  patch: number;
+}
+
+export interface FishOptions {
+  ghost?: boolean;
+  /** Reduced motion: no growth, half speed. */
+  calm?: boolean;
+  look?: FishLook;
+}
+
+const LEAP_TIME = 1.1;     // s in the air
+const LEAP_COOLDOWN = 6;   // s before the same fish leaps again
 
 export interface WaterBounds {
   minX: number;
@@ -45,7 +62,14 @@ export class Fish {
   private readonly seg: number;
   private readonly baseSpeed: number;
   private readonly amp: number;
-  private readonly seed = Math.random() * 100;
+  readonly seed: number;
+  readonly patch: number;
+  readonly ghost: boolean;
+  private readonly calm: boolean;
+  /** Stroke length over drawing time, px/ms: sets how lively the fish is. */
+  readonly drawSpeed: number;
+  private leapT = -1;
+  private leapCooldown = 0;
   private heading: number;
   private speed = 0;
   private phase = 0;
@@ -55,6 +79,12 @@ export class Fish {
   private startleDir = 0;
   private attract: { x: number; y: number; until: number } | null = null;
   private nextWake = 2 + Math.random() * 2;
+  private fadeTime: number;
+  private spread = 1;
+  private fadeIn = 1;
+  private veil = 1;
+  private veilTarget = 1;
+  private dispersing = false;
   private readonly geometry = new THREE.BufferGeometry();
   private readonly material: THREE.ShaderMaterial;
   private readonly shadowMaterial: THREE.ShaderMaterial;
@@ -66,9 +96,14 @@ export class Fish {
     strokeDuration: number,
     minDim: number,
     palette: Palette,
-    readonly ghost = false,
+    options: FishOptions = {},
   ) {
+    const ghost = (this.ghost = !!options.ghost);
+    const calm = (this.calm = !!options.calm);
+    this.seed = options.look?.seed ?? Math.random() * 100;
+    this.patch = options.look?.patch ?? (Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0);
     this.opacity = ghost ? 0.38 : 1;
+    this.fadeTime = ghost ? 1.2 : 2.2;
     // Length follows the stroke, within limits.
     this.L = THREE.MathUtils.clamp(strokeLength, minDim * 0.1, minDim * 0.26);
     this.maxW = this.L * 0.12;
@@ -84,9 +119,10 @@ export class Fish {
     this.heading = Math.atan2(this.ys[0] - this.ys[2], this.xs[0] - this.xs[2]);
 
     // Quick strokes make lively fish; curvy strokes make softer swimmers.
-    const drawSpeed = strokeLength / Math.max(strokeDuration, 16); // px/ms
+    const drawSpeed = (this.drawSpeed = strokeLength / Math.max(strokeDuration, 16));
     const lively = THREE.MathUtils.clamp(drawSpeed / 1.6, 0, 1);
-    this.baseSpeed = this.L * (0.3 + 0.75 * lively);
+    this.baseSpeed = this.L * (0.3 + 0.75 * lively) * (calm ? 0.5 : 1);
+    if (calm) this.grow = 1;
     const curviness = THREE.MathUtils.clamp(totalTurn(spine) / Math.PI, 0, 1);
     this.amp = this.L * (0.03 + 0.05 * curviness);
 
@@ -96,18 +132,21 @@ export class Fish {
       uCinnabar: { value: palette.cinnabar },
       uWater: { value: palette.water },
       uSeed: { value: this.seed },
-      uPatch: { value: Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0 },
+      uPatch: { value: this.patch },
       uGrow: { value: 0 },
       uOpacity: { value: this.opacity },
       uPect: { value: 1 },
       uL: { value: this.L },
       uMaxW: { value: this.maxW },
       uShadow: { value: shadow },
+      uSpread: { value: 1 },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
         vertexShader: ribbonVert,
         fragmentShader: fishFrag,
+        // The spine runs head to tail, against the drawing direction, so the ribbon's winding flips.
+        side: THREE.DoubleSide,
         transparent: true,
         depthTest: false,
         depthWrite: false,
@@ -181,12 +220,56 @@ export class Fish {
     if (this.state !== 'leaving') this.state = 'leaving';
   }
 
+  /** Undo: the ink loosens and dissolves into the water. */
+  disperse(): void {
+    this.state = 'leaving';
+    this.dispersing = true;
+    this.fadeTime = 0.8;
+  }
+
+  get canLeap(): boolean {
+    return this.state === 'swimming' && !this.ghost && this.leapT < 0 && this.leapCooldown <= 0;
+  }
+
+  /** Touched twice in quick succession: jump clear of the water (P1). */
+  leap(): void {
+    if (!this.canLeap) return;
+    this.leapT = 0;
+    this.startle = Math.min(1, this.startle + 0.6);
+    this.startleDir = this.heading;
+  }
+
+  /** Spine from tail to head, the order a stroke is drawn in. */
+  spineFromTail(): { x: number; y: number }[] {
+    const out = [];
+    for (let i = N - 1; i >= 0; i--) out.push({ x: this.xs[i], y: this.ys[i] });
+    return out;
+  }
+
+  /** Restart: fade out but stay, so the restart can be taken back. */
+  hide(): void {
+    this.veilTarget = 0;
+  }
+
+  show(): void {
+    this.veilTarget = 1;
+  }
+
+  get hidden(): boolean {
+    return this.veilTarget === 0;
+  }
+
+  get undone(): boolean {
+    return this.dispersing;
+  }
+
   update(dt: number, ctx: SwimContext): void {
     this.age += dt;
     if (this.state === 'forming') {
-      this.grow = Math.min(this.age / FORM_TIME, 1);
+      this.grow = this.calm ? 1 : Math.min(this.age / FORM_TIME, 1);
+      this.fadeIn = this.calm ? Math.min(this.age / CALM_FADE, 1) : 1;
       this.phase += dt * 2.5;
-      if (this.grow >= 1) {
+      if (this.grow >= 1 && this.fadeIn >= 1) {
         this.state = 'swimming';
         ctx.ripple(this.headX, this.headY, this.ghost ? 0.4 : 0.9);
       }
@@ -194,18 +277,51 @@ export class Fish {
       this.swim(dt, ctx);
     }
 
+    this.updateLeap(dt, ctx);
     if (this.ghost && this.age > 4) this.leave();
     if (this.state === 'leaving') {
-      this.opacity -= dt / (this.ghost ? 1.2 : 2.2);
+      this.opacity -= dt / this.fadeTime;
+      if (this.dispersing) this.spread += dt * 0.6;
       if (this.opacity <= 0) this.dead = true;
     }
     this.material.uniforms.uGrow.value = this.grow;
-    this.material.uniforms.uOpacity.value = Math.max(this.opacity, 0);
+    this.veil += Math.sign(this.veilTarget - this.veil) * Math.min(Math.abs(this.veilTarget - this.veil), dt / 0.6);
+    const shown = Math.max(this.opacity, 0) * this.fadeIn * this.veil;
+    this.material.uniforms.uOpacity.value = shown;
     this.material.uniforms.uPect.value = 1 + 0.25 * Math.sin(this.phase * 0.5);
     this.shadowMaterial.uniforms.uGrow.value = this.grow;
-    this.shadowMaterial.uniforms.uOpacity.value = Math.max(this.opacity, 0);
+    this.shadowMaterial.uniforms.uOpacity.value = shown;
     this.shadowMaterial.uniforms.uPect.value = this.material.uniforms.uPect.value;
+    this.material.uniforms.uSpread.value = this.spread;
+    this.shadowMaterial.uniforms.uSpread.value = this.spread;
     this.rebuild();
+  }
+
+  private updateLeap(dt: number, ctx: SwimContext): void {
+    this.leapCooldown -= dt;
+    if (this.leapT < 0) return;
+    this.leapT += dt / LEAP_TIME;
+    const done = this.leapT >= 1;
+    const h = done ? 0 : Math.sin(Math.PI * this.leapT);
+    // Seen from above, a fish in the air looks larger and its shadow falls away.
+    const s = 1 + 0.3 * h;
+    let cx = 0;
+    let cy = 0;
+    for (let i = 0; i < N; i++) {
+      cx += this.xs[i];
+      cy += this.ys[i];
+    }
+    cx /= N;
+    cy /= N;
+    this.group.scale.set(s, s, 1);
+    this.group.position.set(cx * (1 - s), cy * (1 - s), 0);
+    this.shadowMesh.position.set(this.L * (0.05 + 0.25 * h), -this.L * (0.08 + 0.45 * h), 0);
+    if (done) {
+      this.leapT = -1;
+      this.leapCooldown = LEAP_COOLDOWN;
+      ctx.ripple(this.headX, this.headY, 1.4);
+      ctx.ripple(cx, cy, 0.9);
+    }
   }
 
   scale(sx: number, sy: number): void {
@@ -239,7 +355,7 @@ export class Fish {
     if (y < bounds.minY + m) sy += (bounds.minY + m - y) / m;
     if (y > bounds.maxY - m) sy -= (y - bounds.maxY + m) / m;
     for (const o of ctx.others) {
-      if (o === this || o.state === 'forming') continue;
+      if (o === this || o.state === 'forming' || o.hidden) continue;
       const dx = x - o.headX;
       const dy = y - o.headY;
       const d = Math.hypot(dx, dy);
@@ -289,6 +405,8 @@ export class Fish {
   private rebuild(): void {
     const pos = this.geometry.getAttribute('position') as THREE.BufferAttribute;
     const P = pos.array as Float32Array;
+    const sv = this.geometry.getAttribute('aSV') as THREE.BufferAttribute;
+    const SV = sv.array as Float32Array;
     const growW = smooth(0, 1, this.grow);
     const swimAmp = this.amp * (this.state === 'forming' ? this.grow * 0.3 : 0.6 + Math.min(this.speed / this.baseSpeed, 2) * 0.4);
     const pect = 1 + 0.25 * Math.sin(this.phase * 0.5);
@@ -308,15 +426,21 @@ export class Fish {
       const lateral = swimAmp * Math.sin(this.phase - s * 5.5) * (0.12 + Math.pow(s, 1.3));
       const cx = this.xs[i] + nx * lateral;
       const cy = this.ys[i] + ny * lateral;
-      const half = envW(s, pect) * this.maxW * growW;
+      const halfU = envW(s, pect) * growW * this.spread; // in maxW units
+      const half = halfU * this.maxW;
       P[i * 6 + 0] = cx + nx * half;
       P[i * 6 + 1] = cy + ny * half;
       P[i * 6 + 2] = 0;
       P[i * 6 + 3] = cx - nx * half;
       P[i * 6 + 4] = cy - ny * half;
       P[i * 6 + 5] = 0;
+      // Side offset rather than a ±1 flag: it interpolates without the
+      // zigzag a flag shows across trapezoid segments.
+      SV[i * 4 + 1] = halfU;
+      SV[i * 4 + 3] = -halfU;
     }
     pos.needsUpdate = true;
+    sv.needsUpdate = true;
   }
 
   dispose(): void {
