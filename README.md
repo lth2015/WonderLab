@@ -35,6 +35,8 @@ npm run build    # 类型检查 + 生产构建
 
 `?tier=light` 或 `?tier=standard` 可以固定画质档位，用于在不同设备上比对。
 
+**笔迹采集：** 打开 `?collect`，按提示把 [02 §4](docs/02-product-design.md) 的 9 种形状各画 5 次，导出的 JSON 放进 [strokes/](strokes/README.md)，`npm test` 就会用真实笔迹检验判定表。
+
 ## 开发辅助
 
 项目内置的 Claude Code skills 位于 [.claude/skills/](.claude/skills/README.md)，克隆仓库后在本目录中自动启用。

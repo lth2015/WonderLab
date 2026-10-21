@@ -1,0 +1,183 @@
+/* Stroke collection (?collect). A test tool, so it stays plain. */
+.collect {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--paper-100);
+  background: var(--ink-950);
+}
+
+.collect.intro,
+.collect.summary {
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 16px;
+  overflow-y: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.collect h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.collect p {
+  margin: 0;
+  max-width: 28em;
+  line-height: 1.7;
+  color: #c9c3b6;
+  text-align: center;
+}
+
+.collect label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: #c9c3b6;
+}
+
+.collect input {
+  font: inherit;
+  font-size: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #8e897f;
+  background: #121721;
+  color: var(--paper-100);
+}
+
+.collect button {
+  font: inherit;
+  font-size: 15px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 22px;
+  border: 1px solid #8e897f;
+  background: transparent;
+  color: var(--paper-100);
+  cursor: pointer;
+}
+
+.collect button.primary {
+  background: var(--paper-100);
+  border-color: var(--paper-100);
+  color: var(--ink-950);
+}
+
+.collect button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.collect button:focus-visible,
+.collect input:focus-visible {
+  outline: 2px solid #e9d9a6;
+  outline-offset: 2px;
+}
+
+.prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 14px 16px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  border-bottom: 1px solid #1e2836;
+}
+
+.prompt strong {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.prompt .progress {
+  font-size: 13px;
+  color: #8e897f;
+  font-variant-numeric: tabular-nums;
+}
+
+.prompt .sub {
+  flex-basis: 100%;
+  font-size: 14px;
+  color: #c9c3b6;
+}
+
+.pad {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.pad.busy {
+  opacity: 0.55;
+  transition: opacity 300ms var(--ease-exit);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  border-top: 1px solid #1e2836;
+}
+
+.bar .spacer {
+  flex: 1;
+}
+
+.verdict {
+  font-size: 14px;
+}
+
+.verdict.ok::before {
+  content: '✓ ';
+  color: #9fc29a;
+}
+
+.verdict.miss::before {
+  content: '✗ ';
+  color: #c8553d;
+}
+
+.summary table {
+  border-collapse: collapse;
+  font-size: 14px;
+  max-width: 100%;
+}
+
+.summary th,
+.summary td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1e2836;
+  text-align: left;
+}
+
+.summary th {
+  color: #8e897f;
+  font-weight: 400;
+}
+
+.summary tr.miss td:nth-child(2) {
+  color: #c8553d;
+}
+
+.summary .actions {
+  display: flex;
+  gap: 12px;
+}
+
+.summary .note {
+  font-size: 13px;
+  color: #8e897f;
+}
