@@ -5,6 +5,7 @@ import type { StrokePoint } from './stroke';
 
 const N = 32;
 const FORM_TIME = 0.9; // s, mirrors docs/03 §6.3 (creation 1.2–1.8 s incl. ink bleed)
+const CALM_FADE = 0.6; // s, reduced motion: fade in instead of growing (docs/03 §8)
 
 // Mirrors fishProfileGLSL in shaders/ink.ts.
 const smooth = (a: number, b: number, x: number) => {
@@ -57,6 +58,9 @@ export class Fish {
   private nextWake = 2 + Math.random() * 2;
   private fadeTime: number;
   private spread = 1;
+  private fadeIn = 1;
+  private veil = 1;
+  private veilTarget = 1;
   private dispersing = false;
   private readonly geometry = new THREE.BufferGeometry();
   private readonly material: THREE.ShaderMaterial;
@@ -70,6 +74,8 @@ export class Fish {
     minDim: number,
     palette: Palette,
     readonly ghost = false,
+    /** Reduced motion: no growth, half speed. */
+    private readonly calm = false,
   ) {
     this.opacity = ghost ? 0.38 : 1;
     this.fadeTime = ghost ? 1.2 : 2.2;
@@ -90,7 +96,8 @@ export class Fish {
     // Quick strokes make lively fish; curvy strokes make softer swimmers.
     const drawSpeed = strokeLength / Math.max(strokeDuration, 16); // px/ms
     const lively = THREE.MathUtils.clamp(drawSpeed / 1.6, 0, 1);
-    this.baseSpeed = this.L * (0.3 + 0.75 * lively);
+    this.baseSpeed = this.L * (0.3 + 0.75 * lively) * (calm ? 0.5 : 1);
+    if (calm) this.grow = 1;
     const curviness = THREE.MathUtils.clamp(totalTurn(spine) / Math.PI, 0, 1);
     this.amp = this.L * (0.03 + 0.05 * curviness);
 
@@ -195,6 +202,19 @@ export class Fish {
     this.fadeTime = 0.8;
   }
 
+  /** Restart: fade out but stay, so the restart can be taken back. */
+  hide(): void {
+    this.veilTarget = 0;
+  }
+
+  show(): void {
+    this.veilTarget = 1;
+  }
+
+  get hidden(): boolean {
+    return this.veilTarget === 0;
+  }
+
   get undone(): boolean {
     return this.dispersing;
   }
@@ -202,9 +222,10 @@ export class Fish {
   update(dt: number, ctx: SwimContext): void {
     this.age += dt;
     if (this.state === 'forming') {
-      this.grow = Math.min(this.age / FORM_TIME, 1);
+      this.grow = this.calm ? 1 : Math.min(this.age / FORM_TIME, 1);
+      this.fadeIn = this.calm ? Math.min(this.age / CALM_FADE, 1) : 1;
       this.phase += dt * 2.5;
-      if (this.grow >= 1) {
+      if (this.grow >= 1 && this.fadeIn >= 1) {
         this.state = 'swimming';
         ctx.ripple(this.headX, this.headY, this.ghost ? 0.4 : 0.9);
       }
@@ -219,10 +240,12 @@ export class Fish {
       if (this.opacity <= 0) this.dead = true;
     }
     this.material.uniforms.uGrow.value = this.grow;
-    this.material.uniforms.uOpacity.value = Math.max(this.opacity, 0);
+    this.veil += Math.sign(this.veilTarget - this.veil) * Math.min(Math.abs(this.veilTarget - this.veil), dt / 0.6);
+    const shown = Math.max(this.opacity, 0) * this.fadeIn * this.veil;
+    this.material.uniforms.uOpacity.value = shown;
     this.material.uniforms.uPect.value = 1 + 0.25 * Math.sin(this.phase * 0.5);
     this.shadowMaterial.uniforms.uGrow.value = this.grow;
-    this.shadowMaterial.uniforms.uOpacity.value = Math.max(this.opacity, 0);
+    this.shadowMaterial.uniforms.uOpacity.value = shown;
     this.shadowMaterial.uniforms.uPect.value = this.material.uniforms.uPect.value;
     this.material.uniforms.uSpread.value = this.spread;
     this.shadowMaterial.uniforms.uSpread.value = this.spread;
@@ -260,7 +283,7 @@ export class Fish {
     if (y < bounds.minY + m) sy += (bounds.minY + m - y) / m;
     if (y > bounds.maxY - m) sy -= (y - bounds.maxY + m) / m;
     for (const o of ctx.others) {
-      if (o === this || o.state === 'forming') continue;
+      if (o === this || o.state === 'forming' || o.hidden) continue;
       const dx = x - o.headX;
       const dy = y - o.headY;
       const d = Math.hypot(dx, dy);

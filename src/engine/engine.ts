@@ -10,13 +10,16 @@ import { Stroke, type StrokePoint } from './stroke';
 import { Fish } from './fish';
 import { Sky, type MoonSpec } from './sky';
 import { classify, spineFromOutline, type Classification, type Pt } from './classify';
+import { FrameMonitor, TIERS, type Tier } from './quality';
+import { INITIAL, type AtmosphereState } from './atmosphere';
+import { logEvent, prompted } from '../telemetry';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
 const LONG_PRESS_MS = 500;
 const EDGE_GUARD = 16;
-const MAX_FISH = 12;
 const UNDO_DEPTH = 20;
+const RESTART_UNDO_MS = 5000;
 
 export type CreationKind = 'fish' | 'moon' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
 
@@ -28,17 +31,34 @@ export interface Creation {
   y: number;
 }
 
+export interface EngineOptions {
+  /** Pin a tier (e.g. from ?tier=light) instead of choosing by frame time. */
+  tier?: Tier;
+  reducedMotion?: boolean;
+}
+
 export interface EngineEvents {
   onFirstStroke?: () => void;
   onFishCreated?: (count: number) => void;
   onCreated?: (c: Creation) => void;
   onUndo?: (remaining: number) => void;
   onFishTouched?: () => void;
+  onTierChange?: (tier: Tier) => void;
+  /** The pending restart became final (or was taken back: `undone`). */
+  onRestartSettled?: (undone: boolean) => void;
+}
+
+interface PendingRestart {
+  fishes: Fish[];
+  atmosphere: AtmosphereState;
+  history: HistoryEntry[];
+  timer: number;
 }
 
 interface HistoryEntry {
   id: number;
   kind: CreationKind;
+  time: number;
   undo: () => void;
 }
 
@@ -82,6 +102,10 @@ export class Engine {
   private nextHistoryId = 1;
   private waveT = 0;
   private nextMoonLure = 6;
+  private readonly monitor: FrameMonitor;
+  private readonly pinnedTier: boolean;
+  private calm: boolean;
+  private restartPending: PendingRestart | null = null;
 
   private width = 1;
   private height = 1;
@@ -101,7 +125,12 @@ export class Engine {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly events: EngineEvents = {},
+    options: EngineOptions = {},
   ) {
+    this.monitor = new FrameMonitor(options.tier ?? 'standard');
+    this.pinnedTier = !!options.tier;
+    this.calm = !!options.reducedMotion;
+    this.sky.calm = this.calm;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: false });
     this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace; // colours are already sRGB values
     this.renderer.setClearColor(0x0b0e13, 1);
@@ -142,6 +171,7 @@ export class Engine {
         uWaveT: { value: 0 },
         uWind: { value: this.atmosphere.wind },
         uDusk: { value: 0 },
+        uPost: { value: 1 },
         ...this.sky.uniforms,
       },
       depthTest: false,
@@ -158,6 +188,8 @@ export class Engine {
         uMist: { value: 0 },
         uFireflies: { value: 0 },
         uWind: { value: 0 },
+        uParticles: { value: 1 },
+        uCalm: { value: this.calm ? 1 : 0 },
         uSkyLow: { value: p.skyLow },
         uAccent: { value: p.accent },
       },
@@ -177,7 +209,7 @@ export class Engine {
     bg.frustumCulled = false;
     this.scene.add(bg);
 
-    this.resize();
+    this.applyTier();
     this.bindInput();
     document.addEventListener('visibilitychange', this.onVisibility);
     window.addEventListener('resize', this.onResize);
@@ -193,6 +225,89 @@ export class Engine {
   stop(): void {
     this.running = false;
     cancelAnimationFrame(this.raf);
+  }
+
+  get canUndo(): boolean {
+    return this.history.length > 0;
+  }
+
+  get tier(): Tier {
+    return this.monitor.tier;
+  }
+
+  setReducedMotion(on: boolean): void {
+    this.calm = on;
+    this.sky.calm = on;
+    this.weatherMat.uniforms.uCalm.value = on ? 1 : 0;
+  }
+
+  /** Keyboard creation (docs/03 §8): a fish or a moon at a random spot, or a tap on the lake. */
+  keyAction(action: 'fish' | 'moon' | 'tap'): void {
+    const S = this.minDim;
+    const lakeY = () => this.horizonY * (0.2 + Math.random() * 0.55);
+    const x0 = this.width * (0.25 + Math.random() * 0.5);
+    if (action === 'tap') {
+      this.tap(x0, lakeY(), null);
+      return;
+    }
+    const pts: StrokePoint[] = [];
+    if (action === 'fish') {
+      const y0 = lakeY();
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      for (let i = 0; i <= 24; i++) {
+        const u = i / 24;
+        pts.push({ x: x0 + dir * u * S * 0.2, y: y0 + Math.sin(u * Math.PI) * S * 0.03, t: u * 500, pressure: 0.5 });
+      }
+    } else {
+      const cy = this.horizonY + (this.height - this.horizonY) * (0.45 + Math.random() * 0.3);
+      for (let i = 0; i <= 36; i++) {
+        const a = (i / 36) * Math.PI * 2;
+        pts.push({ x: x0 + Math.cos(a) * S * 0.05, y: cy + Math.sin(a) * S * 0.05, t: i * 20, pressure: 0.5 });
+      }
+    }
+    const stroke = new Stroke(this.palette, S, false);
+    for (const p of pts) stroke.add(p);
+    stroke.finish();
+    this.scene.add(stroke.mesh);
+    this.resolveStroke(stroke);
+  }
+
+  /** Clear the world, keeping it for a few seconds so the restart can be taken back. */
+  restart(): void {
+    this.commitRestart();
+    this.cancelDemo();
+    const fishes = this.fishes.filter((f) => !f.ghost && !f.undone);
+    for (const f of fishes) f.hide();
+    this.sky.setVeil(0);
+    const atmosphere = { ...this.atmosphere.state };
+    this.atmosphere.set({ ...INITIAL });
+    const history = this.history;
+    this.history = [];
+    const timer = window.setTimeout(() => this.commitRestart(), RESTART_UNDO_MS);
+    this.restartPending = { fishes, atmosphere, history, timer };
+    logEvent('restart', { fish: fishes.length });
+  }
+
+  undoRestart(): void {
+    const r = this.restartPending;
+    if (!r) return;
+    clearTimeout(r.timer);
+    this.restartPending = null;
+    for (const f of r.fishes) f.show();
+    this.sky.setVeil(1);
+    this.atmosphere.set(r.atmosphere);
+    this.history = r.history;
+    this.events.onRestartSettled?.(true);
+  }
+
+  private commitRestart(): void {
+    const r = this.restartPending;
+    if (!r) return;
+    clearTimeout(r.timer);
+    this.restartPending = null;
+    for (const f of r.fishes) f.dead = true;
+    this.sky.clear();
+    this.events.onRestartSettled?.(false);
   }
 
   /** A ghost stroke draws itself and turns into a translucent fish, then fades. */
@@ -220,6 +335,7 @@ export class Engine {
 
   /** Change the mood of the world (一句成境). Undoable like a creation. */
   applyScene(cmd: SceneCommand): void {
+    this.commitRestart();
     const prev = this.atmosphere.apply(cmd);
     this.record('atmosphere', this.width / 2, this.horizonY, () => this.atmosphere.set(prev));
   }
@@ -230,12 +346,14 @@ export class Engine {
     if (at < 0) return false;
     const [entry] = this.history.splice(at, 1);
     entry.undo();
+    logEvent('undo', { kind: entry.kind, after: Math.round((this.time - entry.time) * 1000) });
     this.events.onUndo?.(this.history.length);
     return true;
   }
 
   dispose(): void {
     this.stop();
+    if (this.restartPending) clearTimeout(this.restartPending.timer);
     document.removeEventListener('visibilitychange', this.onVisibility);
     window.removeEventListener('resize', this.onResize);
     this.unbindInput();
@@ -258,8 +376,17 @@ export class Engine {
 
   private frame = (now: number): void => {
     if (!this.running) return;
-    const dt = Math.min((now - this.last) / 1000, 1 / 20);
+    const interval = now - this.last;
+    const dt = Math.min(interval / 1000, 1 / 20);
     this.last = now;
+    if (!this.pinnedTier) {
+      const next = this.monitor.frame(now, interval);
+      if (next) {
+        this.applyTier();
+        logEvent('tier_change', { tier: next });
+        this.events.onTierChange?.(next);
+      }
+    }
     this.time += dt;
     this.update(dt);
     this.renderer.render(this.scene, this.camera);
@@ -366,13 +493,14 @@ export class Engine {
       length = 0;
       for (let i = 1; i < spine.length; i++) length += Math.hypot(spine[i].x - spine[i - 1].x, spine[i].y - spine[i - 1].y);
     }
-    const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, ghost);
+    const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, ghost, this.calm);
     this.fishes.push(fish);
     this.scene.add(fish.group);
     // The line lingers briefly, then the fish's body takes over.
     this.fadeStroke(stroke, 0.25, 0.6);
-    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving');
-    if (real.length > MAX_FISH) real[0].leave();
+    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden);
+    const maxFish = TIERS[this.monitor.tier].maxFish;
+    while (real.length > maxFish) real.shift()!.leave();
     if (ghost) return;
     this.events.onFishCreated?.(real.length);
     this.record('fish', fish.headX, fish.headY, () => {
@@ -383,7 +511,9 @@ export class Engine {
 
   private record(kind: CreationKind, x: number, y: number, undo: () => void): void {
     const id = this.nextHistoryId++;
-    this.history.push({ id, kind, undo });
+    this.history.push({ id, kind, undo, time: this.time });
+    // 一句成境 is logged as text_submit by the UI, with its own prompted flag.
+    if (kind !== 'atmosphere') logEvent('create', { what: kind, prompted: prompted(kind) });
     if (this.history.length > UNDO_DEPTH) this.history.shift();
     this.events.onCreated?.({ id, kind, x, y: this.height - y });
   }
@@ -543,9 +673,20 @@ export class Engine {
 
   /** The docs/02 §4 table: every cell answers. */
   private resolveStroke(stroke: Stroke): void {
+    this.commitRestart();
     const c = classify(stroke.points, this.minDim);
     const { centroid } = c.features;
     const lake = centroid.y < this.horizonY;
+    const f = c.features;
+    logEvent('stroke_classified', {
+      kind: c.kind,
+      region: lake ? 'lake' : 'sky',
+      length: round(f.length / this.minDim),
+      gap: round(f.gap),
+      turn: Math.round(f.turn),
+      aspect: round(f.aspect),
+      residual: round(Math.min(f.fit.residual, 9)),
+    });
     switch (c.kind) {
       case 'short':
         this.fadeStroke(stroke, 0.1, 0.6);
@@ -580,11 +721,13 @@ export class Engine {
   }
 
   private tap(x: number, y: number, fish: Fish | null): void {
+    logEvent('touch', { object: fish ? 'fish' : y >= this.horizonY ? 'sky' : 'lake' });
     if (y >= this.horizonY && !fish) {
       this.sky.flash(x, y);
       return;
     }
     if (fish) {
+      prompted('touch_fish');
       this.events.onFishTouched?.();
       fish.scare(x, y, 1);
       this.addRipple(x, y, 0.6);
@@ -612,7 +755,7 @@ export class Engine {
     let best: Fish | null = null;
     let bestD = Infinity;
     for (const f of this.fishes) {
-      if (f.ghost || f.undone) continue;
+      if (f.ghost || f.undone || f.hidden) continue;
       const d = f.hitDistance(x, y);
       if (d < f.hitRadius && d < bestD) {
         best = f;
@@ -624,12 +767,27 @@ export class Engine {
 
   // ---------------------------------------------------------------- sizing
 
-  private onResize = (): void => this.resize();
+  private onResize = (): void => {
+    this.resize();
+    this.monitor.settle(performance.now());
+  };
 
   private onVisibility = (): void => {
     if (document.hidden) this.stop();
-    else this.start();
+    else {
+      this.monitor.settle(performance.now());
+      this.start();
+    }
   };
+
+  private applyTier(): void {
+    const t = TIERS[this.monitor.tier];
+    this.worldMat.uniforms.uPost.value = t.post ? 1 : 0;
+    this.weatherMat.uniforms.uParticles.value = t.particles;
+    this.resize();
+    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden);
+    while (real.length > t.maxFish) real.shift()!.leave();
+  }
 
   private resize(): void {
     const w = this.canvas.clientWidth || window.innerWidth;
@@ -640,7 +798,7 @@ export class Engine {
     this.width = w;
     this.height = h;
     this.horizon = h > w ? 0.55 : 0.5; // portrait: lake takes 55%
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, TIERS[this.monitor.tier].maxDpr);
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
     this.camera.left = 0;
@@ -676,4 +834,8 @@ export class Engine {
     this.renderer.render(this.landscapeScene, this.quadCamera);
     this.renderer.setRenderTarget(null);
   }
+}
+
+function round(v: number): number {
+  return Math.round(v * 100) / 100;
 }

@@ -11,6 +11,8 @@ uniform float uRain;
 uniform float uMist;
 uniform float uFireflies;
 uniform float uWind;
+uniform float uParticles;  // share of particles drawn, by quality tier
+uniform float uCalm;       // 1 = reduced motion: slower, sparser rain
 uniform vec3 uSkyLow;
 uniform vec3 uAccent;
 varying vec2 vUv;
@@ -68,7 +70,9 @@ void main() {
     float gloom = 0.12 * uRain;
     col = col * (1.0 - gloom);
     a = a + gloom * (1.0 - a);
-    float streaks = rainLayer(p, S, 9.0, 1.4, 0.0) + 0.6 * rainLayer(p, S, 5.0, 1.0, 17.0);
+    float speed = mix(1.0, 0.35, uCalm);
+    float streaks = rainLayer(p, S, mix(9.0, 16.0, uCalm), 1.4 * speed, 0.0);
+    if (uParticles > 0.5 && uCalm < 0.5) streaks += 0.6 * rainLayer(p, S, 5.0, 1.0 * speed, 17.0);
     vec3 rc = mix(uSkyLow * 2.2, vec3(0.8, 0.82, 0.86), 0.4);
     col += rc * streaks * 0.28 * uRain;
     col += rc * splashes(p, hpx, S) * 0.22 * uRain;
@@ -76,7 +80,9 @@ void main() {
 
   if (uFireflies > 0.001) {
     vec3 fc = mix(vec3(0.92, 0.95, 0.6), uAccent, 0.3);
+    int count = int(28.0 * uParticles);
     for (int i = 0; i < 28; i++) {
+      if (i >= count) break;
       float fi = float(i);
       float h1 = hash(vec2(fi, 1.7));
       float h2 = hash(vec2(fi, 8.3));

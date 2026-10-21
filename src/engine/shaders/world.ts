@@ -33,6 +33,8 @@ uniform vec4 uClouds[MAX_CLOUDS];     // x, y, half width, presence
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
+uniform float uSkyVeil;               // 0..1, fades all user sky items (restart)
+uniform float uPost;                  // 1 = paper grain (standard tier)
 varying vec2 vUv;
 
 ${noiseGLSL}
@@ -69,6 +71,7 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
 }
 
 vec3 userSky(vec2 p, vec3 c, float open) {
+  vec3 base = c;
   // Clouds sit in front of the mountains, the rest behind them.
   for (int i = 0; i < MAX_CLOUDS; i++) {
     vec4 cl = uClouds[i];
@@ -111,7 +114,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
     float spark = exp(-length(p - head) / 4.0);
     c += starCol * (trail * 0.9 + spark * 0.7) * fade * open;
   }
-  return c;
+  return mix(base, c, uSkyVeil);
 }
 
 vec4 skyAt(vec2 p, float hpx, float S) {
@@ -125,7 +128,7 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   vec2 q = vec2(p.x / S * 1.2 + uTime * 0.006, p.y / S * 3.2);
   float cl = fbm(q + fbm(q * 0.7 + uTime * 0.003));
   c = mix(c, uSkyLow * 1.35, smoothstep(0.55, 0.82, cl) * 0.22 * smoothstep(0.1, 0.5, t));
-  c *= 1.0 + 0.08 * uMoonLight;
+  c *= 1.0 + 0.08 * uMoonLight * uSkyVeil;
   c = userSky(p, c, land.a);
   return vec4(c, land.a);
 }
@@ -178,7 +181,7 @@ void main() {
     col += uAccent * glint * 0.035 * (1.0 - smoothstep(0.0, 0.5, dn));
     col += uAccent * sheen * 0.10;
     col *= 1.0 - smoothstep(0.0, 0.6, dn) * 0.35;
-    col *= 1.0 + 0.05 * uMoonLight;
+    col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;
   }
 
   // Mist hugging the horizon line.
@@ -186,9 +189,11 @@ void main() {
   col = mix(col, uSkyLow * 1.1, exp(-hd * 45.0) * 0.45);
 
   // Rice-paper grain and a soft vignette.
-  float grain = hash(floor(p)) - 0.5;
-  float fibre = fbm(p * vec2(0.02, 0.09)) - 0.5;
-  col += grain * 0.028 + fibre * 0.02;
+  if (uPost > 0.5) {
+    float grain = hash(floor(p)) - 0.5;
+    float fibre = fbm(p * vec2(0.02, 0.09)) - 0.5;
+    col += grain * 0.028 + fibre * 0.02;
+  }
   vec2 vq = (vUv - 0.5) * vec2(uRes.x / uRes.y, 1.0);
   col *= mix(1.0, 0.72, smoothstep(0.45, 1.15, length(vq)));
 

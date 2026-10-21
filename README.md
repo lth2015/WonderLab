@@ -23,6 +23,18 @@ npm test         # 输入判定与「一句成境」本地规则的测试
 npm run build    # 类型检查 + 生产构建
 ```
 
+## 测试主持
+
+事件日志只保存在测试设备的内存里，不上传，也不记录用户写的句子（见 [02 §8](docs/02-product-design.md)）。
+
+| 快捷键 | 作用 |
+|---|---|
+| `Alt`+`Shift`+`E` | 导出本次会话的事件日志（JSON） |
+| `Alt`+`Shift`+`P` | 切换引导段 / 自由段（记入日志） |
+| `Alt`+`Shift`+`R` | 重置为全新世界（`?fresh`），换下一位测试者时用 |
+
+`?tier=light` 或 `?tier=standard` 可以固定画质档位，用于在不同设备上比对。
+
 ## 开发辅助
 
 项目内置的 Claude Code skills 位于 [.claude/skills/](.claude/skills/README.md)，克隆仓库后在本目录中自动启用。

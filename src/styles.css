@@ -174,7 +174,7 @@ body {
   white-space: nowrap;
 }
 
-.hint.words {
+.hint.input {
   top: auto;
   bottom: calc(96px + env(safe-area-inset-bottom) + var(--kb, 0px));
 }
@@ -286,5 +286,245 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .flight span {
     animation-duration: 0.6s;
+  }
+}
+
+.world:focus-visible {
+  outline: 2px solid rgba(233, 217, 166, 0.5);
+  outline-offset: -4px;
+}
+
+/* Top-right controls (docs/03 §5.1). */
+.chrome {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(12px + env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+  transition: opacity 220ms var(--ease-ink);
+}
+.chrome.dim {
+  opacity: 0.15;
+  transition-duration: 200ms;
+}
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-100);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.6));
+}
+.icon-btn:hover {
+  background: rgba(12, 15, 21, 0.4);
+}
+.icon-btn:focus-visible,
+.menu button:focus-visible,
+.text-btn:focus-visible,
+.toast button:focus-visible {
+  outline: 2px solid #e9d9a6;
+  outline-offset: 2px;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 14, 19, 0.5);
+  animation: fade-in 200ms var(--ease-ink);
+}
+.scrim.clear {
+  background: transparent;
+}
+
+.glass,
+.menu,
+.sheet,
+.toast.on {
+  background: var(--ui-glass);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+  box-shadow: inset 0 0 0 1px rgba(239, 234, 223, 0.08);
+}
+:root {
+  --ui-glass: rgba(12, 15, 21, 0.62);
+  --ui-blur: blur(12px);
+}
+/* Light tier: no blur over the moving canvas (docs/03 §3.1, §10). */
+:root[data-tier='light'] {
+  --ui-glass: rgba(12, 15, 21, 0.82);
+  --ui-blur: none;
+}
+:root[data-tier='light'] .words {
+  background: var(--ui-glass);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.menu {
+  position: fixed;
+  top: calc(60px + env(safe-area-inset-top));
+  right: calc(12px + env(safe-area-inset-right));
+  min-width: 140px;
+  padding: 6px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top right;
+  animation: pop 200ms var(--ease-ink);
+}
+.menu button {
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--paper-100);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.menu button:hover:not(:disabled) {
+  background: rgba(239, 234, 223, 0.08);
+}
+.menu button:disabled {
+  color: #8e897f;
+  cursor: default;
+}
+
+.sheet {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 28px 28px 20px;
+  border-radius: 16px;
+  line-height: 1.6;
+  animation: fade-in 200ms var(--ease-ink);
+}
+.sheet h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.sheet .motto {
+  margin: 4px 0 16px;
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  color: #c9c3b6;
+  letter-spacing: 0.15em;
+}
+.sheet ul {
+  margin: 0 0 16px;
+  padding-left: 1.2em;
+  font-size: 15px;
+}
+.sheet .keys,
+.sheet .note {
+  font-size: 14px;
+  color: #c9c3b6;
+  margin: 0 0 10px;
+}
+.sheet kbd {
+  font: inherit;
+  padding: 0 5px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(239, 234, 223, 0.25);
+}
+.text-btn {
+  margin-top: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 22px;
+  background: rgba(239, 234, 223, 0.1);
+  color: var(--paper-100);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Restart toast with take-back (docs/03 §5.5). */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(88px + env(safe-area-inset-bottom) + var(--kb, 0px));
+  transform: translateX(-50%);
+  padding: 0 6px 0 18px;
+  min-height: 44px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms var(--ease-ink);
+}
+.toast.on {
+  opacity: 1;
+  pointer-events: auto;
+}
+.toast button {
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: #e9d9a6;
+  font: inherit;
+  cursor: pointer;
+}
+
+.host-note {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  font-size: 14px;
+  color: #c9c3b6;
+  pointer-events: none;
+}
+
+/* Reduced motion: the demo is a still, dashed hint (docs/03 §8). */
+.static-demo {
+  position: fixed;
+  left: 36%;
+  width: 28%;
+  bottom: 20%;
+  overflow: visible;
+  pointer-events: none;
+  animation: hint-hold 4s linear forwards;
+}
+.static-demo path {
+  fill: none;
+  stroke: rgba(239, 234, 223, 0.45);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 2 9;
+}
+@keyframes hint-hold {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
   }
 }

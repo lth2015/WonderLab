@@ -65,6 +65,7 @@ interface Cloud {
 
 export class Sky {
   readonly uniforms = {
+    uSkyVeil: { value: 1 },
     uMoon: { value: new THREE.Vector4() },        // x, y, radius, presence
     uMoonShade: { value: new THREE.Vector3(1, 0, SHADE.full) },
     uMoonLight: { value: 0 },
@@ -76,6 +77,9 @@ export class Sky {
   };
 
   private moon: Moon | null = null;
+  private veilTarget = 1;
+  /** Reduced motion: moons fade in place over 0.6 s (docs/03 §8). */
+  calm = false;
   private pendingMoon: Moon | null = null;
   private stars: Star[] = [];
   private meteors: Meteor[] = [];
@@ -145,6 +149,24 @@ export class Sky {
     if (c && c.fading < 0) c.fading = this.time;
   }
 
+  /** Fade every user sky item toward `target` (0 hides, 1 shows), for restart and its undo. */
+  setVeil(target: number): void {
+    this.veilTarget = target;
+  }
+
+  /** Remove everything at once. */
+  clear(): void {
+    this.moon = null;
+    this.pendingMoon = null;
+    this.stars = [];
+    this.meteors = [];
+    this.clouds = [];
+    this.veilTarget = 1;
+    this.uniforms.uSkyVeil.value = 1;
+    this.uniforms.uMoon.value.w = 0;
+    this.uniforms.uMoonLight.value = 0;
+  }
+
   scale(sx: number, sy: number): void {
     const k = Math.sqrt(sx * sy);
     for (const m of [this.moon, this.pendingMoon]) {
@@ -170,6 +192,8 @@ export class Sky {
 
   update(dt: number, time: number, horizonY: number, width: number, wind: number): void {
     this.time = time;
+    const veil = this.uniforms.uSkyVeil;
+    veil.value += Math.sign(this.veilTarget - veil.value) * Math.min(Math.abs(this.veilTarget - veil.value), dt / 0.6);
     this.updateMoon(dt, horizonY);
 
     // Stars.
@@ -244,10 +268,12 @@ export class Sky {
         u.uMoon.value.w = 0;
         return;
       }
+    } else if (this.calm) {
+      m.presence = Math.min(age / 0.6, 1);
     } else {
       m.presence = Math.min(age / (spec.rise ? MOON_RISE * 0.6 : MOON_RISE), 1);
     }
-    const k = easeInk(Math.min(age / MOON_RISE, 1));
+    const k = this.calm ? 1 : easeInk(Math.min(age / MOON_RISE, 1));
     const y = spec.rise ? horizonY + (spec.y - horizonY) * k : spec.y;
     const r = spec.r * (spec.rise ? 1 : 0.6 + 0.4 * k);
     u.uMoon.value.set(spec.x, y, r, Math.max(m.presence, 0));
