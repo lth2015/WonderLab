@@ -110,8 +110,17 @@ void main() {
   if (w < body) {
     float x = w / body;
     col = uPaper;
-    // Faint ink contour, like a 白描 outline.
-    col = mix(col, uInk, smoothstep(0.62, 0.95, x + n * 0.15) * 0.45);
+    // Soft roundness: the back catches the light, the flanks fall into shade.
+    col *= 1.02 - 0.12 * x * x;
+    // Scales: a staggered net of fine ink arcs, as in a gongbi koi.
+    float sz = uMaxW * 0.3;
+    vec2 sp = vec2(s * uL, v * env * uMaxW) / sz;
+    sp.y += 0.5 * mod(floor(sp.x), 2.0);
+    float arc = abs(length(fract(sp) - vec2(0.0, 0.5)) - 0.62);
+    float net = (1.0 - smoothstep(0.03, 0.09, arc)) * smoothstep(0.1, 0.22, s) * (1.0 - smoothstep(0.72, 0.84, s)) * (1.0 - smoothstep(0.55, 0.9, x));
+    col = mix(col, uInk, net * 0.16);
+    // Ink contour, like a 白描 outline.
+    col = mix(col, uInk, smoothstep(0.7, 0.97, x + n * 0.08) * 0.55);
     // Dorsal ink line along the spine.
     float dorsal = exp(-x * x * 26.0) * smoothstep(0.06, 0.2, s) * (1.0 - smoothstep(0.65, 0.9, s));
     col = mix(col, uInk, dorsal * 0.42);
@@ -124,14 +133,17 @@ void main() {
     vec2 eyeC = vec2(0.075 * uL, 0.55 * body * uMaxW);
     float eye = smoothstep(uMaxW * 0.16, uMaxW * 0.08, length(eyeP - eyeC));
     col = mix(col, uInk * 0.6, eye);
-    a = 0.9 * (1.0 - smoothstep(0.84, 1.0, x + n * 0.22));
+    float glint = smoothstep(uMaxW * 0.05, uMaxW * 0.02, length(eyeP - eyeC - vec2(uMaxW * 0.03, uMaxW * 0.03)));
+    col = mix(col, uPaper, glint * 0.8);
+    a = 0.94 * (1.0 - smoothstep(0.9, 1.0, x + n * 0.1));
   } else {
     float fx = (w - body) / max(env - body, 1e-3);
-    float rays = 0.5 + 0.5 * sin(v * 22.0 + s * 9.0 + uSeed);
-    float pectRays = 0.5 + 0.5 * sin(s * 95.0);
+    // Fin rays: thin ink lines in a pale, translucent membrane.
+    float rays = pow(0.5 + 0.5 * sin(v * 26.0 + s * 9.0 + uSeed), 6.0);
+    float pectRays = pow(0.5 + 0.5 * sin(s * 110.0), 6.0);
     float r = mix(pectRays, rays, smoothstep(0.6, 0.8, s));
-    col = mix(uPaper, uInk, 0.18 + 0.2 * r);
-    a = 0.4 * pow(1.0 - clamp(fx + n * 0.25, 0.0, 1.0), 1.3) * (0.55 + 0.45 * r);
+    col = mix(uPaper, uInk, 0.12 + 0.35 * r);
+    a = 0.42 * pow(1.0 - clamp(fx + n * 0.15, 0.0, 1.0), 1.2) * (0.6 + 0.4 * r);
   }
 
   // Reveal from head to tail during birth.
