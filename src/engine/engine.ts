@@ -50,6 +50,8 @@ export interface EngineEvents {
   onTierChange?: (tier: Tier) => void;
   /** The pending restart became final (or was taken back: `undone`). */
   onRestartSettled?: (undone: boolean) => void;
+  /** Right after each render, while the drawing buffer is still readable. */
+  onFrame?: (canvas: HTMLCanvasElement) => void;
 }
 
 interface PendingRestart {
@@ -128,6 +130,7 @@ export class Engine {
   private input: ActiveInput | null = null;
   private demo: { points: StrokePoint[]; stroke: Stroke; start: number } | null = null;
   private hadFirstStroke = false;
+  private tierHeld = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -266,6 +269,12 @@ export class Engine {
 
   get canUndo(): boolean {
     return this.history.length > 0;
+  }
+
+  /** Keep the current quality tier, e.g. while recording (docs/03 §10). */
+  holdTier(on: boolean): void {
+    this.tierHeld = on;
+    if (!on) this.monitor.settle(performance.now());
   }
 
   get tier(): Tier {
@@ -488,7 +497,7 @@ export class Engine {
     const interval = now - this.last;
     const dt = Math.min(interval / 1000, 1 / 20);
     this.last = now;
-    if (!this.pinnedTier) {
+    if (!this.pinnedTier && !this.tierHeld) {
       const next = this.monitor.frame(now, interval);
       if (next) {
         this.applyTier();
@@ -499,6 +508,7 @@ export class Engine {
     this.time += dt;
     this.update(dt);
     this.renderer.render(this.scene, this.camera);
+    this.events.onFrame?.(this.canvas);
     this.raf = requestAnimationFrame(this.frame);
   };
 

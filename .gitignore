@@ -5,3 +5,4 @@ dist
 art-raw
 .env
 server-data
+.playwright-mcp

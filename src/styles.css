@@ -1,6 +1,7 @@
 :root {
   --ink-950: #0b0e13;
   --paper-100: #efeadf;
+  --cinnabar: #c8553d;
   --ease-ink: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-exit: cubic-bezier(0.55, 0, 1, 0.45);
 }
@@ -707,4 +708,107 @@ body {
 }
 .sheet .scpay a {
   color: #e9d9a6;
+}
+/* Recording (docs/02 §6.2; docs/03 §5.1, §5.4, §11). */
+.icon-btn.record.on {
+  color: var(--cinnabar);
+}
+.icon-btn.record .ring {
+  stroke: var(--cinnabar);
+  stroke-width: 1.5;
+  stroke-dasharray: 62.83;
+  stroke-dashoffset: 62.83;
+  transform: rotate(-90deg);
+  transform-origin: 12px 12px;
+  animation: ring linear forwards;
+}
+@keyframes ring {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.countdown {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  font-size: 96px;
+  color: var(--paper-100);
+  text-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  animation: count 1s var(--ease-ink) both;
+}
+@keyframes count {
+  from {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  30% {
+    opacity: 0.9;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.rec-badge {
+  position: fixed;
+  top: calc(22px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-100);
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cinnabar);
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+.sheet.preview {
+  width: min(560px, calc(100vw - 32px));
+  padding: 16px;
+}
+.sheet.preview video {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 10px;
+  background: var(--ink-950);
+}
+.preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.preview-actions .text-btn {
+  margin-top: 0;
+}
+.preview-actions .confirm-q {
+  margin-right: auto;
+  font-size: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .countdown {
+    animation: none;
+  }
+  .rec-dot {
+    animation: none;
+  }
 }
