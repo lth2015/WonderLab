@@ -1,0 +1,530 @@
+:root {
+  --ink-950: #0b0e13;
+  --paper-100: #efeadf;
+  --ease-ink: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.55, 0, 1, 0.45);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink-950);
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+  color: var(--paper-100);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.world {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* Loading: a drop of pale ink spreads, then the world shows through. */
+.veil {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--ink-950);
+  pointer-events: none;
+  transition: opacity 900ms var(--ease-ink);
+}
+.veil.gone {
+  opacity: 0;
+}
+.drop {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239, 234, 223, 0.5), rgba(239, 234, 223, 0) 70%);
+  animation: bleed 1.6s var(--ease-ink) infinite;
+}
+@keyframes bleed {
+  from {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(5);
+    opacity: 0;
+  }
+}
+
+/* Hint written straight onto the lake (docs/03 §3.1, §4). */
+.hint {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 64%;
+  margin: 0;
+  text-align: center;
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 600ms var(--ease-exit),
+    transform 600ms var(--ease-exit);
+}
+.hint.on {
+  opacity: 0.85;
+  transform: none;
+  transition-timing-function: var(--ease-ink);
+  transition-duration: 1200ms;
+}
+
+.fallback {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  padding: 0 16px;
+  text-align: center;
+  font-size: 20px;
+  line-height: 1.6;
+}
+.fallback .sub {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+  .hint {
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop {
+    animation: none;
+  }
+}
+
+.hint.sky {
+  top: 22%;
+}
+
+/* 墨散: a small ink dot beside the new creation (docs/03 §5.1.1). */
+.undo {
+  position: fixed;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  animation: undo-life 4s var(--ease-ink) forwards;
+}
+.undo-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(239, 234, 223, 0.85), rgba(239, 234, 223, 0.35) 55%, rgba(239, 234, 223, 0) 72%);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  transition: transform 160ms var(--ease-ink);
+}
+.undo:hover .undo-dot,
+.undo:focus-visible .undo-dot {
+  transform: scale(1.35);
+}
+.undo:focus-visible {
+  outline: 2px solid #e9d9a6;
+  outline-offset: 2px;
+}
+@keyframes undo-life {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  75% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.hint.input {
+  top: auto;
+  bottom: calc(96px + env(safe-area-inset-bottom) + var(--kb, 0px));
+}
+
+/* The one-sentence box (docs/03 §5.1, §5.3). */
+.words {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom) + var(--kb, 0px));
+  transform: translateX(-50%);
+  width: min(480px, calc(100vw - 32px));
+  height: 48px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 20px;
+  border-radius: 24px;
+  background: rgba(12, 15, 21, 0.62);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 0 1px rgba(239, 234, 223, 0.08);
+  transition: opacity 220ms var(--ease-ink);
+}
+.words.dim {
+  opacity: 0.15;
+  transition-duration: 200ms;
+}
+.words input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--paper-100);
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.words input::placeholder {
+  color: #c9c3b6;
+}
+.words:focus-within {
+  box-shadow:
+    inset 0 0 0 1px rgba(239, 234, 223, 0.08),
+    0 0 0 2px #e9d9a6;
+}
+.count {
+  font-size: 14px;
+  color: #c9c3b6;
+}
+.send {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-100);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: opacity 160ms var(--ease-ink);
+}
+.send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.send:focus-visible {
+  outline: 2px solid #e9d9a6;
+  outline-offset: 2px;
+}
+
+/* Submitted words drift up into the sky as ink dots. */
+.flight {
+  position: fixed;
+  pointer-events: none;
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  font-size: 18px;
+  color: var(--paper-100);
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+.flight span {
+  display: inline-block;
+  animation: rise 1.2s var(--ease-ink) both;
+}
+@keyframes rise {
+  0% {
+    opacity: 0.9;
+    transform: none;
+    filter: blur(0);
+  }
+  60% {
+    opacity: 0.6;
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), -38vh) scale(0.3);
+    filter: blur(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flight span {
+    animation-duration: 0.6s;
+  }
+}
+
+.world:focus-visible {
+  outline: 2px solid rgba(233, 217, 166, 0.5);
+  outline-offset: -4px;
+}
+
+/* Top-right controls (docs/03 §5.1). */
+.chrome {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(12px + env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+  transition: opacity 220ms var(--ease-ink);
+}
+.chrome.dim {
+  opacity: 0.15;
+  transition-duration: 200ms;
+}
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper-100);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.6));
+}
+.icon-btn:hover {
+  background: rgba(12, 15, 21, 0.4);
+}
+.icon-btn:focus-visible,
+.menu button:focus-visible,
+.text-btn:focus-visible,
+.toast button:focus-visible {
+  outline: 2px solid #e9d9a6;
+  outline-offset: 2px;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 14, 19, 0.5);
+  animation: fade-in 200ms var(--ease-ink);
+}
+.scrim.clear {
+  background: transparent;
+}
+
+.glass,
+.menu,
+.sheet,
+.toast.on {
+  background: var(--ui-glass);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+  box-shadow: inset 0 0 0 1px rgba(239, 234, 223, 0.08);
+}
+:root {
+  --ui-glass: rgba(12, 15, 21, 0.62);
+  --ui-blur: blur(12px);
+}
+/* Light tier: no blur over the moving canvas (docs/03 §3.1, §10). */
+:root[data-tier='light'] {
+  --ui-glass: rgba(12, 15, 21, 0.82);
+  --ui-blur: none;
+}
+:root[data-tier='light'] .words {
+  background: var(--ui-glass);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.menu {
+  position: fixed;
+  top: calc(60px + env(safe-area-inset-top));
+  right: calc(12px + env(safe-area-inset-right));
+  min-width: 140px;
+  padding: 6px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top right;
+  animation: pop 200ms var(--ease-ink);
+}
+.menu button {
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--paper-100);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.menu button:hover:not(:disabled) {
+  background: rgba(239, 234, 223, 0.08);
+}
+.menu button:disabled {
+  color: #8e897f;
+  cursor: default;
+}
+
+.sheet {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 28px 28px 20px;
+  border-radius: 16px;
+  line-height: 1.6;
+  animation: fade-in 200ms var(--ease-ink);
+}
+.sheet h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.sheet .motto {
+  margin: 4px 0 16px;
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  color: #c9c3b6;
+  letter-spacing: 0.15em;
+}
+.sheet ul {
+  margin: 0 0 16px;
+  padding-left: 1.2em;
+  font-size: 15px;
+}
+.sheet .keys,
+.sheet .note {
+  font-size: 14px;
+  color: #c9c3b6;
+  margin: 0 0 10px;
+}
+.sheet kbd {
+  font: inherit;
+  padding: 0 5px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(239, 234, 223, 0.25);
+}
+.text-btn {
+  margin-top: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 22px;
+  background: rgba(239, 234, 223, 0.1);
+  color: var(--paper-100);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Restart toast with take-back (docs/03 §5.5). */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(88px + env(safe-area-inset-bottom) + var(--kb, 0px));
+  transform: translateX(-50%);
+  padding: 0 6px 0 18px;
+  min-height: 44px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms var(--ease-ink);
+}
+.toast.on {
+  opacity: 1;
+  pointer-events: auto;
+}
+.toast button {
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: #e9d9a6;
+  font: inherit;
+  cursor: pointer;
+}
+
+.host-note {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  font-size: 14px;
+  color: #c9c3b6;
+  pointer-events: none;
+}
+
+/* Reduced motion: the demo is a still, dashed hint (docs/03 §8). */
+.static-demo {
+  position: fixed;
+  left: 36%;
+  width: 28%;
+  bottom: 20%;
+  overflow: visible;
+  pointer-events: none;
+  animation: hint-hold 4s linear forwards;
+}
+.static-demo path {
+  fill: none;
+  stroke: rgba(239, 234, 223, 0.45);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 2 9;
+}
+@keyframes hint-hold {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}

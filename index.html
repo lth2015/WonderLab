@@ -5,27 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0B0E13" />
     <title>万象生 · WonderLab</title>
-    <style>
-      /* Inline so the loading ink shows before any JS or CSS arrives (docs/03 §11). */
-      #loader{position:fixed;inset:0;display:grid;place-items:center;background:#0B0E13}
-      #loader .drop{width:14px;height:14px;border-radius:50%;background:#EFEADF;opacity:.5;filter:blur(2px);animation:bleed 2.4s cubic-bezier(.22,1,.36,1) infinite}
-      #loader svg{display:block;margin-top:28px}
-      #loader .slow{opacity:0;animation:appear .8s ease 3s forwards;fill:#8E897F;font-size:12px}
-      @keyframes bleed{0%{transform:scale(.4);opacity:.6}100%{transform:scale(4);opacity:0}}
-      @keyframes appear{to{opacity:1}}
-      @media (prefers-reduced-motion:reduce){#loader .drop{animation:none}}
-    </style>
   </head>
   <body>
-    <div id="loader" aria-hidden="true">
-      <div style="display:grid;justify-items:center">
-        <div class="drop"></div>
-        <svg width="220" height="56" viewBox="0 0 220 56">
-          <text x="110" y="22" text-anchor="middle" fill="#EFEADF" font-size="20" letter-spacing="3" font-family="'Kaiti SC','STKaiti','KaiTi',serif">一念起，万象生</text>
-          <text class="slow" x="110" y="48" text-anchor="middle" font-family="system-ui,sans-serif">世界正在铺开…</text>
-        </svg>
-      </div>
-    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

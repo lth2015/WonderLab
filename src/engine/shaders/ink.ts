@@ -10,19 +10,6 @@ void main() {
 }
 `;
 
-// Fish ribbons taper, so each quad is a trapezoid and plain interpolation of
-// aSV zigzags across the diagonal. Interpolating (aSV * q, q) with q = the
-// vertex half-width and dividing per fragment keeps it bilinear.
-export const fishVert = /* glsl */ `
-attribute vec2 aSV;
-attribute float aQ;
-varying vec3 vSVQ;
-void main() {
-  vSVQ = vec3(aSV * aQ, aQ);
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}
-`;
-
 // A live brush stroke: soft bleeding edges and dry-brush streaks (飞白)
 // that increase toward the end of the stroke.
 export const strokeFrag = /* glsl */ `
@@ -84,18 +71,19 @@ uniform float uPect;       // pectoral fin flap
 uniform float uL;          // body length, px
 uniform float uMaxW;       // half-width scale, px
 uniform float uShadow;     // 1 = render as soft shadow on the lake bed
-varying vec3 vSVQ;
+uniform float uSpread;     // > 1 while the fish dissolves (undo)
+varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
 
 ${noiseGLSL}
 ${fishProfileGLSL}
 
 void main() {
-  vec2 sv = vSVQ.xy / vSVQ.z;
-  float s = sv.x;
-  float v = sv.y;
+  float s = vSV.x;
   float env = envW(s, uPect);
   float body = bodyW(s);
-  float w = abs(v) * env;          // offset from spine, in maxW units
+  float gw = max(smoothstep(0.0, 1.0, uGrow), 1e-3) * uSpread;
+  float w = abs(vSV.y) / gw;       // offset from spine, in maxW units
+  float v = vSV.y / (gw * env);    // -1..1 across the outline
   float n = noise(vec2(s * 16.0 + uSeed * 7.0, v * 4.0)) - 0.5;
 
   vec3 col;
@@ -129,6 +117,9 @@ void main() {
 
   // Reveal from head to tail during birth.
   a *= smoothstep(0.0, 0.08, uGrow * 1.15 - s);
+  // Dissolving: the ink breaks up into blotches as it spreads.
+  float loose = uSpread - 1.0;
+  a *= 1.0 - smoothstep(0.0, 0.35, loose * 1.6 - fbm(vec2(s * 6.0, v * 2.0) + uSeed) + 0.25);
   // Seen through a little water.
   col = mix(col, uWater, 0.12);
 
