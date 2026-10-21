@@ -4,6 +4,8 @@
 
 AI 驱动的互动数字艺术创作平台。当前阶段：PoC-001「万象初生」——阶段 A（纯本地原型）开发中。
 
+![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg) ![Stewarded by the NETX community](https://img.shields.io/badge/stewarded%20by-NETX%20community-ff6a3d.svg)
+
 ## 文档
 
 | 文档 | 内容 |
@@ -69,3 +71,13 @@ Google 登录、员工两步验证、Stripe 卡支付、JPYC/USDC 稳定币支�
 ## 开发辅助
 
 项目内置的 Claude Code skills 位于 [.claude/skills/](.claude/skills/README.md)，克隆仓库后在本目录中自动启用。
+
+## 捐赠给 NETX 技术社区
+
+和 [yuha](https://github.com/lth2015/yuha) 一样，WonderLab 的代码捐赠给 **NETX 技术社区**（<https://www.netx.world/>），由它作为上游管理者：持有正式代码仓库，决定合并和发布什么。
+
+**服务不等于代码。** 谁部署 WonderLab 对外提供服务，谁就是这份部署的运营者：Stripe 账户、收款钱包、特定商取引法披露、隐私政策、退款和客服都归运营者，不随代码转移。管理者不是任何顾客交易的当事人，仓库里也不写任何运营者的身份信息。完整的边界，以及捐赠还没定下来的事，见 [`GOVERNANCE.md`](GOVERNANCE.md)。
+
+## 许可证
+
+**Apache License 2.0**，见 [`LICENSE`](LICENSE)。字体（SIL OFL 1.1）等例外，以及移植自 yuha 的部分，见 [`NOTICE`](NOTICE)。
