@@ -6,7 +6,7 @@
  * so anyone who could reach the page could sign in as anyone, including the
  * seeded admin@example.jp. DEV_LOGIN_ALLOWLIST narrows it:
  *
- *   DEV_LOGIN_ALLOWLIST=@netstars.co.jp,partner@example.com
+ *   DEV_LOGIN_ALLOWLIST=@example.co.jp,partner@example.com
  *
  * An entry starting with "@" admits every address at that domain (exactly
  * that domain, not its subdomains); any other entry is one exact address.

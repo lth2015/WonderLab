@@ -17,17 +17,17 @@ describe('parseDevLoginAllowlist / devLoginAllowed', () => {
   });
 
   it('admits a whole domain, exactly that domain, case-insensitively', () => {
-    const list = parseDevLoginAllowlist('@NetStars.co.jp');
-    expect(devLoginAllowed('colleague@netstars.co.jp', list)).toBe(true);
-    expect(devLoginAllowed('Someone@NETSTARS.CO.JP', list)).toBe(true);
-    expect(devLoginAllowed('x@mail.netstars.co.jp', list)).toBe(false);
-    expect(devLoginAllowed('x@netstars.co.jp.evil.test', list)).toBe(false);
+    const list = parseDevLoginAllowlist('@Example.co.jp');
+    expect(devLoginAllowed('colleague@example.co.jp', list)).toBe(true);
+    expect(devLoginAllowed('Someone@EXAMPLE.CO.JP', list)).toBe(true);
+    expect(devLoginAllowed('x@mail.example.co.jp', list)).toBe(false);
+    expect(devLoginAllowed('x@example.co.jp.evil.test', list)).toBe(false);
     expect(devLoginAllowed('admin@example.jp', list)).toBe(false);
   });
 
   it('admits exact addresses alongside domains', () => {
-    const list = parseDevLoginAllowlist('@netstars.co.jp, guest@example.com');
-    expect(list.domains).toEqual(['netstars.co.jp']);
+    const list = parseDevLoginAllowlist('@example.co.jp, guest@example.com');
+    expect(list.domains).toEqual(['example.co.jp']);
     expect(devLoginAllowed('guest@example.com', list)).toBe(true);
     expect(devLoginAllowed('other@example.com', list)).toBe(false);
   });
@@ -36,7 +36,7 @@ describe('parseDevLoginAllowlist / devLoginAllowed', () => {
 describe('POST /v1/auth/dev-login behind an allowlist', () => {
   let h: Harness;
   beforeAll(async () => {
-    h = await createHarness({ DEV_LOGIN_ALLOWLIST: '@netstars.co.jp' });
+    h = await createHarness({ DEV_LOGIN_ALLOWLIST: '@example.co.jp' });
     await resetData();
   });
   afterAll(async () => {
@@ -52,7 +52,7 @@ describe('POST /v1/auth/dev-login behind an allowlist', () => {
     });
 
   it('signs in an allowed address', async () => {
-    const res = await login('colleague@netstars.co.jp');
+    const res = await login('colleague@example.co.jp');
     expect(res.statusCode).toBe(200);
     expect(res.json().token).toBeTruthy();
   });
@@ -68,6 +68,6 @@ describe('POST /v1/auth/dev-login behind an allowlist', () => {
   it('tells the sign-in page the domains, never the exact addresses', async () => {
     const cfg = (await h.app.inject({ method: 'GET', url: '/v1/auth/config' })).json();
     expect(cfg.devLoginRestricted).toBe(true);
-    expect(cfg.devLoginDomains).toEqual(['netstars.co.jp']);
+    expect(cfg.devLoginDomains).toEqual(['example.co.jp']);
   });
 });
