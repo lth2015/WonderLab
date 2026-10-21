@@ -5,6 +5,7 @@ import type { Tier } from './engine/quality';
 import { Menu } from './Menu';
 import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
 import { clearWorld, loadWorld, saveWorld } from './engine/persist';
+import { loadArt } from './engine/art';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
 const DEMO_IDLE_MS = 4000;
@@ -209,6 +210,10 @@ export function App() {
     requestAnimationFrame(() => {
       setReady(true);
       logEvent('world_ready', { ms: Math.round(performance.now()), device: deviceType(), tier: engine.tier });
+    });
+    // Painted koi and moon, when generated textures are present (public/art).
+    loadArt().then((art) => {
+      if (art && engineRef.current === engine) engine.setArt(art);
     });
     const onReduced = () => engine.setReducedMotion(reducedQuery.matches);
     reducedQuery.addEventListener('change', onReduced);

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { fishFrag, ribbonVert } from './shaders/ink';
 import type { Palette } from './palette';
 import type { StrokePoint } from './stroke';
+import type { KoiSkin } from './art';
 
 const N = 32;
 const FORM_TIME = 0.9; // s, mirrors docs/03 §6.3 (creation 1.2–1.8 s incl. ink bleed)
@@ -69,6 +70,8 @@ export class Fish {
   /** Stroke length over drawing time, px/ms: sets how lively the fish is. */
   readonly drawSpeed: number;
   private leapT = -1;
+  /** Ribbon half width in maxW units when a painted skin is on; 0 for procedural. */
+  private skinHalf = 0;
   private leapCooldown = 0;
   private heading: number;
   private speed = 0;
@@ -140,6 +143,10 @@ export class Fish {
       uMaxW: { value: this.maxW },
       uShadow: { value: shadow },
       uSpread: { value: 1 },
+      uSkin: { value: null as THREE.Texture | null },
+      uSkinOn: { value: 0 },
+      uSkinHalf: { value: 1 },
+      uSkinFlip: { value: 0 },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
@@ -225,6 +232,18 @@ export class Fish {
     this.state = 'leaving';
     this.dispersing = true;
     this.fadeTime = 0.8;
+  }
+
+  /** Pick a painted koi from the generated set (by seed, so a saved fish keeps it), or none. */
+  setSkins(skins: KoiSkin[]): void {
+    const skin = skins.length ? skins[Math.floor(((this.seed * 0.618034) % 1) * skins.length)] : null;
+    this.skinHalf = skin ? skin.halfWidth / 0.12 : 0; // maxW is 0.12 of the length
+    for (const m of [this.material, this.shadowMaterial]) {
+      m.uniforms.uSkin.value = skin?.texture ?? null;
+      m.uniforms.uSkinOn.value = skin ? 1 : 0;
+      m.uniforms.uSkinHalf.value = this.skinHalf || 1;
+      m.uniforms.uSkinFlip.value = skin?.flip ? 1 : 0;
+    }
   }
 
   get canLeap(): boolean {
@@ -426,7 +445,7 @@ export class Fish {
       const lateral = swimAmp * Math.sin(this.phase - s * 5.5) * (0.12 + Math.pow(s, 1.3));
       const cx = this.xs[i] + nx * lateral;
       const cy = this.ys[i] + ny * lateral;
-      const halfU = envW(s, pect) * growW * this.spread; // in maxW units
+      const halfU = (this.skinHalf || envW(s, pect)) * growW * this.spread; // in maxW units
       const half = halfU * this.maxW;
       P[i * 6 + 0] = cx + nx * half;
       P[i * 6 + 1] = cy + ny * half;

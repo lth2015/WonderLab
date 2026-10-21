@@ -72,6 +72,10 @@ uniform float uL;          // body length, px
 uniform float uMaxW;       // half-width scale, px
 uniform float uShadow;     // 1 = render as soft shadow on the lake bed
 uniform float uSpread;     // > 1 while the fish dissolves (undo)
+uniform sampler2D uSkin;   // generated koi texture, head on the right
+uniform float uSkinOn;
+uniform float uSkinHalf;   // ribbon half width for the texture, in maxW units
+uniform float uSkinFlip;
 varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
 
 ${noiseGLSL}
@@ -79,6 +83,21 @@ ${fishProfileGLSL}
 
 void main() {
   float s = vSV.x;
+  if (uSkinOn > 0.5) {
+    // Painted koi: the texture follows the bending spine.
+    float gws = max(smoothstep(0.0, 1.0, uGrow), 1e-3) * uSpread;
+    float tv = 0.5 + 0.5 * vSV.y / (gws * uSkinHalf);
+    vec4 tex = texture2D(uSkin, vec2(uSkinFlip > 0.5 ? s : 1.0 - s, tv));
+    float ta = tex.a * smoothstep(0.0, 0.08, uGrow * 1.15 - s);
+    float tn = noise(vec2(s * 16.0 + uSeed * 7.0, vSV.y * 4.0)) - 0.5;
+    ta *= 1.0 - smoothstep(0.0, 0.35, (uSpread - 1.0) * 1.6 - fbm(vec2(s * 6.0, tv * 4.0) + uSeed) + 0.25);
+    // Toned to the night's paper colour, and seen through a little water.
+    vec3 tc = mix(tex.rgb, tex.rgb * uPaper * 1.06, 0.45);
+    tc = mix(tc, uWater, 0.1 + tn * 0.02);
+    if (uShadow > 0.5) gl_FragColor = vec4(0.0, 0.01, 0.03, ta * 0.32 * uOpacity);
+    else gl_FragColor = vec4(tc, ta * uOpacity);
+    return;
+  }
   float env = envW(s, uPect);
   float body = bodyW(s);
   float gw = max(smoothstep(0.0, 1.0, uGrow), 1e-3) * uSpread;

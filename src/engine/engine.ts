@@ -14,6 +14,7 @@ import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
 import { SAVE_VERSION, type WorldSave } from './persist';
+import type { Art } from './art';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
@@ -109,6 +110,7 @@ export class Engine {
   private calm: boolean;
   private restartPending: PendingRestart | null = null;
   private lastFishTouch: { fish: Fish; time: number } | null = null;
+  private art: Art | null = null;
 
   private width = 1;
   private height = 1;
@@ -175,6 +177,8 @@ export class Engine {
         uWind: { value: this.atmosphere.wind },
         uDusk: { value: 0 },
         uPost: { value: 1 },
+        uMoonTex: { value: null as THREE.Texture | null },
+        uMoonTexOn: { value: 0 },
         ...this.sky.uniforms,
       },
       depthTest: false,
@@ -228,6 +232,14 @@ export class Engine {
   stop(): void {
     this.running = false;
     cancelAnimationFrame(this.raf);
+  }
+
+  /** Use generated koi and moon textures (scripts/gen-art.mjs) from now on, existing fish included. */
+  setArt(art: Art): void {
+    this.art = art;
+    for (const f of this.fishes) f.setSkins(art.koi);
+    this.worldMat.uniforms.uMoonTex.value = art.moon;
+    this.worldMat.uniforms.uMoonTexOn.value = art.moon ? 1 : 0;
   }
 
   get canUndo(): boolean {
@@ -319,6 +331,7 @@ export class Engine {
         calm: this.calm,
         look: { seed: f.seed, patch: f.patch },
       });
+      if (this.art) fish.setSkins(this.art.koi);
       this.fishes.push(fish);
       this.scene.add(fish.group);
     }
@@ -552,6 +565,7 @@ export class Engine {
       for (let i = 1; i < spine.length; i++) length += Math.hypot(spine[i].x - spine[i - 1].x, spine[i].y - spine[i - 1].y);
     }
     const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, { ghost, calm: this.calm });
+    if (this.art) fish.setSkins(this.art.koi);
     this.fishes.push(fish);
     this.scene.add(fish.group);
     // The line lingers briefly, then the fish's body takes over.
