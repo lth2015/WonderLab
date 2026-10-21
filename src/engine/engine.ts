@@ -13,6 +13,7 @@ import { classify, spineFromOutline, type Classification, type Pt } from './clas
 import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
+import { SAVE_VERSION, type WorldSave } from './persist';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
@@ -20,6 +21,7 @@ const LONG_PRESS_MS = 500;
 const EDGE_GUARD = 16;
 const UNDO_DEPTH = 20;
 const RESTART_UNDO_MS = 5000;
+const DOUBLE_TAP_S = 1.5;
 
 export type CreationKind = 'fish' | 'moon' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
 
@@ -106,6 +108,7 @@ export class Engine {
   private readonly pinnedTier: boolean;
   private calm: boolean;
   private restartPending: PendingRestart | null = null;
+  private lastFishTouch: { fish: Fish; time: number } | null = null;
 
   private width = 1;
   private height = 1;
@@ -270,6 +273,61 @@ export class Engine {
     stroke.finish();
     this.scene.add(stroke.mesh);
     this.resolveStroke(stroke);
+  }
+
+  /** The world as it stands, for saving (docs/02 §6.3). */
+  serialize(): WorldSave {
+    const W = this.width;
+    const H = this.height;
+    const S = this.minDim;
+    const fish = this.fishes
+      .filter((f) => !f.ghost && !f.undone && !f.hidden && f.state !== 'leaving')
+      .map((f) => ({
+        spine: f.spineFromTail().map((p): [number, number] => [p.x / W, p.y / H]),
+        drawSpeed: f.drawSpeed,
+        seed: f.seed,
+        patch: f.patch,
+      }));
+    const sky = this.sky.snapshot();
+    const m = sky.moon;
+    return {
+      version: SAVE_VERSION,
+      atmosphere: this.restartPending ? { ...INITIAL } : { ...this.atmosphere.state },
+      fish,
+      moon: m ? { x: m.x / W, y: m.y / H, r: m.r / S, phase: m.phase, dark: [m.dark.x, m.dark.y] } : null,
+      stars: sky.stars.map((st): [number, number] => [st.x / W, st.y / H]),
+      clouds: sky.clouds.map((c): [number, number, number] => [c.x / W, c.y / H, c.w / S]),
+    };
+  }
+
+  /** Bring a saved world back. Not undoable, and nothing is announced as a new creation. */
+  restore(save: WorldSave): void {
+    const W = this.width;
+    const H = this.height;
+    const S = this.minDim;
+    this.atmosphere.set(save.atmosphere);
+    for (const f of save.fish) {
+      const pts: StrokePoint[] = [];
+      let length = 0;
+      f.spine.forEach(([nx, ny], i) => {
+        const p = { x: nx * W, y: ny * H, t: 0, pressure: 0.5 };
+        if (i > 0) length += Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y);
+        pts.push(p);
+      });
+      if (length < 1) continue;
+      const fish = new Fish(pts, length, length / f.drawSpeed, S, this.palette, {
+        calm: this.calm,
+        look: { seed: f.seed, patch: f.patch },
+      });
+      this.fishes.push(fish);
+      this.scene.add(fish.group);
+    }
+    if (save.moon) {
+      const m = save.moon;
+      this.sky.setMoon({ x: m.x * W, y: m.y * H, r: m.r * S, phase: m.phase, dark: { x: m.dark[0], y: m.dark[1] }, rise: false });
+    }
+    for (const [x, y] of save.stars) this.sky.addStar(x * W, y * H);
+    for (const [x, y, w] of save.clouds) this.sky.addCloud(x * W, y * H, w * S);
   }
 
   /** Clear the world, keeping it for a few seconds so the restart can be taken back. */
@@ -493,7 +551,7 @@ export class Engine {
       length = 0;
       for (let i = 1; i < spine.length; i++) length += Math.hypot(spine[i].x - spine[i - 1].x, spine[i].y - spine[i - 1].y);
     }
-    const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, ghost, this.calm);
+    const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, { ghost, calm: this.calm });
     this.fishes.push(fish);
     this.scene.add(fish.group);
     // The line lingers briefly, then the fish's body takes over.
@@ -721,7 +779,15 @@ export class Engine {
   }
 
   private tap(x: number, y: number, fish: Fish | null): void {
-    logEvent('touch', { object: fish ? 'fish' : y >= this.horizonY ? 'sky' : 'lake' });
+    const moon = this.sky.moonPos;
+    const onMoon = !fish && !!moon && y >= this.horizonY && Math.hypot(x - moon.x, y - moon.y) < moon.r * 1.4;
+    logEvent('touch', { object: fish ? 'fish' : onMoon ? 'moon' : y >= this.horizonY ? 'sky' : 'lake' });
+    if (onMoon) {
+      // Moonlight brightens for a moment and the reflection trembles.
+      this.sky.pulseMoon();
+      this.addRipple(moon!.x, 2 * this.horizonY - moon!.y, 0.8);
+      return;
+    }
     if (y >= this.horizonY && !fish) {
       this.sky.flash(x, y);
       return;
@@ -729,6 +795,14 @@ export class Engine {
     if (fish) {
       prompted('touch_fish');
       this.events.onFishTouched?.();
+      const again = this.lastFishTouch?.fish === fish && this.time - this.lastFishTouch.time < DOUBLE_TAP_S;
+      this.lastFishTouch = { fish, time: this.time };
+      if (again && fish.canLeap) {
+        fish.leap();
+        this.addRipple(fish.headX, fish.headY, 1.1);
+        this.lastFishTouch = null;
+        return;
+      }
       fish.scare(x, y, 1);
       this.addRipple(x, y, 0.6);
       return;

@@ -25,6 +25,7 @@ uniform vec3 uPaper;
 uniform vec4 uMoon;                   // x, y, radius (px), presence
 uniform vec3 uMoonShade;              // direction to the dark side, shadow disc offset in radii
 uniform float uMoonLight;             // 0..1, how much the moon lifts the night
+uniform float uMoonPulse;             // 0..1, brief brightening when the moon is touched
 uniform vec4 uStars[MAX_STARS];       // x, y, brightness, flash
 uniform int uStarCount;
 uniform vec4 uMeteors[MAX_METEORS];   // from x, y, to x, y
@@ -62,10 +63,10 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   vec2 sc = uMoon.xy + uMoonShade.xy * uMoonShade.z * r;
   float shade = 1.0 - smoothstep(r * 0.9, r * 1.06, length(p - sc));
   // The glow comes from the lit limb, not from the dark part of the disc.
-  float halo = exp(-max(dist - r, 0.0) / (r * 0.8)) * 0.2 + exp(-max(dist - r, 0.0) / (r * 4.0)) * 0.07;
+  float halo = (exp(-max(dist - r, 0.0) / (r * 0.8)) * 0.2 + exp(-max(dist - r, 0.0) / (r * 4.0)) * 0.07) * (1.0 + 1.8 * uMoonPulse);
   c += uAccent * halo * lit * uMoon.w * mix(0.5, 1.0, open) * (1.0 - disc * shade * 0.6);
   float mottle = fbm(d / r * 2.2 + 5.0);
-  vec3 face = mix(uPaper, uAccent, 0.5) * (0.86 + 0.2 * mottle);
+  vec3 face = mix(uPaper, uAccent, 0.5) * (0.86 + 0.2 * mottle) * (1.0 + 0.12 * uMoonPulse);
   c = mix(c, c + uAccent * 0.02, disc * shade * uMoon.w * open);    // faint earthshine
   return mix(c, face, disc * (1.0 - shade) * uMoon.w * open);
 }

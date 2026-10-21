@@ -18,6 +18,12 @@ const CLOUD_DRIFT = 6;   // px/s
 /** Offset of the shadow disc, in radii: 2+ leaves the disc fully lit. */
 const SHADE: Record<MoonPhase, number> = { full: 2.4, gibbous: 1.4, crescent: 0.55 };
 
+export interface SkySnapshot {
+  moon: MoonSpec | null;
+  stars: { x: number; y: number }[];
+  clouds: { x: number; y: number; w: number }[];
+}
+
 export interface MoonSpec {
   x: number;
   y: number;
@@ -69,6 +75,7 @@ export class Sky {
     uMoon: { value: new THREE.Vector4() },        // x, y, radius, presence
     uMoonShade: { value: new THREE.Vector3(1, 0, SHADE.full) },
     uMoonLight: { value: 0 },
+    uMoonPulse: { value: 0 },
     uStars: { value: Array.from({ length: MAX_STARS }, () => new THREE.Vector4()) }, // x, y, brightness, flash
     uStarCount: { value: 0 },
     uMeteors: { value: Array.from({ length: MAX_METEORS }, () => new THREE.Vector4()) }, // ax, ay, bx, by
@@ -93,6 +100,21 @@ export class Sky {
   }
 
   /** Current on-screen moon centre, if a moon is shown. */
+  /** The moon brightens for a moment (touched, P1). */
+  pulseMoon(): void {
+    this.uniforms.uMoonPulse.value = 1;
+  }
+
+  /** What to save: the moon, settled stars and clouds (not flashes or meteors in flight). */
+  snapshot(): SkySnapshot {
+    const hidden = this.veilTarget === 0;
+    return {
+      moon: hidden ? null : this.moonSpec,
+      stars: hidden ? [] : this.stars.filter((s) => !s.flash && s.fading < 0).map((s) => ({ x: s.x, y: s.y })),
+      clouds: hidden ? [] : this.clouds.filter((c) => c.fading < 0).map((c) => ({ x: c.x, y: c.y, w: c.w })),
+    };
+  }
+
   get moonPos(): { x: number; y: number; r: number } | null {
     if (!this.moon || this.moon.leaving) return null;
     const v = this.uniforms.uMoon.value;
@@ -280,6 +302,7 @@ export class Sky {
     u.uMoonShade.value.set(spec.dark.x, spec.dark.y, SHADE[spec.phase]);
     const target = m.leaving ? 0 : spec.phase === 'full' ? 1 : spec.phase === 'gibbous' ? 0.75 : 0.45;
     u.uMoonLight.value += (target - u.uMoonLight.value) * Math.min(dt * 1.5, 1);
+    u.uMoonPulse.value *= Math.exp(-dt * 1.4);
   }
 }
 

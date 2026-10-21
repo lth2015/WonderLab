@@ -4,6 +4,7 @@ import { interpret, type SceneCommand } from './engine/intent';
 import type { Tier } from './engine/quality';
 import { Menu } from './Menu';
 import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
+import { clearWorld, loadWorld, saveWorld } from './engine/persist';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
 const DEMO_IDLE_MS = 4000;
@@ -21,6 +22,16 @@ const PLACEHOLDERS = ['今夜下一场小雨', '我想念夏天', '让世界安�
 const TOAST_MS = 5000;
 const params = new URLSearchParams(location.search);
 const forcedTier = params.get('tier');
+const SAVE_EVERY_MS = 3000;
+// ?fresh starts from an empty world (docs/02 §3.1), then drops out of the
+// address so a refresh mid-session keeps the tester's world.
+const fresh = params.has('fresh');
+if (fresh) {
+  clearWorld();
+  params.delete('fresh');
+  const q = params.toString();
+  history.replaceState(null, '', location.pathname + (q ? `?${q}` : '') + location.hash);
+}
 const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 type HintPlace = 'lake' | 'sky' | 'input';
@@ -179,6 +190,21 @@ export function App() {
     );
     engineRef.current = engine;
     setTier(engine.tier);
+    const saved = fresh ? null : loadWorld();
+    if (saved) {
+      engine.restore(saved);
+      hasMoon = !!saved.moon;
+    }
+    let resetting = false;
+    const save = () => {
+      if (!resetting) saveWorld(engine.serialize());
+    };
+    const saveTimer = window.setInterval(save, SAVE_EVERY_MS);
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') save();
+    };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', save);
     engine.start();
     requestAnimationFrame(() => {
       setReady(true);
@@ -197,8 +223,13 @@ export function App() {
         scheduleDemo(DEMO_GAP_MS);
       }, ms);
     };
-    later(() => show('draw_lake', '在湖面上画一笔', 'lake'), 600);
-    scheduleDemo(DEMO_IDLE_MS);
+    // A restored world with fish in it has already been drawn in: skip the first-stroke invitation.
+    if (saved?.fish.length) {
+      drawn = true;
+    } else {
+      later(() => show('draw_lake', '在湖面上画一笔', 'lake'), 600);
+      scheduleDemo(DEMO_IDLE_MS);
+    }
     later(moonHint, MOON_HINT_TIMEOUT_MS);
     later(wordsHint, WORDS_HINT_TIMEOUT_MS);
 
@@ -245,6 +276,8 @@ export function App() {
           note(togglePhase() === 'free' ? '自由段' : '引导段');
         } else if (e.code === 'KeyR') {
           e.preventDefault();
+          resetting = true;
+          clearWorld();
           location.replace(`${location.pathname}?fresh${forcedTier ? `&tier=${forcedTier}` : ''}`);
         }
         return;
@@ -282,6 +315,9 @@ export function App() {
       window.removeEventListener('pointercancel', onUp);
       window.removeEventListener('keydown', onKey);
       reducedQuery.removeEventListener('change', onReduced);
+      clearInterval(saveTimer);
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', save);
       vv?.removeEventListener('resize', onViewport);
       vv?.removeEventListener('scroll', onViewport);
       engineRef.current = null;

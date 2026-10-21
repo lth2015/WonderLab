@@ -17,6 +17,22 @@ const pectW = (s: number, k: number) => k * 0.75 * Math.exp(-(((s - 0.27) / 0.07
 const tailW = (s: number) => 1.5 * smooth(0.8, 1, s);
 const envW = (s: number, k: number) => Math.max(bodyW(s) + pectW(s, k), tailW(s), 0.02);
 
+/** How a fish looks, kept so a saved fish comes back the same. */
+export interface FishLook {
+  seed: number;
+  patch: number;
+}
+
+export interface FishOptions {
+  ghost?: boolean;
+  /** Reduced motion: no growth, half speed. */
+  calm?: boolean;
+  look?: FishLook;
+}
+
+const LEAP_TIME = 1.1;     // s in the air
+const LEAP_COOLDOWN = 6;   // s before the same fish leaps again
+
 export interface WaterBounds {
   minX: number;
   maxX: number;
@@ -46,7 +62,14 @@ export class Fish {
   private readonly seg: number;
   private readonly baseSpeed: number;
   private readonly amp: number;
-  private readonly seed = Math.random() * 100;
+  readonly seed: number;
+  readonly patch: number;
+  readonly ghost: boolean;
+  private readonly calm: boolean;
+  /** Stroke length over drawing time, px/ms: sets how lively the fish is. */
+  readonly drawSpeed: number;
+  private leapT = -1;
+  private leapCooldown = 0;
   private heading: number;
   private speed = 0;
   private phase = 0;
@@ -73,10 +96,12 @@ export class Fish {
     strokeDuration: number,
     minDim: number,
     palette: Palette,
-    readonly ghost = false,
-    /** Reduced motion: no growth, half speed. */
-    private readonly calm = false,
+    options: FishOptions = {},
   ) {
+    const ghost = (this.ghost = !!options.ghost);
+    const calm = (this.calm = !!options.calm);
+    this.seed = options.look?.seed ?? Math.random() * 100;
+    this.patch = options.look?.patch ?? (Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0);
     this.opacity = ghost ? 0.38 : 1;
     this.fadeTime = ghost ? 1.2 : 2.2;
     // Length follows the stroke, within limits.
@@ -94,7 +119,7 @@ export class Fish {
     this.heading = Math.atan2(this.ys[0] - this.ys[2], this.xs[0] - this.xs[2]);
 
     // Quick strokes make lively fish; curvy strokes make softer swimmers.
-    const drawSpeed = strokeLength / Math.max(strokeDuration, 16); // px/ms
+    const drawSpeed = (this.drawSpeed = strokeLength / Math.max(strokeDuration, 16));
     const lively = THREE.MathUtils.clamp(drawSpeed / 1.6, 0, 1);
     this.baseSpeed = this.L * (0.3 + 0.75 * lively) * (calm ? 0.5 : 1);
     if (calm) this.grow = 1;
@@ -107,7 +132,7 @@ export class Fish {
       uCinnabar: { value: palette.cinnabar },
       uWater: { value: palette.water },
       uSeed: { value: this.seed },
-      uPatch: { value: Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0 },
+      uPatch: { value: this.patch },
       uGrow: { value: 0 },
       uOpacity: { value: this.opacity },
       uPect: { value: 1 },
@@ -202,6 +227,25 @@ export class Fish {
     this.fadeTime = 0.8;
   }
 
+  get canLeap(): boolean {
+    return this.state === 'swimming' && !this.ghost && this.leapT < 0 && this.leapCooldown <= 0;
+  }
+
+  /** Touched twice in quick succession: jump clear of the water (P1). */
+  leap(): void {
+    if (!this.canLeap) return;
+    this.leapT = 0;
+    this.startle = Math.min(1, this.startle + 0.6);
+    this.startleDir = this.heading;
+  }
+
+  /** Spine from tail to head, the order a stroke is drawn in. */
+  spineFromTail(): { x: number; y: number }[] {
+    const out = [];
+    for (let i = N - 1; i >= 0; i--) out.push({ x: this.xs[i], y: this.ys[i] });
+    return out;
+  }
+
   /** Restart: fade out but stay, so the restart can be taken back. */
   hide(): void {
     this.veilTarget = 0;
@@ -233,6 +277,7 @@ export class Fish {
       this.swim(dt, ctx);
     }
 
+    this.updateLeap(dt, ctx);
     if (this.ghost && this.age > 4) this.leave();
     if (this.state === 'leaving') {
       this.opacity -= dt / this.fadeTime;
@@ -250,6 +295,33 @@ export class Fish {
     this.material.uniforms.uSpread.value = this.spread;
     this.shadowMaterial.uniforms.uSpread.value = this.spread;
     this.rebuild();
+  }
+
+  private updateLeap(dt: number, ctx: SwimContext): void {
+    this.leapCooldown -= dt;
+    if (this.leapT < 0) return;
+    this.leapT += dt / LEAP_TIME;
+    const done = this.leapT >= 1;
+    const h = done ? 0 : Math.sin(Math.PI * this.leapT);
+    // Seen from above, a fish in the air looks larger and its shadow falls away.
+    const s = 1 + 0.3 * h;
+    let cx = 0;
+    let cy = 0;
+    for (let i = 0; i < N; i++) {
+      cx += this.xs[i];
+      cy += this.ys[i];
+    }
+    cx /= N;
+    cy /= N;
+    this.group.scale.set(s, s, 1);
+    this.group.position.set(cx * (1 - s), cy * (1 - s), 0);
+    this.shadowMesh.position.set(this.L * (0.05 + 0.25 * h), -this.L * (0.08 + 0.45 * h), 0);
+    if (done) {
+      this.leapT = -1;
+      this.leapCooldown = LEAP_COOLDOWN;
+      ctx.ripple(this.headX, this.headY, 1.4);
+      ctx.ripple(cx, cy, 0.9);
+    }
   }
 
   scale(sx: number, sy: number): void {
