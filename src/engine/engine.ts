@@ -15,6 +15,7 @@ import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
 import { SAVE_VERSION, type WorldSave } from './persist';
 import type { Art } from './art';
+import { EchoLayer } from './echo-layer';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
@@ -111,6 +112,7 @@ export class Engine {
   private restartPending: PendingRestart | null = null;
   private lastFishTouch: { fish: Fish; time: number } | null = null;
   private art: Art | null = null;
+  private readonly echo = new EchoLayer();
 
   private width = 1;
   private height = 1;
@@ -211,6 +213,7 @@ export class Engine {
     weather.renderOrder = 2.5; // over the fish, under the brush
     weather.frustumCulled = false;
     this.scene.add(weather);
+    this.scene.add(this.echo.mesh);
     const bg = new THREE.Mesh(quad, this.worldMat);
     bg.renderOrder = 0;
     bg.frustumCulled = false;
@@ -411,6 +414,21 @@ export class Engine {
     this.record('atmosphere', this.width / 2, this.horizonY, () => this.atmosphere.set(prev));
   }
 
+  /** Show an echo line from the poem library in the sky. */
+  showEcho(text: string, author: string): void {
+    const skyTop = this.height;
+    const y = this.horizonY + (skyTop - this.horizonY) * 0.6;
+    void this.echo.show(text, author, this.width / 2, y, this.width, this.width < 600);
+  }
+
+  /**
+   * Fill in a scene command that arrived late (the AI), without a new undo
+   * step: undoing still returns to the state before the sentence.
+   */
+  amendScene(cmd: SceneCommand): void {
+    this.atmosphere.apply(cmd);
+  }
+
   /** Undo the latest creation, or a given one. Returns false when there is nothing to undo. */
   undo(id?: number): boolean {
     const at = id === undefined ? this.history.length - 1 : this.history.findIndex((h) => h.id === id);
@@ -434,6 +452,7 @@ export class Engine {
     this.landscapeMat.dispose();
     this.worldMat.dispose();
     this.weatherMat.dispose();
+    this.echo.dispose();
     this.renderer.dispose();
   }
 
@@ -503,6 +522,7 @@ export class Engine {
     weu.uWind.value = atmos.wind;
 
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
+    this.echo.update(t);
     this.lureToMoon(dt);
 
     this.fading = this.fading.filter((f) => {

@@ -42,3 +42,28 @@ describe('interpret', () => {
     }
   });
 });
+
+import { mergeAi, validateCommand } from './intent';
+
+describe('validateCommand', () => {
+  it('keeps valid fields, drops the rest, clamps numbers', () => {
+    expect(validateCommand({ weather: 'rain', palette: 'neon', timeOfDay: 'dawn', wind: 3, intensity: -1, echo: 'x' })).toEqual({
+      weather: 'rain',
+      wind: 1,
+      intensity: 0,
+    });
+    expect(validateCommand('rain')).toEqual({});
+    expect(validateCommand(null)).toEqual({});
+  });
+});
+
+describe('mergeAi', () => {
+  it('never overrides what a keyword set', () => {
+    const local = interpret('今夜下一场小雨');
+    expect(mergeAi(local, { weather: 'mist', palette: 'melancholy', intensity: 0.4 })).toEqual({ palette: 'melancholy', intensity: 0.4 });
+  });
+  it('may refine a sentiment guess', () => {
+    const local = interpret('明天会更好');
+    expect(mergeAi(local, { palette: 'serene', timeOfDay: 'dusk' })).toEqual({ palette: 'serene', timeOfDay: 'dusk' });
+  });
+});

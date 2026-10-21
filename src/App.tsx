@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Engine, type Creation, type CreationKind } from './engine/engine';
-import { interpret, type SceneCommand } from './engine/intent';
+import { interpret, mergeAi, type SceneCommand } from './engine/intent';
+import { askScene, captureInvite } from './ai';
+import { rankPoems } from './echo';
+import { poemById } from './poems';
 import type { Tier } from './engine/quality';
 import { Menu } from './Menu';
 import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
@@ -24,6 +27,10 @@ const TOAST_MS = 5000;
 const params = new URLSearchParams(location.search);
 const forcedTier = params.get('tier');
 const SAVE_EVERY_MS = 3000;
+const ECHO_DELAY_MS = 900;   // after the words have risen into the sky
+const ECHO_SHORTLIST = 24;
+const RECENT_ECHOES = 10;
+const invite = captureInvite(params);
 // ?fresh starts from an empty world (docs/02 §3.1), then drops out of the
 // address so a refresh mid-session keeps the tester's world.
 const fresh = params.has('fresh');
@@ -92,6 +99,8 @@ export function App() {
   const [tier, setTier] = useState<Tier>('standard');
   const [staticDemo, setStaticDemo] = useState(0);
   const [hostNote, setHostNote] = useState('');
+  const [quiet, setQuiet] = useState('');
+  const recentEchoes = useRef<number[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -369,11 +378,34 @@ export function App() {
       const value = text.trim();
       const engine = engineRef.current;
       if (!value || !engine) return;
-      const { command, source } = interpret(value);
-      logEvent('text_submit', { source: 'local', rule: source, prompted: prompted('text_submit') });
+      const local = interpret(value);
+      const { command, source } = local;
+      const wasPrompted = prompted('text_submit');
       engine.applyScene(command);
       wordsUsedRef.current();
       setAnnounce(describe(command));
+
+      // Echo: the AI picks from a local shortlist within 2.5 s; otherwise the
+      // best local match. Either way the line comes from the library.
+      const shortlist = rankPoems(command, local.mood, value, recentEchoes.current).slice(0, ECHO_SHORTLIST);
+      const started = performance.now();
+      void askScene(invite, value, shortlist.map((p) => p.id)).then((ai) => {
+        if (engineRef.current !== engine) return;
+        let poem = shortlist[0];
+        if (ai.status === 'ok') {
+          const extra = mergeAi(local, ai.command);
+          if (Object.keys(extra).length) engine.amendScene(extra);
+          poem = (ai.echoId && poemById(ai.echoId)) || poem;
+        }
+        if (ai.status === 'limited') {
+          setQuiet('灵感歇一会儿，画笔仍在');
+          window.setTimeout(() => setQuiet(''), 5000);
+        }
+        logEvent('text_submit', { source: ai.status === 'ok' ? 'ai' : ai.status === 'off' ? 'local' : ai.status, rule: source, prompted: wasPrompted });
+        recentEchoes.current = [poem.id, ...recentEchoes.current].slice(0, RECENT_ECHOES);
+        const wait = Math.max(ECHO_DELAY_MS - (performance.now() - started), 0);
+        window.setTimeout(() => engine.showEcho(poem.text, poem.author), wait);
+      });
 
       // The words rise into the sky as ink dots (docs/03 §5.3).
       const box = inputRef.current!.getBoundingClientRect();
@@ -438,6 +470,11 @@ export function App() {
           enterKeyHint="send"
           autoComplete="off"
         />
+        {quiet && (
+          <span className="quiet" aria-live="polite">
+            {quiet}
+          </span>
+        )}
         {count >= COUNT_FROM && (
           <span className="count" aria-live="polite">
             {count}/{MAX_CHARS}

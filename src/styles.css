@@ -528,3 +528,24 @@ body {
     transform: scale(0.96);
   }
 }
+
+/* Poetic text: LXGW WenKai, subset to the echo library and the hints
+   (scripts/subset-font.mjs, SIL OFL 1.1). If it is not ready in time the
+   system kaiti is used and kept, with no swap mid-display (docs/03 §4). */
+@font-face {
+  font-family: 'LXGW WenKai';
+  src: url('./assets/fonts/wenkai-subset.woff2') format('woff2');
+  font-display: optional;
+}
+
+/* Rate-limit note under the words box (docs/03 §5.3, §13). */
+.quiet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  text-align: center;
+  font-size: 14px;
+  color: #c9c3b6;
+  pointer-events: none;
+}
