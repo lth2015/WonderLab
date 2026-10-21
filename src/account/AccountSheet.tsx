@@ -5,6 +5,7 @@ import { API_BASE, ApiError, apiFetch, newIdempotencyKey } from './api';
 import { canBePaid, firstAvailableMethod, paymentMethodsOf } from '../lib/purchase';
 import { AUTH_NEXT_KEY, safeInternalPath } from '../lib/paths';
 import { useSession } from './session';
+import { StablecoinPay } from './StablecoinPay';
 
 // The account panel: sign-in, credits and buying, opened from 更多. It is a
 // sheet over the canvas rather than a page, so the world keeps breathing
@@ -153,10 +154,11 @@ function Consent() {
 }
 
 function Signed({ me }: { me: MeView }) {
-  const { signOut, runtime } = useSession();
+  const { signOut } = useSession();
   const [products, setProducts] = useState<ProductView[] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [wallet, setWallet] = useState<string | null>(null);
   // One key per product per opening of the panel: a double tap is one order.
   const keys = useRef(new Map<string, string>());
 
@@ -188,6 +190,8 @@ function Signed({ me }: { me: MeView }) {
     }
   };
 
+  if (wallet) return <StablecoinPay priceKey={wallet} onBack={() => setWallet(null)} />;
+
   return (
     <>
       <p className="who">
@@ -202,6 +206,7 @@ function Signed({ me }: { me: MeView }) {
           {products.map((p) => {
             const methods = paymentMethodsOf(p);
             const card = methods.find((m) => m.method === 'card');
+            const coin = methods.some((m) => m.method !== 'card' && m.available);
             return (
               <li key={p.priceKey}>
                 <div>
@@ -211,15 +216,24 @@ function Signed({ me }: { me: MeView }) {
                     {p.autoRenew ? ' · 每月' : ''}
                   </span>
                 </div>
-                <button type="button" className="text-btn" disabled={!canBePaid(p) || !card?.available || busy !== null} onClick={() => buy(p)}>
-                  {busy === p.priceKey ? '……' : `${yen(p.amountMinor)} 购买`}
-                </button>
+                <div className="row">
+                  {card?.available && (
+                    <button type="button" className="text-btn" disabled={!canBePaid(p) || busy !== null} onClick={() => buy(p)}>
+                      {busy === p.priceKey ? '……' : `${yen(p.amountMinor)} 购买`}
+                    </button>
+                  )}
+                  {coin && (
+                    <button type="button" className="text-btn" disabled={busy !== null} onClick={() => setWallet(p.priceKey)}>
+                      用钱包付
+                    </button>
+                  )}
+                  {!canBePaid(p) && <span className="meta">暂不可购买</span>}
+                </div>
               </li>
             );
           })}
         </ul>
       )}
-      {runtime?.stablecoin.enabled && <p className="note">也可用 JPYC / USDC 支付（钱包付款界面即将接入）。</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <button type="button" className="link-btn" onClick={signOut}>
         退出登录

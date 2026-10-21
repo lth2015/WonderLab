@@ -146,7 +146,7 @@ export async function verifyWalletChallenge(
   if (heldByAnotherAccount) {
     // Surfaced rather than overwritten. Two accounts holding one address would
     // make an incoming transfer ambiguous between two orders.
-    throw new AppError('CONFLICT', 'this wallet is already linked to a different YUHA account');
+    throw new AppError('CONFLICT', 'this wallet is already linked to a different WonderLab account');
   }
 
   return {

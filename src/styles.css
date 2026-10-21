@@ -649,3 +649,17 @@ body {
 .hint.account-note {
   top: 40%;
 }
+.sheet .scpay {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+}
+.sheet .scpay .amount {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+.sheet .scpay a {
+  color: #e9d9a6;
+}
