@@ -1,0 +1,13 @@
+WonderLab · 万象生
+
+This product includes software from YUHA (https://github.com/lth2015/yuha),
+licensed under the Apache License, Version 2.0, stewarded by the NETX
+technical community. The ported parts — sign-in and sessions, Stripe and
+stablecoin payments, the credits ledger, their database migrations and tests —
+live under server/ and were adapted for WonderLab (yuha-only features such as
+songs, the market licence, MFA and e-mail notices were removed). A copy of
+the Apache License 2.0 is in server/YUHA-LICENSE.
+
+The poetic typeface is LXGW WenKai (https://github.com/lxgw/LxgwWenKai),
+subset in src/assets/fonts, licensed under the SIL Open Font License 1.1
+(src/assets/fonts/OFL-LXGW-WenKai.txt).

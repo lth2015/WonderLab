@@ -2,41 +2,111 @@ import { timingSafeEqual } from 'node:crypto';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
-import type { Config } from './config';
-import { buildMessages, parseReply, resolveShortlist, SceneCache } from './scene';
-import type { ChatJson } from './tokenstars';
-import { Usage } from './usage';
+import { createAuthAdapter } from './auth/index.js';
+import type { AppConfig } from './config.js';
+import type { AppContext } from './context.js';
+import { redactUrlSecrets } from './log-redaction.js';
+import authPlugin from './plugins/auth.js';
+import errorPlugin from './plugins/errors.js';
+import adminRoutes from './routes/admin.js';
+import authRoutes from './routes/auth.js';
+import billingRoutes from './routes/billing.js';
+import publicRoutes from './routes/public.js';
+import stablecoinRoutes from './routes/stablecoin.js';
+import { buildMessages, parseReply, resolveShortlist, SceneCache } from './scene.js';
+import type { ChatJson } from './tokenstars.js';
+import { Usage } from './usage.js';
+import { keepsRawBody } from './webhook-paths.js';
 
 export interface Deps {
-  config: Config;
+  config: AppConfig;
   chat: ChatJson;
-  /** False when no TokenStars key or model is set: the route answers 503 and charges nothing. */
+  /** False when no TokenStars key or model is set: the scene route answers 503 and charges nothing. */
   aiReady?: boolean;
   usage?: Usage;
+  /** Accounts and payments (needs the database); null keeps only the scene proxy and public routes. */
+  ctx?: AppContext | null;
 }
 
-export async function buildServer({ config, chat, usage: givenUsage, aiReady = true }: Deps): Promise<FastifyInstance> {
+export async function buildServer({ config, chat, usage: givenUsage, aiReady = true, ctx = null }: Deps): Promise<FastifyInstance> {
   const app = Fastify({
     logger:
       config.LOG_LEVEL === 'silent'
         ? false
         : {
             level: config.LOG_LEVEL,
-            // What visitors write never reaches the log (docs/01 P8), nor do invites.
-            redact: { paths: ['req.headers.authorization', 'req.headers.cookie', 'req.body', 'body'], censor: '[redacted]' },
+            // What visitors write never reaches the log (docs/01 P8), nor do
+            // tokens, cookies or signatures (yuha SEC-06).
+            redact: {
+              paths: [
+                'req.headers.authorization',
+                'req.headers.cookie',
+                'req.headers["stripe-signature"]',
+                'req.body',
+                'body',
+                '*.apiKey',
+                '*.secret',
+              ],
+              censor: '[redacted]',
+            },
+            serializers: {
+              req(request: { method: string; url: string; id?: unknown }) {
+                return { method: request.method, url: redactUrlSecrets(request.url), id: request.id };
+              },
+            },
           },
-    // Believe X-Forwarded-For only from a proxy on this machine or network (as in yuha).
+    // Believe X-Forwarded-For only from a proxy on this machine or network; see
+    // yuha's server.ts for why `true` let a forged header defeat every per-IP limit.
     trustProxy: 'loopback, linklocal, uniquelocal',
-    bodyLimit: 16_384,
+    bodyLimit: 1_000_000,
   });
 
+  const origins = [config.PUBLIC_WEB_URL, ...config.ALLOWED_ORIGINS];
+
+  await app.register(errorPlugin);
   await app.register(cors, {
-    origin: config.ALLOWED_ORIGINS.length ? config.ALLOWED_ORIGINS : false,
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['content-type', 'authorization'],
+    origin: origins,
+    credentials: false,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['content-type', 'authorization', 'idempotency-key'],
   });
-  await app.register(rateLimit, { global: false });
+  await app.register(rateLimit, { global: false, max: 300, timeWindow: '1 minute' });
 
+  /**
+   * Stripe signature verification needs the exact bytes that were sent, so the
+   * webhook routes keep their raw body (yuha PAY-04); every other JSON route
+   * is parsed. Which paths those are is `webhook-paths.ts`'s to say.
+   */
+  app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body: Buffer, done) => {
+    if (keepsRawBody(req.routeOptions?.url ?? undefined)) {
+      done(null, body);
+      return;
+    }
+    if (body.length === 0) {
+      done(null, undefined);
+      return;
+    }
+    try {
+      done(null, JSON.parse(body.toString('utf8')));
+    } catch (err) {
+      (err as { statusCode?: number }).statusCode = 400;
+      done(err as Error, undefined);
+    }
+  });
+
+  app.get('/api/health', async () => ({ ok: true, accounts: !!ctx }));
+  await app.register(publicRoutes, { config, ctx });
+
+  if (ctx) {
+    const adapter = createAuthAdapter(config);
+    await app.register(authPlugin, { adapter });
+    await app.register(authRoutes, { ctx, adapter });
+    await app.register(billingRoutes, { ctx });
+    await app.register(stablecoinRoutes, { ctx });
+    await app.register(adminRoutes, { ctx });
+  }
+
+  // ---------------------------------------------------------------- 一句成境
   const usage =
     givenUsage ??
     new Usage(
@@ -58,10 +128,10 @@ export async function buildServer({ config, chat, usage: givenUsage, aiReady = t
     return invites.some((t) => t.length === given.length && timingSafeEqual(t, given)) ? m[1] : null;
   };
 
-  const originAllowed = (origin: string | undefined) =>
-    !config.ALLOWED_ORIGINS.length || (origin !== undefined && config.ALLOWED_ORIGINS.includes(origin));
+  // A browser always sends Origin on this POST; the check refuses other sites.
+  // Same-origin tools without one (curl in development) are let through.
+  const originAllowed = (origin: string | undefined) => origin === undefined || origins.includes(origin);
 
-  app.get('/api/health', async () => ({ ok: true }));
 
   app.post(
     '/api/scene',

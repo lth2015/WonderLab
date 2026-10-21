@@ -549,3 +549,103 @@ body {
   color: #c9c3b6;
   pointer-events: none;
 }
+
+/* Account sheet (sign-in, credits, buying). */
+.sheet.account {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+}
+.sheet .demo-note {
+  margin: 6px 0 14px;
+  font-size: 13px;
+  color: #e9d9a6;
+}
+.sheet .who {
+  margin: 12px 0 16px;
+  font-size: 14px;
+  color: #c9c3b6;
+}
+.sheet .credits {
+  font-family: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  font-size: 20px;
+  color: var(--paper-100);
+}
+.sheet .products {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.sheet .products li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(239, 234, 223, 0.08);
+}
+.sheet .products strong {
+  display: block;
+  font-weight: 500;
+}
+.sheet .products .meta {
+  font-size: 13px;
+  color: #c9c3b6;
+}
+.sheet .dev-login {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.sheet .dev-login input[type='email'] {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(239, 234, 223, 0.08);
+  color: var(--paper-100);
+  font: inherit;
+  font-size: 16px;
+}
+.sheet .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.sheet .error {
+  color: #e8a08e;
+  font-size: 14px;
+}
+.sheet .row {
+  display: flex;
+  gap: 8px;
+}
+.text-btn.primary {
+  background: #e9d9a6;
+  color: #121721;
+}
+.text-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.link-btn {
+  display: block;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #c9c3b6;
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.hint.account-note {
+  top: 40%;
+}

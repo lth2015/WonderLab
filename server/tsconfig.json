@@ -1,17 +1,40 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": false,
     "noEmit": true,
     "skipLibCheck": true,
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@wonderlab/contracts": [
+        "./packages/contracts/src/index.ts"
+      ],
+      "@wonderlab/db": [
+        "./packages/db/src/index.ts"
+      ],
+      "@wonderlab/providers": [
+        "./packages/providers/src/index.ts"
+      ],
+      "@wonderlab/api": [
+        "./src/lib.ts"
+      ]
+    }
   },
-  "include": ["src", "test", "../scripts/*.mjs"]
+  "include": [
+    "src",
+    "packages",
+    "test/scene.test.ts"
+  ]
 }

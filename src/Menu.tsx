@@ -6,10 +6,11 @@ interface MenuProps {
   canUndo: () => boolean;
   onUndo: () => void;
   onRestart: () => void;
+  onAccount: () => void;
   dim: boolean;
 }
 
-export function Menu({ canUndo, onUndo, onRestart, dim }: MenuProps) {
+export function Menu({ canUndo, onUndo, onRestart, onAccount, dim }: MenuProps) {
   const [open, setOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [undoable, setUndoable] = useState(false);
@@ -67,6 +68,9 @@ export function Menu({ canUndo, onUndo, onRestart, dim }: MenuProps) {
             </button>
             <button ref={undoable ? undefined : first} type="button" role="menuitem" onClick={pick(onRestart)}>
               重新开始
+            </button>
+            <button type="button" role="menuitem" onClick={pick(onAccount)}>
+              账户
             </button>
             <button type="button" role="menuitem" onClick={pick(() => setAbout(true))}>
               关于

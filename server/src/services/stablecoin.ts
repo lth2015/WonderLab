@@ -1,0 +1,428 @@
+import { AppError } from '@wonderlab/contracts';
+import {
+  closeIntent,
+  findOpenIntentForOrder,
+  findOpenIntentForPayer,
+  findOrderByIdempotencyKey,
+  getActiveProduct,
+  getOrderForUser,
+  getQuote,
+  getUser,
+  getChainCursor,
+  getVerifiedWallet,
+  insertQuoteWithIntent,
+  markIntentPrepared,
+  withTx,
+  type OrderRow,
+  type StablecoinIntentRow,
+  type StablecoinQuoteRow,
+} from '@wonderlab/db';
+import {
+  encodeTransferCalldata,
+  quoteAmountAtomic,
+  toDisplayAddress,
+  type TokenSpec,
+} from '@wonderlab/providers';
+import type { AppContext } from '../context.js';
+import { assertConfiguredTokensVerified, SCAN_STREAM } from './stablecoin-scan.js';
+import { createPurchaseOrder } from './purchase-cap.js';
+import { stablecoinTokenFor } from './stablecoin-tokens.js';
+import { stablecoinAllowedFor } from './payment-methods.js';
+import { usdcJpyRate } from './stablecoin-rate.js';
+
+/**
+ * Quoting a stablecoin payment, and handing the wallet the exact transfer to
+ * send.
+ *
+ * The URL shape here is /v1/payments/stablecoin/... rather than the
+ * specification's /api/orders/:id/stablecoin-quote, for two reasons: this
+ * server has only ever served /v1, and an order does not exist before the
+ * quote — the card path creates the order and the Stripe session together, so
+ * there was no order-without-a-session to quote against. The quote endpoint
+ * therefore creates or reuses the order itself, under the same
+ * (user, idempotency key) uniqueness the card path uses.
+ */
+
+function tokenFor(ctx: AppContext, key: string): TokenSpec {
+  // One list of currencies for the whole deployment — see stablecoin-tokens.ts
+  // for why this is not a local map any more.
+  return stablecoinTokenFor(ctx.config, key);
+}
+
+function receiverFor(ctx: AppContext): string {
+  const receiver = ctx.config.STABLECOIN_RECEIVER_ADDRESS;
+  // Config validation refuses to start without it when the feature is on, so
+  // this is the second line of the same defence rather than the first.
+  if (!receiver) throw new AppError('SERVICE_DISABLED', 'no receiving wallet is configured');
+  return receiver.toLowerCase();
+}
+
+export interface QuoteResult {
+  orderId: string;
+  quoteId: string;
+  chainId: number;
+  tokenKey: string;
+  tokenAddress: string;
+  /**
+   * How many decimals that token has, so the interface can render the atomic
+   * amount as a number a person can compare with their wallet balance. Sent
+   * rather than assumed: the whole point of the on-chain check is that a
+   * client must not carry its own copy of this.
+   */
+  tokenDecimals: number;
+  /** Atomic units as a decimal string. Never a number: 18 decimals do not fit. */
+  amountAtomic: string;
+  priceJpy: number;
+  /**
+   * JPY per token the amount was computed from, exactly as the source gave it,
+   * and the buffer applied on top. Both null for JPYC, which has no rate. Shown
+   * to the buyer so a USDC amount is never a number without its derivation.
+   */
+  rateText: string | null;
+  rateBufferBps: number | null;
+  receiver: string;
+  payer: string;
+  expiresAt: string;
+  roundedUp: boolean;
+}
+
+function viewQuote(q: StablecoinQuoteRow): QuoteResult {
+  return {
+    orderId: q.order_id,
+    quoteId: q.id,
+    chainId: q.chain_id,
+    tokenKey: q.token_key,
+    tokenAddress: toDisplayAddress(q.token_address),
+    tokenDecimals: q.token_decimals,
+    amountAtomic: q.amount_atomic,
+    priceJpy: Number(q.price_jpy),
+    receiver: toDisplayAddress(q.receiver),
+    payer: toDisplayAddress(q.payer),
+    expiresAt: q.expires_at.toISOString(),
+    roundedUp: q.rounded_up,
+    rateText: q.rate_text,
+    rateBufferBps: q.rate_buffer_bps === null ? null : Number(q.rate_buffer_bps),
+  };
+}
+
+export async function createStablecoinQuote(
+  ctx: AppContext,
+  params: {
+    userId: string;
+    priceKey: string;
+    idempotencyKey: string;
+    tokenKey: string;
+    payer: string;
+  },
+): Promise<QuoteResult> {
+  const token = tokenFor(ctx, params.tokenKey);
+  const receiver = receiverFor(ctx);
+  const payer = params.payer.toLowerCase();
+
+  const user = await getUser(params.userId);
+  if (!user) throw new AppError('UNAUTHENTICATED', 'user not found');
+  if (!user.age_confirmed_at) throw new AppError('AGE_NOT_CONFIRMED', 'age confirmation is required before purchase');
+
+  // The payer must have proved control of this wallet. Everything downstream
+  // treats it as established, so this is where "the client said so" stops.
+  const wallet = await getVerifiedWallet({ userId: params.userId, chainId: token.chainId, address: payer });
+  if (!wallet) throw new AppError('VALIDATION_FAILED', 'prove control of that wallet first');
+
+  const product = await getActiveProduct(params.priceKey);
+  if (!product || !product.active) throw new AppError('NOT_FOUND', 'that product is not available');
+  /*
+   * The same rule the pricing page and the confirmation screen render from
+   * (services/payment-methods.ts). It used to be a list of two price keys
+   * here and a copy of that list in the browser, so a product added to one
+   * was missing from the other.
+   */
+  if (!stablecoinAllowedFor(product.kind)) {
+    throw new AppError(
+      'VALIDATION_FAILED',
+      'a subscription renews automatically and cannot be paid for in stablecoin — buy a top-up pack instead',
+    );
+  }
+  if (product.currency !== 'jpy') {
+    // Quoting is defined against a JPY list price; a catalogue in another
+    // currency would need its own conversion policy, not a silent one.
+    throw new AppError('SERVICE_DISABLED', 'stablecoin quoting is defined for JPY prices only');
+  }
+
+  const existing = await findOrderByIdempotencyKey(params.userId, params.idempotencyKey);
+  if (existing) {
+    // Same guard the card path has: two products can share a price, so an
+    // amount check cannot catch a key reused across them.
+    if (existing.price_key !== product.price_key || existing.price_version !== product.version) {
+      throw new AppError('IDEMPOTENCY_KEY_REUSED', 'this idempotency key already belongs to a different order');
+    }
+    /*
+     * Paid, refunded or partially refunded all mean "not payable again".
+     *
+     * Only `paid` was refused, so a refunded order could be re-quoted and
+     * re-paid: `markOrderPaid` matches none of those states, so the second
+     * payment was taken, delivered nothing, and answered `fulfilled`.
+     */
+    if (['paid', 'refunded', 'partially_refunded'].includes(existing.status)) {
+      throw new AppError('CONFLICT', 'this order can no longer be paid');
+    }
+    assertNotCardClaimed(existing);
+  }
+
+  /*
+   * Before any number is computed from `token.decimals`, the chain is asked
+   * whether that is really this contract's precision. Doing it here and not
+   * only in the worker is the point: this function is where the amount a
+   * customer is asked to pay comes from.
+   */
+  if (!ctx.chain) throw new AppError('SERVICE_DISABLED', 'stablecoin payments are not configured');
+  await assertConfiguredTokensVerified(ctx, ctx.chain);
+
+  /*
+   * JPYC consults no rate at all — one token per yen is pricing policy. USDC
+   * is priced as one US dollar: the JPY list price at USD/JPY, read live from
+   * two independent sources that must agree, plus the configured buffer.
+   * Read here, before the transaction, so no database lock is held across
+   * two network calls.
+   */
+  const rate = token.key === 'jpyc' ? null : await usdcJpyRate(ctx);
+  const bufferBps = rate ? ctx.config.STABLECOIN_USDC_BUFFER_BPS : null;
+  const { amountAtomic, rounded } = quoteAmountAtomic({
+    priceJpy: product.amount_minor,
+    token,
+    rate: rate?.chosen.rate ?? null,
+    bufferBps: bufferBps ?? 0,
+  });
+
+  const expiresAt = new Date(Date.now() + ctx.config.STABLECOIN_QUOTE_TTL_SECONDS * 1000);
+  /*
+   * No cursor means the watcher has not started, and a quote cannot be made.
+   *
+   * `?? 0n` was here, and zero is not a conservative default: `before_start_block`
+   * is the only bound on how OLD a satisfying transfer may be, so a start block
+   * of zero lets any historical transfer from a verified wallet settle a
+   * brand-new quote — once per (chain, tx, log), which is once per old payment
+   * that wallet ever made to this address. Reachable from the API alone,
+   * through the report endpoint, without the scanner running at all.
+   *
+   * Refusing is the honest answer: the feature is not ready to take money
+   * until something is watching the chain for it.
+   */
+  const cursor = await getChainCursor({ chainId: token.chainId, stream: SCAN_STREAM });
+  const configured = ctx.config.STABLECOIN_SCAN_START_BLOCK;
+  const scanFrom = cursor ?? (configured === undefined ? undefined : BigInt(configured));
+  if (scanFrom === undefined) {
+    throw new AppError('SERVICE_DISABLED', 'stablecoin payments are not being watched for yet — try again shortly');
+  }
+
+  return withTx(async (tx) => {
+    const order =
+      existing ??
+      (await createPurchaseOrder(
+        ctx,
+        {
+          userId: params.userId,
+          priceKey: product.price_key,
+          priceVersion: product.version,
+          kind: product.kind,
+          amountMinor: product.amount_minor,
+          currency: product.currency,
+          idempotencyKey: params.idempotencyKey,
+          metadata: {
+            units: product.units,
+            validity_days: product.validity_days,
+          },
+          paymentMethod: 'stablecoin',
+        },
+        tx,
+      ));
+
+    /*
+     * A re-quote for the SAME order supersedes the old one: the previous
+     * intent is closed so it stops holding the wallet's slot, and its quote
+     * row stays, because a superseded price is part of the record of what the
+     * customer was shown.
+     *
+     * An open intent for a DIFFERENT order is a conflict. One wallet, one
+     * payment at a time — if two were open, a transfer arriving with the
+     * matching amount would be ambiguous between them, and nothing else in
+     * this design can disambiguate it.
+     */
+    const openForPayer = await findOpenIntentForPayer({ chainId: token.chainId, payer }, tx);
+    if (openForPayer) {
+      if (openForPayer.order_id !== order.id) {
+        throw new AppError(
+          'CONFLICT',
+          'this wallet already has a payment waiting — finish or cancel it before starting another',
+          { orderId: openForPayer.order_id },
+        );
+      }
+      await closeIntent({ intentId: openForPayer.id, state: 'cancelled' }, tx);
+    }
+
+    /*
+     * And the ORDER's own slot, which may be held from a different wallet.
+     *
+     * The rule "one payment at a time" was enforced per wallet only, so a
+     * customer with two verified wallets could quote the same order twice and
+     * hold two live slots. Paying both took both payments: the first settled,
+     * and the second found an order it could not move — which, before the
+     * settle path was fixed, reported success and appeared in no queue. The
+     * unique index added in 0016 now makes two open intents for one order
+     * impossible; this is what makes a legitimate re-quote from a second
+     * wallet still work, by superseding the first.
+     */
+    const openForOrder = await findOpenIntentForOrder(order.id, tx);
+    if (openForOrder && openForOrder.id !== openForPayer?.id) {
+      await closeIntent({ intentId: openForOrder.id, state: 'cancelled' }, tx);
+    }
+
+    const { quote } = await insertQuoteWithIntent(
+      {
+        orderId: order.id,
+        userId: params.userId,
+        tokenKey: token.key,
+        chainId: token.chainId,
+        tokenAddress: token.address,
+        tokenDecimals: token.decimals,
+        receiver,
+        payer,
+        priceJpy: product.amount_minor,
+        amountAtomic: amountAtomic.toString(),
+        rateText: rate?.chosen.rate.text ?? null,
+        rateProvider: rate?.chosen.provider ?? null,
+        rateSourceAt:
+          rate?.chosen.sourceTimestampMs !== undefined && rate ? new Date(rate.chosen.sourceTimestampMs) : null,
+        rateObservedAt: rate ? new Date(rate.chosen.observedAtMs) : null,
+        rateBufferBps: bufferBps,
+        rateReferenceText: rate ? `${rate.reference.provider}=${rate.reference.rate.text}` : null,
+        roundedUp: rounded,
+        /*
+         * Where the scanner has reached, so this quote cannot be settled by a
+         * payment that was already on the chain when it was asked for.
+         *
+         * This was hardcoded to 0, which disabled `before_start_block`
+         * entirely — the verifier bounds inclusion only from above, so an
+         * arbitrarily old transfer could satisfy a brand-new quote. Combined
+         * with a re-quote closing an intent without regard for a payment in
+         * flight, two payments could buy one entitlement.
+         *
+         * The cursor rather than a fresh chain read: it is a database lookup
+         * on the request path, it is what the scanner will actually search
+         * from, and a quote whose start block sat ahead of the cursor would
+         * describe a range nothing ever looks at.
+         */
+        startBlock: scanFrom,
+        configVersion: ctx.config.STABLECOIN_CONFIG_VERSION,
+        expiresAt,
+      },
+      tx,
+    );
+    return viewQuote(quote);
+  });
+}
+
+/**
+ * An order already in the card channel must not also be quoted in stablecoin.
+ *
+ * §9: one active channel per order. A Stripe session id is the stronger
+ * evidence — it means a checkout really was opened — and `payment_method`
+ * covers the case where it was set without one.
+ */
+function assertNotCardClaimed(order: OrderRow): void {
+  if (order.stripe_checkout_session_id || order.payment_method === 'card') {
+    throw new AppError('CONFLICT', 'this order is already being paid by card');
+  }
+}
+
+export interface PreparedTransfer {
+  chainId: number;
+  /** The token contract. The transfer goes to the receiver inside the calldata. */
+  to: string;
+  data: string;
+  value: '0';
+  amountAtomic: string;
+  receiver: string;
+  expiresAt: string;
+  /**
+   * What the account's transaction count was, when we can read it. Null until
+   * the RPC client exists — and null is honest: this is evidence recorded
+   * about a payment, never a reservation, because a nonce in someone else's
+   * wallet cannot be reserved. See docs/STABLECOIN_V1_PLAN.md §1.
+   */
+  predictedNonce: number | null;
+}
+
+export async function prepareStablecoinPayment(
+  ctx: AppContext,
+  params: { userId: string; orderId: string },
+): Promise<PreparedTransfer> {
+  if (!ctx.config.STABLECOIN_ENABLED) {
+    throw new AppError('SERVICE_DISABLED', 'stablecoin payments are not available');
+  }
+  const order = await getOrderForUser(params.orderId, params.userId);
+  if (!order) throw new AppError('NOT_FOUND', 'order not found');
+  // The same set the quote path refuses, and for the same reason: handing a
+  // wallet live transfer calldata for a refunded order invites a payment that
+  // `markOrderPaid` will not accept.
+  if (['paid', 'refunded', 'partially_refunded'].includes(order.status)) {
+    throw new AppError('CONFLICT', 'this order can no longer be paid');
+  }
+
+  const intent = await findOpenIntentForOrder(params.orderId);
+  if (!intent) throw new AppError('NOT_FOUND', 'no live quote for this order — ask for a new one');
+  const quote = await getQuote(intent.quote_id);
+  if (!quote) throw new AppError('NOT_FOUND', 'quote not found');
+  if (quote.expires_at.getTime() <= Date.now()) {
+    throw new AppError('CONFLICT', 'that quote has expired — ask for a new one');
+  }
+
+  // Built from the stored quote, not from anything in the request: the amount,
+  // the receiver and the token are the server's, and the wallet is handed
+  // calldata it can check rather than fields it has to assemble.
+  const data = encodeTransferCalldata(quote.receiver, BigInt(quote.amount_atomic));
+  await markIntentPrepared({ intentId: intent.id, predictedNonce: null });
+
+  return {
+    chainId: quote.chain_id,
+    to: toDisplayAddress(quote.token_address),
+    data,
+    value: '0',
+    amountAtomic: quote.amount_atomic,
+    receiver: toDisplayAddress(quote.receiver),
+    expiresAt: quote.expires_at.toISOString(),
+    predictedNonce: null,
+  };
+}
+
+export interface PaymentStatus {
+  orderId: string;
+  orderStatus: string;
+  paymentMethod: string | null;
+  /**
+   * Whether what was bought has actually been handed over.
+   *
+   * Carried here so the payment page has ONE thing to poll and so that what it
+   * calls success is delivery rather than "paid". The two are deliberately
+   * separate transactions — a crash between them leaves a paid order waiting
+   * for fulfilment — so a page that stopped at `paid` would announce a
+   * completed purchase while the credits were not yet in the account.
+   */
+  entitlementGranted: boolean;
+  intent: { state: string; expiresAt: string | null } | null;
+}
+
+export async function stablecoinPaymentStatus(
+  params: { userId: string; orderId: string },
+): Promise<PaymentStatus> {
+  const order = await getOrderForUser(params.orderId, params.userId);
+  if (!order) throw new AppError('NOT_FOUND', 'order not found');
+  const intent: StablecoinIntentRow | undefined = await findOpenIntentForOrder(params.orderId);
+  const quote = intent ? await getQuote(intent.quote_id) : undefined;
+  return {
+    orderId: order.id,
+    orderStatus: order.status,
+    paymentMethod: order.payment_method,
+    entitlementGranted: !!order.entitlement_granted_at,
+    intent: intent ? { state: intent.state, expiresAt: quote?.expires_at.toISOString() ?? null } : null,
+  };
+}

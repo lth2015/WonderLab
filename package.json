@@ -12,15 +12,23 @@
     "art": "tsx scripts/gen-art.mjs",
     "fonts": "node scripts/subset-font.mjs",
     "server": "tsx watch server/src/index.ts",
-    "server:start": "tsx server/src/index.ts"
+    "server:start": "tsx server/src/index.ts",
+    "test:db": "vitest run --config vitest.db.config.ts",
+    "db:up": "docker compose up -d mysql mysql-test",
+    "db:migrate": "tsx --tsconfig server/tsconfig.json server/packages/db/src/cli.ts migrate"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",
     "@fastify/rate-limit": "^10.3.0",
     "fastify": "^5.12.7",
+    "fastify-plugin": "^6.0.1",
+    "jose": "^5.10.0",
+    "mysql2": "^3.24.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "stripe": "^17.7.0",
     "three": "^0.186.1",
+    "viem": "^2.57.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {

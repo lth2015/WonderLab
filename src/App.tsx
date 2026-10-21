@@ -6,6 +6,8 @@ import { rankPoems } from './echo';
 import { poemById } from './poems';
 import type { Tier } from './engine/quality';
 import { Menu } from './Menu';
+import { AccountSheet, CheckoutComplete, SimulatedCheckout, useGoogleReturn } from './account/AccountSheet';
+import { GOOGLE_WEB_RETURN_PATH } from '../server/src/auth/google-paths';
 import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
 import { clearWorld, loadWorld, saveWorld } from './engine/persist';
 import { loadArt } from './engine/art';
@@ -46,6 +48,17 @@ type HintPlace = 'lake' | 'sky' | 'input';
 type Hint = { text: string; place: HintPlace; key: number } | null;
 type HintId = 'draw_lake' | 'touch_fish' | 'draw_circle' | 'write_words';
 type UndoButton = { id: number; x: number; y: number } | null;
+/** Overlays reached by address: back from Google or checkout, or a link to the account. */
+type Overlay = { kind: 'account' } | { kind: 'complete'; orderId: string } | { kind: 'simulate' } | null;
+
+function overlayFromLocation(): Overlay {
+  const path = location.pathname;
+  const q = new URLSearchParams(location.search);
+  if (path === '/checkout/complete' && q.get('order_id')) return { kind: 'complete', orderId: q.get('order_id')! };
+  if (path === '/checkout/simulate') return { kind: 'simulate' };
+  if (q.has('account') || path === '/pricing' || path === '/settings/billing') return { kind: 'account' };
+  return null;
+}
 type Flight = { key: number; chars: { ch: string; dx: number; delay: number }[]; x: number; y: number };
 
 const ANNOUNCE: Record<Exclude<CreationKind, 'atmosphere'>, string> = {
@@ -100,6 +113,18 @@ export function App() {
   const [staticDemo, setStaticDemo] = useState(0);
   const [hostNote, setHostNote] = useState('');
   const [quiet, setQuiet] = useState('');
+  // The lake is the only page; these addresses only open a sheet over it.
+  const [overlay, setOverlay] = useState<Overlay>(() => (location.pathname === GOOGLE_WEB_RETURN_PATH ? null : overlayFromLocation()));
+  const closeOverlay = useCallback(() => {
+    setOverlay(null);
+    history.replaceState(null, '', '/' + (forcedTier ? `?tier=${forcedTier}` : ''));
+  }, []);
+  const googleState = useGoogleReturn(
+    useCallback((next: string) => {
+      history.replaceState(null, '', next);
+      setOverlay(overlayFromLocation());
+    }, []),
+  );
   const recentEchoes = useRef<number[]>([]);
 
   useEffect(() => {
@@ -496,7 +521,15 @@ export function App() {
           ))}
         </div>
       ))}
-      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} dim={dim} />
+      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} onAccount={() => setOverlay({ kind: 'account' })} dim={dim} />
+      {overlay?.kind === 'account' && <AccountSheet onClose={closeOverlay} />}
+      {overlay?.kind === 'complete' && <CheckoutComplete orderId={overlay.orderId} onClose={closeOverlay} />}
+      {overlay?.kind === 'simulate' && <SimulatedCheckout onClose={closeOverlay} />}
+      {googleState && (
+        <p className="hint on account-note" role="status">
+          {googleState}
+        </p>
+      )}
       <div className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">
         {toast && (
           <>
