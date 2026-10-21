@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 // The 更多 menu and the About panel (docs/03 §5.1, §5.4).
 
@@ -7,9 +7,11 @@ interface MenuProps {
   onUndo: () => void;
   onRestart: () => void;
   dim: boolean;
+  /** Other top-right controls, placed before 更多. */
+  children?: ReactNode;
 }
 
-export function Menu({ canUndo, onUndo, onRestart, dim }: MenuProps) {
+export function Menu({ canUndo, onUndo, onRestart, dim, children }: MenuProps) {
   const [open, setOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [undoable, setUndoable] = useState(false);
@@ -38,6 +40,7 @@ export function Menu({ canUndo, onUndo, onRestart, dim }: MenuProps) {
   return (
     <>
       <div className={`chrome${dim ? ' dim' : ''}`}>
+        {children}
         <button
           ref={trigger}
           type="button"

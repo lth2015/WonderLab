@@ -15,7 +15,10 @@ export type EventType =
   | 'undo'
   | 'restart'
   | 'tier_change'
-  | 'phase_change';
+  | 'phase_change'
+  | 'record_start'
+  | 'record_complete'
+  | 'save';
 
 export interface LoggedEvent {
   t: number; // ms since the page started

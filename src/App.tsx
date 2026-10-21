@@ -5,6 +5,7 @@ import type { Tier } from './engine/quality';
 import { Menu } from './Menu';
 import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
 import { clearWorld, loadWorld, saveWorld } from './engine/persist';
+import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
 const DEMO_IDLE_MS = 4000;
@@ -78,6 +79,7 @@ export function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<Engine | null>(null);
   const wordsUsedRef = useRef<() => void>(() => {});
+  const frameSinkRef = useRef<((c: HTMLCanvasElement) => void) | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [hint, setHint] = useState<Hint>(null);
@@ -182,6 +184,7 @@ export function App() {
         },
         onTierChange: setTier,
         onRestartSettled: () => setToast(false),
+        onFrame: (c) => frameSinkRef.current?.(c),
       },
       {
         tier: forcedTier === 'light' || forcedTier === 'standard' ? forcedTier : undefined,
@@ -332,6 +335,14 @@ export function App() {
     return () => clearInterval(id);
   }, [text]);
 
+  const noteTimer = useRef(0);
+  const showNote = useCallback((text: string) => {
+    setHostNote(text);
+    clearTimeout(noteTimer.current);
+    noteTimer.current = window.setTimeout(() => setHostNote(''), 3000);
+  }, []);
+  const recorder = useRecorder(engineRef, frameSinkRef, showNote);
+
   const undo = useCallback((id?: number) => {
     engineRef.current?.undo(id);
   }, []);
@@ -454,7 +465,10 @@ export function App() {
           ))}
         </div>
       ))}
-      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} dim={dim} />
+      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} dim={dim}>
+        <RecordButton api={recorder} />
+      </Menu>
+      <RecordOverlays api={recorder} />
       <div className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">
         {toast && (
           <>
