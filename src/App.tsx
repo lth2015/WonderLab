@@ -67,6 +67,7 @@ type Flight = { key: number; chars: { ch: string; dx: number; delay: number }[];
 const ANNOUNCE: Record<Exclude<CreationKind, 'atmosphere'>, string> = {
   fish: '一条小鱼游入湖中',
   moon: '月亮升上夜空',
+  planet: '一颗小星球亮起',
   star: '天上多了一颗星',
   meteor: '一颗流星划过',
   cloud: '一缕流云飘过',

@@ -1,5 +1,5 @@
 import { noiseGLSL } from './common';
-import { MAX_CLOUDS, MAX_METEORS, MAX_STARS } from '../sky';
+import { MAX_CLOUDS, MAX_METEORS, MAX_STARS, PLANET_SLOTS } from '../sky';
 
 export const MAX_RIPPLES = 16;
 
@@ -12,6 +12,7 @@ precision highp float;
 #define MAX_STARS ${MAX_STARS}
 #define MAX_METEORS ${MAX_METEORS}
 #define MAX_CLOUDS ${MAX_CLOUDS}
+#define PLANET_SLOTS ${PLANET_SLOTS}
 uniform sampler2D uLandscape;
 uniform vec2 uRes;
 uniform float uTime;
@@ -33,6 +34,8 @@ uniform int uStarCount;
 uniform vec4 uMeteors[MAX_METEORS];   // from x, y, to x, y
 uniform float uMeteorT[MAX_METEORS];  // progress 0..1, 0 = inactive
 uniform vec4 uClouds[MAX_CLOUDS];     // x, y, half width, presence
+uniform vec4 uPlanets[PLANET_SLOTS];     // x, y, radius, presence
+uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint index, seed
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
@@ -98,6 +101,43 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   return mix(c, face, disc * (1.0 - shade) * uMoon.w * open);
 }
 
+// Small planets (docs/02 §5.2): mineral pigments rather than the moon's
+// paper white — 石青, 赭石, 藤黄 — with faint bands, a soft terminator on
+// the side away from the moon, and a little glow.
+vec3 planetTint(float k) {
+  vec3 t = k < 0.5 ? vec3(0.42, 0.56, 0.66) : k < 1.5 ? vec3(0.69, 0.48, 0.33) : vec3(0.85, 0.76, 0.52);
+  return mix(t, uPaper, 0.3);
+}
+
+vec3 planetLayer(vec2 p, vec3 c, float open) {
+  for (int i = 0; i < PLANET_SLOTS; i++) {
+    vec4 pl = uPlanets[i];
+    if (pl.w <= 0.0 || pl.z <= 0.0) continue;
+    vec4 look = uPlanetLook[i];
+    float r = pl.z;
+    vec2 d = p - pl.xy;
+    float dist = length(d);
+    if (dist > r * 5.0) continue;
+    vec3 tint = planetTint(look.z);
+    float halo = exp(-max(dist - r, 0.0) / (r * 1.1)) * 0.09;
+    c += tint * halo * pl.w * open;
+    float disc = 1.0 - smoothstep(r - 1.2, r + 0.8, dist);
+    if (disc <= 0.0) continue;
+    vec2 q = d / r;
+    float z = sqrt(max(1.0 - dot(q, q), 0.0));
+    // Bands run across the disc at a slight tilt, broken by ink-like noise.
+    float tilt = (look.w - 0.5) * 0.8;
+    float across = q.y * cos(tilt) + q.x * sin(tilt);
+    float bands = sin(across * 9.0 + fbm(q * 2.5 + look.w * 17.0) * 2.2) * 0.5 + 0.5;
+    vec3 face = tint * (0.86 + bands * 0.18) * (0.72 + 0.28 * z);
+    // Lit side faces away from the dark direction.
+    float light = smoothstep(-0.35, 0.45, -dot(q, look.xy) + 0.15);
+    face *= mix(0.22, 1.0, light);
+    c = mix(c, face, disc * pl.w * open);
+  }
+  return c;
+}
+
 vec3 userSky(vec2 p, vec3 c, float open) {
   vec3 base = c;
   // Clouds sit in front of the mountains, the rest behind them.
@@ -109,6 +149,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
     float m = smoothstep(1.0, 0.25, length(q) + (n - 0.5) * 0.9) * cl.w;
     c = mix(c, uSkyLow * 1.55 + uAccent * 0.06 * uMoonLight, m * 0.5);
   }
+  c = planetLayer(p, c, open);
   c = moonLayer(p, c, open);
   vec3 starCol = vec3(0.98, 0.95, 0.86);
   for (int i = 0; i < MAX_STARS; i++) {

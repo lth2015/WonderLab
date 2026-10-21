@@ -8,7 +8,7 @@ import type { MoonPhase } from './classify';
 
 export const SAVE_VERSION = 1;
 const KEY = 'wonderlab.world';
-const LIMITS = { fish: 12, stars: 24, clouds: 4, spine: 64 };
+const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64 };
 
 export interface SavedFish {
   /** Tail to head, normalised to the view (x / width, y / height, from the bottom). */
@@ -24,6 +24,8 @@ export interface WorldSave {
   fish: SavedFish[];
   /** x, y normalised; r as a share of the short screen edge. */
   moon: { x: number; y: number; r: number; phase: MoonPhase; dark: [number, number] } | null;
+  /** x, y normalised; r as a share of the short screen edge; pigment index. Absent in older saves. */
+  planets: [number, number, number, number][];
   stars: [number, number][];
   /** x, y normalised; w as a share of the short screen edge. */
   clouds: [number, number, number][];
@@ -89,6 +91,14 @@ export function parseWorld(data: unknown): WorldSave | null {
     };
   }
 
+  const planets = arr(data.planets)
+    .slice(0, LIMITS.planets)
+    .filter(
+      (p): p is [number, number, number, number] =>
+        Array.isArray(p) && p.length === 4 && isUnitish(p[0]) && isUnitish(p[1]) && isPos(p[2]) && p[2] <= 0.1 && isNum(p[3]),
+    )
+    .map(([x, y, r, tint]): [number, number, number, number] => [x, y, r, Math.abs(Math.round(tint)) % 3]);
+
   const stars = arr(data.stars)
     .slice(0, LIMITS.stars)
     .filter((s): s is [number, number] => Array.isArray(s) && s.length === 2 && s.every(isUnitish));
@@ -96,7 +106,7 @@ export function parseWorld(data: unknown): WorldSave | null {
     .slice(0, LIMITS.clouds)
     .filter((c): c is [number, number, number] => Array.isArray(c) && c.length === 3 && isUnitish(c[0]) && isUnitish(c[1]) && isPos(c[2]));
 
-  return { version: SAVE_VERSION, atmosphere, fish, moon, stars, clouds };
+  return { version: SAVE_VERSION, atmosphere, fish, moon, planets, stars, clouds };
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {

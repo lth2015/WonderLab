@@ -26,7 +26,7 @@ const UNDO_DEPTH = 20;
 const RESTART_UNDO_MS = 5000;
 const DOUBLE_TAP_S = 1.5;
 
-export type CreationKind = 'fish' | 'moon' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
+export type CreationKind = 'fish' | 'moon' | 'planet' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
 
 export interface Creation {
   id: number;
@@ -354,6 +354,7 @@ export class Engine {
       atmosphere: this.restartPending ? { ...INITIAL } : { ...this.atmosphere.state },
       fish,
       moon: m ? { x: m.x / W, y: m.y / H, r: m.r / S, phase: m.phase, dark: [m.dark.x, m.dark.y] } : null,
+      planets: sky.planets.map((p): [number, number, number, number] => [p.x / W, p.y / H, p.r / S, p.tint]),
       stars: sky.stars.map((st): [number, number] => [st.x / W, st.y / H]),
       clouds: sky.clouds.map((c): [number, number, number] => [c.x / W, c.y / H, c.w / S]),
     };
@@ -386,6 +387,7 @@ export class Engine {
       const m = save.moon;
       this.sky.setMoon({ x: m.x * W, y: m.y * H, r: m.r * S, phase: m.phase, dark: { x: m.dark[0], y: m.dark[1] }, rise: false });
     }
+    for (const [x, y, r, tint] of save.planets) this.sky.addPlanet(x * W, y * H, r * S, tint);
     for (const [x, y] of save.stars) this.sky.addStar(x * W, y * H);
     for (const [x, y, w] of save.clouds) this.sky.addCloud(x * W, y * H, w * S);
   }
@@ -660,6 +662,11 @@ export class Engine {
   // ---------------------------------------------------------------- sky
 
   private placeMoon(c: Classification, stroke: Stroke, fromLake: boolean): void {
+    // The first circle is the moon; with a moon up, circles are small planets.
+    if (this.sky.moonSpec) {
+      this.placePlanet(c, stroke, fromLake);
+      return;
+    }
     const S = this.minDim;
     const { fit } = c.features;
     const r = THREE.MathUtils.clamp(fit.r, S * 0.035, S * 0.085);
@@ -680,13 +687,44 @@ export class Engine {
       dark: { x: gx / gl, y: gy / gl },
       rise: fromLake,
     };
-    const prev = this.sky.moonSpec;
     this.sky.setMoon(spec);
     this.sfx('chime', x);
     this.fadeStroke(stroke, fromLake ? 0.1 : 0.3, fromLake ? 0.7 : 1.0);
     if (fromLake) this.addRipple(fit.cx, fit.cy, 0.8);
     const anchorY = fromLake ? fit.cy : y;
-    this.record('moon', x + r, anchorY - r, () => this.sky.setMoon(prev ? { ...prev, rise: false } : null));
+    // There was no moon before this one (later circles are planets), so undo removes it.
+    this.record('moon', x + r, anchorY - r, () => this.sky.setMoon(null));
+  }
+
+  private placePlanet(c: Classification, stroke: Stroke, fromLake: boolean): void {
+    const S = this.minDim;
+    const { fit } = c.features;
+    const r = THREE.MathUtils.clamp(fit.r * 0.45, S * 0.014, S * 0.032);
+    let x = fit.cx;
+    let y = fromLake ? 2 * this.horizonY - fit.cy : fit.cy;
+    // Keep clear of the moon and the other planets: nudge outward from each.
+    const moon = this.sky.moonSpec;
+    const others = [...(moon ? [{ x: moon.x, y: moon.y, r: moon.r * 1.3 }] : []), ...this.sky.planetDiscs];
+    for (let pass = 0; pass < 3; pass++) {
+      for (const o of others) {
+        const dx = x - o.x;
+        const dy = y - o.y;
+        const d = Math.hypot(dx, dy);
+        const need = o.r + r + S * 0.02;
+        if (d >= need) continue;
+        const ux = d > 1e-3 ? dx / d : 1;
+        const uy = d > 1e-3 ? dy / d : 0;
+        x = o.x + ux * need;
+        y = o.y + uy * need;
+      }
+    }
+    y = THREE.MathUtils.clamp(y, this.horizonY + S * 0.12 + r, this.height - r - 12);
+    x = THREE.MathUtils.clamp(x, r + 12, this.width - r - 12);
+    const id = this.sky.addPlanet(x, y, r, this.nextHistoryId);
+    this.fadeStroke(stroke, fromLake ? 0.1 : 0.3, fromLake ? 0.7 : 1.0);
+    if (fromLake) this.addRipple(fit.cx, fit.cy, 0.6);
+    this.sfx('chime', x, 0.6);
+    this.record('planet', x + r, y - r, () => this.sky.removePlanet(id));
   }
 
   private placeStar(x: number, y: number): void {
