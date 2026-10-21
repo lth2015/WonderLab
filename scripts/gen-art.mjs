@@ -3,12 +3,12 @@
 // through TokenStars and committed as static files (public/art). Nothing is
 // generated at run time, so players never cost anything (docs/01 P7, P9).
 //
-//   node scripts/gen-art.mjs                 # show the plan and estimated cost
-//   node scripts/gen-art.mjs --yes           # generate everything
-//   node scripts/gen-art.mjs --yes --only kohaku,moon
-//   node scripts/gen-art.mjs --process-only  # images you made yourself (e.g. in the
-//                                            # ChatGPT app) saved as art-raw/<name>.png
-//   node scripts/gen-art.mjs --prompts       # print the prompts to paste into ChatGPT
+//   npm run art --                 # show the plan and estimated cost
+//   npm run art -- --yes           # generate everything
+//   npm run art -- --yes --only kohaku,moon
+//   npm run art -- --process-only  # images you made yourself (e.g. in the
+//                                  # ChatGPT app) saved as art-raw/<name>.png
+//   npm run art -- --prompts       # print the prompts to paste into ChatGPT
 //
 // Needs TOKENSTARS_API_KEY and TOKENSTARS_IMAGE_MODEL_ID, from .env or the
 // environment (see .env.example).
@@ -18,7 +18,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import sharp from 'sharp';
-import { configFromEnv, generateImage } from '../server/tokenstars.mjs';
+import { configFromEnv, generateImage } from '../server/src/tokenstars.ts';
 
 // Read TOKENSTARS_* from a local .env (same names as yuha), if there is one.
 try {

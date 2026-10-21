@@ -3,5 +3,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  server: { host: true },
+  server: {
+    host: true,
+    // `npm run server` in a second terminal answers these.
+    proxy: { '/api': 'http://127.0.0.1:8787' },
+  },
 });
