@@ -145,6 +145,10 @@ void main() {
     col = mix(uPaper, uInk, 0.12 + 0.35 * r);
     a = 0.42 * pow(1.0 - clamp(fx + n * 0.15, 0.0, 1.0), 1.2) * (0.6 + 0.4 * r);
   }
+  // A forked tail: the centre ends early and the two lobes reach the tip,
+  // so the fin never ends in a straight cut.
+  float tipS = 0.86 + 0.13 * pow(abs(v), 1.2);
+  a *= 1.0 - smoothstep(tipS - 0.07, tipS, s + n * 0.05);
 
   // Reveal from head to tail during birth.
   a *= smoothstep(0.0, 0.08, uGrow * 1.15 - s);
