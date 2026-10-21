@@ -111,9 +111,13 @@ void main() {
     float rays = 0.5 + 0.5 * sin(v * 22.0 + s * 9.0 + uSeed);
     float pectRays = 0.5 + 0.5 * sin(s * 95.0);
     float r = mix(pectRays, rays, smoothstep(0.6, 0.8, s));
-    col = mix(uPaper, uInk, 0.18 + 0.2 * r);
+    col = mix(uPaper, uInk, 0.08 + 0.14 * r);
     a = 0.4 * pow(1.0 - clamp(fx + n * 0.25, 0.0, 1.0), 1.3) * (0.55 + 0.45 * r);
   }
+  // A forked tail: the centre ends early and the two lobes reach the tip,
+  // so the fin never ends in a straight cut.
+  float tipS = 0.86 + 0.13 * pow(abs(v), 1.2);
+  a *= 1.0 - smoothstep(tipS - 0.07, tipS, s + n * 0.05);
 
   // Reveal from head to tail during birth.
   a *= smoothstep(0.0, 0.08, uGrow * 1.15 - s);

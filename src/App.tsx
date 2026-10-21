@@ -98,19 +98,45 @@ export function App() {
       setFailed(true);
       return;
     }
-    const timers = new Set<number>();
-    const later = (fn: () => void, ms: number) => {
-      const id = window.setTimeout(() => {
+    // Timers run on visible time only: a link opened in a background tab must
+    // not use up the first-run hints and demos before anyone sees the world.
+    interface Timer {
+      fn: () => void;
+      left: number;
+      armedAt: number;
+      handle: number;
+    }
+    const timers = new Map<number, Timer>();
+    let nextTimer = 1;
+    const arm = (id: number, t: Timer) => {
+      t.armedAt = performance.now();
+      t.handle = window.setTimeout(() => {
         timers.delete(id);
-        fn();
-      }, ms);
-      timers.add(id);
+        t.fn();
+      }, t.left);
+    };
+    const later = (fn: () => void, ms: number) => {
+      const id = nextTimer++;
+      const t: Timer = { fn, left: ms, armedAt: 0, handle: 0 };
+      timers.set(id, t);
+      if (!document.hidden) arm(id, t);
       return id;
     };
     const cancel = (id: number) => {
-      clearTimeout(id);
+      const t = timers.get(id);
+      if (!t) return;
+      clearTimeout(t.handle);
       timers.delete(id);
     };
+    const onTimerVisibility = () => {
+      for (const [id, t] of timers) {
+        if (document.hidden) {
+          clearTimeout(t.handle);
+          t.left = Math.max(0, t.left - (performance.now() - t.armedAt));
+        } else arm(id, t);
+      }
+    };
+    document.addEventListener('visibilitychange', onTimerVisibility);
 
     let drawn = false;
     let drawing = false;
@@ -309,7 +335,8 @@ export function App() {
     vv?.addEventListener('scroll', onViewport);
 
     return () => {
-      for (const id of timers) clearTimeout(id);
+      for (const t of timers.values()) clearTimeout(t.handle);
+      document.removeEventListener('visibilitychange', onTimerVisibility);
       canvas.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);

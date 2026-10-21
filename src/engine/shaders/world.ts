@@ -172,15 +172,43 @@ void main() {
       sheen += (ring + ring2) * max(0.0, sin(k * 3.1416 + 1.2));
     }
 
+    // The moon's reflection is not a mirror image but a column of light that
+    // the waves break up: shred the reflected disc inside that column.
+    float moonCol = 0.0;
+    float discDim = 0.0;
+    if (uMoon.w > 0.0) {
+      float dxm = p.x - uMoon.x;
+      float cw = uMoon.z * (0.75 + dn * 5.0);
+      moonCol = exp(-dxm * dxm / (cw * cw)) * uMoon.w * uSkyVeil;
+      disp += vec2(wave2 * cw * 1.4, wave * S * 0.08) * moonCol;
+      // Fade the mirrored disc itself, leaving the mountains' reflection alone.
+      float dy = (p.y - (2.0 * hpx - uMoon.y)) / (uMoon.z * 1.8);
+      discDim = moonCol * exp(-dy * dy);
+    }
+
     vec2 rp = vec2(p.x + disp.x, hpx + d + disp.y);
     rp.y = min(rp.y, uRes.y - 1.0);
     vec3 refl = skyAt(rp, hpx, S).rgb;
     float fresnel = mix(0.82, 0.32, smoothstep(0.0, 0.45, dn));
+    refl = mix(refl, min(refl, uSkyLow * 0.95), discDim);
     col = mix(uWater, refl * 0.92, fresnel);
     // Thin moonlit glints on the wave crests.
     float glint = smoothstep(0.78, 1.0, noise(vec2(p.x / S * 26.0 * z * 0.25, p.y / S * 160.0 + uTime * 0.4)));
     col += uAccent * glint * 0.035 * (1.0 - smoothstep(0.0, 0.5, dn));
     col += uAccent * sheen * 0.10;
+    // 浮光跃金: short horizontal glints along the moon's column, brightest
+    // a little below the horizon and thinning out toward the viewer.
+    if (moonCol > 0.001) {
+      float lit = clamp(uMoonShade.z / 2.4, 0.3, 1.0);
+      float zz = 1.0 / (dn + 0.04);
+      float crest = noise(vec2(p.x / (S * 0.016 * (1.0 + dn * 1.2)), zz * 5.0 - uWaveT * 0.9));
+      float crest2 = noise(vec2(p.x / (S * 0.007 * (1.0 + dn * 1.2)), zz * 10.0 - uWaveT * 1.4 + 7.0));
+      float glit = smoothstep(0.66, 0.95, crest * 0.6 + crest2 * 0.5);
+      float fade = smoothstep(0.0, 0.015, dn) * (1.0 - 0.8 * smoothstep(0.12, 0.55, dn));
+      vec3 light = mix(uAccent, uPaper, 0.35);
+      col += light * glit * moonCol * lit * fade * 0.5 * (1.0 + uMoonPulse);
+      col += uAccent * moonCol * lit * fade * 0.035;
+    }
     col *= 1.0 - smoothstep(0.0, 0.6, dn) * 0.35;
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;
   }
