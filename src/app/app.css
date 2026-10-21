@@ -1,0 +1,128 @@
+/* Tokens: docs/03-ux-ui-design.md §3.1, §4, §7. */
+:root {
+  --ink-950: #0b0e13;
+  --paper-100: #efeadf;
+  --paper-300: #c9c3b6;
+  --moonlight: #e9d9a6;
+  --ease-ink: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.55, 0, 1, 0.45);
+  --font-ui: 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-poem: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  --horizon: 0.5;
+}
+
+@media (orientation: portrait) {
+  :root {
+    --horizon: 0.55;
+  }
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--ink-950);
+  color: var(--paper-100);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+}
+
+.world {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+  outline: none;
+}
+
+.world:focus-visible {
+  outline: 2px solid var(--moonlight);
+  outline-offset: -4px;
+}
+
+/* Sits in the upper part of the lake (lake = bottom `--horizon` of the screen). */
+.hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--horizon) * 62%);
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-poem);
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  color: var(--paper-100);
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 220ms var(--ease-exit);
+}
+
+.hint.show {
+  opacity: 0.85;
+  transition: opacity 1200ms var(--ease-ink) 600ms;
+}
+
+@media (max-width: 600px) {
+  .hint {
+    font-size: 18px;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Loading: docs/03 §11. Lives in index.html so the first frame is already ink. */
+#loader {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: var(--ink-950);
+  pointer-events: none;
+  transition: opacity 900ms var(--ease-ink);
+}
+
+#loader.done {
+  opacity: 0;
+}
+
+.fallback {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 45%, #22314a 0%, var(--ink-950) 70%);
+}
+
+.fallback-title {
+  margin: 0;
+  font-family: var(--font-poem);
+  font-size: 20px;
+  letter-spacing: 0.08em;
+}
+
+.fallback-body {
+  margin: 0;
+  color: var(--paper-300);
+  font-size: 14px;
+}

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { fishFrag, ribbonVert } from './shaders/ink';
+import { fishFrag, fishVert } from './shaders/ink';
 import type { Palette } from './palette';
 import type { StrokePoint } from './stroke';
 
@@ -106,9 +106,11 @@ export class Fish {
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
-        vertexShader: ribbonVert,
+        vertexShader: fishVert,
         fragmentShader: fishFrag,
         transparent: true,
+        // The ribbon's side normals follow the head-ward tangent, so its triangles wind clockwise.
+        side: THREE.DoubleSide,
         depthTest: false,
         depthWrite: false,
         uniforms: uniforms(shadow),
@@ -123,6 +125,7 @@ export class Fish {
       sv.set([s, 1, s, -1], i * 4);
     }
     this.geometry.setAttribute('aSV', new THREE.BufferAttribute(sv, 2));
+    this.geometry.setAttribute('aQ', new THREE.BufferAttribute(new Float32Array(N * 2), 1));
     const index: number[] = [];
     for (let i = 0; i < N - 1; i++) {
       const a = i * 2;
@@ -289,6 +292,8 @@ export class Fish {
   private rebuild(): void {
     const pos = this.geometry.getAttribute('position') as THREE.BufferAttribute;
     const P = pos.array as Float32Array;
+    const qAttr = this.geometry.getAttribute('aQ') as THREE.BufferAttribute;
+    const Q = qAttr.array as Float32Array;
     const growW = smooth(0, 1, this.grow);
     const swimAmp = this.amp * (this.state === 'forming' ? this.grow * 0.3 : 0.6 + Math.min(this.speed / this.baseSpeed, 2) * 0.4);
     const pect = 1 + 0.25 * Math.sin(this.phase * 0.5);
@@ -315,8 +320,10 @@ export class Fish {
       P[i * 6 + 3] = cx - nx * half;
       P[i * 6 + 4] = cy - ny * half;
       P[i * 6 + 5] = 0;
+      Q[i * 2] = Q[i * 2 + 1] = Math.max(half, 1e-3);
     }
     pos.needsUpdate = true;
+    qAttr.needsUpdate = true;
   }
 
   dispose(): void {

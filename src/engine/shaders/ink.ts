@@ -10,6 +10,19 @@ void main() {
 }
 `;
 
+// Fish ribbons taper, so each quad is a trapezoid and plain interpolation of
+// aSV zigzags across the diagonal. Interpolating (aSV * q, q) with q = the
+// vertex half-width and dividing per fragment keeps it bilinear.
+export const fishVert = /* glsl */ `
+attribute vec2 aSV;
+attribute float aQ;
+varying vec3 vSVQ;
+void main() {
+  vSVQ = vec3(aSV * aQ, aQ);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
 // A live brush stroke: soft bleeding edges and dry-brush streaks (飞白)
 // that increase toward the end of the stroke.
 export const strokeFrag = /* glsl */ `
@@ -71,14 +84,15 @@ uniform float uPect;       // pectoral fin flap
 uniform float uL;          // body length, px
 uniform float uMaxW;       // half-width scale, px
 uniform float uShadow;     // 1 = render as soft shadow on the lake bed
-varying vec2 vSV;
+varying vec3 vSVQ;
 
 ${noiseGLSL}
 ${fishProfileGLSL}
 
 void main() {
-  float s = vSV.x;
-  float v = vSV.y;
+  vec2 sv = vSVQ.xy / vSVQ.z;
+  float s = sv.x;
+  float v = sv.y;
   float env = envW(s, uPect);
   float body = bodyW(s);
   float w = abs(v) * env;          // offset from spine, in maxW units
