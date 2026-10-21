@@ -218,7 +218,8 @@ void main() {
 
   // Rice-paper grain and a soft vignette.
   if (uPost > 0.5) {
-    float grain = hash(floor(p)) - 0.5;
+    // Per device pixel, so a high-resolution wallpaper keeps a fine grain.
+    float grain = hash(floor(gl_FragCoord.xy)) - 0.5;
     float fibre = fbm(p * vec2(0.02, 0.09)) - 0.5;
     col += grain * 0.028 + fibre * 0.02;
   }

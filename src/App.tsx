@@ -381,6 +381,30 @@ export function App() {
     setToast(true);
     setAnnounce('世界已重置');
   }, []);
+  // 保存为壁纸: the current frame at high resolution, shared on phones, downloaded elsewhere.
+  const saveWallpaper = useCallback(async () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    const blob = await engine.captureWallpaper();
+    if (!blob) return;
+    logEvent('save', { kind: 'wallpaper' });
+    const name = `wonderlab-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '')}.png`;
+    const file = new File([blob], name, { type: 'image/png' });
+    if (coarse() && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch {
+        // Cancelled or refused: fall back to a download.
+      }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    setAnnounce('壁纸已保存');
+  }, []);
   const undoRestart = useCallback(() => {
     engineRef.current?.undoRestart();
     setToast(false);
@@ -521,7 +545,7 @@ export function App() {
           ))}
         </div>
       ))}
-      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} onAccount={() => setOverlay({ kind: 'account' })} dim={dim} />
+      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} onAccount={() => setOverlay({ kind: 'account' })} onWallpaper={() => void saveWallpaper()} dim={dim} />
       {overlay?.kind === 'account' && <AccountSheet onClose={closeOverlay} />}
       {overlay?.kind === 'complete' && <CheckoutComplete orderId={overlay.orderId} onClose={closeOverlay} />}
       {overlay?.kind === 'simulate' && <SimulatedCheckout onClose={closeOverlay} />}

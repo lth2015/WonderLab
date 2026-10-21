@@ -7,10 +7,11 @@ interface MenuProps {
   onUndo: () => void;
   onRestart: () => void;
   onAccount: () => void;
+  onWallpaper: () => void;
   dim: boolean;
 }
 
-export function Menu({ canUndo, onUndo, onRestart, onAccount, dim }: MenuProps) {
+export function Menu({ canUndo, onUndo, onRestart, onAccount, onWallpaper, dim }: MenuProps) {
   const [open, setOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [undoable, setUndoable] = useState(false);
@@ -68,6 +69,9 @@ export function Menu({ canUndo, onUndo, onRestart, onAccount, dim }: MenuProps) 
             </button>
             <button ref={undoable ? undefined : first} type="button" role="menuitem" onClick={pick(onRestart)}>
               重新开始
+            </button>
+            <button type="button" role="menuitem" onClick={pick(onWallpaper)}>
+              保存为壁纸
             </button>
             <button type="button" role="menuitem" onClick={pick(onAccount)}>
               账户

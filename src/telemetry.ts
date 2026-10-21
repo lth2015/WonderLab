@@ -14,6 +14,7 @@ export type EventType =
   | 'hint_followed'
   | 'undo'
   | 'restart'
+  | 'save'
   | 'tier_change'
   | 'phase_change';
 

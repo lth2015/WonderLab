@@ -245,6 +245,25 @@ export class Engine {
     this.worldMat.uniforms.uMoonTexOn.value = art.moon ? 1 : 0;
   }
 
+  /**
+   * Render the current world at high resolution and return it as a PNG
+   * (保存为壁纸). Local and free: the same frame, drawn with more pixels, so
+   * the long edge reaches about `longEdge`. The echo line in the sky is part
+   * of the frame; the page's buttons and hints are not.
+   */
+  async captureWallpaper(longEdge = 3840): Promise<Blob | null> {
+    const base = this.renderer.getPixelRatio();
+    const ratio = Math.min(longEdge / Math.max(this.width, this.height), 4);
+    this.renderer.setPixelRatio(ratio);
+    this.resize(ratio);
+    this.renderer.render(this.scene, this.camera);
+    // Read back in the same task as the render (the drawing buffer is not preserved).
+    const blob = await new Promise<Blob | null>((resolve) => this.canvas.toBlob(resolve, 'image/png'));
+    this.renderer.setPixelRatio(base);
+    this.resize();
+    return blob;
+  }
+
   get canUndo(): boolean {
     return this.history.length > 0;
   }
@@ -897,7 +916,7 @@ export class Engine {
     while (real.length > t.maxFish) real.shift()!.leave();
   }
 
-  private resize(): void {
+  private resize(forcedDpr?: number): void {
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     const sx = w / this.width;
@@ -906,7 +925,7 @@ export class Engine {
     this.width = w;
     this.height = h;
     this.horizon = h > w ? 0.55 : 0.5; // portrait: lake takes 55%
-    const dpr = Math.min(window.devicePixelRatio || 1, TIERS[this.monitor.tier].maxDpr);
+    const dpr = forcedDpr ?? Math.min(window.devicePixelRatio || 1, TIERS[this.monitor.tier].maxDpr);
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
     this.camera.left = 0;
