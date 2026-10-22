@@ -3,7 +3,7 @@
  * signs in any address with no password; DEV_LOGIN_ALLOWLIST is the fence.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { devLoginAllowed, parseDevLoginAllowlist } from '@wonderlab/api';
+import { devExternalId, devLoginAllowed, parseDevLoginAllowlist } from '@wonderlab/api';
 import { query } from '@wonderlab/db';
 import { createHarness, resetData, teardown, type Harness } from './helpers/harness.js';
 
@@ -69,5 +69,12 @@ describe('POST /v1/auth/dev-login behind an allowlist', () => {
     const cfg = (await h.app.inject({ method: 'GET', url: '/v1/auth/config' })).json();
     expect(cfg.devLoginRestricted).toBe(true);
     expect(cfg.devLoginDomains).toEqual(['example.co.jp']);
+  });
+});
+
+describe('development sign-in identity', () => {
+  it('gives addresses that share a long prefix their own accounts', () => {
+    expect(devExternalId('alice.smith@a.test')).not.toBe(devExternalId('alice.smith@b.test'));
+    expect(devExternalId('Alice.Smith@A.test ')).toBe(devExternalId('alice.smith@a.test'));
   });
 });

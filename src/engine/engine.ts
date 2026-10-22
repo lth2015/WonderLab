@@ -6,6 +6,7 @@ import type { Palette } from './palette';
 import { Atmosphere } from './atmosphere';
 import type { SceneCommand } from './intent';
 import { weatherFrag } from './shaders/weather';
+import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { Fish } from './fish';
 import { Sky, type MoonSpec } from './sky';
@@ -25,7 +26,7 @@ const UNDO_DEPTH = 20;
 const RESTART_UNDO_MS = 5000;
 const DOUBLE_TAP_S = 1.5;
 
-export type CreationKind = 'fish' | 'moon' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
+export type CreationKind = 'fish' | 'moon' | 'planet' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
 
 export interface Creation {
   id: number;
@@ -52,6 +53,12 @@ export interface EngineEvents {
   onRestartSettled?: (undone: boolean) => void;
   /** Right after each render, while the drawing buffer is still readable. */
   onFrame?: (canvas: HTMLCanvasElement) => void;
+}
+
+/** Where the engine sends its sounds (src/sound.ts); absent means silence. */
+export interface SoundSink {
+  play(kind: SoundKind, opts?: { pan?: number; strength?: number }): void;
+  ambient(levels: AmbientLevels): void;
 }
 
 interface PendingRestart {
@@ -131,6 +138,7 @@ export class Engine {
   private demo: { points: StrokePoint[]; stroke: Stroke; start: number } | null = null;
   private hadFirstStroke = false;
   private tierHeld = false;
+  private sound: SoundSink | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -271,6 +279,14 @@ export class Engine {
     return this.history.length > 0;
   }
 
+  setSound(sink: SoundSink | null): void {
+    this.sound = sink;
+  }
+
+  private sfx(kind: SoundKind, x: number, strength = 1): void {
+    this.sound?.play(kind, { pan: panFor(x, this.width), strength });
+  }
+
   /** Keep the current quality tier, e.g. while recording (docs/03 §10). */
   holdTier(on: boolean): void {
     this.tierHeld = on;
@@ -338,6 +354,7 @@ export class Engine {
       atmosphere: this.restartPending ? { ...INITIAL } : { ...this.atmosphere.state },
       fish,
       moon: m ? { x: m.x / W, y: m.y / H, r: m.r / S, phase: m.phase, dark: [m.dark.x, m.dark.y] } : null,
+      planets: sky.planets.map((p): [number, number, number, number] => [p.x / W, p.y / H, p.r / S, p.tint]),
       stars: sky.stars.map((st): [number, number] => [st.x / W, st.y / H]),
       clouds: sky.clouds.map((c): [number, number, number] => [c.x / W, c.y / H, c.w / S]),
     };
@@ -370,6 +387,7 @@ export class Engine {
       const m = save.moon;
       this.sky.setMoon({ x: m.x * W, y: m.y * H, r: m.r * S, phase: m.phase, dark: { x: m.dark[0], y: m.dark[1] }, rise: false });
     }
+    for (const [x, y, r, tint] of save.planets) this.sky.addPlanet(x * W, y * H, r * S, tint);
     for (const [x, y] of save.stars) this.sky.addStar(x * W, y * H);
     for (const [x, y, w] of save.clouds) this.sky.addCloud(x * W, y * H, w * S);
   }
@@ -446,7 +464,10 @@ export class Engine {
   showEcho(text: string, author: string): void {
     const skyTop = this.height;
     const y = this.horizonY + (skyTop - this.horizonY) * 0.6;
-    void this.echo.show(text, author, this.width / 2, y, this.width, this.width < 600);
+    const moon = this.sky.moonSpec;
+    const avoid = [...(moon ? [{ x: moon.x, y: moon.y, r: moon.r * 1.25 }] : []), ...this.sky.planetDiscs];
+    const band = { min: this.horizonY + this.minDim * 0.04, max: this.height - 8 };
+    void this.echo.show(text, author, this.width / 2, y, this.width, this.width < 600, avoid, band);
   }
 
   /**
@@ -549,6 +570,7 @@ export class Engine {
     weu.uMist.value = atmos.mist;
     weu.uFireflies.value = atmos.fireflies;
     weu.uWind.value = atmos.wind;
+    this.sound?.ambient({ rain: atmos.rain, wind: atmos.wind, fireflies: atmos.fireflies, dusk: atmos.dusk });
 
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
     this.echo.update(t);
@@ -623,6 +645,7 @@ export class Engine {
     const maxFish = TIERS[this.monitor.tier].maxFish;
     while (real.length > maxFish) real.shift()!.leave();
     if (ghost) return;
+    this.sfx('drop', fish.headX);
     this.events.onFishCreated?.(real.length);
     this.record('fish', fish.headX, fish.headY, () => {
       fish.disperse();
@@ -642,6 +665,11 @@ export class Engine {
   // ---------------------------------------------------------------- sky
 
   private placeMoon(c: Classification, stroke: Stroke, fromLake: boolean): void {
+    // The first circle is the moon; with a moon up, circles are small planets.
+    if (this.sky.moonSpec) {
+      this.placePlanet(c, stroke, fromLake);
+      return;
+    }
     const S = this.minDim;
     const { fit } = c.features;
     const r = THREE.MathUtils.clamp(fit.r, S * 0.035, S * 0.085);
@@ -662,16 +690,49 @@ export class Engine {
       dark: { x: gx / gl, y: gy / gl },
       rise: fromLake,
     };
-    const prev = this.sky.moonSpec;
     this.sky.setMoon(spec);
+    this.sfx('chime', x);
     this.fadeStroke(stroke, fromLake ? 0.1 : 0.3, fromLake ? 0.7 : 1.0);
     if (fromLake) this.addRipple(fit.cx, fit.cy, 0.8);
     const anchorY = fromLake ? fit.cy : y;
-    this.record('moon', x + r, anchorY - r, () => this.sky.setMoon(prev ? { ...prev, rise: false } : null));
+    // There was no moon before this one (later circles are planets), so undo removes it.
+    this.record('moon', x + r, anchorY - r, () => this.sky.setMoon(null));
+  }
+
+  private placePlanet(c: Classification, stroke: Stroke, fromLake: boolean): void {
+    const S = this.minDim;
+    const { fit } = c.features;
+    const r = THREE.MathUtils.clamp(fit.r * 0.45, S * 0.014, S * 0.032);
+    let x = fit.cx;
+    let y = fromLake ? 2 * this.horizonY - fit.cy : fit.cy;
+    // Keep clear of the moon and the other planets: nudge outward from each.
+    const moon = this.sky.moonSpec;
+    const others = [...(moon ? [{ x: moon.x, y: moon.y, r: moon.r * 1.3 }] : []), ...this.sky.planetDiscs];
+    for (let pass = 0; pass < 3; pass++) {
+      for (const o of others) {
+        const dx = x - o.x;
+        const dy = y - o.y;
+        const d = Math.hypot(dx, dy);
+        const need = o.r + r + S * 0.02;
+        if (d >= need) continue;
+        const ux = d > 1e-3 ? dx / d : 1;
+        const uy = d > 1e-3 ? dy / d : 0;
+        x = o.x + ux * need;
+        y = o.y + uy * need;
+      }
+    }
+    y = THREE.MathUtils.clamp(y, this.horizonY + S * 0.12 + r, this.height - r - 12);
+    x = THREE.MathUtils.clamp(x, r + 12, this.width - r - 12);
+    const id = this.sky.addPlanet(x, y, r, this.nextHistoryId);
+    this.fadeStroke(stroke, fromLake ? 0.1 : 0.3, fromLake ? 0.7 : 1.0);
+    if (fromLake) this.addRipple(fit.cx, fit.cy, 0.6);
+    this.sfx('chime', x, 0.6);
+    this.record('planet', x + r, y - r, () => this.sky.removePlanet(id));
   }
 
   private placeStar(x: number, y: number): void {
     const id = this.sky.addStar(x, y);
+    this.sfx('star', x);
     this.record('star', x, y, () => this.sky.removeStar(id));
   }
 
@@ -681,6 +742,7 @@ export class Engine {
     const b = pts[pts.length - 1];
     let starId = 0;
     let cancelled = false;
+    this.sfx('meteor', (a.x + b.x) / 2);
     this.sky.meteor(a.x, a.y, b.x, b.y, () => {
       if (!cancelled) starId = this.sky.addStar(b.x, b.y);
     });
@@ -759,6 +821,7 @@ export class Engine {
       stroke = new Stroke(this.palette, this.minDim, e.pointerType === 'pen');
       stroke.add({ x, y, t: e.timeStamp, pressure: e.pressure || 0.5 });
       this.scene.add(stroke.mesh);
+      this.sfx('stroke', x);
     }
     this.input = { id: e.pointerId, stroke, downX: x, downY: y, downT: e.timeStamp, moved: 0, fish };
   };
@@ -811,8 +874,10 @@ export class Engine {
     switch (c.kind) {
       case 'short':
         this.fadeStroke(stroke, 0.1, 0.6);
-        if (lake) this.addRipple(centroid.x, centroid.y, 0.5);
-        else this.placeStar(centroid.x, centroid.y);
+        if (lake) {
+          this.addRipple(centroid.x, centroid.y, 0.5);
+          this.sfx('ripple', centroid.x, 0.5);
+        } else this.placeStar(centroid.x, centroid.y);
         return;
       case 'circle':
         this.placeMoon(c, stroke, lake);
@@ -849,10 +914,12 @@ export class Engine {
       // Moonlight brightens for a moment and the reflection trembles.
       this.sky.pulseMoon();
       this.addRipple(moon!.x, 2 * this.horizonY - moon!.y, 0.8);
+      this.sfx('chime', moon!.x, 0.4);
       return;
     }
     if (y >= this.horizonY && !fish) {
       this.sky.flash(x, y);
+      this.sfx('star', x);
       return;
     }
     if (fish) {
@@ -863,14 +930,17 @@ export class Engine {
       if (again && fish.canLeap) {
         fish.leap();
         this.addRipple(fish.headX, fish.headY, 1.1);
+        this.sfx('ripple', fish.headX, 1.1);
         this.lastFishTouch = null;
         return;
       }
       fish.scare(x, y, 1);
       this.addRipple(x, y, 0.6);
+      this.sfx('ripple', x, 0.6);
       return;
     }
     this.addRipple(x, y, 1);
+    this.sfx('ripple', x, 1);
     const r = this.minDim * 0.12;
     for (const f of this.fishes) {
       const d = Math.hypot(f.headX - x, f.headY - y);
@@ -882,9 +952,11 @@ export class Engine {
   private longPress(x: number, y: number): void {
     if (y >= this.horizonY) {
       this.sky.flash(x, y);
+      this.sfx('star', x);
       return;
     }
     this.addRipple(x, y, 0.5);
+    this.sfx('ripple', x, 0.5);
     for (const f of this.fishes) f.lure(x, y, this.time);
   }
 

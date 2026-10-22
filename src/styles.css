@@ -24,6 +24,12 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.world.turning {
+  opacity: 0;
+}
+.world.turned {
+  transition: opacity 300ms var(--ease-ink);
+}
 .world {
   position: fixed;
   inset: 0;
@@ -199,6 +205,12 @@ body {
   backdrop-filter: blur(12px);
   box-shadow: inset 0 0 0 1px rgba(239, 234, 223, 0.08);
   transition: opacity 220ms var(--ease-ink);
+}
+/* Landscape phone: a narrower box leaves the short screen to the world (docs/03 §9). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .words {
+    width: min(360px, calc(100vw - 32px));
+  }
 }
 .words.dim {
   opacity: 0.15;
@@ -710,6 +722,9 @@ body {
   color: #e9d9a6;
 }
 /* Recording (docs/02 §6.2; docs/03 §5.1, §5.4, §11). */
+.icon-btn.sound.off {
+  opacity: 0.6;
+}
 .icon-btn.record.on {
   color: var(--cinnabar);
 }

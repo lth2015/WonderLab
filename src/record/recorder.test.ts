@@ -14,4 +14,12 @@ describe('recording output', () => {
     expect(pickFormat((t) => t.startsWith('video/webm'))?.type).toBe('video/webm;codecs=vp9');
     expect(pickFormat(() => false)).toBeNull();
   });
+
+  it('names an audio codec when there is sound, and records silently when it cannot', () => {
+    expect(pickFormat(() => true, true)).toMatchObject({ ext: 'mp4', audio: true });
+    expect(pickFormat((t) => t.startsWith('video/webm'), true)).toMatchObject({ type: 'video/webm;codecs=vp9,opus', audio: true });
+    // Safari-like: MP4 video only, no audio codec on offer.
+    expect(pickFormat((t) => t === 'video/mp4', true)).toMatchObject({ type: 'video/mp4', audio: false });
+    expect(pickFormat(() => true)).toMatchObject({ audio: false });
+  });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Engine } from '../engine/engine';
+import { sound } from '../sound';
 import { logEvent } from '../telemetry';
 import { canRecord, Compositor, isWeChat, RECORD_SECONDS, Recording, saveTake, type Take } from './recorder';
 
@@ -51,7 +52,7 @@ export function useRecorder(engineRef: MutableRefObject<Engine | null>, sink: Fr
     const canvas = document.querySelector<HTMLCanvasElement>('canvas.world');
     if (!canvas) return;
     engineRef.current?.holdTier(true);
-    const rec = new Recording(canvas);
+    const rec = new Recording(canvas, sound.stream());
     recording.current = rec;
     sink.current = (c) => rec.frame(c);
     logEvent('record_start', {});

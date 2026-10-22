@@ -1,5 +1,5 @@
 import { noiseGLSL } from './common';
-import { MAX_CLOUDS, MAX_METEORS, MAX_STARS } from '../sky';
+import { MAX_CLOUDS, MAX_METEORS, MAX_STARS, PLANET_SLOTS } from '../sky';
 
 export const MAX_RIPPLES = 16;
 
@@ -12,6 +12,7 @@ precision highp float;
 #define MAX_STARS ${MAX_STARS}
 #define MAX_METEORS ${MAX_METEORS}
 #define MAX_CLOUDS ${MAX_CLOUDS}
+#define PLANET_SLOTS ${PLANET_SLOTS}
 uniform sampler2D uLandscape;
 uniform vec2 uRes;
 uniform float uTime;
@@ -33,6 +34,8 @@ uniform int uStarCount;
 uniform vec4 uMeteors[MAX_METEORS];   // from x, y, to x, y
 uniform float uMeteorT[MAX_METEORS];  // progress 0..1, 0 = inactive
 uniform vec4 uClouds[MAX_CLOUDS];     // x, y, half width, presence
+uniform vec4 uPlanets[PLANET_SLOTS];     // x, y, radius, presence
+uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint index, seed
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
@@ -98,6 +101,49 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   return mix(c, face, disc * (1.0 - shade) * uMoon.w * open);
 }
 
+// Small planets (docs/02 §5.2), painted rather than lit: a pale wash of
+// diluted pigment — 石青, 赭石, 藤黄, mostly paper — whose edge bleeds
+// unevenly into the sky, with pigment pooled into a slightly darker rim the
+// way a wet wash dries, faint granulation inside, and a little more wash on
+// the side away from the moon.
+vec3 planetTint(float k) {
+  vec3 t = k < 0.5 ? vec3(0.45, 0.58, 0.66) : k < 1.5 ? vec3(0.70, 0.52, 0.38) : vec3(0.84, 0.76, 0.54);
+  return mix(t, uPaper, 0.55);
+}
+
+vec3 planetLayer(vec2 p, vec3 c, float open) {
+  for (int i = 0; i < PLANET_SLOTS; i++) {
+    vec4 pl = uPlanets[i];
+    if (pl.w <= 0.0 || pl.z <= 0.0) continue;
+    vec4 look = uPlanetLook[i];
+    float r = pl.z;
+    vec2 d = p - pl.xy;
+    float dist = length(d);
+    if (dist > r * 3.0) continue;
+    vec3 tint = planetTint(look.z);
+    vec2 q = d / r;
+    float seed = look.w * 31.0;
+    // The edge wanders as the ink spreads: a noisy radius, a soft falloff.
+    float ang = atan(q.y, q.x);
+    float bleed = (fbm(vec2(ang * 1.6 + seed, seed)) - 0.5) * 0.16 + (noise(vec2(ang * 9.0, seed)) - 0.5) * 0.05;
+    float edge = dist / r - bleed;
+    float wash = 1.0 - smoothstep(0.86, 1.04, edge);
+    if (wash <= 0.0) {
+      c += tint * exp(-max(dist - r, 0.0) / (r * 0.9)) * 0.035 * pl.w * open;
+      continue;
+    }
+    // Pigment pools at the rim and thins toward the middle.
+    float rim = smoothstep(0.62, 0.95, edge) * (1.0 - smoothstep(0.95, 1.04, edge));
+    float grain = fbm(q * 5.5 + seed) - 0.5;
+    float body = 0.55 + grain * 0.22 + rim * 0.3;
+    // The side away from the moon takes a second, cooler wash.
+    float away = smoothstep(-0.2, 0.9, dot(q, look.xy));
+    vec3 face = mix(tint, mix(tint, uSkyLow * 1.6, 0.55), away * 0.6);
+    c = mix(c, face, clamp(body, 0.0, 1.0) * wash * pl.w * open);
+  }
+  return c;
+}
+
 vec3 userSky(vec2 p, vec3 c, float open) {
   vec3 base = c;
   // Clouds sit in front of the mountains, the rest behind them.
@@ -109,6 +155,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
     float m = smoothstep(1.0, 0.25, length(q) + (n - 0.5) * 0.9) * cl.w;
     c = mix(c, uSkyLow * 1.55 + uAccent * 0.06 * uMoonLight, m * 0.5);
   }
+  c = planetLayer(p, c, open);
   c = moonLayer(p, c, open);
   vec3 starCol = vec3(0.98, 0.95, 0.86);
   for (int i = 0; i < MAX_STARS; i++) {

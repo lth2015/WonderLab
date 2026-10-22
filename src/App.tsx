@@ -12,6 +12,8 @@ import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } fro
 import { clearWorld, loadWorld, saveWorld } from './engine/persist';
 import { loadArt } from './engine/art';
 import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
+import { sound } from './sound';
+import { SoundToggle } from './SoundToggle';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
 const DEMO_IDLE_MS = 4000;
@@ -65,6 +67,7 @@ type Flight = { key: number; chars: { ch: string; dx: number; delay: number }[];
 const ANNOUNCE: Record<Exclude<CreationKind, 'atmosphere'>, string> = {
   fish: '一条小鱼游入湖中',
   moon: '月亮升上夜空',
+  planet: '一颗小星球亮起',
   star: '天上多了一颗星',
   meteor: '一颗流星划过',
   cloud: '一缕流云飘过',
@@ -212,14 +215,21 @@ export function App() {
     };
 
     const readyAt = performance.now();
+    // The first thing the visitor does, by pointer or by key (H1 reads its time).
+    const firstAction = (via: 'pointer' | 'key') => {
+      if (drawn) return;
+      logEvent('first_stroke', { after: Math.round(performance.now() - readyAt), via });
+      drawn = true;
+      cancel(demoTimer);
+      setHint(null);
+    };
     const engine = new Engine(
       canvas,
       {
         onFirstStroke: () => {
-          logEvent('first_stroke', { after: Math.round(performance.now() - readyAt) });
-          drawn = true;
-          cancel(demoTimer);
-          setHint(null);
+          // Inside the pointerdown: the gesture browsers require before audio.
+          sound.wake();
+          firstAction('pointer');
         },
         onFishCreated: (count) => {
           if (!fishHint) {
@@ -253,6 +263,7 @@ export function App() {
       },
     );
     engineRef.current = engine;
+    engine.setSound(sound);
     setTier(engine.tier);
     const saved = fresh ? null : loadWorld();
     if (saved) {
@@ -355,11 +366,8 @@ export function App() {
         const action = e.key === 'f' || e.key === 'F' ? 'fish' : e.key === 'm' || e.key === 'M' ? 'moon' : e.key === 'Enter' ? 'tap' : null;
         if (action) {
           e.preventDefault();
-          if (!drawn) {
-            drawn = true;
-            cancel(demoTimer);
-            setHint(null);
-          }
+          firstAction('key');
+          sound.wake();
           engine.keyAction(action);
         }
       }
@@ -391,6 +399,34 @@ export function App() {
       vv?.removeEventListener('scroll', onViewport);
       engineRef.current = null;
       engine.dispose();
+    };
+  }, []);
+
+  // Turning the device re-composes the world (docs/03 §9): the frame laid
+  // out for the old shape is hidden while the system rotates the screen, and
+  // the new one fades in over 300 ms. The scene itself is kept as it is.
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: portrait)');
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let frame = 0;
+    const onTurn = () => {
+      setUndoBtn(null); // placed for the old layout
+      canvas.classList.remove('turned');
+      canvas.classList.add('turning');
+      cancelAnimationFrame(frame);
+      // Two frames: one for the engine to resize and draw, one to start the fade.
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          canvas.classList.remove('turning');
+          canvas.classList.add('turned');
+        });
+      });
+    };
+    mq.addEventListener('change', onTurn);
+    return () => {
+      mq.removeEventListener('change', onTurn);
+      cancelAnimationFrame(frame);
     };
   }, []);
 
@@ -584,6 +620,7 @@ export function App() {
         </div>
       ))}
       <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} onAccount={() => setOverlay({ kind: 'account' })} onWallpaper={() => void saveWallpaper()} dim={dim}>
+        <SoundToggle />
         <RecordButton api={recorder} />
       </Menu>
       <RecordOverlays api={recorder} />

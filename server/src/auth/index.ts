@@ -1,7 +1,17 @@
+import { createHash } from 'node:crypto';
 import { AppError, type UserRole } from '@wonderlab/contracts';
 import { findByExternalId, type UserRow } from '@wonderlab/db';
 import type { AppConfig } from '../config.js';
 import { SessionTokenIssuer } from './tokens.js';
+
+/**
+ * The stable id a development sign-in is stored under: a hash of the
+ * lowercased address. It was the address's first twelve characters in hex,
+ * so `alice.smith@a.test` and `alice.smith@b.test` were one account.
+ */
+export function devExternalId(email: string): string {
+  return `dev-${createHash('sha256').update(email.trim().toLowerCase()).digest('hex').slice(0, 40)}`;
+}
 
 export interface AuthPrincipal {
   userId: string;

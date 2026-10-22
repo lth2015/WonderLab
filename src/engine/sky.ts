@@ -8,6 +8,12 @@ import type { MoonPhase } from './classify';
 export const MAX_STARS = 24;
 export const MAX_METEORS = 3;
 export const MAX_CLOUDS = 4;
+/** Circles after the moon become small planets (docs/02 §5.2, P1); the oldest gives way. */
+export const MAX_PLANETS = 3;
+/** Mineral pigments for planets: 石青, 赭石, 藤黄 (shaders/world.ts). */
+export const PLANET_TINTS = 3;
+/** Shader slots: one more than the cap, so the planet giving way can fade out. */
+export const PLANET_SLOTS = MAX_PLANETS + 1;
 
 const MOON_RISE = 1.5;   // s, --dur-create
 const MOON_FADE = 0.45;  // s, when a moon is replaced or undone
@@ -20,6 +26,7 @@ const SHADE: Record<MoonPhase, number> = { full: 2.4, gibbous: 1.4, crescent: 0.
 
 export interface SkySnapshot {
   moon: MoonSpec | null;
+  planets: { x: number; y: number; r: number; tint: number }[];
   stars: { x: number; y: number }[];
   clouds: { x: number; y: number; w: number }[];
 }
@@ -60,6 +67,16 @@ interface Meteor {
   onDone: () => void;
 }
 
+interface Planet {
+  id: number;
+  x: number;
+  y: number;
+  r: number;
+  tint: number;
+  born: number;
+  fading: number;
+}
+
 interface Cloud {
   id: number;
   x: number;
@@ -81,6 +98,8 @@ export class Sky {
     uMeteors: { value: Array.from({ length: MAX_METEORS }, () => new THREE.Vector4()) }, // ax, ay, bx, by
     uMeteorT: { value: Array.from({ length: MAX_METEORS }, () => 0) }, // progress 0..1, 0 = inactive
     uClouds: { value: Array.from({ length: MAX_CLOUDS }, () => new THREE.Vector4()) }, // x, y, halfWidth, presence
+    uPlanets: { value: Array.from({ length: PLANET_SLOTS }, () => new THREE.Vector4()) }, // x, y, radius, presence
+    uPlanetLook: { value: Array.from({ length: PLANET_SLOTS }, () => new THREE.Vector4()) }, // dark side x, y, tint, seed
   };
 
   private moon: Moon | null = null;
@@ -91,6 +110,7 @@ export class Sky {
   private stars: Star[] = [];
   private meteors: Meteor[] = [];
   private clouds: Cloud[] = [];
+  private planets: Planet[] = [];
   private nextId = 1;
   private time = 0;
 
@@ -110,6 +130,7 @@ export class Sky {
     const hidden = this.veilTarget === 0;
     return {
       moon: hidden ? null : this.moonSpec,
+      planets: hidden ? [] : this.planets.filter((p) => p.fading < 0).map((p) => ({ x: p.x, y: p.y, r: p.r, tint: p.tint })),
       stars: hidden ? [] : this.stars.filter((s) => !s.flash && s.fading < 0).map((s) => ({ x: s.x, y: s.y })),
       clouds: hidden ? [] : this.clouds.filter((c) => c.fading < 0).map((c) => ({ x: c.x, y: c.y, w: c.w })),
     };
@@ -132,6 +153,24 @@ export class Sky {
     } else {
       this.moon = next;
     }
+  }
+
+  /** Live planets, for keeping a new one clear of them. */
+  get planetDiscs(): { x: number; y: number; r: number }[] {
+    return this.planets.filter((p) => p.fading < 0).map((p) => ({ x: p.x, y: p.y, r: p.r }));
+  }
+
+  addPlanet(x: number, y: number, r: number, tint: number): number {
+    const id = this.nextId++;
+    const live = this.planets.filter((p) => p.fading < 0);
+    if (live.length >= MAX_PLANETS) live[0].fading = this.time;
+    this.planets.push({ id, x, y, r, tint: ((tint % PLANET_TINTS) + PLANET_TINTS) % PLANET_TINTS, born: this.time, fading: -1 });
+    return id;
+  }
+
+  removePlanet(id: number): void {
+    const p = this.planets.find((pl) => pl.id === id);
+    if (p && p.fading < 0) p.fading = this.time;
   }
 
   addStar(x: number, y: number): number {
@@ -183,6 +222,7 @@ export class Sky {
     this.stars = [];
     this.meteors = [];
     this.clouds = [];
+    this.planets = [];
     this.veilTarget = 1;
     this.uniforms.uSkyVeil.value = 1;
     this.uniforms.uMoon.value.w = 0;
@@ -204,6 +244,11 @@ export class Sky {
       c.y *= sy;
       c.w *= sx;
     }
+    for (const p of this.planets) {
+      p.x *= sx;
+      p.y *= sy;
+      p.r *= k;
+    }
     for (const m of this.meteors) {
       m.ax *= sx;
       m.bx *= sx;
@@ -217,6 +262,7 @@ export class Sky {
     const veil = this.uniforms.uSkyVeil;
     veil.value += Math.sign(this.veilTarget - veil.value) * Math.min(Math.abs(this.veilTarget - veil.value), dt / 0.6);
     this.updateMoon(dt, horizonY);
+    this.updatePlanets();
 
     // Stars.
     this.stars = this.stars.filter((s) => {
@@ -268,6 +314,39 @@ export class Sky {
       let p = Math.min((time - c.born) / 1.5, 1);
       if (c.fading >= 0) p *= Math.max(1 - (time - c.fading) / 1.2, 0);
       cv[i].set(c.x, c.y, c.w, p);
+    }
+  }
+
+  private updatePlanets(): void {
+    const time = this.time;
+    // Up to MAX_PLANETS settled, plus one still fading out; a burst of
+    // replacements drops the faintest leaver rather than overflowing.
+    this.planets = this.planets.filter((p) => p.fading < 0 || time - p.fading < MOON_FADE * 2);
+    while (this.planets.length > PLANET_SLOTS) {
+      const gone = this.planets.findIndex((p) => p.fading >= 0);
+      this.planets.splice(gone >= 0 ? gone : 0, 1);
+    }
+    const moon = this.moonPos;
+    const pv = this.uniforms.uPlanets.value;
+    const lv = this.uniforms.uPlanetLook.value;
+    for (let i = 0; i < PLANET_SLOTS; i++) {
+      const p = this.planets[i];
+      if (!p) {
+        pv[i].set(0, 0, 0, 0);
+        continue;
+      }
+      const age = time - p.born;
+      let presence = this.calm ? Math.min(age / 0.6, 1) : easeInk(Math.min(age / (MOON_RISE * 0.8), 1));
+      if (p.fading >= 0) presence *= Math.max(1 - (time - p.fading) / (MOON_FADE * 2), 0);
+      const grow = this.calm ? 1 : 0.6 + 0.4 * easeInk(Math.min(age / MOON_RISE, 1));
+      pv[i].set(p.x, p.y, p.r * grow, presence);
+      // Lit from the moon's side when there is one, otherwise from the upper left.
+      let dx = moon ? p.x - moon.x : 0.6;
+      let dy = moon ? p.y - moon.y : -0.8;
+      const l = Math.hypot(dx, dy) || 1;
+      dx /= l;
+      dy /= l;
+      lv[i].set(dx, dy, p.tint, (p.id * 0.618) % 1);
     }
   }
 

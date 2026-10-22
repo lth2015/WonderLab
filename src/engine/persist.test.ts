@@ -6,6 +6,7 @@ const valid: WorldSave = {
   atmosphere: { timeOfDay: 'dusk', weather: 'rain', palette: 'warm', wind: 0.4, intensity: 0.7 },
   fish: [{ spine: [[0.2, 0.3], [0.25, 0.32], [0.3, 0.31]], drawSpeed: 0.8, seed: 12.5, patch: 0.7 }],
   moon: { x: 0.7, y: 0.8, r: 0.05, phase: 'crescent', dark: [1, 0] },
+  planets: [[0.3, 0.85, 0.02, 1]],
   stars: [[0.1, 0.9]],
   clouds: [[0.5, 0.75, 0.2]],
 };
@@ -43,5 +44,18 @@ describe('parseWorld', () => {
     const w = parseWorld(many)!;
     expect(w.fish.length).toBeLessThanOrEqual(12);
     expect(w.stars.length).toBeLessThanOrEqual(24);
+  });
+
+  it('reads saves from before planets as having none, and keeps planets in range', () => {
+    const { planets: _omit, ...old } = valid;
+    expect(parseWorld(JSON.parse(JSON.stringify(old)))?.planets).toEqual([]);
+    const w = parseWorld({
+      ...valid,
+      planets: [[0.3, 0.8, 0.02, 7.2], [0.3, 0.8, 0.5, 0], [0.3, 'x', 0.02, 0], [0.1, 0.9, 0.01, 2], [0.2, 0.9, 0.01, 0], [0.4, 0.9, 0.01, 1]],
+    });
+    // At most three are read, as with every list; malformed ones among them are dropped.
+    expect(w?.planets).toEqual([[0.3, 0.8, 0.02, 1]]);
+    const four = parseWorld({ ...valid, planets: [[0.1, 0.9, 0.01, 0], [0.2, 0.9, 0.01, 1], [0.3, 0.9, 0.01, 2], [0.4, 0.9, 0.01, 0]] });
+    expect(four?.planets).toHaveLength(3);
   });
 });
