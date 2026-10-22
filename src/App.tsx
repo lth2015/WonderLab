@@ -401,6 +401,34 @@ export function App() {
     };
   }, []);
 
+  // Turning the device re-composes the world (docs/03 §9): the frame laid
+  // out for the old shape is hidden while the system rotates the screen, and
+  // the new one fades in over 300 ms. The scene itself is kept as it is.
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: portrait)');
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let frame = 0;
+    const onTurn = () => {
+      setUndoBtn(null); // placed for the old layout
+      canvas.classList.remove('turned');
+      canvas.classList.add('turning');
+      cancelAnimationFrame(frame);
+      // Two frames: one for the engine to resize and draw, one to start the fade.
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          canvas.classList.remove('turning');
+          canvas.classList.add('turned');
+        });
+      });
+    };
+    mq.addEventListener('change', onTurn);
+    return () => {
+      mq.removeEventListener('change', onTurn);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
   // Rotate the example placeholders while the box is empty.
   useEffect(() => {
     if (text) return;
