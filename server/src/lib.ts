@@ -8,7 +8,7 @@ export { createContext, type AppContext } from './context.js';
 export { buildServer } from './app.js';
 export { STRIPE_WEBHOOK_PATHS, STRIPE_WEBHOOK_PRIMARY_PATH, keepsRawBody } from './webhook-paths.js';
 export { parseDevLoginAllowlist, devLoginAllowed, type DevLoginAllowlist } from './auth/allowlist.js';
-export { createAuthAdapter, DevAuthAdapter, type AuthAdapter } from './auth/index.js';
+export { createAuthAdapter, DevAuthAdapter, devExternalId, type AuthAdapter } from './auth/index.js';
 
 export {
   createCheckout,
