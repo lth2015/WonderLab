@@ -28,7 +28,8 @@ export interface LoggedEvent {
 
 type Fields = Record<string, string | number | boolean>;
 
-const PROMPT_WINDOW_MS = 20000;
+// docs/02 §1: a creation within 10 s of a hint that invited it counts as prompted.
+const PROMPT_WINDOW_MS = 10000;
 
 const events: LoggedEvent[] = [];
 const hintsShown = new Map<string, number>(); // hint id -> time shown

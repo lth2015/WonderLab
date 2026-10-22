@@ -373,6 +373,24 @@ export function App() {
     };
     window.addEventListener('keydown', onKey);
 
+    // Phones have no keyboard: three quick taps in a corner stand in for the
+    // moderator shortcuts (docs/05 §3, §5). Top-left exports the log
+    // (Alt+Shift+E), bottom-left switches the test phase (Alt+Shift+P).
+    const cornerTaps: Record<'export' | 'phase', number[]> = { export: [], phase: [] };
+    const onCorner = (e: PointerEvent) => {
+      const corner = e.clientX > 48 ? null : e.clientY < 48 ? 'export' : e.clientY > window.innerHeight - 48 ? 'phase' : null;
+      if (!corner) return;
+      const now = e.timeStamp;
+      cornerTaps[corner] = [...cornerTaps[corner].filter((t) => now - t < 1500), now];
+      if (cornerTaps[corner].length < 3) return;
+      cornerTaps[corner] = [];
+      if (corner === 'export') {
+        exportLog();
+        note('日志已导出');
+      } else note(togglePhase() === 'free' ? '自由段' : '引导段');
+    };
+    window.addEventListener('pointerdown', onCorner, true);
+
     // Keep the input above the soft keyboard.
     const vv = window.visualViewport;
     const onViewport = () => {
@@ -390,6 +408,7 @@ export function App() {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onCorner, true);
       reducedQuery.removeEventListener('change', onReduced);
       clearInterval(saveTimer);
       document.removeEventListener('visibilitychange', onHide);
