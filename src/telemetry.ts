@@ -35,6 +35,8 @@ export const PROMPT_WINDOW_MS = 10000;
 const events: LoggedEvent[] = [];
 const hintsShown = new Map<string, number>(); // hint id -> time shown
 let phase: 'guided' | 'free' = 'guided';
+/** How many events the last export contained, so a reset can warn about the rest. */
+let exportedCount = 0;
 
 /** Which creation each hint invites; used for `prompted` and `hint_followed`. */
 const HINT_INVITES: Record<string, string> = {
@@ -68,6 +70,15 @@ export function prompted(action: string): boolean {
   return false;
 }
 
+export function currentPhase(): 'guided' | 'free' {
+  return phase;
+}
+
+/** Whether anything has been logged since the last export. */
+export function hasUnexported(): boolean {
+  return events.length > exportedCount;
+}
+
 export function togglePhase(): 'guided' | 'free' {
   phase = phase === 'guided' ? 'free' : 'guided';
   logEvent('phase_change', { phase });
@@ -80,16 +91,33 @@ export function deviceType(): string {
   return coarse ? (small ? 'phone' : 'tablet') : 'desktop';
 }
 
-/** Download the log as JSON. */
-export function exportLog(): void {
+/**
+ * Hand the log over as JSON: through the share sheet on a phone (to AirDrop,
+ * mail or a chat with yourself), as a download elsewhere.
+ */
+export async function exportLog(): Promise<'shared' | 'downloaded' | 'cancelled'> {
+  const count = events.length;
+  const name = `wonderlab-session-${Date.now()}.json`;
   const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), device: deviceType(), events }, null, 2)], {
     type: 'application/json',
   });
+  const file = new File([blob], name, { type: 'application/json' });
+  if (window.matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: name });
+      exportedCount = count;
+      return 'shared';
+    } catch (e) {
+      if ((e as DOMException).name === 'AbortError') return 'cancelled';
+    }
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `wonderlab-session-${Date.now()}.json`;
+  a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  exportedCount = count;
+  return 'downloaded';
 }
 
 /** For tests in the browser console. */

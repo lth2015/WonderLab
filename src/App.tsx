@@ -13,6 +13,8 @@ import { clearWorld, loadWorld, saveWorld } from './engine/persist';
 import { loadArt } from './engine/art';
 import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
 import { sound } from './sound';
+import { freshUrl, onReset, resetForNext } from './moderator';
+import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
@@ -274,6 +276,11 @@ export function App() {
     const save = () => {
       if (!resetting) saveWorld(engine.serialize());
     };
+    onReset(() => {
+      resetting = true;
+      clearWorld();
+      location.replace(freshUrl());
+    });
     const saveTimer = window.setInterval(save, SAVE_EVERY_MS);
     const onHide = () => {
       if (document.visibilityState === 'hidden') save();
@@ -348,16 +355,13 @@ export function App() {
       if (e.altKey && e.shiftKey && !e.metaKey && !e.ctrlKey) {
         if (e.code === 'KeyE') {
           e.preventDefault();
-          exportLog();
-          note('日志已导出');
+          void exportLog().then((how) => note(how === 'cancelled' ? '没有导出' : '日志已导出'));
         } else if (e.code === 'KeyP') {
           e.preventDefault();
           note(togglePhase() === 'free' ? '自由段' : '引导段');
         } else if (e.code === 'KeyR') {
           e.preventDefault();
-          resetting = true;
-          clearWorld();
-          location.replace(`${location.pathname}?fresh${forcedTier ? `&tier=${forcedTier}` : ''}`);
+          resetForNext();
         }
         return;
       }
@@ -398,6 +402,7 @@ export function App() {
       vv?.removeEventListener('resize', onViewport);
       vv?.removeEventListener('scroll', onViewport);
       engineRef.current = null;
+      onReset(null);
       engine.dispose();
     };
   }, []);
@@ -624,6 +629,7 @@ export function App() {
         <RecordButton api={recorder} />
       </Menu>
       <RecordOverlays api={recorder} />
+      <ModeratorPanel />
       {overlay?.kind === 'account' && <AccountSheet onClose={closeOverlay} />}
       {overlay?.kind === 'complete' && <CheckoutComplete orderId={overlay.orderId} onClose={closeOverlay} />}
       {overlay?.kind === 'simulate' && <SimulatedCheckout onClose={closeOverlay} />}

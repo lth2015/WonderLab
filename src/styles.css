@@ -827,3 +827,14 @@ body {
     animation: none;
   }
 }
+
+/* Moderator panel (?mod links only). */
+.sheet.moderator .stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+.sheet.moderator .stack .text-btn {
+  margin-top: 0;
+}
