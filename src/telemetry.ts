@@ -28,7 +28,9 @@ export interface LoggedEvent {
 
 type Fields = Record<string, string | number | boolean>;
 
-const PROMPT_WINDOW_MS = 20000;
+// "Unprompted" is pre-registered in docs/02 §1: not within 10 s of a hint
+// that invited it. The H2 threshold is judged against this, so it must not drift.
+export const PROMPT_WINDOW_MS = 10000;
 
 const events: LoggedEvent[] = [];
 const hintsShown = new Map<string, number>(); // hint id -> time shown

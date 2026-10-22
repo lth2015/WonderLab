@@ -66,6 +66,20 @@ Google 登录、员工两步验证、Stripe 卡支付、JPYC/USDC 稳定币支�
 
 `?tier=light` 或 `?tier=standard` 可以固定画质档位，用于在不同设备上比对。
 
+**出结论：** 把每位测试者导出的日志放进同一个文件夹，运行
+
+```bash
+npm run analyze -- logs/*.json --notes notes.json --out 验证报告.md
+```
+
+按 [02 §1](docs/02-product-design.md) 事先约定的阈值，给出 H1–H3 各自「成立 / 不成立 / 不确定」，并列出每个人的首笔时间、自由段里的无提示创造次数、保存、录制和「3 秒内撤销」（判定出错的信号）。日志看不到的两件事——第一笔前有没有求助、有没有问怎么发给别人——由观察员记在 `notes.json` 里，按日志文件名对应：
+
+```json
+{ "wonderlab-session-1761100000000.json": { "helpBeforeFirstStroke": false, "askedToSend": true } }
+```
+
+没记的就算未知：只要未知的人怎么填都改变不了结论，照样给出结论，否则判为「不确定」。自由段从按下 `Alt`+`Shift`+`P` 开始计，忘了切换的那份日志，H2 记为未知。
+
 **笔迹采集：** 打开 `?collect`，按提示把 [02 §4](docs/02-product-design.md) 的 9 种形状各画 5 次，导出的 JSON 放进 [strokes/](strokes/README.md)，`npm test` 就会用真实笔迹检验判定表。
 
 ## 开发辅助

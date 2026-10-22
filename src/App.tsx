@@ -215,16 +215,21 @@ export function App() {
     };
 
     const readyAt = performance.now();
+    // The first thing the visitor does, by pointer or by key (H1 reads its time).
+    const firstAction = (via: 'pointer' | 'key') => {
+      if (drawn) return;
+      logEvent('first_stroke', { after: Math.round(performance.now() - readyAt), via });
+      drawn = true;
+      cancel(demoTimer);
+      setHint(null);
+    };
     const engine = new Engine(
       canvas,
       {
         onFirstStroke: () => {
           // Inside the pointerdown: the gesture browsers require before audio.
           sound.wake();
-          logEvent('first_stroke', { after: Math.round(performance.now() - readyAt) });
-          drawn = true;
-          cancel(demoTimer);
-          setHint(null);
+          firstAction('pointer');
         },
         onFishCreated: (count) => {
           if (!fishHint) {
@@ -361,11 +366,7 @@ export function App() {
         const action = e.key === 'f' || e.key === 'F' ? 'fish' : e.key === 'm' || e.key === 'M' ? 'moon' : e.key === 'Enter' ? 'tap' : null;
         if (action) {
           e.preventDefault();
-          if (!drawn) {
-            drawn = true;
-            cancel(demoTimer);
-            setHint(null);
-          }
+          firstAction('key');
           sound.wake();
           engine.keyAction(action);
         }
