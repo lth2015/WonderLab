@@ -12,8 +12,8 @@
     "test": "vitest run",
     "art": "tsx scripts/gen-art.mjs",
     "fonts": "node scripts/subset-font.mjs",
-    "server": "tsx watch server/src/index.ts",
-    "server:start": "tsx server/src/index.ts",
+    "server": "tsx watch --tsconfig server/tsconfig.json server/src/index.ts",
+    "server:start": "tsx --tsconfig server/tsconfig.json server/src/index.ts",
     "test:db": "vitest run --config vitest.db.config.ts",
     "db:up": "docker compose up -d mysql mysql-test",
     "db:migrate": "tsx --tsconfig server/tsconfig.json server/packages/db/src/cli.ts migrate"
