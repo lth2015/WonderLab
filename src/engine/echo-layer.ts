@@ -32,7 +32,21 @@ export class EchoLayer {
   }
 
   /** Lay out and show a line with its author, centred at (x, y) in view pixels from the bottom. */
-  async show(text: string, author: string, x: number, y: number, width: number, small: boolean): Promise<void> {
+  /**
+   * `avoid`: discs the lines must not be written across (the moon, planets);
+   * `band`: the vertical range the panel has to stay inside. Both in the
+   * same coordinates as `x` and `y`.
+   */
+  async show(
+    text: string,
+    author: string,
+    x: number,
+    y: number,
+    width: number,
+    small: boolean,
+    avoid: Disc[] = [],
+    band?: { min: number; max: number },
+  ): Promise<void> {
     const size = small ? 22 : 28;
     try {
       await document.fonts.load(`${size}px "LXGW WenKai"`, text + author);
@@ -66,7 +80,9 @@ export class EchoLayer {
     this.texture.needsUpdate = true;
 
     this.mesh.scale.set(w, h, 1);
-    this.mesh.position.set(x, y, 0);
+    // Judge overlap by the lines themselves, not the transparent padding
+    // that leaves room for their glow.
+    this.mesh.position.set(x, placeClear(x, y, w - pad, h - pad, avoid, band), 0);
     this.mesh.visible = true;
     this.shownAt = this.time;
   }
@@ -126,4 +142,40 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, font: string, spacing
   }
   if (cur) lines.push(cur);
   return lines;
+}
+
+export interface Disc {
+  x: number;
+  y: number;
+  r: number;
+}
+
+/** How far a w×h panel centred at (x, y) reaches into a disc and its margin; 0 when clear. */
+function intrusion(x: number, y: number, w: number, h: number, d: Disc, margin: number): number {
+  const nx = Math.max(x - w / 2, Math.min(d.x, x + w / 2));
+  const ny = Math.max(y - h / 2, Math.min(d.y, y + h / 2));
+  return Math.max(0, d.r + margin - Math.hypot(d.x - nx, d.y - ny));
+}
+
+/**
+ * The height nearest `y` at which the panel clears every disc and fits the
+ * band: tried just above and just below each disc in turn. On a short sky
+ * where nothing clears, the height inside the band that intrudes least —
+ * usually tucked against the moon's edge rather than written across it.
+ */
+export function placeClear(x: number, y: number, w: number, h: number, avoid: Disc[], band?: { min: number; max: number }): number {
+  const margin = 12;
+  const lo = band ? band.min + h / 2 : -Infinity;
+  const hi = band ? band.max - h / 2 : Infinity;
+  const clamp = (cy: number) => (lo > hi ? (lo + hi) / 2 : Math.min(Math.max(cy, lo), hi));
+  const worst = (cy: number) => Math.max(0, ...avoid.map((d) => intrusion(x, cy, w, h, d, margin)));
+  const start = clamp(y);
+  if (worst(start) === 0) return start;
+  const candidates = avoid.flatMap((d) => [d.y + d.r + margin + h / 2 + 1, d.y - d.r - margin - h / 2 - 1]);
+  candidates.sort((a, b) => Math.abs(a - y) - Math.abs(b - y));
+  const clear = candidates.find((cy) => cy >= lo && cy <= hi && worst(cy) === 0);
+  if (clear !== undefined) return clear;
+  let best = start;
+  for (const cy of candidates.map(clamp)) if (worst(cy) < worst(best)) best = cy;
+  return best;
 }
