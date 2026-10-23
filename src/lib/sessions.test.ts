@@ -66,17 +66,17 @@ describe('analyzeTester', () => {
   it('does not count prompted-only intent, even with a successful save or old true', () => {
     expect(analyzeTester('a', log([...base, ev(95000, 'save', { how: 'downloaded' })]), {
       askedToSend: true,
-      h3Observation: { status: 'prompted_only', evidence: '完整窗口，仅主持人问要不要保存后保存；之前无主动行为' },
+      h3Observation: { status: 'prompted_only', windowComplete: true, evidence: '完整窗口，仅主持人问要不要保存后保存；之前无主动行为' },
     }).h3).toBe(false);
     expect(analyzeTester('a', log(base), {
-      h3Observation: { status: 'not_observed', evidence: '完整窗口核对，无请求，无保存，无提示' },
+      h3Observation: { status: 'not_observed', windowComplete: true, evidence: '完整窗口核对，无请求，无保存，无提示' },
     }).h3).toBe(false);
   });
 
   it('leaves absent, incomplete, unknown or malformed observations unknown', () => {
     for (const h3Observation of [
       { status: 'spontaneous' },
-      { status: 'prompted_only', evidence: '  ' },
+      { status: 'prompted_only', windowComplete: true, evidence: '  ' },
       { status: 'not_observed' },
       { status: 'unknown', evidence: '无法判断先后' },
       { status: 'typo', evidence: '无法判断' },
@@ -86,6 +86,16 @@ describe('analyzeTester', () => {
       // JSON is runtime input; malformed evidence must never manufacture success.
       const notes = { h3Observation } as unknown as import('./sessions').ObserverNotes;
       expect(analyzeTester('a', log(base), notes).h3).toBeNull();
+    }
+  });
+
+  it('requires explicit complete coverage to score a negative', () => {
+    for (const status of ['prompted_only', 'not_observed'] as const) {
+      for (const windowComplete of [undefined, false]) {
+        expect(analyzeTester('a', log(base), {
+          h3Observation: { status, evidence: '有文字但覆盖范围不完整', windowComplete },
+        }).h3).toBeNull();
+      }
     }
   });
 
@@ -118,7 +128,7 @@ describe('analyzeStudy', () => {
 
   it('keeps H3 unknowns in the denominator and retains the 30% threshold', () => {
     const make = (status: 'spontaneous' | 'not_observed' | 'unknown') => ({
-      id: status, log: log([]), notes: { h3Observation: { status, evidence: '测试证据' } },
+      id: status, log: log([]), notes: { h3Observation: { status, windowComplete: true, evidence: '测试证据' } },
     });
     const r = analyzeStudy([make('spontaneous'), make('not_observed'), ...Array.from({ length: 8 }, () => make('unknown'))]);
     expect(r.h3).toEqual({ met: 1, unknown: 8, total: 10, threshold: 0.3, verdict: '不确定' });

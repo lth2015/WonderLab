@@ -28,6 +28,8 @@ export interface ObserverNotes {
   /** Frozen before log export/interview. Missing or invalid evidence is unknown. */
   h3Observation?: {
     status: 'spontaneous' | 'prompted_only' | 'not_observed' | 'unknown';
+    /** Required for a negative: no missing portion of the observation window. */
+    windowComplete?: boolean;
     /** Action/quote, phase/time, and whether any moderator question preceded it. */
     evidence?: string;
   };
@@ -130,7 +132,8 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
   const hasEvidence = typeof observation?.evidence === 'string' && observation.evidence.trim().length > 0;
   let h3: boolean | null = null;
   if (hasEvidence && observation?.status === 'spontaneous') h3 = true;
-  else if (hasEvidence && (observation?.status === 'prompted_only' || observation?.status === 'not_observed')) h3 = false;
+  else if (hasEvidence && observation?.windowComplete === true &&
+    (observation.status === 'prompted_only' || observation.status === 'not_observed')) h3 = false;
 
   const world = events.find((e) => e.type === 'world_ready');
   return {
