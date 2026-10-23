@@ -20,6 +20,12 @@ interface State {
   spentTotal: number;
 }
 
+// Costs are fractional yen (0.2 per call), and 0.2 + 0.2 + 0.2 is
+// 0.6000000000000001 in floating point, which would refuse the last call a
+// budget pays for. Keep sums to a millionth of a yen and compare with that slack.
+const money = (n: number) => Math.round(n * 1e6) / 1e6;
+const fits = (spent: number, budget: number) => money(spent) <= budget + 1e-9;
+
 export type Charge = { ok: true } | { ok: false; reason: 'invite_daily' | 'site_daily' | 'total_budget' };
 
 export class Usage {
@@ -39,11 +45,11 @@ export class Usage {
     const s = this.state;
     const c = this.caps;
     if ((s.perInvite[invite] ?? 0) >= c.dailyPerInvite) return { ok: false, reason: 'invite_daily' };
-    if (s.spentToday + c.costPerCall > c.dailyBudget) return { ok: false, reason: 'site_daily' };
-    if (s.spentTotal + c.costPerCall > c.totalBudget) return { ok: false, reason: 'total_budget' };
+    if (!fits(s.spentToday + c.costPerCall, c.dailyBudget)) return { ok: false, reason: 'site_daily' };
+    if (!fits(s.spentTotal + c.costPerCall, c.totalBudget)) return { ok: false, reason: 'total_budget' };
     s.perInvite[invite] = (s.perInvite[invite] ?? 0) + 1;
-    s.spentToday += c.costPerCall;
-    s.spentTotal += c.costPerCall;
+    s.spentToday = money(s.spentToday + c.costPerCall);
+    s.spentTotal = money(s.spentTotal + c.costPerCall);
     this.write();
     return { ok: true };
   }

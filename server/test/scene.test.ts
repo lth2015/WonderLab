@@ -101,4 +101,11 @@ describe('Usage caps', () => {
     expect(u.charge('a')).toEqual({ ok: true });
     expect(u.charge('a')).toEqual({ ok: false, reason: 'total_budget' });
   });
+
+  it('lets through every call a budget pays for, despite fractional costs', () => {
+    const u = new Usage({ dailyPerInvite: 100, dailyBudget: 0.6, totalBudget: 1000, costPerCall: 0.2 }, null);
+    expect([u.charge('a'), u.charge('a'), u.charge('a')]).toEqual([{ ok: true }, { ok: true }, { ok: true }]);
+    expect(u.charge('a')).toEqual({ ok: false, reason: 'site_daily' });
+    expect(u.snapshot().spentToday).toBe(0.6);
+  });
 });
