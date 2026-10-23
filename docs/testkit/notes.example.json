@@ -1,5 +1,18 @@
 {
-  "wonderlab-session-1761100000000.json": { "helpBeforeFirstStroke": false, "askedToSend": true },
-  "wonderlab-session-1761100900000.json": { "helpBeforeFirstStroke": true, "askedToSend": false },
-  "wonderlab-session-1761101800000.json": { "helpBeforeFirstStroke": false }
+  "wonderlab-session-1761100000000.json": {
+    "helpBeforeFirstStroke": false,
+    "h3Observation": { "status": "spontaneous", "evidence": "引导段02:10，未有保存/分享提问或演示，主动问：怎么发给朋友？观察于自由段结束、导出指令前冻结。" }
+  },
+  "wonderlab-session-1761100900000.json": {
+    "helpBeforeFirstStroke": true,
+    "h3Observation": { "status": "prompted_only", "evidence": "完整窗口核对；引导段02:00主持人误问要不要保存，随后保存；此前无主动行为。截止自由段结束、导出前。" }
+  },
+  "wonderlab-session-1761101800000.json": {
+    "helpBeforeFirstStroke": false,
+    "h3Observation": { "status": "not_observed", "evidence": "完整窗口：引导段至自由段结束、导出前；无主动请求、无主持人提示；日志无保存。" }
+  },
+  "wonderlab-session-1761102700000.json": {
+    "askedToSend": true,
+    "h3Observation": { "status": "unknown", "evidence": "旧记录未注明是在访谈提问前还是之后。" }
+  }
 }

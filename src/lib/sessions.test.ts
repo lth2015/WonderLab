@@ -46,11 +46,47 @@ describe('analyzeTester', () => {
     expect(analyzeTester('a', log(base.filter((e) => e.type !== 'first_stroke'))).h1).toBe(false);
   });
 
-  it('a cancelled save is not a save; asking how to send counts', () => {
-    expect(analyzeTester('a', log(base)).h3).toBeNull();
-    expect(analyzeTester('a', log(base), { askedToSend: true }).h3).toBe(true);
-    expect(analyzeTester('a', log(base), { askedToSend: false }).h3).toBe(false);
-    expect(analyzeTester('a', log([...base, ev(95000, 'save', { how: 'downloaded', format: 'mp4' })])).h3).toBe(true);
+  it('does not infer spontaneity from old booleans, completed recordings or saves', () => {
+    for (const notes of [{}, { askedToSend: true }, { askedToSend: false }]) {
+      expect(analyzeTester('a', log(base), notes).h3).toBeNull();
+      expect(analyzeTester('a', log([...base, ev(95000, 'save', { how: 'downloaded' })]), notes).h3).toBeNull();
+    }
+    expect(analyzeTester('a', log([...base, ev(95000, 'save', { how: 'shared' })])).h3).toBeNull();
+  });
+
+  it('counts documented spontaneous saving or an unsolicited request as H3 success', () => {
+    for (const evidence of ['引导段02:00，未被提示，自行保存', '自由段结束、访谈提问前主动问怎么发给朋友，之前无提示']) {
+      expect(analyzeTester('a', log(base), {
+        askedToSend: false, // New provenance overrides the ambiguous legacy field.
+        h3Observation: { status: 'spontaneous', evidence },
+      }).h3).toBe(true);
+    }
+  });
+
+  it('does not count prompted-only intent, even with a successful save or old true', () => {
+    expect(analyzeTester('a', log([...base, ev(95000, 'save', { how: 'downloaded' })]), {
+      askedToSend: true,
+      h3Observation: { status: 'prompted_only', evidence: '完整窗口，仅主持人问要不要保存后保存；之前无主动行为' },
+    }).h3).toBe(false);
+    expect(analyzeTester('a', log(base), {
+      h3Observation: { status: 'not_observed', evidence: '完整窗口核对，无请求，无保存，无提示' },
+    }).h3).toBe(false);
+  });
+
+  it('leaves absent, incomplete, unknown or malformed observations unknown', () => {
+    for (const h3Observation of [
+      { status: 'spontaneous' },
+      { status: 'prompted_only', evidence: '  ' },
+      { status: 'not_observed' },
+      { status: 'unknown', evidence: '无法判断先后' },
+      { status: 'typo', evidence: '无法判断' },
+      { status: 'spontaneous', evidence: true },
+      null,
+    ]) {
+      // JSON is runtime input; malformed evidence must never manufacture success.
+      const notes = { h3Observation } as unknown as import('./sessions').ObserverNotes;
+      expect(analyzeTester('a', log(base), notes).h3).toBeNull();
+    }
   });
 
   it('a log without a free phase leaves H2 unknown', () => {
@@ -73,11 +109,23 @@ describe('judge', () => {
 describe('analyzeStudy', () => {
   it('warns about a small study and logs without a free phase, and formats a report', () => {
     const r = analyzeStudy([{ id: 's1.json', log: log([ev(0, 'world_ready'), ev(2000, 'first_stroke', { after: 2000 })]), notes: { helpBeforeFirstStroke: false } }]);
-    expect(r.warnings).toHaveLength(2);
+    expect(r.warnings).toHaveLength(3);
     expect(r.h1.verdict).toBe('成立');
     const md = formatReport(r);
     expect(md).toContain('| H1 |');
     expect(md).toContain('s1.json');
+  });
+
+  it('keeps H3 unknowns in the denominator and retains the 30% threshold', () => {
+    const make = (status: 'spontaneous' | 'not_observed' | 'unknown') => ({
+      id: status, log: log([]), notes: { h3Observation: { status, evidence: '测试证据' } },
+    });
+    const r = analyzeStudy([make('spontaneous'), make('not_observed'), ...Array.from({ length: 8 }, () => make('unknown'))]);
+    expect(r.h3).toEqual({ met: 1, unknown: 8, total: 10, threshold: 0.3, verdict: '不确定' });
+    expect(analyzeStudy([...Array.from({ length: 3 }, () => make('spontaneous')), ...Array.from({ length: 7 }, () => make('unknown'))]).h3.verdict).toBe('成立');
+    expect(analyzeStudy([...Array.from({ length: 2 }, () => make('spontaneous')), ...Array.from({ length: 8 }, () => make('not_observed'))]).h3.verdict).toBe('不成立');
+    expect(formatReport(r)).toContain('保存（含被提示）');
+    expect(formatReport(r)).toContain('未知 8');
   });
 
   it('recognises an exported log', () => {
