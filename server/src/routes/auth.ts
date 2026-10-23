@@ -17,6 +17,7 @@ import {
 import type { AppContext } from '../context.js';
 import {
   DevAuthAdapter,
+  devExternalId,
   GoogleAuthAdapter,
   GoogleSessionAdapter,
   type AuthAdapter,
@@ -223,7 +224,7 @@ export default async function authRoutes(
           domains: allowlist.domains,
         });
       }
-      const externalId = `dev-${Buffer.from(body.email.toLowerCase()).toString('hex').slice(0, 24)}`;
+      const externalId = devExternalId(body.email);
       const user = await upsertUser({
         authProvider: 'dev',
         externalId,

@@ -15,9 +15,6 @@ AI 驱动的互动数字艺术创作平台。当前阶段：PoC-001「万象初�
 | [docs/02-product-design.md](docs/02-product-design.md) | 产品设计：PoC-001 的假设、输入判定、四个核心互动、度量与阶段计划 |
 | [docs/03-ux-ui-design.md](docs/03-ux-ui-design.md) | UI/UX 设计规范：美学方向、色彩、字体、控件、交互、动效、无障碍（所有数值的唯一来源） |
 | [docs/04-self-review.md](docs/04-self-review.md) | 自省记录：v0.1 → v0.2 的审稿意见、处理方式与遗留风险 |
-| [docs/05-test-protocol.md](docs/05-test-protocol.md) | 阶段 D 测试主持手册：两段式流程、话术、观察表、日志导出、访谈 |
-| [docs/06-recruiting.md](docs/06-recruiting.md) | 阶段 D 招募：条件、邀请消息、筛选问卷、排期表 |
-| [docs/07-report-template.md](docs/07-report-template.md) | 验证报告模板与 H1–H3 判定规则 |
 
 ## 本地运行
 
@@ -63,13 +60,27 @@ Google 登录、员工两步验证、Stripe 卡支付、JPYC/USDC 稳定币支�
 
 | 快捷键 | 作用 |
 |---|---|
-| `Alt`+`Shift`+`E` | 导出本次会话的事件日志（JSON）；手机上在左上角 1.5 秒内连点三下 |
-| `Alt`+`Shift`+`P` | 切换引导段 / 自由段（记入日志）；手机上在左下角 1.5 秒内连点三下 |
+| `Alt`+`Shift`+`E` | 导出本次会话的事件日志（JSON） |
+| `Alt`+`Shift`+`P` | 切换引导段 / 自由段（记入日志） |
 | `Alt`+`Shift`+`R` | 重置为全新世界（`?fresh`），换下一位测试者时用 |
 
 `?tier=light` 或 `?tier=standard` 可以固定画质档位，用于在不同设备上比对。
 
-**汇总测试数据：** 日志和观察记录放进 [sessions/](sessions/README.md)，`npm run analyze` 计算 H1–H3 并写出 `sessions/report.md`。
+**主持测试工具包：** 流程、逐字话术、观察记录表、知情同意书模板都在 [docs/testkit/](docs/testkit/README.md)。用带 `?mod` 的链接时，手机上在左上角快速点 5 下可以打开主持人面板（切换段落、导出日志、换下一位），不需要键盘。
+
+**出结论：** 把每位测试者导出的日志放进同一个文件夹，运行
+
+```bash
+npm run analyze -- logs/*.json --notes notes.json --out 验证报告.md
+```
+
+按 [02 §1](docs/02-product-design.md) 事先约定的阈值，给出 H1–H3 各自「成立 / 不成立 / 不确定」，并列出每个人的首笔时间、自由段里的无提示创造次数、保存、录制和「3 秒内撤销」（判定出错的信号）。日志看不到的两件事——第一笔前有没有求助、有没有问怎么发给别人——由观察员记在 `notes.json` 里，按日志文件名对应：
+
+```json
+{ "wonderlab-session-1761100000000.json": { "helpBeforeFirstStroke": false, "askedToSend": true } }
+```
+
+没记的就算未知：只要未知的人怎么填都改变不了结论，照样给出结论，否则判为「不确定」。自由段从按下 `Alt`+`Shift`+`P` 开始计，忘了切换的那份日志，H2 记为未知。
 
 **笔迹采集：** 打开 `?collect`，按提示把 [02 §4](docs/02-product-design.md) 的 9 种形状各画 5 次，导出的 JSON 放进 [strokes/](strokes/README.md)，`npm test` 就会用真实笔迹检验判定表。
 

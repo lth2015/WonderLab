@@ -5,6 +5,7 @@ import {
   createContext,
   loadConfig,
   DevAuthAdapter,
+  devExternalId,
   type AppContext,
 } from '@wonderlab/api';
 import {
@@ -96,7 +97,7 @@ export async function createHarness(overrides: Record<string, string> = {}): Pro
     auth,
     async createUser(params = {}) {
       const email = params.email ?? `user-${randomUUID().slice(0, 8)}@example.test`;
-      const externalId = `dev-${Buffer.from(email).toString('hex').slice(0, 24)}`;
+      const externalId = devExternalId(email);
       const user = await upsertUser({ authProvider: 'dev', externalId, email });
       await confirmAgeAndTerms({ userId: user.id, marketingOptIn: false });
       if (params.role && params.role !== 'user') await setRole({ userId: user.id, role: params.role });

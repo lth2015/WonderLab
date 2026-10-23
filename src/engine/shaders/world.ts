@@ -100,12 +100,14 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   return mix(c, face, disc * (1.0 - shade) * uMoon.w * open);
 }
 
-// Small planets (docs/02 §5.2): mineral pigments rather than the moon's
-// paper white — 石青, 赭石, 藤黄 — with faint bands, a soft terminator on
-// the side away from the moon, and a little glow.
+// Small planets (docs/02 §5.2), painted rather than lit: a pale wash of
+// diluted pigment — 石青, 赭石, 藤黄, mostly paper — whose edge bleeds
+// unevenly into the sky, with pigment pooled into a slightly darker rim the
+// way a wet wash dries, faint granulation inside, and a little more wash on
+// the side away from the moon.
 vec3 planetTint(float k) {
-  vec3 t = k < 0.5 ? vec3(0.42, 0.56, 0.66) : k < 1.5 ? vec3(0.69, 0.48, 0.33) : vec3(0.85, 0.76, 0.52);
-  return mix(t, uPaper, 0.3);
+  vec3 t = k < 0.5 ? vec3(0.45, 0.58, 0.66) : k < 1.5 ? vec3(0.70, 0.52, 0.38) : vec3(0.84, 0.76, 0.54);
+  return mix(t, uPaper, 0.55);
 }
 
 vec3 planetLayer(vec2 p, vec3 c, float open) {
@@ -116,23 +118,27 @@ vec3 planetLayer(vec2 p, vec3 c, float open) {
     float r = pl.z;
     vec2 d = p - pl.xy;
     float dist = length(d);
-    if (dist > r * 5.0) continue;
+    if (dist > r * 3.0) continue;
     vec3 tint = planetTint(look.z);
-    float halo = exp(-max(dist - r, 0.0) / (r * 1.1)) * 0.09;
-    c += tint * halo * pl.w * open;
-    float disc = 1.0 - smoothstep(r - 1.2, r + 0.8, dist);
-    if (disc <= 0.0) continue;
     vec2 q = d / r;
-    float z = sqrt(max(1.0 - dot(q, q), 0.0));
-    // Bands run across the disc at a slight tilt, broken by ink-like noise.
-    float tilt = (look.w - 0.5) * 0.8;
-    float across = q.y * cos(tilt) + q.x * sin(tilt);
-    float bands = sin(across * 9.0 + fbm(q * 2.5 + look.w * 17.0) * 2.2) * 0.5 + 0.5;
-    vec3 face = tint * (0.86 + bands * 0.18) * (0.72 + 0.28 * z);
-    // Lit side faces away from the dark direction.
-    float light = smoothstep(-0.35, 0.45, -dot(q, look.xy) + 0.15);
-    face *= mix(0.22, 1.0, light);
-    c = mix(c, face, disc * pl.w * open);
+    float seed = look.w * 31.0;
+    // The edge wanders as the ink spreads: a noisy radius, a soft falloff.
+    float ang = atan(q.y, q.x);
+    float bleed = (fbm(vec2(ang * 1.6 + seed, seed)) - 0.5) * 0.16 + (noise(vec2(ang * 9.0, seed)) - 0.5) * 0.05;
+    float edge = dist / r - bleed;
+    float wash = 1.0 - smoothstep(0.86, 1.04, edge);
+    if (wash <= 0.0) {
+      c += tint * exp(-max(dist - r, 0.0) / (r * 0.9)) * 0.035 * pl.w * open;
+      continue;
+    }
+    // Pigment pools at the rim and thins toward the middle.
+    float rim = smoothstep(0.62, 0.95, edge) * (1.0 - smoothstep(0.95, 1.04, edge));
+    float grain = fbm(q * 5.5 + seed) - 0.5;
+    float body = 0.55 + grain * 0.22 + rim * 0.3;
+    // The side away from the moon takes a second, cooler wash.
+    float away = smoothstep(-0.2, 0.9, dot(q, look.xy));
+    vec3 face = mix(tint, mix(tint, uSkyLow * 1.6, 0.55), away * 0.6);
+    c = mix(c, face, clamp(body, 0.0, 1.0) * wash * pl.w * open);
   }
   return c;
 }

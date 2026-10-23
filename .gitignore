@@ -6,7 +6,3 @@ art-raw
 .env
 server-data
 .playwright-mcp
-
-# Stage D test data stays on the moderator's machine
-sessions/*
-!sessions/README.md

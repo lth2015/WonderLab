@@ -13,6 +13,8 @@ import { clearWorld, loadWorld, saveWorld } from './engine/persist';
 import { loadArt } from './engine/art';
 import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
 import { sound } from './sound';
+import { freshUrl, onReset, resetForNext } from './moderator';
+import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
@@ -215,16 +217,21 @@ export function App() {
     };
 
     const readyAt = performance.now();
+    // The first thing the visitor does, by pointer or by key (H1 reads its time).
+    const firstAction = (via: 'pointer' | 'key') => {
+      if (drawn) return;
+      logEvent('first_stroke', { after: Math.round(performance.now() - readyAt), via });
+      drawn = true;
+      cancel(demoTimer);
+      setHint(null);
+    };
     const engine = new Engine(
       canvas,
       {
         onFirstStroke: () => {
           // Inside the pointerdown: the gesture browsers require before audio.
           sound.wake();
-          logEvent('first_stroke', { after: Math.round(performance.now() - readyAt) });
-          drawn = true;
-          cancel(demoTimer);
-          setHint(null);
+          firstAction('pointer');
         },
         onFishCreated: (count) => {
           if (!fishHint) {
@@ -269,6 +276,11 @@ export function App() {
     const save = () => {
       if (!resetting) saveWorld(engine.serialize());
     };
+    onReset(() => {
+      resetting = true;
+      clearWorld();
+      location.replace(freshUrl());
+    });
     const saveTimer = window.setInterval(save, SAVE_EVERY_MS);
     const onHide = () => {
       if (document.visibilityState === 'hidden') save();
@@ -343,16 +355,13 @@ export function App() {
       if (e.altKey && e.shiftKey && !e.metaKey && !e.ctrlKey) {
         if (e.code === 'KeyE') {
           e.preventDefault();
-          exportLog();
-          note('日志已导出');
+          void exportLog().then((how) => note(how === 'cancelled' ? '没有导出' : '日志已导出'));
         } else if (e.code === 'KeyP') {
           e.preventDefault();
           note(togglePhase() === 'free' ? '自由段' : '引导段');
         } else if (e.code === 'KeyR') {
           e.preventDefault();
-          resetting = true;
-          clearWorld();
-          location.replace(`${location.pathname}?fresh${forcedTier ? `&tier=${forcedTier}` : ''}`);
+          resetForNext();
         }
         return;
       }
@@ -361,35 +370,13 @@ export function App() {
         const action = e.key === 'f' || e.key === 'F' ? 'fish' : e.key === 'm' || e.key === 'M' ? 'moon' : e.key === 'Enter' ? 'tap' : null;
         if (action) {
           e.preventDefault();
-          if (!drawn) {
-            drawn = true;
-            cancel(demoTimer);
-            setHint(null);
-          }
+          firstAction('key');
           sound.wake();
           engine.keyAction(action);
         }
       }
     };
     window.addEventListener('keydown', onKey);
-
-    // Phones have no keyboard: three quick taps in a corner stand in for the
-    // moderator shortcuts (docs/05 §3, §5). Top-left exports the log
-    // (Alt+Shift+E), bottom-left switches the test phase (Alt+Shift+P).
-    const cornerTaps: Record<'export' | 'phase', number[]> = { export: [], phase: [] };
-    const onCorner = (e: PointerEvent) => {
-      const corner = e.clientX > 48 ? null : e.clientY < 48 ? 'export' : e.clientY > window.innerHeight - 48 ? 'phase' : null;
-      if (!corner) return;
-      const now = e.timeStamp;
-      cornerTaps[corner] = [...cornerTaps[corner].filter((t) => now - t < 1500), now];
-      if (cornerTaps[corner].length < 3) return;
-      cornerTaps[corner] = [];
-      if (corner === 'export') {
-        exportLog();
-        note('日志已导出');
-      } else note(togglePhase() === 'free' ? '自由段' : '引导段');
-    };
-    window.addEventListener('pointerdown', onCorner, true);
 
     // Keep the input above the soft keyboard.
     const vv = window.visualViewport;
@@ -408,7 +395,6 @@ export function App() {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('pointerdown', onCorner, true);
       reducedQuery.removeEventListener('change', onReduced);
       clearInterval(saveTimer);
       document.removeEventListener('visibilitychange', onHide);
@@ -416,7 +402,36 @@ export function App() {
       vv?.removeEventListener('resize', onViewport);
       vv?.removeEventListener('scroll', onViewport);
       engineRef.current = null;
+      onReset(null);
       engine.dispose();
+    };
+  }, []);
+
+  // Turning the device re-composes the world (docs/03 §9): the frame laid
+  // out for the old shape is hidden while the system rotates the screen, and
+  // the new one fades in over 300 ms. The scene itself is kept as it is.
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: portrait)');
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let frame = 0;
+    const onTurn = () => {
+      setUndoBtn(null); // placed for the old layout
+      canvas.classList.remove('turned');
+      canvas.classList.add('turning');
+      cancelAnimationFrame(frame);
+      // Two frames: one for the engine to resize and draw, one to start the fade.
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          canvas.classList.remove('turning');
+          canvas.classList.add('turned');
+        });
+      });
+    };
+    mq.addEventListener('change', onTurn);
+    return () => {
+      mq.removeEventListener('change', onTurn);
+      cancelAnimationFrame(frame);
     };
   }, []);
 
@@ -614,6 +629,7 @@ export function App() {
         <RecordButton api={recorder} />
       </Menu>
       <RecordOverlays api={recorder} />
+      <ModeratorPanel />
       {overlay?.kind === 'account' && <AccountSheet onClose={closeOverlay} />}
       {overlay?.kind === 'complete' && <CheckoutComplete orderId={overlay.orderId} onClose={closeOverlay} />}
       {overlay?.kind === 'simulate' && <SimulatedCheckout onClose={closeOverlay} />}

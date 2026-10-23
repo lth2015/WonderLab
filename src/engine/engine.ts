@@ -464,7 +464,10 @@ export class Engine {
   showEcho(text: string, author: string): void {
     const skyTop = this.height;
     const y = this.horizonY + (skyTop - this.horizonY) * 0.6;
-    void this.echo.show(text, author, this.width / 2, y, this.width, this.width < 600);
+    const moon = this.sky.moonSpec;
+    const avoid = [...(moon ? [{ x: moon.x, y: moon.y, r: moon.r * 1.25 }] : []), ...this.sky.planetDiscs];
+    const band = { min: this.horizonY + this.minDim * 0.04, max: this.height - 8 };
+    void this.echo.show(text, author, this.width / 2, y, this.width, this.width < 600, avoid, band);
   }
 
   /**
