@@ -63,8 +63,16 @@ export class EchoLayer {
     const textW = Math.max(...lines.map((l) => measure(ctx, l, size * 0.15)));
     const w = Math.ceil(textW + pad * 2);
     const h = Math.ceil(lines.length * lineH + authorSize * 2.2 + pad * 2);
-    this.canvas.width = w * dpr;
-    this.canvas.height = h * dpr;
+    const cw = Math.ceil(w * dpr);
+    const ch = Math.ceil(h * dpr);
+    if (cw !== this.canvas.width || ch !== this.canvas.height) {
+      // The GPU copy of a texture has a fixed size once uploaded: a larger
+      // canvas would be written into the old storage and leave pieces of the
+      // previous line behind it. Release it so the next upload starts fresh.
+      this.texture.dispose();
+    }
+    this.canvas.width = cw;
+    this.canvas.height = ch;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = 'rgba(239, 234, 223, 0.94)';
