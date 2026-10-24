@@ -5,7 +5,7 @@ import type { StrokePoint } from './stroke';
 import type { KoiSkin } from './art';
 
 const N = 32;
-const FORM_TIME = 0.9; // s, mirrors docs/03 §6.3 (creation 1.2–1.8 s incl. ink bleed)
+export const FORM_TIME = 0.9; // s, mirrors docs/03 §6.3 (creation 1.2–1.8 s incl. ink bleed)
 const CALM_FADE = 0.6; // s, reduced motion: fade in instead of growing (docs/03 §8)
 
 // Mirrors fishProfileGLSL in shaders/ink.ts.

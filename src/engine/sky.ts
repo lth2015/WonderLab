@@ -15,7 +15,7 @@ export const PLANET_TINTS = 3;
 /** Shader slots: one more than the cap, so the planet giving way can fade out. */
 export const PLANET_SLOTS = MAX_PLANETS + 1;
 
-const MOON_RISE = 1.5;   // s, --dur-create
+export const MOON_RISE = 1.5;   // s, --dur-create
 const MOON_FADE = 0.45;  // s, when a moon is replaced or undone
 const METEOR_TIME = 0.9;
 const FLASH_LIFE = 1.6;
