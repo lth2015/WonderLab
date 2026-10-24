@@ -54,6 +54,10 @@ Google 登录、员工两步验证、Stripe 卡支付、JPYC/USDC 稳定币支�
 - `npm run test:db`：支付、退款、争议、订阅对账、稳定币报价/扫链/结算、账本、两步验证等 271 项数据库测试（需要 `npm run db:up`）。
 - 上线前要配置的服务器路由：`/auth/google/callback`、`/checkout/complete`、`/checkout/simulate`、`/pricing` 都返回 `index.html`（开发服务器已经这样做）。
 
+## 部署测试版
+
+`docker build -t wonderlab .` 得到一个容器：同一个进程同时提供网页和「一句成境」的 API，不需要数据库。环境变量、托管平台的要求（只开一个实例、HTTPS）和开测前检查见 [docs/deploy.md](docs/deploy.md)。
+
 ## 测试主持
 
 事件日志只保存在测试设备的内存里，不上传，也不记录用户写的句子（见 [02 §8](docs/02-product-design.md)）。

@@ -134,6 +134,11 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   PUBLIC_WEB_URL: z.string().url().default('http://localhost:5173'),
   PUBLIC_API_URL: z.string().url().default('http://localhost:8787'),
+  /**
+   * The built web app (npm run build → dist) to serve from this same origin,
+   * for a one-process deployment. Unset: the API serves no pages.
+   */
+  WEB_DIST_DIR: z.string().optional(),
   /** Extra web origins allowed to call the API, comma separated (PUBLIC_WEB_URL always is). */
   ALLOWED_ORIGINS: csv,
 

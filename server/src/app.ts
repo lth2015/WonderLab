@@ -17,6 +17,7 @@ import { buildMessages, parseReply, resolveShortlist, SceneCache } from './scene
 import type { ChatJson } from './tokenstars.js';
 import { Usage } from './usage.js';
 import { keepsRawBody } from './webhook-paths.js';
+import { registerWeb } from './web.js';
 
 export interface Deps {
   config: AppConfig;
@@ -63,7 +64,8 @@ export async function buildServer({ config, chat, usage: givenUsage, aiReady = t
 
   const origins = [config.PUBLIC_WEB_URL, ...config.ALLOWED_ORIGINS];
 
-  await app.register(errorPlugin);
+  await app.register(errorPlugin, { servesWeb: !!config.WEB_DIST_DIR });
+  if (config.WEB_DIST_DIR) await registerWeb(app, config.WEB_DIST_DIR);
   await app.register(cors, {
     origin: origins,
     credentials: false,
