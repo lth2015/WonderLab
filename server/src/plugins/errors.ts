@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { ZodError } from 'zod';
 import { AppError, type ApiErrorBody, type ErrorCode } from '@wonderlab/contracts';
+import { sendPage, wantsPage } from '../web.js';
 
 /**
  * Uniform error rendering.
@@ -10,7 +11,7 @@ import { AppError, type ApiErrorBody, type ErrorCode } from '@wonderlab/contract
  * a raw prompt. Unexpected errors are logged in full server side and reported
  * to the client only as INTERNAL_ERROR plus the request id.
  */
-export default fp(async function errorPlugin(app: FastifyInstance) {
+export default fp(async function errorPlugin(app: FastifyInstance, opts: { servesWeb?: boolean } = {}) {
   app.setErrorHandler((err, req, reply) => {
     if (err instanceof AppError) {
       if (err.status >= 500) req.log.error({ err, code: err.code }, 'application error');
@@ -58,9 +59,12 @@ export default fp(async function errorPlugin(app: FastifyInstance) {
     });
   });
 
-  app.setNotFoundHandler((req, reply) =>
-    reply.status(404).send({
+  app.setNotFoundHandler((req, reply) => {
+    // Serving the web app (WEB_DIST_DIR): a page address the browser loads
+    // directly gets the app, which routes it on the client.
+    if (opts.servesWeb && wantsPage(req)) return sendPage(reply);
+    return reply.status(404).send({
       error: { code: 'NOT_FOUND' as ErrorCode, message: 'route not found', requestId: req.id },
-    }),
-  );
+    });
+  });
 });
