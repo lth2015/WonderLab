@@ -38,7 +38,7 @@ WEB_DIST_DIR=dist HOST=0.0.0.0 PORT=8080 npm run server:start
 | `PUBLIC_API_URL` | 同上 | 同源部署时两者相同 |
 | `TOKENSTARS_API_KEY` | 你的 key | 放在平台的 Secret 里 |
 | `TOKENSTARS_MODEL_ID` | 例如 `gpt-5.4-nano` | 和 TokenStars 后台的名称完全一致 |
-| `INVITE_TOKENS` | 逗号分隔，每个 ≥ 8 位 | 测试链接带 `?invite=<令牌>` 才会用 AI；删掉某个令牌即可吊销 |
+| `INVITE_TOKENS` | 逗号分隔，每个 ≥ 8 位 | 测试链接末尾带 `#invite=<令牌>` 才会用 AI（放在 `#` 后，不会出现在 Cloud Run 等平台的请求日志里）；删掉某个令牌即可吊销 |
 | `SCENE_DAILY_PER_INVITE` / `SCENE_DAILY_BUDGET_JPY` / `SCENE_TOTAL_BUDGET_JPY` | 默认 60 / 300 / 5000 | 三层封顶（[02 §5.3](02-product-design.md)），按预算调整 |
 | `SCENE_CACHE_SALT` | 随机长字符串 | 固定下来，重启后缓存键不变 |
 
@@ -59,7 +59,7 @@ WEB_DIST_DIR=dist HOST=0.0.0.0 PORT=8080 npm run server:start
 ## 开测前检查
 
 - [ ] 打开 `https://<测试网址>/?fresh`：世界正常出现，能画鱼
-- [ ] 用 `?fresh&invite=<令牌>` 打开，写「今夜下一场小雨」：开始下雨，并出现一句古诗
+- [ ] 用 `?fresh#invite=<令牌>` 打开，写「今夜下一场小雨」：开始下雨，并出现一句古诗
 - [ ] `https://<测试网址>/api/health` 返回 `{"ok":true,...}`
 - [ ] 手机上用 `?fresh&mod` 打开，左上角点 5 下能打开主持人面板
 - [ ] 部署的 commit 和配置记到首轮执行单上

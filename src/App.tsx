@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Engine, type Creation, type CreationKind } from './engine/engine';
 import { interpret, mergeAi, type SceneCommand } from './engine/intent';
-import { askScene, captureInvite } from './ai';
+import { askScene, bareFlags, captureInvite } from './ai';
 import { rankPoems } from './echo';
 import { poemById } from './poems';
 import type { Tier } from './engine/quality';
@@ -44,7 +44,7 @@ const fresh = params.has('fresh');
 if (fresh) {
   clearWorld();
   params.delete('fresh');
-  const q = params.toString();
+  const q = bareFlags(params);
   history.replaceState(null, '', location.pathname + (q ? `?${q}` : '') + location.hash);
 }
 const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');

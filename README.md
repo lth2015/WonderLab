@@ -28,7 +28,7 @@ npm run typecheck      # 前端 + 服务端类型检查
 npm run build          # 生产构建
 ```
 
-AI 只对受邀测试者开放：在 `.env` 的 `INVITE_TOKENS` 里写一个令牌，用 `?invite=<令牌>` 打开一次页面即可。没有令牌或服务端没配 TokenStars 时，「一句成境」只用本地规则，体验完整可用。
+AI 只对受邀测试者开放：在 `.env` 的 `INVITE_TOKENS` 里写一个令牌，用 `#invite=<令牌>` 打开一次页面即可（旧的 `?invite=` 链接也能用）。没有令牌或服务端没配 TokenStars 时，「一句成境」只用本地规则，体验完整可用。
 
 ### 美术素材（一次性）
 
