@@ -78,6 +78,8 @@ export class Fish {
   private skinHalf = 0;
   /** How far under the surface this fish swims, 0..1; each fish has its own. */
   private readonly depth: number;
+  /** How much this fish likes company, 0..1; about one in five keeps to itself. */
+  private readonly sociability: number;
   private leapCooldown = 0;
   private heading: number;
   private speed = 0;
@@ -111,6 +113,7 @@ export class Fish {
     const calm = (this.calm = !!options.calm);
     this.seed = options.look?.seed ?? Math.random() * 100;
     this.depth = 0.2 + 0.4 * ((this.seed * 0.7548777) % 1);
+    this.sociability = (this.seed * 0.3819) % 1 < 0.2 ? 0.1 : 0.6 + 0.4 * ((this.seed * 1.618) % 1);
     this.patch = options.look?.patch ?? (Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0);
     this.opacity = ghost ? 0.38 : 1;
     this.fadeTime = ghost ? 1.2 : 2.2;
@@ -389,8 +392,20 @@ export class Fish {
     if (x > bounds.maxX - m) sx -= (x - bounds.maxX + m) / m;
     if (y < bounds.minY + m) sy += (bounds.minY + m - y) / m;
     if (y > bounds.maxY - m) sy -= (y - bounds.maxY + m) / m;
+    // Swimming together (docs/02 §5.1, P1): a neighbour a few lengths away
+    // draws this fish alongside, matching its heading, while closer than
+    // that they give each other room. How sociable a fish is comes from its
+    // seed, and the wish for company rises and falls slowly, so pairs and
+    // small groups form, swim a while and drift apart again.
+    const social = this.ghost ? 0 : this.sociability * (0.5 + 0.5 * Math.sin(time * 0.045 + this.seed * 3.1));
+    let ax = 0;
+    let ay = 0;
+    let gx = 0;
+    let gy = 0;
+    let weight = 0;
+    let pace = 0;
     for (const o of ctx.others) {
-      if (o === this || o.state === 'forming' || o.hidden) continue;
+      if (o === this || o.state !== 'swimming' || o.hidden) continue;
       const dx = x - o.headX;
       const dy = y - o.headY;
       const d = Math.hypot(dx, dy);
@@ -399,7 +414,31 @@ export class Fish {
       if (d < r && d > 0) {
         sx += (dx / d) * (1 - d / r) * 1.4;
         sy += (dy / d) * (1 - d / r) * 1.4;
+      } else if (!o.ghost && d < r * 3.2) {
+        const w = 1 - (d - r) / (r * 2.2);
+        ax += Math.cos(o.heading) * w;
+        ay += Math.sin(o.heading) * w;
+        gx += o.headX * w;
+        gy += o.headY * w;
+        pace += o.speed * w;
+        weight += w;
       }
+    }
+    if (weight > 0 && social > 0.05) {
+      const al = Math.hypot(ax, ay);
+      if (al > 1e-3) {
+        sx += (ax / al) * 0.55 * social;
+        sy += (ay / al) * 0.55 * social;
+      }
+      const tx = gx / weight - x;
+      const ty = gy / weight - y;
+      const td = Math.hypot(tx, ty);
+      if (td > 1e-3) {
+        sx += (tx / td) * 0.35 * social;
+        sy += (ty / td) * 0.35 * social;
+      }
+      // Keep pace a little with the company, without losing its own character.
+      this.speed += (pace / weight - this.speed) * Math.min(dt * 0.4 * social, 1);
     }
     if (this.attract) {
       const dx = this.attract.x - x;

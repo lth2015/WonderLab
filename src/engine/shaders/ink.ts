@@ -20,6 +20,7 @@ uniform vec3 uColor;
 uniform float uLen;
 uniform float uOpacity;
 uniform float uSeed;
+uniform float uDot;               // 1 while the stroke is a single dab
 varying vec2 vSV;
 
 ${noiseGLSL}
@@ -28,6 +29,18 @@ void main() {
   float s = vSV.x;
   float v = vSV.y;
   float av = abs(v);
+  if (uDot > 0.5) {
+    // A dab of ink where the brush touched down: round, its edge bleeding a
+    // little unevenly into the paper, denser at the heart.
+    vec2 q = vec2(s / max(uLen, 1.0) * 2.0 - 1.0, v);
+    float r = length(q);
+    float ang = atan(q.y, q.x);
+    float bleed = (noise(vec2(ang * 1.8 + uSeed, uSeed)) - 0.5) * 0.3;
+    float dab = 1.0 - smoothstep(0.62, 1.0, r + bleed);
+    vec3 dc = mix(uColor * 0.82, uColor, smoothstep(0.0, 0.9, r));
+    gl_FragColor = vec4(dc, dab * uOpacity * 0.92);
+    return;
+  }
   float edgeNoise = noise(vec2(s * 0.12 + uSeed, v * 2.0)) - 0.5;
   float edge = 1.0 - smoothstep(0.55, 1.0, av + edgeNoise * 0.45);
   float streak = noise(vec2(s * 0.018 + uSeed * 3.0, v * 5.5 + uSeed));

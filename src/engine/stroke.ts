@@ -46,6 +46,7 @@ export class Stroke {
         uLen: { value: 1 },
         uOpacity: { value: 1 },
         uSeed: { value: Math.random() * 100 },
+        uDot: { value: 0 },
       },
     });
     this.mesh = new THREE.Mesh(this.geometry, this.material);
@@ -99,9 +100,11 @@ export class Stroke {
     const SV = sv.array as Float32Array;
 
     if (n === 1) {
-      // A single dab: draw a tiny ribbon so the ink appears immediately.
+      // A single dab: a round ink dot, so the ink appears the moment the
+      // brush touches down (docs/02 §5.4).
       const p = pts[0];
-      const r = this.baseWidth * 0.6;
+      const r = this.baseWidth * 0.7;
+      this.material.uniforms.uDot.value = 1;
       P.set([p.x - r, p.y - r, 0, p.x - r, p.y + r, 0, p.x + r, p.y - r, 0, p.x + r, p.y + r, 0]);
       SV.set([0, -1, 0, 1, r * 2, -1, r * 2, 1]);
       this.material.uniforms.uLen.value = r * 2;
@@ -111,6 +114,7 @@ export class Stroke {
       return;
     }
 
+    this.material.uniforms.uDot.value = 0;
     let arc = 0;
     let smoothedW = this.baseWidth;
     for (let i = 0; i < n; i++) {
