@@ -52,6 +52,27 @@ WEB_DIST_DIR=dist HOST=0.0.0.0 PORT=8080 npm run server:start
 2. **HTTPS**。手机上保存作品、分享面板都需要安全来源。
 3. **请求日志不记录请求体**。服务器自己只记方法、路径和状态码，不记录测试者写的句子（[01 P9](01-product-principles.md)）；平台层也不要开启记录请求体的功能。
 
+## 用 Cloud Run 部署（一条命令）
+
+在**你自己的电脑**上、仓库根目录运行（`gcloud` 已用 `gcloud auth login` 登录，`.env` 里填好了 TokenStars 和 `INVITE_TOKENS`）：
+
+```bash
+scripts/deploy-cloudrun.sh <项目ID> --dry-run   # 先看一遍会执行哪些命令，什么都不改
+scripts/deploy-cloudrun.sh <项目ID>             # 真正部署（默认东京 asia-northeast1）
+```
+
+脚本会：
+
+1. 打开 Cloud Run、Cloud Build、Artifact Registry、Secret Manager 这几个 API；
+2. 把 `TOKENSTARS_API_KEY`、`INVITE_TOKENS` 和一个随机生成的缓存盐存进 Secret Manager（值从管道传入，不出现在命令行和输出里），并允许服务读取；
+3. 用 Cloud Build 按 `Dockerfile` 构建并部署，**最多 1 个实例**、可缩到 0；模型名和 `.env` 里设了的封顶额度作为普通环境变量；
+4. 读出服务的网址，设好 `PUBLIC_WEB_URL` / `PUBLIC_API_URL`，另一个 Cloud Run 网址放进 `ALLOWED_ORIGINS`；
+5. 访问 `/api/health` 确认服务在线，并打印测试链接。
+
+再次运行就是重新部署当前代码，已有的设置会保留。上传给 Cloud Build 的文件见 `.gcloudignore`：`.env` 不会被上传。
+
+**注意：** 实例缩到 0 后重启，内存里的 AI 封顶计数会清零。正式测试期间，请在 TokenStars 后台另外设一个额度上限，作为最后一道保险。
+
 ## CI
 
 `.github/workflows/ci.yml` 在每个 PR 和每次推送到 main 时运行：类型检查、单元测试、打包、数据库测试（MySQL 服务），以及 Docker 镜像构建。
