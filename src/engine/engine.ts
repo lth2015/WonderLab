@@ -8,8 +8,8 @@ import type { SceneCommand } from './intent';
 import { weatherFrag } from './shaders/weather';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
-import { Fish } from './fish';
-import { Sky, type MoonSpec } from './sky';
+import { FORM_TIME, Fish } from './fish';
+import { MOON_RISE, Sky, type MoonSpec } from './sky';
 import { classify, spineFromOutline, type Classification, type Pt } from './classify';
 import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
@@ -59,6 +59,21 @@ export interface EngineEvents {
 export interface SoundSink {
   play(kind: SoundKind, opts?: { pan?: number; strength?: number }): void;
   ambient(levels: AmbientLevels): void;
+}
+
+/*
+ * One lead animation at a time (docs/03 §7): a fish forming, the moon rising
+ * or a planet appearing. One triggered while another plays waits its turn,
+ * starting at least LEAD_GAP after it ends. Input never waits: the stroke's
+ * ink stays where it was drawn until its animation begins.
+ */
+const LEAD_GAP = 0.3;
+const PLANET_LEAD = MOON_RISE * 0.8;
+
+interface QueuedLead {
+  stroke: Stroke;
+  /** Runs the animation's start and says how long it leads for, in seconds. */
+  start: () => number;
 }
 
 interface PendingRestart {
@@ -139,6 +154,8 @@ export class Engine {
   private hadFirstStroke = false;
   private tierHeld = false;
   private sound: SoundSink | null = null;
+  private leadUntil = 0;
+  private leadQueue: QueuedLead[] = [];
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -396,6 +413,9 @@ export class Engine {
   restart(): void {
     this.commitRestart();
     this.cancelDemo();
+    // Whatever was still waiting to appear belongs to the old world.
+    for (const q of this.leadQueue) this.fadeStroke(q.stroke, 0, 0.3);
+    this.leadQueue = [];
     const fishes = this.fishes.filter((f) => !f.ghost && !f.undone);
     for (const f of fishes) f.hide();
     this.sky.setVeil(0);
@@ -535,6 +555,10 @@ export class Engine {
 
   private update(dt: number): void {
     const t = this.time;
+    if (this.leadQueue.length && t >= this.leadUntil + LEAD_GAP) {
+      const next = this.leadQueue.shift()!;
+      this.leadUntil = t + next.start();
+    }
 
     if (this.demo) this.advanceDemo();
 
@@ -904,21 +928,42 @@ export class Engine {
         } else this.placeStar(centroid.x, centroid.y);
         return;
       case 'circle':
-        this.placeMoon(c, stroke, lake);
+        this.leadMoon(c, stroke, lake);
         return;
       case 'elongated':
-        if (lake) this.spawnFish(stroke, false, spineFromOutline(stroke.points, c.features));
+        if (lake) this.leadFish(stroke, spineFromOutline(stroke.points, c.features));
         else this.placeCloud(c, stroke);
         return;
       case 'arc':
-        if (lake) this.spawnFish(stroke, false);
-        else this.placeMoon(c, stroke, false);
+        if (lake) this.leadFish(stroke);
+        else this.leadMoon(c, stroke, false);
         return;
       case 'open':
-        if (lake) this.spawnFish(stroke, false);
+        if (lake) this.leadFish(stroke);
         else this.launchMeteor(stroke);
         return;
     }
+  }
+
+  /** Start now if nothing leads, otherwise wait for the turn (docs/03 §7). */
+  private lead(stroke: Stroke, start: () => number): void {
+    if (!this.leadQueue.length && this.time >= this.leadUntil) this.leadUntil = this.time + start();
+    else this.leadQueue.push({ stroke, start });
+  }
+
+  private leadFish(stroke: Stroke, spine?: Pt[]): void {
+    this.lead(stroke, () => {
+      this.spawnFish(stroke, false, spine);
+      return FORM_TIME;
+    });
+  }
+
+  private leadMoon(c: Classification, stroke: Stroke, fromLake: boolean): void {
+    this.lead(stroke, () => {
+      const planet = !!this.sky.moonSpec;
+      this.placeMoon(c, stroke, fromLake);
+      return planet ? PLANET_LEAD : MOON_RISE;
+    });
   }
 
   private onCancel = (e: PointerEvent): void => {
