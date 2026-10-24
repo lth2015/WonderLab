@@ -853,6 +853,12 @@ export class Engine {
       inp.moved = Math.max(inp.moved, Math.hypot(x - inp.downX, y - inp.downY));
       inp.stroke?.add({ x, y, t: ev.timeStamp, pressure: ev.pressure || 0.5 });
     }
+    // Ink a little ahead of the pointer where the browser predicts its path.
+    if (inp.stroke && typeof e.getPredictedEvents === 'function') {
+      inp.stroke.setPreview(
+        e.getPredictedEvents().map((ev) => ({ ...this.toLocal(ev), t: ev.timeStamp, pressure: ev.pressure || 0.5 })),
+      );
+    }
   };
 
   private onUp = (e: PointerEvent): void => {
