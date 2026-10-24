@@ -52,6 +52,10 @@ type State = 'forming' | 'swimming' | 'leaving';
 
 export class Fish {
   readonly xs = new Float32Array(N);
+  private readonly cx = new Float32Array(N);
+  private readonly cy = new Float32Array(N);
+  private readonly nx = new Float32Array(N);
+  private readonly ny = new Float32Array(N);
   readonly ys = new Float32Array(N);
   readonly L: number;
   readonly maxW: number;
@@ -72,6 +76,8 @@ export class Fish {
   private leapT = -1;
   /** Ribbon half width in maxW units when a painted skin is on; 0 for procedural. */
   private skinHalf = 0;
+  /** How far under the surface this fish swims, 0..1; each fish has its own. */
+  private readonly depth: number;
   private leapCooldown = 0;
   private heading: number;
   private speed = 0;
@@ -104,6 +110,7 @@ export class Fish {
     const ghost = (this.ghost = !!options.ghost);
     const calm = (this.calm = !!options.calm);
     this.seed = options.look?.seed ?? Math.random() * 100;
+    this.depth = 0.2 + 0.4 * ((this.seed * 0.7548777) % 1);
     this.patch = options.look?.patch ?? (Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0);
     this.opacity = ghost ? 0.38 : 1;
     this.fadeTime = ghost ? 1.2 : 2.2;
@@ -147,6 +154,8 @@ export class Fish {
       uSkinOn: { value: 0 },
       uSkinHalf: { value: 1 },
       uSkinFlip: { value: 0 },
+      uDepth: { value: this.depth },
+      uTime: { value: 0 },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
@@ -313,6 +322,13 @@ export class Fish {
     this.shadowMaterial.uniforms.uPect.value = this.material.uniforms.uPect.value;
     this.material.uniforms.uSpread.value = this.spread;
     this.shadowMaterial.uniforms.uSpread.value = this.spread;
+    // Drifts a little up and down; a leap brings it to the surface.
+    const leapH = this.leapT >= 0 ? Math.sin(Math.PI * this.leapT) : 0;
+    const depth = Math.max(0, this.depth + 0.08 * Math.sin(ctx.time * 0.13 + this.seed) - leapH);
+    for (const m of [this.material, this.shadowMaterial]) {
+      m.uniforms.uDepth.value = depth;
+      m.uniforms.uTime.value = ctx.time;
+    }
     this.rebuild();
   }
 
@@ -378,10 +394,11 @@ export class Fish {
       const dx = x - o.headX;
       const dy = y - o.headY;
       const d = Math.hypot(dx, dy);
-      const r = (this.L + o.L) * 0.4;
+      // Koi give each other room rather than swimming through one another.
+      const r = (this.L + o.L) * 0.7;
       if (d < r && d > 0) {
-        sx += (dx / d) * (1 - d / r) * 0.8;
-        sy += (dy / d) * (1 - d / r) * 0.8;
+        sx += (dx / d) * (1 - d / r) * 1.4;
+        sy += (dy / d) * (1 - d / r) * 1.4;
       }
     }
     if (this.attract) {
@@ -430,6 +447,11 @@ export class Fish {
     const swimAmp = this.amp * (this.state === 'forming' ? this.grow * 0.3 : 0.6 + Math.min(this.speed / this.baseSpeed, 2) * 0.4);
     const pect = 1 + 0.25 * Math.sin(this.phase * 0.5);
 
+    // Centre line first (spine plus the travelling wave), then the edges.
+    const cxs = this.cx;
+    const cys = this.cy;
+    const nxs = this.nx;
+    const nys = this.ny;
     for (let i = 0; i < N; i++) {
       const s = i / (N - 1);
       const a = Math.max(i - 1, 0);
@@ -439,19 +461,33 @@ export class Fish {
       const tl = Math.hypot(tx, ty) || 1;
       tx /= tl;
       ty /= tl;
-      const nx = -ty;
-      const ny = tx;
+      nxs[i] = -ty;
+      nys[i] = tx;
       // Travelling wave, stronger toward the tail.
       const lateral = swimAmp * Math.sin(this.phase - s * 5.5) * (0.12 + Math.pow(s, 1.3));
-      const cx = this.xs[i] + nx * lateral;
-      const cy = this.ys[i] + ny * lateral;
-      const halfU = (this.skinHalf || envW(s, pect)) * growW * this.spread; // in maxW units
+      cxs[i] = this.xs[i] + nxs[i] * lateral;
+      cys[i] = this.ys[i] + nys[i] * lateral;
+    }
+    for (let i = 0; i < N; i++) {
+      const s = i / (N - 1);
+      let halfU = (this.skinHalf || envW(s, pect)) * growW * this.spread; // in maxW units
+      if (this.skinHalf && i > 0 && i < N - 1) {
+        // A wide painted ribbon folds over itself on the inside of a tight
+        // bend. Keep each edge inside the local radius of curvature; this only
+        // trims fin tips in the sharpest turns.
+        const a1 = Math.atan2(cys[i] - cys[i - 1], cxs[i] - cxs[i - 1]);
+        const a2 = Math.atan2(cys[i + 1] - cys[i], cxs[i + 1] - cxs[i]);
+        let turn = Math.abs(a2 - a1);
+        if (turn > Math.PI) turn = Math.PI * 2 - turn;
+        const seg = Math.hypot(cxs[i + 1] - cxs[i], cys[i + 1] - cys[i]) || 1;
+        if (turn > 1e-4) halfU = Math.min(halfU, ((seg / turn) * 0.85) / this.maxW);
+      }
       const half = halfU * this.maxW;
-      P[i * 6 + 0] = cx + nx * half;
-      P[i * 6 + 1] = cy + ny * half;
+      P[i * 6 + 0] = cxs[i] + nxs[i] * half;
+      P[i * 6 + 1] = cys[i] + nys[i] * half;
       P[i * 6 + 2] = 0;
-      P[i * 6 + 3] = cx - nx * half;
-      P[i * 6 + 4] = cy - ny * half;
+      P[i * 6 + 3] = cxs[i] - nxs[i] * half;
+      P[i * 6 + 4] = cys[i] - nys[i] * half;
       P[i * 6 + 5] = 0;
       // Side offset rather than a ±1 flag: it interpolates without the
       // zigzag a flag shows across trapezoid segments.

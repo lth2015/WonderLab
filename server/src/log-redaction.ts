@@ -38,6 +38,12 @@ const SECRET_PARAMS = new Set([
    * the same console.
    */
   'email',
+  /*
+   * The 一句成境 invite (docs/02 §5.3). A tester opens the site once with
+   * ?invite=<token>; when the API also serves the page (WEB_DIST_DIR), that
+   * page load is a request here, and the log would hold a working token.
+   */
+  'invite',
 ]);
 
 export function redactUrlSecrets(url: string): string {

@@ -54,6 +54,12 @@ describe('redacting secrets out of a logged url', () => {
     }
   });
 
+  it('removes the 一句成境 invite from a page load', () => {
+    const got = redactUrlSecrets('/?fresh&mod&invite=tester-token-123');
+    expect(got).not.toContain('tester-token-123');
+    expect(got).toContain('fresh');
+  });
+
   it('leaves an ordinary url alone', () => {
     expect(redactUrlSecrets('/v1/tracks?limit=20&cursor=abc')).toBe('/v1/tracks?limit=20&cursor=abc');
     expect(redactUrlSecrets('/v1/me')).toBe('/v1/me');

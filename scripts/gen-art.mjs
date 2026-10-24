@@ -36,15 +36,17 @@ const MANIFEST = `${OUT}/manifest.json`;
 const EST_USD = { '1536x1024': 0.063, '1024x1024': 0.042 };
 
 const KOI_STYLE = [
-  'Top-down view of a single koi fish, as seen from directly above the water.',
-  'Painted in refined traditional Chinese gongbi style: fine, confident ink outlines,',
-  'every scale individually drawn in a delicate net pattern, layered translucent mineral',
-  'pigment washes, soft ink shading along the spine, a lifelike eye.',
+  'Photorealistic overhead photograph of a single live koi, shot from directly above, as',
+  'it would look swimming just under clear water. Natural soft daylight from above; real',
+  'scales with a subtle pearly sheen and fine variation, wet skin with gentle specular',
+  'highlights along the back, true three-dimensional body volume with soft shading toward',
+  'the flanks, realistic colour that is slightly uneven like a living fish, not flat paint.',
   'The body is straight and horizontal, the HEAD POINTING TO THE RIGHT, centred, the fish',
-  'spanning about 90% of the image width. Pectoral fins spread to both sides, the tail fin',
-  'open and flowing, all fins thin and translucent with fine ray lines and soft ink-bleed edges.',
-  'Isolated on a fully transparent background: no water, no ripples, no shadow, no other',
-  'objects, no text, no seal, no signature, no border.',
+  'spanning about 90% of the image width, seen strictly from above (dorsal view, both eyes',
+  'visible). Pectoral fins spread to both sides, the tail fin open; all fins thin, delicate',
+  'and partly translucent with fine ray lines. Not an illustration, not a drawing, no',
+  'outlines. Isolated on a fully transparent background: no water, no ripples, no shadow,',
+  'no other objects, no text, no border.',
 ].join(' ');
 
 const KOI = [
@@ -52,9 +54,9 @@ const KOI = [
   { name: 'sanke', look: 'Taisho sanke: white body with vermilion red patches and small crisp black sumi ink markings on the back.' },
   { name: 'showa', look: 'Showa: deep ink-black body with bold vermilion red and white patches, black wrapping around the pectoral fin bases.' },
   { name: 'tancho', look: 'Tancho: pure white body with a single round vermilion red crown on the top of the head, nothing else red.' },
-  { name: 'ogon', look: 'Ogon: a single soft pale-gold colour, subtly metallic scales rendered with muted ochre and gold leaf, fins pale gold.' },
+  { name: 'ogon', look: 'Ogon: a single soft pale-gold colour, metallic scales catching the light, fins pale gold.' },
   { name: 'asagi', look: 'Asagi: blue-grey scales with a pale net pattern on the back, warm orange along the sides, cheeks and fin bases.' },
-  { name: 'sumi', look: 'Sumi ink koi: painted only in black ink and its grey washes on white, like a xieyi ink painting, but with detailed scales.' },
+  { name: 'sumi', look: 'Karasu / sumi koi: a deep charcoal-black body with soft grey and a little white on the belly edges and fin tips.' },
 ];
 
 const MOON = {

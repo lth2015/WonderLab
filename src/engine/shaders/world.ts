@@ -61,10 +61,9 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   vec2 d = p - uMoon.xy;
   float dist = length(d);
   float lit = clamp(uMoonShade.z / 2.4, 0.3, 1.0);
-  // A slightly uneven, ink-soaked rim.
-  float ang = atan(d.y, d.x);
-  float rim = (sin(ang * 3.0 + 1.3) * 0.6 + sin(ang * 7.0 + 0.4) * 0.4) * r * 0.012;
-  float disc = 1.0 - smoothstep(r - 1.5, r + 1.0, dist + rim);
+  // A true circle with a one-pixel soft edge: the wobbled, ink-soaked rim
+  // read as lumpy and fuzzy at the moon's usual size.
+  float disc = 1.0 - smoothstep(r - 0.8, r + 0.8, dist);
   vec2 sc = uMoon.xy + uMoonShade.xy * uMoonShade.z * r;
   float shade = 1.0 - smoothstep(r * 0.9, r * 1.06, length(p - sc));
   // The glow comes from the lit limb, not from the dark part of the disc.

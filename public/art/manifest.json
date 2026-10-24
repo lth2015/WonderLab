@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "koi": [
+    {
+      "name": "kohaku",
+      "file": "koi-kohaku.webp",
+      "halfWidth": 0.204,
+      "flip": false
+    },
+    {
+      "name": "sanke",
+      "file": "koi-sanke.webp",
+      "halfWidth": 0.2,
+      "flip": false
+    },
+    {
+      "name": "showa",
+      "file": "koi-showa.webp",
+      "halfWidth": 0.207,
+      "flip": false
+    },
+    {
+      "name": "tancho",
+      "file": "koi-tancho.webp",
+      "halfWidth": 0.2,
+      "flip": false
+    },
+    {
+      "name": "ogon",
+      "file": "koi-ogon.webp",
+      "halfWidth": 0.206,
+      "flip": false
+    },
+    {
+      "name": "asagi",
+      "file": "koi-asagi.webp",
+      "halfWidth": 0.193,
+      "flip": false
+    },
+    {
+      "name": "sumi",
+      "file": "koi-sumi.webp",
+      "halfWidth": 0.198,
+      "flip": false
+    }
+  ],
+  "moon": null
+}

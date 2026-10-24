@@ -14,8 +14,8 @@ export interface TierSettings {
 }
 
 export const TIERS: Record<Tier, TierSettings> = {
-  standard: { maxDpr: 1.5, maxFish: 12, particles: 1, post: true },
-  light: { maxDpr: 1, maxFish: 6, particles: 0.4, post: false },
+  standard: { maxDpr: 1.5, maxFish: 8, particles: 1, post: true },
+  light: { maxDpr: 1, maxFish: 5, particles: 0.4, post: false },
 };
 
 const WINDOW_MS = 3000;

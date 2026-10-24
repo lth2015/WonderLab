@@ -4,8 +4,10 @@ import { noiseGLSL } from './common';
 export const ribbonVert = /* glsl */ `
 attribute vec2 aSV;
 varying vec2 vSV;
+varying vec2 vPos;                // world position in px, for light on the water
 void main() {
   vSV = aSV;
+  vPos = (modelMatrix * vec4(position, 1.0)).xy;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
@@ -76,7 +78,10 @@ uniform sampler2D uSkin;   // generated koi texture, head on the right
 uniform float uSkinOn;
 uniform float uSkinHalf;   // ribbon half width for the texture, in maxW units
 uniform float uSkinFlip;
+uniform float uDepth;      // 0 at the surface .. 1 deep: how much water lies over the fish
+uniform float uTime;
 varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
+varying vec2 vPos;
 
 ${noiseGLSL}
 ${fishProfileGLSL}
@@ -87,15 +92,40 @@ void main() {
     // Painted koi: the texture follows the bending spine.
     float gws = max(smoothstep(0.0, 1.0, uGrow), 1e-3) * uSpread;
     float tv = 0.5 + 0.5 * vSV.y / (gws * uSkinHalf);
-    vec4 tex = texture2D(uSkin, vec2(uSkinFlip > 0.5 ? s : 1.0 - s, tv));
-    float ta = tex.a * smoothstep(0.0, 0.08, uGrow * 1.15 - s);
-    float tn = noise(vec2(s * 16.0 + uSeed * 7.0, vSV.y * 4.0)) - 0.5;
-    ta *= 1.0 - smoothstep(0.0, 0.35, (uSpread - 1.0) * 1.6 - fbm(vec2(s * 6.0, tv * 4.0) + uSeed) + 0.25);
-    // Toned to the night's paper colour, and seen through a little water.
-    vec3 tc = mix(tex.rgb, tex.rgb * uPaper * 1.06, 0.45);
-    tc = mix(tc, uWater, 0.1 + tn * 0.02);
-    if (uShadow > 0.5) gl_FragColor = vec4(0.0, 0.01, 0.03, ta * 0.32 * uOpacity);
-    else gl_FragColor = vec4(tc, ta * uOpacity);
+    vec2 uv = vec2(uSkinFlip > 0.5 ? s : 1.0 - s, tv);
+    float reveal = smoothstep(0.0, 0.08, uGrow * 1.15 - s);
+    float loose = 1.0 - smoothstep(0.0, 0.35, (uSpread - 1.0) * 1.6 - fbm(vec2(s * 6.0, tv * 4.0) + uSeed) + 0.25);
+    if (uShadow > 0.5) {
+      // A soft shadow on the lake bed: the texture's alpha from a coarse mip
+      // level, so it is blurred, and fainter the deeper the water above it.
+      float sa = texture2D(uSkin, uv, 4.5).a * reveal * loose;
+      gl_FragColor = vec4(0.0, 0.01, 0.03, sa * 0.2 * (1.0 - 0.4 * uDepth) * uOpacity);
+      return;
+    }
+    vec4 tex = texture2D(uSkin, uv);
+    // Edges a touch softer than the cut-out: water blurs a submerged outline.
+    float ta = mix(tex.a, texture2D(uSkin, uv, 1.5).a, 0.5) * reveal * loose;
+    // Fins (out from the body, and the tail) are thin membranes: let the water through.
+    float fin = max(smoothstep(0.4, 0.7, abs(2.0 * tv - 1.0)), smoothstep(0.78, 0.9, s));
+    ta *= mix(1.0, 0.5, fin);
+
+    vec3 c = tex.rgb;
+    // Night, and under water: less saturated, darker, and tinted by the water
+    // column above, more so the deeper the fish swims.
+    float lum = dot(c, vec3(0.299, 0.587, 0.114));
+    c = mix(vec3(lum), c, 0.78) * uPaper * 0.78;
+    float depth = clamp(uDepth + fin * 0.15, 0.0, 1.0);
+    vec3 waterTint = uWater * 1.8 + vec3(0.015, 0.03, 0.045);
+    c = mix(c, waterTint, 0.18 + 0.42 * depth);
+    // Rounded body: the back catches the light, the flanks fall into the water.
+    float side = abs(2.0 * tv - 1.0) / 0.45;
+    c *= 1.0 - 0.22 * smoothstep(0.4, 1.0, side) * (1.0 - fin);
+    // Light through the rippled surface: drifting caustic threads over the back.
+    float n1 = noise(vPos / 22.0 + vec2(uTime * 0.31, uTime * 0.17));
+    float n2 = noise(vPos / 15.0 - vec2(uTime * 0.23, -uTime * 0.29) + 7.3);
+    float caustic = pow(1.0 - abs(n1 - n2), 10.0);
+    c += vec3(0.85, 0.9, 1.0) * caustic * 0.1 * (1.0 - 0.7 * depth) * (1.0 - fin * 0.5);
+    gl_FragColor = vec4(c, ta * uOpacity);
     return;
   }
   float env = envW(s, uPect);
