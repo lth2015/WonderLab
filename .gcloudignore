@@ -1,0 +1,13 @@
+# What `gcloud run deploy --source .` uploads to Cloud Build. Secrets stay
+# on your computer: they reach the service through Secret Manager.
+.env
+.env.*
+!.env.example
+deploy.env
+.git
+node_modules
+dist
+art-raw
+server-data
+strokes/*.json
+*.tsbuildinfo
