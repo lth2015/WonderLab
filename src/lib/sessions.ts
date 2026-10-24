@@ -1,8 +1,8 @@
 // Reading moderated-test logs against the pre-registered hypotheses
 // (docs/02 §1, §8). Input is what the moderator exports at the end of each
 // session (src/telemetry.ts exportLog) plus, optionally, the observer's notes
-// on the two things a log cannot see: asking for help before the first
-// stroke, and asking how to send the work to someone.
+// on what a log cannot see: help before the first stroke, and whether
+// saving or asking how to send was spontaneous before the interview.
 //
 // Each hypothesis comes out 成立 / 不成立 / 不确定. Where the notes are
 // missing, a tester's answer is unknown rather than guessed, and the verdict
@@ -23,7 +23,16 @@ export interface SessionLog {
 /** The observer's notes for one tester. Omitted fields are unknown. */
 export interface ObserverNotes {
   helpBeforeFirstStroke?: boolean;
+  /** Legacy: lacks provenance; retained for reading old notes, never scores H3. */
   askedToSend?: boolean;
+  /** Frozen before log export/interview. Missing or invalid evidence is unknown. */
+  h3Observation?: {
+    status: 'spontaneous' | 'prompted_only' | 'not_observed' | 'unknown';
+    /** Required for a negative: no missing portion of the observation window. */
+    windowComplete?: boolean;
+    /** Action/quote, phase/time, and whether any moderator question preceded it. */
+    evidence?: string;
+  };
 }
 
 export type Verdict = '成立' | '不成立' | '不确定';
@@ -116,9 +125,15 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
   const freeMinutes = spans.length ? spans.reduce((s, [a, b]) => s + (b - a), 0) / 60000 : null;
   const h2 = freeMinutes === null ? null : unpromptedInFree >= H2_UNPROMPTED;
 
-  let h3: boolean | null;
-  if (saves > 0 || notes.askedToSend === true) h3 = true;
-  else h3 = notes.askedToSend === false ? false : null;
+  // Logs show that a save happened, not why. Legacy askedToSend also
+  // conflates unsolicited requests with interview answers. Neither can
+  // establish spontaneity (or its absence) without an observer attestation.
+  const observation = notes.h3Observation;
+  const hasEvidence = typeof observation?.evidence === 'string' && observation.evidence.trim().length > 0;
+  let h3: boolean | null = null;
+  if (hasEvidence && observation?.status === 'spontaneous') h3 = true;
+  else if (hasEvidence && observation?.windowComplete === true &&
+    (observation.status === 'prompted_only' || observation.status === 'not_observed')) h3 = false;
 
   const world = events.find((e) => e.type === 'world_ready');
   return {
@@ -178,6 +193,8 @@ export function analyzeStudy(sessions: { id: string; log: SessionLog; notes?: Ob
   if (testers.length < 5) warnings.push(`只有 ${testers.length} 份记录；方案是 5–10 名测试者，结论只作方向参考。`);
   const noFree = testers.filter((t) => t.freeMinutes === null).map((t) => t.id);
   if (noFree.length) warnings.push(`没有自由段的记录（主持人没按切换键？）：${noFree.join('、')}。这些人的 H2 记为未知。`);
+  const unknownH3 = testers.filter((t) => t.h3 === null).map((t) => t.id);
+  if (unknownH3.length) warnings.push(`H3 主动性证据缺失或不明：${unknownH3.join('、')}。旧 askedToSend 和 save 事件不自动计为成功；这些记录保留在总人数中并记为未知。`);
   return {
     testers,
     h1: judge(testers.map((t) => t.h1), H1_SHARE),
@@ -212,7 +229,7 @@ export function formatReport(r: StudyResult): string {
   out.push(
     '## 每位测试者',
     '',
-    '| 记录 | 设备 | 首笔 | 自由段 | 无提示 / 有提示创造 | 保存 | 录制完成 | 3 秒内撤销 | 一句成境来源 | H1 | H2 | H3 |',
+    '| 记录 | 设备 | 首笔 | 自由段 | 无提示 / 有提示创造 | 保存（含被提示） | 录制完成 | 3 秒内撤销 | 一句成境来源 | H1 | H2 | H3 |',
     '|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...r.testers.map(
       (t) =>
@@ -223,7 +240,8 @@ export function formatReport(r: StudyResult): string {
         )} | ${yn(t.h1)} | ${yn(t.h2)} | ${yn(t.h3)} |`,
     ),
     '',
-    '「?」表示需要观察员记录才能判断（是否求助、是否问怎么发送），或这份记录没有自由段。',
+    '「?」表示需要观察员证据才能判断，或这份记录没有自由段。H3 仅使用有证据的 h3Observation；保存次数、录制完成和旧 askedToSend 不证明主动性。',
+    'H3 未知仍纳入总人数：成立需已确认成功/总人数 ≥30%；不成立需（成功+未知）/总人数 <30%；否则不确定。',
     '「3 秒内撤销」按被撤销的类型计数，是判定出错的信号。',
   );
   return out.join('\n') + '\n';

@@ -5,7 +5,7 @@
 // optional notes file holds what only the observer saw, keyed by log file
 // name:
 //
-//   { "wonderlab-session-1761100000000.json": { "helpBeforeFirstStroke": false, "askedToSend": true } }
+//   { "wonderlab-session-1761100000000.json": { "helpBeforeFirstStroke": false, "h3Observation": { "status": "spontaneous", "evidence": "自由段结束回来时、提问前主动问怎么发给朋友" } } }
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
