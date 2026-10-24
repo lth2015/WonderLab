@@ -22,6 +22,8 @@ const DEMO_IDLE_MS = 4000;
 const DEMO_MAX = 2;
 const DEMO_GAP_MS = 9000;
 const HINT_MS = 6000;
+// A hint not acted on may come back once (docs/03 §6.3), this long after it faded.
+const HINT_RETRY_MS = 30000;
 const FISH_HINT_DELAY_MS = 2500;
 const MOON_HINT_TIMEOUT_MS = 60000;
 const WORDS_HINT_TIMEOUT_MS = 90000;
@@ -192,6 +194,8 @@ export function App() {
     let pendingHint: { id: HintId; text: string; place: HintPlace } | null = null;
     let hasMoon = false;
     let wordsUsed = false;
+    let fishTouched = false;
+    const retried = new Set<string>();
 
     // Hints only appear between strokes; one that arrives mid-stroke waits.
     const show = (id: HintId, text: string, place: HintPlace) => {
@@ -204,10 +208,17 @@ export function App() {
       setHint({ text, place, key });
       later(() => setHint((h) => (h?.key === key ? null : h)), HINT_MS);
     };
+    // `when` says whether the hint still has something to invite: checked
+    // before it shows, and again before its one repeat if it was missed.
     const once = (id: HintId, text: string, place: HintPlace, when: () => boolean = () => true) => {
       if (shownHints.has(id) || !when()) return;
       shownHints.add(id);
       show(id, text, place);
+      later(() => {
+        if (retried.has(id) || !when()) return;
+        retried.add(id);
+        show(id, text, place);
+      }, HINT_MS + HINT_RETRY_MS);
     };
     const moonHint = () => once('draw_circle', '在天上画一个圆', 'sky', () => !hasMoon);
     const wordsHint = () => once('write_words', '写一句话，世界会听见', 'input', () => !wordsUsed);
@@ -236,14 +247,19 @@ export function App() {
         onFishCreated: (count) => {
           if (!fishHint) {
             fishHint = true;
-            later(() => once('touch_fish', '点一点小鱼', 'lake'), FISH_HINT_DELAY_MS);
+            later(() => once('touch_fish', '点一点小鱼', 'lake', () => !fishTouched), FISH_HINT_DELAY_MS);
           } else if (count >= 2) later(moonHint, FISH_HINT_DELAY_MS);
         },
-        onFishTouched: () => later(moonHint, 1500),
+        onFishTouched: () => {
+          fishTouched = true;
+          setHint((h) => (h?.text === '点一点小鱼' ? null : h));
+          later(moonHint, 1500);
+        },
         onCreated: (c: Creation) => {
           if (c.kind === 'atmosphere') return;
           if (c.kind === 'moon' && !hasMoon) {
             hasMoon = true;
+            setHint((h) => (h?.place === 'sky' ? null : h));
             later(wordsHint, FISH_HINT_DELAY_MS);
           }
           setAnnounce(ANNOUNCE[c.kind]);
