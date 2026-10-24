@@ -21,6 +21,8 @@ export class Stroke {
   private readonly material: THREE.ShaderMaterial;
   private readonly baseWidth: number;
   private finished = false;
+  /** Where the pointer is predicted to go next: drawn, never kept (docs/03 §6.1). */
+  private preview: StrokePoint[] = [];
 
   constructor(palette: Palette, minDim: number, readonly isPen: boolean) {
     this.baseWidth = THREE.MathUtils.clamp(minDim * 0.011, 5, 13);
@@ -67,6 +69,23 @@ export class Stroke {
 
   finish(): void {
     this.finished = true;
+    this.preview = [];
+    this.rebuild();
+  }
+
+  /** Draw the predicted points ahead of the real ones until the next move. */
+  setPreview(points: StrokePoint[]): void {
+    if (this.finished || (!points.length && !this.preview.length)) return;
+    const room = MAX_POINTS - this.points.length;
+    const kept: StrokePoint[] = [];
+    let last = this.points[this.points.length - 1];
+    for (const p of points) {
+      if (kept.length >= room) break;
+      if (last && Math.hypot(p.x - last.x, p.y - last.y) < 1.5) continue;
+      kept.push(p);
+      last = p;
+    }
+    this.preview = kept;
     this.rebuild();
   }
 
@@ -92,8 +111,10 @@ export class Stroke {
   }
 
   private rebuild(): void {
-    const pts = this.points;
+    const pts = this.preview.length ? [...this.points, ...this.preview] : this.points;
     const n = pts.length;
+    let total = this.length;
+    for (let i = this.points.length; i < n; i++) total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
     const pos = this.geometry.getAttribute('position') as THREE.BufferAttribute;
     const sv = this.geometry.getAttribute('aSV') as THREE.BufferAttribute;
     const P = pos.array as Float32Array;
@@ -135,7 +156,7 @@ export class Stroke {
       if (this.isPen) w *= 0.35 + p.pressure * 1.2;
       smoothedW += (w - smoothedW) * 0.35;
       const taperIn = Math.min(arc / 14, 1);
-      const taperOut = this.finished ? Math.min((this.length - arc) / 26, 1) : Math.min((this.length - arc) / 6 + 0.4, 1);
+      const taperOut = this.finished ? Math.min((total - arc) / 26, 1) : Math.min((total - arc) / 6 + 0.4, 1);
       const half = smoothedW * (0.25 + 0.75 * taperIn) * (0.15 + 0.85 * taperOut);
 
       const nx = -ty * half;
@@ -151,7 +172,7 @@ export class Stroke {
       SV[i * 4 + 2] = arc;
       SV[i * 4 + 3] = -1;
     }
-    this.material.uniforms.uLen.value = this.length;
+    this.material.uniforms.uLen.value = total;
     this.geometry.setDrawRange(0, (n - 1) * 6);
     pos.needsUpdate = true;
     sv.needsUpdate = true;

@@ -782,6 +782,20 @@ export class Engine {
 
   // ---------------------------------------------------------------- input
 
+  /** With a mouse, show over a fish or the moon that it can be touched (docs/03 §6.1). */
+  private hover(e: PointerEvent): void {
+    if (e.pointerType !== 'mouse') return;
+    const { x, y } = this.toLocal(e);
+    const target = !!this.pickFish(x, y) || this.onMoon(x, y);
+    const want = target ? 'target' : '';
+    if ((this.canvas.dataset.hover ?? '') !== want) this.canvas.dataset.hover = want;
+  }
+
+  private onMoon(x: number, y: number): boolean {
+    const moon = this.sky.moonPos;
+    return !!moon && y >= this.horizonY && Math.hypot(x - moon.x, y - moon.y) < moon.r * 1.4;
+  }
+
   private toLocal(e: PointerEvent): { x: number; y: number } {
     const r = this.canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: this.height - (e.clientY - r.top) };
@@ -828,12 +842,22 @@ export class Engine {
 
   private onMove = (e: PointerEvent): void => {
     const inp = this.input;
-    if (!inp || e.pointerId !== inp.id) return;
+    if (!inp) {
+      this.hover(e);
+      return;
+    }
+    if (e.pointerId !== inp.id) return;
     const events = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e];
     for (const ev of events.length ? events : [e]) {
       const { x, y } = this.toLocal(ev);
       inp.moved = Math.max(inp.moved, Math.hypot(x - inp.downX, y - inp.downY));
       inp.stroke?.add({ x, y, t: ev.timeStamp, pressure: ev.pressure || 0.5 });
+    }
+    // Ink a little ahead of the pointer where the browser predicts its path.
+    if (inp.stroke && typeof e.getPredictedEvents === 'function') {
+      inp.stroke.setPreview(
+        e.getPredictedEvents().map((ev) => ({ ...this.toLocal(ev), t: ev.timeStamp, pressure: ev.pressure || 0.5 })),
+      );
     }
   };
 
@@ -908,7 +932,7 @@ export class Engine {
 
   private tap(x: number, y: number, fish: Fish | null): void {
     const moon = this.sky.moonPos;
-    const onMoon = !fish && !!moon && y >= this.horizonY && Math.hypot(x - moon.x, y - moon.y) < moon.r * 1.4;
+    const onMoon = !fish && this.onMoon(x, y);
     logEvent('touch', { object: fish ? 'fish' : onMoon ? 'moon' : y >= this.horizonY ? 'sky' : 'lake' });
     if (onMoon) {
       // Moonlight brightens for a moment and the reflection trembles.

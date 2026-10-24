@@ -14,6 +14,7 @@ AI 驱动的互动数字艺术创作平台。当前阶段：PoC-001「万象初�
 | [docs/01-product-principles.md](docs/01-product-principles.md) | 产品原则：九条可检验的决策规则与冲突优先级 |
 | [docs/02-product-design.md](docs/02-product-design.md) | 产品设计：PoC-001 的假设、输入判定、四个核心互动、度量与阶段计划 |
 | [docs/03-ux-ui-design.md](docs/03-ux-ui-design.md) | UI/UX 设计规范：美学方向、色彩、字体、控件、交互、动效、无障碍（所有数值的唯一来源） |
+| [docs/验收指南.md](docs/验收指南.md) | 下一次验收：怎么启动、逐项看什么、需要拍板的事 |
 | [docs/04-self-review.md](docs/04-self-review.md) | 自省记录：v0.1 → v0.2 的审稿意见、处理方式与遗留风险 |
 
 ## 本地运行
