@@ -13,6 +13,7 @@ import { clearWorld, loadWorld, saveWorld } from './engine/persist';
 import { loadArt } from './engine/art';
 import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
 import { sound } from './sound';
+import { describeWorld } from './describe';
 import { freshUrl, onReset, resetForNext } from './moderator';
 import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
@@ -113,6 +114,7 @@ export function App() {
   const [hint, setHint] = useState<Hint>(null);
   const [undoBtn, setUndoBtn] = useState<UndoButton>(null);
   const [announce, setAnnounce] = useState('');
+  const [worldLabel, setWorldLabel] = useState('夜晚的湖面，还空着');
   const [text, setText] = useState('');
   const [placeholder, setPlaceholder] = useState(0);
   const [dim, setDim] = useState(false);
@@ -298,6 +300,8 @@ export function App() {
       location.replace(freshUrl());
     });
     const saveTimer = window.setInterval(save, SAVE_EVERY_MS);
+    // What a screen reader hears for the canvas (docs/03 §8), kept current.
+    const describeTimer = window.setInterval(() => setWorldLabel(describeWorld(engine.serialize())), 1500);
     const onHide = () => {
       if (document.visibilityState === 'hidden') save();
     };
@@ -413,6 +417,7 @@ export function App() {
       window.removeEventListener('keydown', onKey);
       reducedQuery.removeEventListener('change', onReduced);
       clearInterval(saveTimer);
+      clearInterval(describeTimer);
       document.removeEventListener('visibilitychange', onHide);
       window.removeEventListener('pagehide', save);
       vv?.removeEventListener('resize', onViewport);
@@ -576,7 +581,7 @@ export function App() {
   const count = [...text].length;
   return (
     <>
-      <canvas ref={canvasRef} className="world" role="img" tabIndex={0} aria-label="夜湖画布：在湖面上画一笔，线会化成游鱼。获得焦点时按 F 画鱼，M 生月" />
+      <canvas ref={canvasRef} className="world" role="img" tabIndex={0} aria-label={`${worldLabel}。在湖面上画一笔，线会化成游鱼；获得焦点时按 F 画鱼，M 生月`} />
       {staticDemo > 0 && (
         <svg key={staticDemo} className="static-demo" viewBox="0 0 260 60" aria-hidden="true">
           <path d="M6 40 C 70 6, 150 6, 254 34" />
