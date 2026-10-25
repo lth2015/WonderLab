@@ -13,6 +13,7 @@
     "art": "tsx scripts/gen-art.mjs",
     "fonts": "node scripts/subset-font.mjs",
     "analyze": "tsx scripts/analyze-sessions.ts",
+    "calibrate": "tsx scripts/calibrate.ts",
     "server": "tsx watch --tsconfig server/tsconfig.json server/src/index.ts",
     "server:start": "tsx --tsconfig server/tsconfig.json server/src/index.ts",
     "test:db": "vitest run --config vitest.db.config.ts",
