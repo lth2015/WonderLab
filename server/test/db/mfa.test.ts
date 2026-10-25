@@ -94,7 +94,7 @@ describe('the crypto (RFC 6238 / RFC 4648)', () => {
 describe('MFA lifecycle over HTTP', () => {
   it('enroll returns a scannable otpauth URI; confirm enables and reveals recovery codes once', async () => {
     const { user, secret, otpauth } = await enrollFor('mfa-a@example.test');
-    expect(otpauth).toMatch(/^otpauth:\/\/totp\/WonderLab%3A/);
+    expect(otpauth).toMatch(/^otpauth:\/\/totp\/Wonderful%20World%3A/);
     expect(otpauth).toContain(`secret=${secret}`);
 
     const bad = await h.app.inject({

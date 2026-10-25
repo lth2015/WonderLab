@@ -1,4 +1,6 @@
 # WonderLab · 万象生
+
+> 2026-10-25 起，产品统一命名为 **Wonderful World**（官网 want.world）；WonderLab 保留为仓库与开发代号。本纲要保留立项时的原文。
 ## 项目立项纲要（Project Charter）
 
 **项目阶段：** 创意验证 / PoC

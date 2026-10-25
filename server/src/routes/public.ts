@@ -91,7 +91,7 @@ export default async function publicRoutes(app: FastifyInstance, opts: { config:
   app.get('/v1/legal/business-disclosure', async () => ({
     configured: config.legalEntityConfigured,
     isPlaceholder: !config.legalEntityConfigured,
-    entityName: config.LEGAL_ENTITY_NAME ?? 'WonderLab (operator not configured)',
+    entityName: config.LEGAL_ENTITY_NAME ?? 'Wonderful World (operator not configured)',
     representative: config.LEGAL_ENTITY_REPRESENTATIVE ?? '(not configured)',
     contact: config.LEGAL_ENTITY_CONTACT ?? '(not configured)',
     phone: config.LEGAL_ENTITY_PHONE ?? '—',

@@ -1,4 +1,4 @@
-# WonderLab · 万象生 — UI/UX 设计规范（PoC-001）
+# Wonderful World — UI/UX 设计规范（PoC-001）
 
 > 版本 v0.2 · 2026-10-21 · 依据：[01-product-principles.md](01-product-principles.md)、[02-product-design.md](02-product-design.md)
 >
