@@ -164,7 +164,7 @@ const envSchema = z.object({
   /** Key material for encrypting TOTP secrets at rest. Falls back outside production. */
   MFA_ENCRYPTION_SECRET: secret(),
   /** Issuer shown in Google Authenticator. */
-  MFA_ISSUER: z.string().default('WonderLab'),
+  MFA_ISSUER: z.string().default('Wonderful World'),
   /*
    * Staff accounts must carry a second factor (yuha). An operations console
    * can decide held orders and stablecoin payments, so a stolen staff

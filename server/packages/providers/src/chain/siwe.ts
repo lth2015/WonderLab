@@ -25,7 +25,7 @@ export interface SiweChallenge {
 }
 
 export const SIWE_STATEMENT =
-  'Prove you control this wallet so WonderLab can match your stablecoin payment to your order. This authorises no transfer and no spending.';
+  'Prove you control this wallet so Wonderful World can match your stablecoin payment to your order. This authorises no transfer and no spending.';
 
 /** EIP-4361, in the order the standard fixes. Both sides build it identically. */
 export function buildSiweMessage(c: SiweChallenge, address: string): string {

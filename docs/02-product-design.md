@@ -1,4 +1,4 @@
-# WonderLab · 万象生 — 产品设计：PoC-001「万象初生」
+# Wonderful World — 产品设计：PoC-001「万象初生」
 
 > 版本 v0.2 · 2026-10-21 · 依据：[charter.md](../charter.md)、[01-product-principles.md](01-product-principles.md)
 >

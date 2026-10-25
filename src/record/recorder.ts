@@ -191,7 +191,7 @@ export class Recording {
 
 export async function saveTake(take: Take): Promise<'shared' | 'downloaded' | 'cancelled'> {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const name = `万象生-${stamp}.${take.ext}`;
+  const name = `wonderful-world-${stamp}.${take.ext}`;
   const file = new File([take.blob], name, { type: take.blob.type });
   // Phones: the share sheet can put the video straight into the photo library.
   const touch = window.matchMedia('(pointer: coarse)').matches;

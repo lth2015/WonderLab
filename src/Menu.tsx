@@ -105,7 +105,7 @@ function About({ onClose }: { onClose: () => void }) {
     <>
       <div className="scrim" onClick={onClose} />
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="about-title">
-        <h2 id="about-title">万象生 · WonderLab</h2>
+        <h2 id="about-title">Wonderful World</h2>
         <p className="motto">一念起，万象生</p>
         <ul>
           <li>在湖面上画一笔，线会化成游鱼</li>

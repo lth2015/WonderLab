@@ -1,4 +1,6 @@
-# WonderLab · 万象生
+# Wonderful World
+
+> 产品名 **Wonderful World**（官网 want.world）。WonderLab 是代码仓库和开发代号；旧名「万象生」。
 
 > 一念起，万象生。
 

@@ -1,4 +1,4 @@
-# WonderLab · 万象生 — 产品原则
+# Wonderful World — 产品原则
 
 > 版本 v0.3 · 2026-10-25（P2 拆为 P2a 创作因果感 / P2b 作品归属感） · 依据：[charter.md](../charter.md)
 >
