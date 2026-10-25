@@ -44,6 +44,36 @@ export const H2_SHARE = 0.6;
 export const H3_SHARE = 0.3;
 /** An undo this soon after its creation suggests the stroke was misread. */
 export const QUICK_UNDO_MS = 3000;
+/** After the first fish, a pause this long before creating again counts as watching (docs/02 §8). */
+export const WATCH_MS = 10000;
+
+/**
+ * What a tester did right after their first fish: created again at once
+ * (创造的乐趣), stopped to watch or touch it first (陪伴的乐趣), or never
+ * created again. Descriptive, no threshold.
+ */
+export interface AfterFirstFish {
+  kind: 'create' | 'watch' | 'none';
+  /** Until the next creation or sentence, ms; null when there was none. */
+  gapMs: number | null;
+  /** Touched a fish before creating again. */
+  touched: boolean;
+}
+
+export function afterFirstFish(events: SessionEvent[]): AfterFirstFish | null {
+  const i = events.findIndex((e) => e.type === 'create' && e.what === 'fish');
+  if (i < 0) return null;
+  const t0 = events[i].t;
+  let touched = false;
+  for (const e of events.slice(i + 1)) {
+    if (e.type === 'touch' && e.object === 'fish') touched = true;
+    if (e.type === 'create' || e.type === 'text_submit') {
+      const gapMs = e.t - t0;
+      return { kind: touched || gapMs >= WATCH_MS ? 'watch' : 'create', gapMs, touched };
+    }
+  }
+  return { kind: 'none', gapMs: null, touched };
+}
 
 export interface TesterResult {
   id: string;
@@ -58,6 +88,7 @@ export interface TesterResult {
   recordsCompleted: number;
   quickUndos: Record<string, number>;
   textSources: Record<string, number>;
+  afterFirstFish: AfterFirstFish | null;
   /** true / false, or null when the answer needs notes that are missing. */
   h1: boolean | null;
   h2: boolean | null;
@@ -148,6 +179,7 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
     recordsCompleted,
     quickUndos,
     textSources,
+    afterFirstFish: afterFirstFish(events),
     h1,
     h2,
     h3,
@@ -243,6 +275,19 @@ export function formatReport(r: StudyResult): string {
     '「?」表示需要观察员证据才能判断，或这份记录没有自由段。H3 仅使用有证据的 h3Observation；保存次数、录制完成和旧 askedToSend 不证明主动性。',
     'H3 未知仍纳入总人数：成立需已确认成功/总人数 ≥30%；不成立需（成功+未知）/总人数 <30%；否则不确定。',
     '「3 秒内撤销」按被撤销的类型计数，是判定出错的信号。',
+    '',
+    '## 第一条鱼之后（创造的乐趣 / 陪伴的乐趣）',
+    '',
+    `画出第一条鱼后：${WATCH_MS / 1000} 秒内、没点鱼就接着创造，记为「接着画」；先点了鱼，或停了 ${WATCH_MS / 1000} 秒以上才再创造，记为「先看」；之后再没有创造，记为「没再画」。只作描述，不设门槛。`,
+    '',
+    '| 记录 | 第一条鱼之后 | 到下一次创造 | 先点了鱼 |',
+    '|---|---|---|---|',
+    ...r.testers.map((t) => {
+      const a = t.afterFirstFish;
+      if (!a) return `| ${t.id} | 没有画鱼 | — | — |`;
+      const kind = { create: '接着画', watch: '先看', none: '没再画' }[a.kind];
+      return `| ${t.id} | ${kind} | ${a.gapMs === null ? '—' : `${(a.gapMs / 1000).toFixed(1)}s`} | ${a.touched ? '是' : '否'} |`;
+    }),
   );
   return out.join('\n') + '\n';
 }

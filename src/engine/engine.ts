@@ -18,7 +18,7 @@ import { logEvent, prompted } from '../telemetry';
 import { SAVE_VERSION, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
-import { meteorDive, Relations } from './relations';
+import { meteorDive, Relations, type RelationEffects, type RelationWorld } from './relations';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
@@ -495,11 +495,16 @@ export class Engine {
     this.demo = { points: pts, stroke, start: this.time };
   }
 
-  /** Change the mood of the world (一句成境). Undoable like a creation. */
-  applyScene(cmd: SceneCommand): void {
+  /**
+   * Change the mood of the world (一句成境). Undoable like a creation. Words
+   * may also ask something of the fish already there (docs/02 §5.3); returns
+   * how many answer.
+   */
+  applyScene(cmd: SceneCommand): number {
     this.commitRestart();
     const prev = this.atmosphere.apply(cmd);
     this.record('atmosphere', this.width / 2, this.horizonY, () => this.atmosphere.set(prev));
+    return cmd.fish ? this.relations.ask(cmd.fish, this.relationWorld(), this.relationFx) : 0;
   }
 
   /** Show an echo line from the poem library in the sky. */
@@ -518,6 +523,7 @@ export class Engine {
    */
   amendScene(cmd: SceneCommand): void {
     this.atmosphere.apply(cmd);
+    if (cmd.fish) this.relations.ask(cmd.fish, this.relationWorld(), this.relationFx);
   }
 
   /** Undo the latest creation, or a given one. Returns false when there is nothing to undo. */
@@ -895,31 +901,34 @@ export class Engine {
 
   /** The world answering itself (docs/02 §5.5): see relations.ts. */
   private updateRelations(): void {
+    this.relations.update(this.relationWorld(), this.relationFx);
+  }
+
+  private relationWorld(): RelationWorld {
     const moon = this.sky.moonPos;
     const lakeTop = this.horizonY - this.minDim * 0.08;
     const swimmers = this.fishes.filter((f) => !f.ghost && f.state === 'swimming' && !f.hidden);
     const atmos = this.atmosphere;
-    this.relations.update(
-      {
-        time: this.time,
-        calm: this.calm,
-        idle: this.input ? 0 : this.time - this.lastInput,
-        fish: swimmers,
-        moonReflection: moon ? { x: moon.x, y: Math.min(Math.max(2 * this.horizonY - moon.y, this.minDim * 0.08), lakeTop) } : null,
-        rain: atmos.rain,
-        mist: atmos.mist,
-        lake: { minX: 0, maxX: this.width, minY: 0, maxY: this.horizonY - this.minDim * 0.05 },
-        minDim: this.minDim,
-        home: this.honmeiHome(swimmers),
-      },
-      {
-        pulseMoon: () => this.sky.pulseMoon(),
-        ripple: (x, y, s) => this.addRipple(x, y, s),
-        sound: (kind, x, s) => this.sfx(kind, x, s),
-        emerged: (what) => logEvent('emerge', { what }),
-      },
-    );
+    return {
+      time: this.time,
+      calm: this.calm,
+      idle: this.input ? 0 : this.time - this.lastInput,
+      fish: swimmers,
+      moonReflection: moon ? { x: moon.x, y: Math.min(Math.max(2 * this.horizonY - moon.y, this.minDim * 0.08), lakeTop) } : null,
+      rain: atmos.rain,
+      mist: atmos.mist,
+      lake: { minX: 0, maxX: this.width, minY: 0, maxY: this.horizonY - this.minDim * 0.05 },
+      minDim: this.minDim,
+      home: this.honmeiHome(swimmers),
+    };
   }
+
+  private readonly relationFx: RelationEffects = {
+    pulseMoon: () => this.sky.pulseMoon(),
+    ripple: (x, y, s) => this.addRipple(x, y, s),
+    sound: (kind, x, s) => this.sfx(kind, x, s),
+    emerged: (what) => logEvent('emerge', { what }),
+  };
 
   /** Where the first fish was drawn: the pen-up end of its stroke, kept inside the lake. */
   private honmeiHome(swimmers: Fish[]): { fish: Fish; x: number; y: number } | null {

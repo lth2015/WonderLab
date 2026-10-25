@@ -127,6 +127,9 @@ export class Fish {
   private mist = 0;
   private riseTarget = 0;
   private mistTarget = 0;
+  /** Asked to rest (一句成境): slow and near the surface until then. */
+  private restUntil = -1;
+  private rest = 0;
   private nextWake = 2 + Math.random() * 2;
   private fadeTime: number;
   private spread = 1;
@@ -317,6 +320,14 @@ export class Fish {
     this.mistTarget = mist;
   }
 
+  setRest(until: number): void {
+    this.restUntil = until;
+  }
+
+  get orbiting(): boolean {
+    return !!this.orbit;
+  }
+
   /** Swim round with the others (群鱼成圆), or stop when null. */
   setOrbit(o: Orbit | null, slot = 0): void {
     this.orbit = o;
@@ -394,7 +405,8 @@ export class Fish {
     // Drifts a little up and down; a leap brings it to the surface. Rain
     // brings it up, mist lets it sink and blurs its shadow.
     const ease = Math.min(dt / 2.5, 1);
-    this.rise += (this.riseTarget - this.rise) * ease;
+    this.rest += ((ctx.time < this.restUntil ? 1 : 0) - this.rest) * ease;
+    this.rise += (Math.max(this.riseTarget, 0.6 * this.rest) - this.rise) * ease;
     this.mist += (this.mistTarget - this.mist) * ease;
     const leapH = this.leapT >= 0 ? Math.sin(Math.PI * this.leapT) : 0;
     const swimDepth = this.depth * (1 - 0.7 * this.rise) + 0.2 * this.mist;
@@ -462,6 +474,7 @@ export class Fish {
       const gap = Math.hypot(chase.x - this.headX, chase.y - this.headY);
       target = Math.max(target, this.L * 0.65) * (1 + 0.9 * Math.min(gap / (this.L * 1.5), 1));
     } else if (this.attract?.eager) target *= 1.35;
+    target *= 1 - 0.6 * this.rest;
     this.speed += (target - this.speed) * Math.min(dt * 1.8, 1);
 
     // Gentle wandering.

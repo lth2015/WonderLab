@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyzeStudy, analyzeTester, formatReport, freeSpans, isSessionLog, judge, type SessionEvent, type SessionLog } from './sessions';
+import { afterFirstFish, analyzeStudy, analyzeTester, formatReport, freeSpans, isSessionLog, judge, type SessionEvent, type SessionLog } from './sessions';
 
 const log = (events: SessionEvent[]): SessionLog => ({ device: 'desktop', events });
 const ev = (t: number, type: string, fields: Record<string, string | number | boolean> = {}): SessionEvent => ({ t, type, ...fields });
@@ -142,5 +142,23 @@ describe('analyzeStudy', () => {
     expect(isSessionLog({ exportedAt: 'x', events: [{ t: 1, type: 'world_ready' }] })).toBe(true);
     expect(isSessionLog({ events: [{ type: 'x' }] })).toBe(false);
     expect(isSessionLog([])).toBe(false);
+  });
+});
+
+describe('afterFirstFish (创造的乐趣 / 陪伴的乐趣)', () => {
+  it('reads creating again at once', () => {
+    expect(afterFirstFish([ev(1000, 'create', { what: 'fish' }), ev(4000, 'create', { what: 'fish' })])).toEqual({ kind: 'create', gapMs: 3000, touched: false });
+  });
+  it('reads stopping to watch: a long pause, or touching the fish first', () => {
+    expect(afterFirstFish([ev(1000, 'create', { what: 'fish' }), ev(15000, 'text_submit')])!.kind).toBe('watch');
+    expect(afterFirstFish([ev(1000, 'create', { what: 'fish' }), ev(2000, 'touch', { object: 'fish' }), ev(3000, 'create', { what: 'moon' })])).toEqual({
+      kind: 'watch',
+      gapMs: 2000,
+      touched: true,
+    });
+  });
+  it('reads never creating again, and no fish at all', () => {
+    expect(afterFirstFish([ev(1000, 'create', { what: 'fish' }), ev(5000, 'touch', { object: 'lake' })])).toEqual({ kind: 'none', gapMs: null, touched: false });
+    expect(afterFirstFish([ev(1000, 'create', { what: 'moon' })])).toBeNull();
   });
 });

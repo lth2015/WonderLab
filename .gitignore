@@ -6,3 +6,5 @@ art-raw
 .env
 server-data
 .playwright-mcp
+# Collected strokes stay out of the repository (strokes/README.md)
+strokes/*.json

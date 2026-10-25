@@ -82,8 +82,8 @@ export function Collector() {
       <main className="collect intro">
         <h1>笔迹采集</h1>
         <p>
-          会依次请你画 {CATEGORIES.length} 种形状，每种 5 次，打乱顺序，共 {CATEGORIES.length * 5} 笔，约 3 分钟。
-          照平时的习惯画就好，没有画错这回事。
+          会依次请你画 {CATEGORIES.length} 种形状，每种 5 次，打乱顺序，共 {CATEGORIES.length * 5} 笔，约 4 分钟。
+          照平时的习惯画就好，不用刻意画快或画慢，也没有画错这回事。
         </p>
         <label>
           测试者编号（不要填真名）

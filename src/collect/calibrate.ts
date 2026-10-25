@@ -174,6 +174,8 @@ export interface StyleSplit {
   suggested: number;
   /** How the strokes fall into families with the current splits. */
   families: Record<Family, number>;
+  /** Speeds far outside the rest (beyond 3 × the interquartile range): look at these strokes before trusting a split. */
+  outliers: number[];
 }
 
 const quantile = (sorted: number[], q: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))];
@@ -193,9 +195,12 @@ export function styleSplits(samples: Sample[]): StyleSplit[] {
     const curv = list.map((x) => x.curviness).sort((a, b) => a - b);
     const families: Record<Family, number> = { brisk: 0, lively: 0, calm: 0, round: 0 };
     for (const x of list) families[familyOf(x.speed, x.curviness, pointerType)]++;
+    const [q1, , q3] = [quantile(speeds, 0.25), 0, quantile(speeds, 0.75)];
+    const iqr = q3 - q1;
     return {
       pointerType,
       n: list.length,
+      outliers: speeds.filter((v) => v < q1 - 3 * iqr || v > q3 + 3 * iqr),
       speed: [quantile(speeds, 0.25), quantile(speeds, 0.5), quantile(speeds, 0.75)],
       curviness: quantile(curv, 0.5),
       current: STYLE.fastSplit[pointerType] ?? STYLE.fastSplit.mouse,
