@@ -18,6 +18,8 @@ import { dismissBoot } from './boot';
 import { StaticLake } from './StaticLake';
 import { freshUrl, onReset, resetForNext } from './moderator';
 import { clearVisits, startVisit, visibilityChanged } from './lib/visits';
+import { cleanSeal, decodeGift, giftLink } from './gift/codec';
+import { hasReceived, markReceived, takeGiftFromAddress } from './gift/received';
 import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
 
@@ -44,6 +46,11 @@ const SAVE_EVERY_MS = 3000;
 const ECHO_DELAY_MS = 900;   // after the words have risen into the sky
 const ECHO_SHORTLIST = 24;
 const RECENT_ECHOES = 10;
+// 送一条鱼 (docs/02 §5.7) is a prototype behind ?giftlab: sending, receiving
+// and releasing are only reachable there. The gift is read from the address
+// first and removed from it at once (docs/gift-protocol.md §3).
+const giftlab = params.has('giftlab');
+const giftParam = giftlab ? takeGiftFromAddress() : null;
 const invite = captureInvite(params);
 // ?fresh starts from an empty world (docs/02 §3.1), then drops out of the
 // address so a refresh mid-session keeps the tester's world.
@@ -126,6 +133,11 @@ export function App() {
   const [failed, setFailed] = useState(false);
   const [hint, setHint] = useState<Hint>(null);
   const [undoBtn, setUndoBtn] = useState<UndoButton>(null);
+  // 送一条鱼 prototype (?giftlab): what to offer after a long-pressed fish, the sender's seal, the send sheet.
+  const [held, setHeld] = useState<{ fishId: number; x: number; y: number; received: boolean; canGift: boolean; key: number } | null>(null);
+  const [sealMark, setSealMark] = useState<{ char: string; x: number; y: number; key: number } | null>(null);
+  const [sendSheet, setSendSheet] = useState<{ fishId: number; seal: string } | null>(null);
+  const [giftNote, setGiftNote] = useState('');
   const [announce, setAnnounce] = useState('');
   const [worldLabel, setWorldLabel] = useState('夜晚的湖面，还空着');
   const [text, setText] = useState('');
@@ -251,6 +263,13 @@ export function App() {
       cancel(demoTimer);
       setHint(null);
     };
+    // Gift notices have their own line, so the other hints never write over them.
+    let giftNoteTimer = 0;
+    const giftSay = (text: string, ms: number) => {
+      setGiftNote(text);
+      cancel(giftNoteTimer);
+      if (text) giftNoteTimer = later(() => setGiftNote((t) => (t === text ? '' : t)), ms);
+    };
     const engine = new Engine(
       canvas,
       {
@@ -288,6 +307,23 @@ export function App() {
         },
         onTierChange: setTier,
         onRestartSettled: () => setToast(false),
+        onFishHeld: (h) => {
+          if (!giftlab || (!h.canGift && !h.received)) return;
+          const key = Date.now();
+          setHeld({ ...h, key });
+          later(() => setHeld((x) => (x?.key === key ? null : x)), 7000);
+        },
+        onSeal: (s) => {
+          const key = Date.now();
+          setSealMark({ ...s, key });
+          later(() => setSealMark((x) => (x?.key === key ? null : x)), 3200);
+        },
+        onGiftShown: () => giftSay('一条鱼游到了你的湖边', 8000),
+        onGiftAccepted: (id) => {
+          markReceived(id);
+          giftSay('', 0);
+          setAnnounce('它游进了你的湖');
+        },
         onFrame: (c) => frameSinkRef.current?.(c),
       },
       {
@@ -329,6 +365,22 @@ export function App() {
       logEvent('world_ready', { ms: Math.round(performance.now()), device: deviceType(), tier: engine.tier });
       startVisit();
     });
+    const takeGift = (value: string, delay: number) => {
+      const r = decodeGift(value);
+      if (!r.ok) {
+        logEvent('gift_failed', { reason: r.reason });
+        later(() => giftSay('这条鱼没能游过来', 5000), delay);
+      } else if (hasReceived(r.id) || engine.serialize().fish.some((f) => f.gift?.id === r.id)) {
+        later(() => giftSay('它已经在你的湖里了', 5000), delay);
+      } else later(() => engine.receiveGift(r.gift, r.id), delay);
+    };
+    if (giftParam) takeGift(giftParam, 1500);
+    // A gift link opened in a tab already showing the lake changes only what follows #: no reload.
+    const onHashChange = () => {
+      const value = giftlab ? takeGiftFromAddress() : null;
+      if (value) takeGift(value, 300);
+    };
+    window.addEventListener('hashchange', onHashChange);
     // Painted koi and moon, when generated textures are present (public/art).
     loadArt().then((art) => {
       if (art && engineRef.current === engine) engine.setArt(art);
@@ -338,7 +390,7 @@ export function App() {
 
     const scheduleDemo = (ms: number) => {
       demoTimer = later(() => {
-        if (drawn || demos >= DEMO_MAX) return;
+        if (drawn || demos >= DEMO_MAX || giftParam) return;
         demos++;
         // Reduced motion: a still, dashed line instead of the animated ghost.
         if (reducedQuery.matches) setStaticDemo((n) => n + 1);
@@ -437,6 +489,7 @@ export function App() {
       clearInterval(describeTimer);
       document.removeEventListener('visibilitychange', onHide);
       window.removeEventListener('pagehide', save);
+      window.removeEventListener('hashchange', onHashChange);
       vv?.removeEventListener('resize', onViewport);
       vv?.removeEventListener('scroll', onViewport);
       engineRef.current = null;
@@ -515,6 +568,39 @@ export function App() {
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     setAnnounce('壁纸已保存');
   }, []);
+  /** Send the fish as a link (送一条鱼): the share sheet where there is one, the clipboard otherwise. */
+  const sendGift = useCallback(async (fishId: number, sealInput: string) => {
+    const g = engineRef.current?.giftOf(fishId);
+    if (!g) return;
+    const seal = cleanSeal(sealInput);
+    // Prototype links open the prototype; the gift itself stays after #.
+    const link = giftLink(`${location.origin}/?giftlab`, { ...g, ...(seal ? { seal } : {}) });
+    setSendSheet(null);
+    setHeld(null);
+    let how = 'copied';
+    try {
+      if (navigator.share) {
+        await navigator.share({ url: link });
+        how = 'shared';
+      } else {
+        await navigator.clipboard.writeText(link);
+      }
+    } catch (e) {
+      if ((e as DOMException).name === 'AbortError') how = 'cancelled';
+      else {
+        try {
+          await navigator.clipboard.writeText(link);
+        } catch {
+          how = 'failed';
+        }
+      }
+    }
+    logEvent('gift_sent', { how, seal: !!seal, chars: link.length });
+    const note = { shared: '鱼已经出发了', copied: '链接已复制，发给朋友吧', cancelled: '', failed: '没能生成链接' }[how] ?? '';
+    setGiftNote(note);
+    if (note) window.setTimeout(() => setGiftNote(''), 4000);
+  }, []);
+
   const undoRestart = useCallback(() => {
     engineRef.current?.undoRestart();
     setToast(false);
@@ -628,6 +714,77 @@ export function App() {
         >
           <span className="undo-dot" />
         </button>
+      )}
+      {held && (
+        <div
+          key={held.key}
+          className="held-actions"
+          style={{ left: `clamp(8px, ${held.x - 60}px, calc(100% - 160px))`, top: `clamp(8px, ${held.y + 28}px, calc(100% - 120px))` }}
+        >
+          {held.canGift && (
+            <button type="button" className="text-btn" onClick={() => setSendSheet({ fishId: held.fishId, seal: '' })}>
+              送给朋友
+            </button>
+          )}
+          {held.received && (
+            <button
+              type="button"
+              className="text-btn"
+              onClick={() => {
+                engineRef.current?.release(held.fishId);
+                setHeld(null);
+                setAnnounce('它游向了远方');
+              }}
+            >
+              让它游向远方
+            </button>
+          )}
+        </div>
+      )}
+      {sealMark && (
+        <span key={sealMark.key} className="seal-mark" style={{ left: sealMark.x, top: sealMark.y }} aria-hidden="true">
+          {sealMark.char}
+        </span>
+      )}
+      {giftNote && (
+        <p className="hint lake on gift-note" role="status">
+          {giftNote}
+        </p>
+      )}
+      {sendSheet && (
+        <>
+          <div className="scrim" onClick={() => setSendSheet(null)} />
+          <form
+            className="sheet gift-send"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="gift-send-title"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void sendGift(sendSheet.fishId, sendSheet.seal);
+            }}
+          >
+            <h2 id="gift-send-title">送给朋友</h2>
+            <p className="note">朋友打开链接，这条鱼会游到他的湖边。这一笔只在链接里，不经过我们的服务器。</p>
+            <label>
+              落款（可不填，一个字）
+              <input
+                value={sendSheet.seal}
+                maxLength={2}
+                autoComplete="off"
+                onChange={(e) => setSendSheet({ ...sendSheet, seal: e.target.value })}
+              />
+            </label>
+            <div className="stack">
+              <button type="submit" className="text-btn primary">
+                发送
+              </button>
+              <button type="button" className="link-btn" onClick={() => setSendSheet(null)}>
+                取消
+              </button>
+            </div>
+          </form>
+        </>
       )}
       <form className={`words${dim ? ' dim' : ''}`} onSubmit={submit}>
         <input

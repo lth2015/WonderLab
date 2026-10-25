@@ -10,6 +10,7 @@ import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { FORM_TIME, Fish, type FishOrigin } from './fish';
 import { awayEvent, growthFor, maturity, type AwayEvent } from './time';
+import type { GiftFish } from '../gift/codec';
 import { overflowing, pickVariety, resampleTimed, STYLE, strokeStyle, VARIETIES } from './koi-style';
 import { MOON_RISE, Sky, type MoonSpec } from './sky';
 import { classify, spineFromOutline, type Classification, type Pt } from './classify';
@@ -56,6 +57,14 @@ export interface EngineEvents {
   onRestartSettled?: (undone: boolean) => void;
   /** Right after each render, while the drawing buffer is still readable. */
   onFrame?: (canvas: HTMLCanvasElement) => void;
+  /** A fish was long-pressed (its stroke replays): where it is, in CSS pixels from the top left. */
+  onFishHeld?: (h: { fishId: number; x: number; y: number; received: boolean; canGift: boolean }) => void;
+  /** A replayed stroke ended on a sender's seal: show it there, like the 落款 on a painting. */
+  onSeal?: (s: { char: string; x: number; y: number }) => void;
+  /** A sent fish arrived at the lake's edge (送一条鱼). */
+  onGiftShown?: () => void;
+  /** The user tapped the water and took the fish in. */
+  onGiftAccepted?: (giftId: string) => void;
 }
 
 /** Where the engine sends its sounds (src/sound.ts); absent means silence. */
@@ -161,8 +170,12 @@ export class Engine {
   private fading: FadingStroke[] = [];
   private input: ActiveInput | null = null;
   private demo: { points: StrokePoint[]; stroke: Stroke; start: number } | null = null;
-  /** A fish's first stroke drawing itself again (docs/02 §5.6). */
-  private replay: { points: StrokePoint[]; stroke: Stroke; start: number } | null = null;
+  /** A fish's first stroke drawing itself again (docs/02 §5.6), or a sent fish's stroke arriving (§5.7). */
+  private replay: { points: StrokePoint[]; stroke: Stroke; start: number; seal?: string; then?: () => void } | null = null;
+  /** A sent fish swimming at the lake's edge, not yet taken in. */
+  private guestLureAt = 0;
+  /** Released fish swim off, then fade. */
+  private leaving: { fish: Fish; at: number }[] = [];
   private hadFirstStroke = false;
   private tierHeld = false;
   private sound: SoundSink | null = null;
@@ -370,7 +383,7 @@ export class Engine {
     const H = this.height;
     const S = this.minDim;
     const fish = this.fishes
-      .filter((f) => !f.ghost && !f.undone && !f.hidden && f.state !== 'leaving')
+      .filter((f) => !f.ghost && !f.guest && !f.undone && !f.hidden && f.state !== 'leaving')
       .map((f) => ({
         spine: f.spineFromTail().map((p): [number, number] => [p.x / W, p.y / H]),
         drawSpeed: f.drawSpeed,
@@ -381,6 +394,7 @@ export class Engine {
         ...(f.honmei ? { honmei: true } : {}),
         ...(f.origin ? { origin: f.origin } : {}),
         bornAt: f.bornAt,
+        ...(f.gift ? { gift: { ...f.gift } } : {}),
       }));
     const sky = this.sky.snapshot();
     const m = sky.moon;
@@ -429,6 +443,7 @@ export class Engine {
         maturity: grown,
         growth: sinceSave,
         restored: true,
+        gift: f.gift,
       });
       this.births = Math.max(this.births, f.origin?.born ?? 0);
       if (this.art) fish.setSkins(this.art.koi);
@@ -630,6 +645,7 @@ export class Engine {
 
     if (this.demo) this.advanceDemo();
     if (this.replay) this.advanceReplay();
+    this.updateGifts();
 
     const bounds = {
       minX: 0,
@@ -722,11 +738,24 @@ export class Engine {
       for (const p of points) stroke.add(p);
       stroke.finish();
       this.fadeStroke(stroke, 1.2, 1.5);
-    } else this.replay = { points, stroke, start: this.time };
+      this.showSeal(fish.gift?.seal, points[points.length - 1]);
+    } else this.replay = { points, stroke, start: this.time, seal: fish.gift?.seal };
     const end = points[points.length - 1];
     fish.lure(end.x, Math.min(end.y, this.horizonY - this.minDim * 0.08), this.time, { duration: (span * k) / 1000 + 2 });
     this.addRipple(fish.headX, fish.headY, 0.4);
-    logEvent('replay', { born: o.born, honmei: fish.honmei });
+    logEvent('replay', { born: o.born, honmei: fish.honmei, received: !!fish.gift });
+    this.events.onFishHeld?.({
+      fishId: fish.id,
+      x: fish.headX,
+      y: this.height - fish.headY,
+      received: !!fish.gift,
+      canGift: !fish.gift && !fish.glow,
+    });
+  }
+
+  /** The sender's seal at the end of their stroke, like the 落款 on a painting. */
+  private showSeal(char: string | undefined, at: { x: number; y: number }): void {
+    if (char) this.events.onSeal?.({ char, x: at.x, y: this.height - at.y });
   }
 
   private advanceReplay(): void {
@@ -738,9 +767,132 @@ export class Engine {
     if (r.stroke.points.length >= r.points.length) {
       r.stroke.finish();
       this.replay = null;
+      this.showSeal(r.seal, r.points[r.points.length - 1]);
       // The line lingers a moment, then goes back into the water.
       this.fadeStroke(r.stroke, 0.8, 1.4);
+      r.then?.();
     }
+  }
+
+  // ---------------------------------------------------------------- 送一条鱼 (docs/02 §5.7)
+
+  /** What to put in a gift link for one of the user's own fish; null when it cannot be sent. */
+  giftOf(fishId: number): Omit<GiftFish, 'seal'> | null {
+    const fish = this.fishes.find((f) => f.id === fishId);
+    if (!fish || !fish.origin || fish.gift || fish.glow || fish.guest) return null;
+    const o = fish.origin;
+    const S = this.minDim;
+    const [x0, y0, t0] = o.stroke[0];
+    return {
+      stroke: o.stroke.map(([x, y, t]): [number, number, number] => [((x - x0) * this.width) / S, ((y - y0) * this.height) / S, t - t0]),
+      variety: fish.variety ?? 'kohaku',
+      seed: fish.seed,
+      speed: o.speed,
+      curviness: o.curviness,
+      family: o.family,
+      pointer: o.pointer,
+    };
+  }
+
+  /**
+   * A sent fish arrives (docs/02 §5.7): its stroke draws itself far out on
+   * the lake, ending on the sender's seal if any, then becomes a fish that
+   * swims along the far edge. Nothing is saved until the user taps the
+   * water to take it in; leave it, and it is gone with the page.
+   */
+  receiveGift(g: GiftFish, giftId: string): void {
+    const S = this.minDim;
+    const W = this.width;
+    // Place the stroke, at its own size, far out on the lake.
+    let pts = g.stroke.map(([dx, dy, t]) => ({ x: dx * S, y: dy * S, t, pressure: 0.5 }));
+    const xs = pts.map((p) => p.x);
+    const ys = pts.map((p) => p.y);
+    const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    const m = S * 0.05;
+    const top = this.horizonY - S * 0.07;
+    const cx = THREE.MathUtils.clamp(W * (0.3 + 0.4 * Math.random()), m + (maxX - minX) / 2, W - m - (maxX - minX) / 2);
+    const cy = THREE.MathUtils.clamp(this.horizonY - S * 0.16, m + (maxY - minY) / 2, top - (maxY - minY) / 2);
+    pts = pts.map((p) => ({ ...p, x: p.x - (minX + maxX) / 2 + cx, y: p.y - (minY + maxY) / 2 + cy }));
+    const span = Math.max(pts[pts.length - 1].t, 1);
+    const k = Math.min(1, 4000 / span);
+    pts = pts.map((p) => ({ ...p, t: p.t * k }));
+
+    this.cancelReplay();
+    const stroke = new Stroke(this.palette, S, false);
+    stroke.setOpacity(0.5);
+    this.scene.add(stroke.mesh);
+    const arrive = () => {
+      let length = 0;
+      for (let i = 1; i < pts.length; i++) length += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      const fish = new Fish(pts, length, Math.max(span, 16), S, this.palette, {
+        calm: this.calm,
+        look: { seed: g.seed, variety: g.variety },
+        lively: this.livelyFrom(g.speed, g.pointer),
+        gift: { id: giftId, ...(g.seal ? { seal: g.seal } : {}) },
+        guest: true,
+        bornAt: Date.now(),
+        origin: {
+          stroke: pts.map((p) => [round4(p.x / W), round4(p.y / this.height), Math.round(p.t / k)]),
+          speed: g.speed,
+          curviness: g.curviness,
+          family: g.family,
+          pointer: g.pointer,
+          born: 0, // given a place in this world's births when taken in
+        },
+      });
+      if (this.art) fish.setSkins(this.art.koi);
+      this.fishes.push(fish);
+      this.scene.add(fish.group);
+      this.guestLureAt = this.time + 2;
+      this.events.onGiftShown?.();
+      logEvent('gift_shown', { seal: !!g.seal });
+    };
+    if (this.calm) {
+      for (const p of pts) stroke.add(p);
+      stroke.finish();
+      this.fadeStroke(stroke, 1.2, 1.5);
+      this.showSeal(g.seal, pts[pts.length - 1]);
+      arrive();
+    } else this.replay = { points: pts, stroke, start: this.time, seal: g.seal, then: arrive };
+  }
+
+  /** The guest swims along the far edge until taken in; released fish swim off, then fade. */
+  private updateGifts(): void {
+    const guest = this.fishes.find((f) => f.guest && f.state === 'swimming');
+    if (guest && this.time >= this.guestLureAt) {
+      this.guestLureAt = this.time + 5;
+      guest.lure(this.width * (0.15 + 0.7 * Math.random()), this.horizonY - this.minDim * 0.12, this.time, { duration: 6 });
+    }
+    this.leaving = this.leaving.filter(({ fish, at }) => {
+      if (this.time < at) return true;
+      fish.leave();
+      return false;
+    });
+  }
+
+  /** Tapped the water with a guest at the edge: it comes in to where the tap was. */
+  private acceptGuest(x: number, y: number): boolean {
+    const fish = this.fishes.find((f) => f.guest && f.state !== 'leaving');
+    if (!fish) return false;
+    fish.guest = false;
+    fish.origin!.born = ++this.births;
+    fish.lure(x, y, this.time, { eager: true, duration: 4 });
+    this.addRipple(x, y, 1);
+    this.sfx('drop', x, 0.8);
+    this.evictOverflow();
+    logEvent('gift_accepted', {});
+    this.events.onGiftAccepted?.(fish.gift!.id);
+    return true;
+  }
+
+  /** 让它游向远方: a received fish swims off toward the far shore and is gone from this world. */
+  release(fishId: number): void {
+    const fish = this.fishes.find((f) => f.id === fishId);
+    if (!fish || !fish.gift || fish.state === 'leaving') return;
+    const toLeft = fish.headX < this.width / 2;
+    fish.lure(toLeft ? this.minDim * 0.02 : this.width - this.minDim * 0.02, this.horizonY - this.minDim * 0.08, this.time, { duration: 5 });
+    this.leaving.push({ fish, at: this.time + 2.5 });
+    logEvent('gift_released', {});
   }
 
   private cancelReplay(): void {
@@ -774,7 +926,8 @@ export class Engine {
 
   /** Over the tier's fish limit, the oldest leave first, but never the first fish (本命鱼). */
   private evictOverflow(): void {
-    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden);
+    // A fish still at the lake's edge (送一条鱼) does not count until it is taken in.
+    const real = this.fishes.filter((f) => !f.ghost && !f.guest && f.state !== 'leaving' && !f.hidden);
     for (const f of overflowing(real, TIERS[this.monitor.tier].maxFish)) f.leave();
   }
 
@@ -998,7 +1151,7 @@ export class Engine {
   private relationWorld(): RelationWorld {
     const moon = this.sky.moonPos;
     const lakeTop = this.horizonY - this.minDim * 0.08;
-    const swimmers = this.fishes.filter((f) => !f.ghost && f.state === 'swimming' && !f.hidden);
+    const swimmers = this.fishes.filter((f) => !f.ghost && !f.guest && f.state === 'swimming' && !f.hidden);
     const atmos = this.atmosphere;
     return {
       time: this.time,
@@ -1228,6 +1381,8 @@ export class Engine {
       this.sfx('star', x);
       return;
     }
+    // A sent fish waits at the edge: touching the water takes it in (送一条鱼).
+    if (y < this.horizonY && this.acceptGuest(x, y)) return;
     if (fish) {
       prompted('touch_fish');
       this.events.onFishTouched?.();
