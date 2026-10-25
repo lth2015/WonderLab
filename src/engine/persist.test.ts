@@ -16,6 +16,16 @@ describe('parseWorld', () => {
     expect(parseWorld(JSON.parse(JSON.stringify(valid)))).toEqual(valid);
   });
 
+  it('keeps a meteor fish glowing, and nothing else', () => {
+    const fish = [
+      { ...valid.fish[0], glow: true },
+      { ...valid.fish[0], glow: 'yes' },
+    ];
+    const w = parseWorld(JSON.parse(JSON.stringify({ ...valid, fish })));
+    expect(w!.fish[0].glow).toBe(true);
+    expect('glow' in w!.fish[1]).toBe(false);
+  });
+
   it('rejects other versions and non-objects', () => {
     expect(parseWorld({ ...valid, version: 2 })).toBeNull();
     expect(parseWorld(null)).toBeNull();

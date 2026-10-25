@@ -8,6 +8,7 @@ export type EventType =
   | 'first_stroke'
   | 'stroke_classified'
   | 'create'
+  | 'emerge'
   | 'touch'
   | 'text_submit'
   | 'hint_shown'

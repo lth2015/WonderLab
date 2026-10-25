@@ -16,6 +16,8 @@ export interface SavedFish {
   drawSpeed: number;
   seed: number;
   patch: number;
+  /** A meteor's glowing fish. Absent for drawn fish. */
+  glow?: boolean;
 }
 
 export interface WorldSave {
@@ -76,7 +78,7 @@ export function parseWorld(data: unknown): WorldSave | null {
       .slice(0, LIMITS.spine)
       .filter((p): p is [number, number] => Array.isArray(p) && p.length === 2 && p.every(isUnitish));
     if (spine.length < 2 || !isPos(f.drawSpeed) || !isNum(f.seed) || !isNum(f.patch)) continue;
-    fish.push({ spine, drawSpeed: Math.min(f.drawSpeed, 10), seed: f.seed, patch: unit(f.patch, 0) });
+    fish.push({ spine, drawSpeed: Math.min(f.drawSpeed, 10), seed: f.seed, patch: unit(f.patch, 0), ...(f.glow === true ? { glow: true } : {}) });
   }
 
   let moon: WorldSave['moon'] = null;
