@@ -17,6 +17,7 @@ import { logEvent, prompted } from '../telemetry';
 import { SAVE_VERSION, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
+import { meteorDive, Relations } from './relations';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
@@ -129,7 +130,9 @@ export class Engine {
   private history: HistoryEntry[] = [];
   private nextHistoryId = 1;
   private waveT = 0;
-  private nextMoonLure = 6;
+  private readonly relations = new Relations();
+  /** Engine time of the last pointer down or key creation, for the relations' idle wait. */
+  private lastInput = 0;
   private readonly monitor: FrameMonitor;
   private readonly pinnedTier: boolean;
   private calm: boolean;
@@ -322,6 +325,7 @@ export class Engine {
 
   /** Keyboard creation (docs/03 §8): a fish or a moon at a random spot, or a tap on the lake. */
   keyAction(action: 'fish' | 'moon' | 'tap'): void {
+    this.noteInput();
     const S = this.minDim;
     const lakeY = () => this.horizonY * (0.2 + Math.random() * 0.55);
     const x0 = this.width * (0.25 + Math.random() * 0.5);
@@ -363,6 +367,7 @@ export class Engine {
         drawSpeed: f.drawSpeed,
         seed: f.seed,
         patch: f.patch,
+        ...(f.glow ? { glow: true } : {}),
       }));
     const sky = this.sky.snapshot();
     const m = sky.moon;
@@ -394,7 +399,7 @@ export class Engine {
       if (length < 1) continue;
       const fish = new Fish(pts, length, length / f.drawSpeed, S, this.palette, {
         calm: this.calm,
-        look: { seed: f.seed, patch: f.patch },
+        look: { seed: f.seed, patch: f.patch, glow: f.glow },
       });
       if (this.art) fish.setSkins(this.art.koi);
       this.fishes.push(fish);
@@ -412,6 +417,7 @@ export class Engine {
   /** Clear the world, keeping it for a few seconds so the restart can be taken back. */
   restart(): void {
     this.commitRestart();
+    this.relations.interrupt();
     this.cancelDemo();
     // Whatever was still waiting to appear belongs to the old world.
     for (const q of this.leadQueue) this.fadeStroke(q.stroke, 0, 0.3);
@@ -598,7 +604,7 @@ export class Engine {
 
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
     this.echo.update(t);
-    this.lureToMoon(dt);
+    this.updateRelations();
 
     this.fading = this.fading.filter((f) => {
       const k = (t - f.fadeFrom) / f.duration;
@@ -763,18 +769,53 @@ export class Engine {
   private launchMeteor(stroke: Stroke): void {
     const pts = stroke.points;
     const a = pts[0];
-    const b = pts[pts.length - 1];
+    let b = pts[pts.length - 1];
     let starId = 0;
+    let fish: Fish | null = null;
     let cancelled = false;
+    // Drawn down to the horizon, the meteor falls into the lake and becomes
+    // a small glowing fish (流星入湖, docs/02 §5.5); otherwise it leaves a star.
+    const dive = meteorDive(a, b, this.horizonY, this.height);
+    if (dive) {
+      // Carry the line on to the horizon.
+      const k = (a.y - this.horizonY) / Math.max(a.y - b.y, 1e-3);
+      b = { ...b, x: THREE.MathUtils.clamp(a.x + (b.x - a.x) * k, 24, this.width - 24), y: this.horizonY + 1 };
+    }
     this.sfx('meteor', (a.x + b.x) / 2);
     this.sky.meteor(a.x, a.y, b.x, b.y, () => {
-      if (!cancelled) starId = this.sky.addStar(b.x, b.y);
+      if (cancelled) return;
+      if (dive) fish = this.meteorFish(b.x, a.x < b.x ? 1 : -1);
+      else starId = this.sky.addStar(b.x, b.y);
     });
     this.fadeStroke(stroke, 0, 0.35);
     this.record('meteor', b.x, b.y, () => {
       cancelled = true;
       if (starId) this.sky.removeStar(starId);
+      if (fish) fish.disperse();
     });
+  }
+
+  /** The fallen meteor's fish: a splash just below the horizon, then a small pale-gold fish swimming out of it. */
+  private meteorFish(x: number, dir: number): Fish {
+    const S = this.minDim;
+    const y = this.horizonY - S * 0.1;
+    this.addRipple(x, y, 1.3);
+    this.sfx('drop', x, 0.8);
+    const pts: StrokePoint[] = [];
+    for (let i = 0; i <= 12; i++) {
+      const u = i / 12;
+      // Toward the viewer and a little sideways, the way the meteor was going.
+      pts.push({ x: x + dir * u * S * 0.05, y: y - u * S * 0.08 + Math.sin(u * Math.PI) * S * 0.01, t: u * 300, pressure: 0.5 });
+    }
+    let length = 0;
+    for (let i = 1; i < pts.length; i++) length += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    const fish = new Fish(pts, length, 300, S, this.palette, { calm: this.calm, look: { seed: Math.random() * 100, patch: 0, glow: true } });
+    this.fishes.push(fish);
+    this.scene.add(fish.group);
+    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden);
+    const maxFish = TIERS[this.monitor.tier].maxFish;
+    while (real.length > maxFish) real.shift()!.leave();
+    return fish;
   }
 
   private placeCloud(c: Classification, stroke: Stroke): void {
@@ -791,17 +832,36 @@ export class Engine {
     this.record('cloud', centroid.x, centroid.y, () => this.sky.removeCloud(id));
   }
 
-  /** Now and then a fish drifts over to look at the moon's reflection. */
-  private lureToMoon(dt: number): void {
+  /** The world answering itself (docs/02 §5.5): see relations.ts. */
+  private updateRelations(): void {
     const moon = this.sky.moonPos;
-    if (!moon) return;
-    this.nextMoonLure -= dt;
-    if (this.nextMoonLure > 0) return;
-    this.nextMoonLure = 7 + Math.random() * 6;
-    const swimmers = this.fishes.filter((f) => !f.ghost && f.state === 'swimming');
-    if (!swimmers.length) return;
-    const y = Math.max(2 * this.horizonY - moon.y, this.minDim * 0.08);
-    swimmers[Math.floor(Math.random() * swimmers.length)].lure(moon.x, Math.min(y, this.horizonY - this.minDim * 0.08), this.time);
+    const lakeTop = this.horizonY - this.minDim * 0.08;
+    const swimmers = this.fishes.filter((f) => !f.ghost && f.state === 'swimming' && !f.hidden);
+    const atmos = this.atmosphere;
+    this.relations.update(
+      {
+        time: this.time,
+        calm: this.calm,
+        idle: this.input ? 0 : this.time - this.lastInput,
+        fish: swimmers,
+        moonReflection: moon ? { x: moon.x, y: Math.min(Math.max(2 * this.horizonY - moon.y, this.minDim * 0.08), lakeTop) } : null,
+        rain: atmos.rain,
+        mist: atmos.mist,
+        lake: { minX: 0, maxX: this.width, minY: 0, maxY: this.horizonY - this.minDim * 0.05 },
+        minDim: this.minDim,
+      },
+      {
+        pulseMoon: () => this.sky.pulseMoon(),
+        ripple: (x, y, s) => this.addRipple(x, y, s),
+        sound: (kind, x, s) => this.sfx(kind, x, s),
+        emerged: (what) => logEvent('emerge', { what }),
+      },
+    );
+  }
+
+  private noteInput(): void {
+    this.lastInput = this.time;
+    this.relations.interrupt();
   }
 
   // ---------------------------------------------------------------- input
@@ -847,6 +907,7 @@ export class Engine {
     }
     this.canvas.setPointerCapture(e.pointerId);
     this.cancelDemo();
+    this.noteInput();
     if (!this.hadFirstStroke) {
       this.hadFirstStroke = true;
       this.events.onFirstStroke?.();

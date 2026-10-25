@@ -3,6 +3,7 @@ import { fishFrag, ribbonVert } from './shaders/ink';
 import type { Palette } from './palette';
 import type { StrokePoint } from './stroke';
 import type { KoiSkin } from './art';
+import { RING_MARGIN, slotPoint, type Orbit } from './relations';
 
 const N = 32;
 export const FORM_TIME = 0.9; // s, mirrors docs/03 §6.3 (creation 1.2–1.8 s incl. ink bleed)
@@ -22,6 +23,8 @@ const envW = (s: number, k: number) => Math.max(bodyW(s) + pectW(s, k), tailW(s)
 export interface FishLook {
   seed: number;
   patch: number;
+  /** A fish a meteor turned into (docs/02 §5.5): small, pale gold, glowing. */
+  glow?: boolean;
 }
 
 export interface FishOptions {
@@ -70,6 +73,7 @@ export class Fish {
   readonly seed: number;
   readonly patch: number;
   readonly ghost: boolean;
+  readonly glow: boolean;
   private readonly calm: boolean;
   /** Stroke length over drawing time, px/ms: sets how lively the fish is. */
   readonly drawSpeed: number;
@@ -89,6 +93,13 @@ export class Fish {
   private startle = 0;
   private startleDir = 0;
   private attract: { x: number; y: number; until: number } | null = null;
+  private orbit: Orbit | null = null;
+  private slot = 0;
+  /** Rain brings fish up, mist lets them sink a little (docs/02 §5.5); eased toward the targets. */
+  private rise = 0;
+  private mist = 0;
+  private riseTarget = 0;
+  private mistTarget = 0;
   private nextWake = 2 + Math.random() * 2;
   private fadeTime: number;
   private spread = 1;
@@ -112,9 +123,10 @@ export class Fish {
     const ghost = (this.ghost = !!options.ghost);
     const calm = (this.calm = !!options.calm);
     this.seed = options.look?.seed ?? Math.random() * 100;
+    this.glow = !!options.look?.glow;
     this.depth = 0.2 + 0.4 * ((this.seed * 0.7548777) % 1);
     this.sociability = (this.seed * 0.3819) % 1 < 0.2 ? 0.1 : 0.6 + 0.4 * ((this.seed * 1.618) % 1);
-    this.patch = options.look?.patch ?? (Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0);
+    this.patch = this.glow ? 0 : (options.look?.patch ?? (Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0));
     this.opacity = ghost ? 0.38 : 1;
     this.fadeTime = ghost ? 1.2 : 2.2;
     // Length follows the stroke, within limits.
@@ -159,6 +171,7 @@ export class Fish {
       uSkinFlip: { value: 0 },
       uDepth: { value: this.depth },
       uTime: { value: 0 },
+      uGlow: { value: this.glow ? 1 : 0 },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
@@ -194,7 +207,8 @@ export class Fish {
     this.shadowMesh = new THREE.Mesh(this.geometry, this.shadowMaterial);
     this.shadowMesh.renderOrder = 1;
     this.shadowMesh.frustumCulled = false;
-    this.shadowMesh.position.set(this.L * 0.05, -this.L * 0.08, 0);
+    // A glowing fish lights the water under it instead of casting a shadow.
+    if (!this.glow) this.shadowMesh.position.set(this.L * 0.05, -this.L * 0.08, 0);
     this.group.add(this.shadowMesh, mesh);
     this.rebuild();
   }
@@ -248,7 +262,7 @@ export class Fish {
 
   /** Pick a painted koi from the generated set (by seed, so a saved fish keeps it), or none. */
   setSkins(skins: KoiSkin[]): void {
-    const skin = skins.length ? skins[Math.floor(((this.seed * 0.618034) % 1) * skins.length)] : null;
+    const skin = skins.length && !this.glow ? skins[Math.floor(((this.seed * 0.618034) % 1) * skins.length)] : null;
     this.skinHalf = skin ? skin.halfWidth / 0.12 : 0; // maxW is 0.12 of the length
     for (const m of [this.material, this.shadowMaterial]) {
       m.uniforms.uSkin.value = skin?.texture ?? null;
@@ -256,6 +270,19 @@ export class Fish {
       m.uniforms.uSkinHalf.value = this.skinHalf || 1;
       m.uniforms.uSkinFlip.value = skin?.flip ? 1 : 0;
     }
+  }
+
+  /** Weather levels, 0..1 (docs/02 §5.5). */
+  setWeather(rise: number, mist: number): void {
+    this.riseTarget = rise;
+    this.mistTarget = mist;
+  }
+
+  /** Swim round with the others (群鱼成圆), or stop when null. */
+  setOrbit(o: Orbit | null, slot = 0): void {
+    this.orbit = o;
+    this.slot = slot;
+    if (o) this.attract = null;
   }
 
   get canLeap(): boolean {
@@ -325,12 +352,23 @@ export class Fish {
     this.shadowMaterial.uniforms.uPect.value = this.material.uniforms.uPect.value;
     this.material.uniforms.uSpread.value = this.spread;
     this.shadowMaterial.uniforms.uSpread.value = this.spread;
-    // Drifts a little up and down; a leap brings it to the surface.
+    // Drifts a little up and down; a leap brings it to the surface. Rain
+    // brings it up, mist lets it sink and blurs its shadow.
+    const ease = Math.min(dt / 2.5, 1);
+    this.rise += (this.riseTarget - this.rise) * ease;
+    this.mist += (this.mistTarget - this.mist) * ease;
     const leapH = this.leapT >= 0 ? Math.sin(Math.PI * this.leapT) : 0;
-    const depth = Math.max(0, this.depth + 0.08 * Math.sin(ctx.time * 0.13 + this.seed) - leapH);
+    const swimDepth = this.depth * (1 - 0.7 * this.rise) + 0.2 * this.mist;
+    const depth = Math.min(Math.max(0, swimDepth + 0.08 * Math.sin(ctx.time * 0.13 + this.seed) - leapH), 1);
     for (const m of [this.material, this.shadowMaterial]) {
       m.uniforms.uDepth.value = depth;
       m.uniforms.uTime.value = ctx.time;
+    }
+    if (!this.glow) this.shadowMaterial.uniforms.uOpacity.value = shown * (1 - 0.65 * this.mist);
+    else {
+      const pulse = 0.85 + 0.15 * Math.sin(ctx.time * 1.7 + this.seed);
+      this.material.uniforms.uGlow.value = pulse;
+      this.shadowMaterial.uniforms.uGlow.value = pulse;
     }
     this.rebuild();
   }
@@ -376,7 +414,15 @@ export class Fish {
   private swim(dt: number, ctx: SwimContext): void {
     const { time, bounds } = ctx;
     this.startle *= Math.exp(-dt * 1.6);
-    const target = this.baseSpeed * (1 + this.startle * 3);
+    let target = this.baseSpeed * (1 + this.startle * 3);
+    // In a ring: chase this fish's slot, quicker the further behind it is.
+    let chase: { x: number; y: number } | null = null;
+    if (this.orbit && time > this.orbit.until) this.orbit = null;
+    if (this.orbit) {
+      chase = slotPoint(this.orbit, this.slot, time);
+      const gap = Math.hypot(chase.x - this.headX, chase.y - this.headY);
+      target = Math.max(target, this.L * 0.65) * (1 + 0.9 * Math.min(gap / (this.L * 1.5), 1));
+    }
     this.speed += (target - this.speed) * Math.min(dt * 1.8, 1);
 
     // Gentle wandering.
@@ -385,7 +431,8 @@ export class Fish {
     // Steering forces, accumulated as a desired direction.
     let sx = 0;
     let sy = 0;
-    const m = this.L * 0.9;
+    // Swimming the ring may take a fish closer to the edge (relations.ts).
+    const m = this.L * (this.orbit ? RING_MARGIN * 0.8 : 0.9);
     const x = this.headX;
     const y = this.headY;
     if (x < bounds.minX + m) sx += (bounds.minX + m - x) / m;
@@ -397,7 +444,7 @@ export class Fish {
     // that they give each other room. How sociable a fish is comes from its
     // seed, and the wish for company rises and falls slowly, so pairs and
     // small groups form, swim a while and drift apart again.
-    const social = this.ghost ? 0 : this.sociability * (0.5 + 0.5 * Math.sin(time * 0.045 + this.seed * 3.1));
+    const social = this.ghost || this.orbit ? 0 : this.sociability * (0.5 + 0.5 * Math.sin(time * 0.045 + this.seed * 3.1));
     let ax = 0;
     let ay = 0;
     let gx = 0;
@@ -439,6 +486,13 @@ export class Fish {
       }
       // Keep pace a little with the company, without losing its own character.
       this.speed += (pace / weight - this.speed) * Math.min(dt * 0.4 * social, 1);
+    }
+    if (chase) {
+      const dx = chase.x - x;
+      const dy = chase.y - y;
+      const d = Math.hypot(dx, dy) || 1;
+      sx += (dx / d) * 1.6;
+      sy += (dy / d) * 1.6;
     }
     if (this.attract) {
       const dx = this.attract.x - x;

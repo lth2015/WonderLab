@@ -93,6 +93,7 @@ uniform float uSkinHalf;   // ribbon half width for the texture, in maxW units
 uniform float uSkinFlip;
 uniform float uDepth;      // 0 at the surface .. 1 deep: how much water lies over the fish
 uniform float uTime;
+uniform float uGlow;       // > 0: a meteor's fish, pale gold and lit from within
 varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
 varying vec2 vPos;
 
@@ -200,9 +201,12 @@ void main() {
   a *= 1.0 - smoothstep(0.0, 0.35, loose * 1.6 - fbm(vec2(s * 6.0, v * 2.0) + uSeed) + 0.25);
   // Seen through a little water.
   col = mix(col, uWater, 0.12);
+  if (uGlow > 0.0) col = mix(col, vec3(1.0, 0.86, 0.56), 0.5 * uGlow) * (1.0 + 0.3 * uGlow);
 
   if (uShadow > 0.5) {
-    gl_FragColor = vec4(0.0, 0.01, 0.03, a * 0.32 * uOpacity);
+    // Under a glowing fish the water is lit, not shadowed.
+    if (uGlow > 0.0) gl_FragColor = vec4(vec3(1.0, 0.78, 0.42) * 0.7, a * 0.26 * uGlow * uOpacity);
+    else gl_FragColor = vec4(0.0, 0.01, 0.03, a * 0.32 * uOpacity);
   } else {
     gl_FragColor = vec4(col, a * uOpacity);
   }
