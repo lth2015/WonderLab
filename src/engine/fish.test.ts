@@ -73,3 +73,21 @@ describe('growing with time (docs/02 §5.6)', () => {
     expect(back.L).toBeCloseTo(grown * 1.02);
   });
 });
+
+describe('a saved fish comes back the same length (docs/02 §11 decision 12)', () => {
+  const plen = (p: { x: number; y: number }[]) => p.slice(1).reduce((s, q, i) => s + Math.hypot(q.x - p[i].x, q.y - p[i].y), 0);
+
+  it('made again and again from its saved body, swimming or not, it neither shrinks nor grows', () => {
+    let pts = Array.from({ length: 12 }, (_, i) => ({ x: 300 + i * 13.5, y: 200 + 6 * Math.sin(i / 3), t: 0, pressure: 0.5 }));
+    const first = plen(pts);
+    for (let round = 0; round < 20; round++) {
+      const f = new Fish(pts, plen(pts), 200, 800, palette, { restored: true });
+      // Every other time it is saved before it has swum at all (opened and closed at once).
+      if (round % 2) run([f], 2);
+      pts = f.spineFromTail().map((p) => ({ ...p, t: 0, pressure: 0.5 }));
+      // Resampling a curve may shave a hair off its bends, never a whole step: under 0.1% after twenty saves.
+      expect(Math.abs(plen(pts) / first - 1)).toBeLessThan(0.001);
+    }
+  });
+});
+

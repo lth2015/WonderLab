@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseWorld, SAVE_VERSION, type WorldSave } from './persist';
+import { AWAY_MAX, parseWorld, SAVE_VERSION, type WorldSave } from './persist';
 
 const valid: WorldSave = {
   version: SAVE_VERSION,
@@ -94,6 +94,26 @@ describe('parseWorld', () => {
     const w = parseWorld(many)!;
     expect(w.fish.length).toBeLessThanOrEqual(12);
     expect(w.stars.length).toBeLessThanOrEqual(24);
+  });
+
+  it('keeps the fish that swam off when the lake was full (在远处), validated like the rest', () => {
+    const far = { ...valid.fish[0], seed: 3, honmei: undefined, bornAt: 1000, origin: undefined };
+    const w = parseWorld({ ...valid, away: [far, { spine: 'nope' }, 'fish'] })!;
+    expect(w.away).toEqual([{ spine: far.spine, drawSpeed: 0.8, seed: 3, patch: 0.7, bornAt: 1000 }]);
+    expect(w.fish).toHaveLength(1);
+  });
+
+  it('keeps how much a fish had grown when saved, within range', () => {
+    const fish = [1.06, 0.5, 5, 'big'].map((size) => ({ ...valid.fish[0], size }));
+    expect(parseWorld({ ...valid, fish })!.fish.map((f) => f.size)).toEqual([1.06, undefined, undefined, undefined]);
+  });
+
+  it('reads saves from before 在远处 as having none, and keeps at most AWAY_MAX, the most recent', () => {
+    expect(parseWorld(valid)!.away).toBeUndefined();
+    const many = Array.from({ length: AWAY_MAX + 15 }, (_, i) => ({ ...valid.fish[0], seed: i }));
+    const w = parseWorld({ ...valid, away: many })!;
+    expect(w.away).toHaveLength(AWAY_MAX);
+    expect(w.away![0].seed).toBe(15);
   });
 
   it('reads saves from before planets as having none, and keeps planets in range', () => {

@@ -9,7 +9,7 @@ import { weatherFrag } from './shaders/weather';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { FORM_TIME, Fish, type FishOrigin } from './fish';
-import { awayEvent, growthFor, maturity, type AwayEvent } from './time';
+import { awayEvent, growthFor, maturity, regrow, type AwayEvent } from './time';
 import type { GiftFish } from '../gift/codec';
 import { overflowing, pickVariety, resampleTimed, STYLE, strokeStyle, VARIETIES } from './koi-style';
 import { MOON_RISE, Sky, type MoonSpec } from './sky';
@@ -17,7 +17,7 @@ import { classify, spineFromOutline, type Classification, type Pt } from './clas
 import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
-import { SAVE_VERSION, type WorldSave } from './persist';
+import { AWAY_MAX, SAVE_VERSION, type SavedFish, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
 import { meteorDive, Relations, type RelationEffects, type RelationWorld } from './relations';
@@ -90,6 +90,7 @@ interface QueuedLead {
 
 interface PendingRestart {
   fishes: Fish[];
+  away: SavedFish[];
   atmosphere: AtmosphereState;
   history: HistoryEntry[];
   timer: number;
@@ -176,6 +177,8 @@ export class Engine {
   private guestLureAt = 0;
   /** Released fish swim off, then fade. */
   private leaving: { fish: Fish; at: number }[] = [];
+  /** Fish that swam off when the lake was full (docs/02 §11 decision 12): still this world's, longest away first. */
+  private away: SavedFish[] = [];
   private hadFirstStroke = false;
   private tierHeld = false;
   private sound: SoundSink | null = null;
@@ -382,20 +385,7 @@ export class Engine {
     const W = this.width;
     const H = this.height;
     const S = this.minDim;
-    const fish = this.fishes
-      .filter((f) => !f.ghost && !f.guest && !f.undone && !f.hidden && f.state !== 'leaving')
-      .map((f) => ({
-        spine: f.spineFromTail().map((p): [number, number] => [p.x / W, p.y / H]),
-        drawSpeed: f.drawSpeed,
-        seed: f.seed,
-        patch: f.patch,
-        ...(f.glow ? { glow: true } : {}),
-        ...(f.variety ? { variety: f.variety } : {}),
-        ...(f.honmei ? { honmei: true } : {}),
-        ...(f.origin ? { origin: f.origin } : {}),
-        bornAt: f.bornAt,
-        ...(f.gift ? { gift: { ...f.gift } } : {}),
-      }));
+    const fish = this.fishes.filter((f) => !f.ghost && !f.guest && !f.undone && !f.hidden && f.state !== 'leaving').map((f) => this.saveFish(f));
     const sky = this.sky.snapshot();
     const m = sky.moon;
     return {
@@ -403,10 +393,27 @@ export class Engine {
       savedAt: Date.now(),
       atmosphere: this.restartPending ? { ...INITIAL } : { ...this.atmosphere.state },
       fish,
+      ...(this.away.length && !this.restartPending ? { away: this.away.map((f) => ({ ...f })) } : {}),
       moon: m ? { x: m.x / W, y: m.y / H, r: m.r / S, phase: m.phase, dark: [m.dark.x, m.dark.y] } : null,
       planets: sky.planets.map((p): [number, number, number, number] => [p.x / W, p.y / H, p.r / S, p.tint]),
       stars: sky.stars.map((st): [number, number] => [st.x / W, st.y / H]),
       clouds: sky.clouds.map((c): [number, number, number] => [c.x / W, c.y / H, c.w / S]),
+    };
+  }
+
+  private saveFish(f: Fish): SavedFish {
+    return {
+      spine: f.spineFromTail().map((p): [number, number] => [p.x / this.width, p.y / this.height]),
+      drawSpeed: f.drawSpeed,
+      seed: f.seed,
+      patch: f.patch,
+      ...(f.glow ? { glow: true } : {}),
+      ...(f.variety ? { variety: f.variety } : {}),
+      ...(f.honmei ? { honmei: true } : {}),
+      ...(f.origin ? { origin: f.origin } : {}),
+      bornAt: f.bornAt,
+      size: f.size,
+      ...(f.gift ? { gift: { ...f.gift } } : {}),
     };
   }
 
@@ -420,36 +427,11 @@ export class Engine {
     const H = this.height;
     const S = this.minDim;
     this.atmosphere.set(save.atmosphere);
-    for (const f of save.fish) {
-      const pts: StrokePoint[] = [];
-      let length = 0;
-      f.spine.forEach(([nx, ny], i) => {
-        const p = { x: nx * W, y: ny * H, t: 0, pressure: 0.5 };
-        if (i > 0) length += Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y);
-        pts.push(p);
-      });
-      if (length < 1) continue;
-      // An older save has no birth time: the fish starts growing from now.
-      const bornAt = f.bornAt ?? now;
-      const grown = maturity(bornAt, now);
-      // The saved spine is the fish as it was when saved: it only grows by what the days since have added.
-      const sinceSave = growthFor(grown, !!f.honmei) / growthFor(maturity(bornAt, save.savedAt ?? now), !!f.honmei);
-      const fish = new Fish(pts, length, length / f.drawSpeed, S, this.palette, {
-        calm: this.calm,
-        look: { seed: f.seed, patch: f.patch, glow: f.glow, variety: f.variety, honmei: f.honmei },
-        origin: f.origin,
-        lively: f.origin ? this.livelyFrom(f.origin.speed, f.origin.pointer) : undefined,
-        bornAt,
-        maturity: grown,
-        growth: sinceSave,
-        restored: true,
-        gift: f.gift,
-      });
-      this.births = Math.max(this.births, f.origin?.born ?? 0);
-      if (this.art) fish.setSkins(this.art.koi);
-      this.fishes.push(fish);
-      this.scene.add(fish.group);
-    }
+    for (const f of save.fish) this.bringBack(f, now, save.savedAt ?? now);
+    // Fish from afar come back while the lake has room (after an undo, or on a device that shows more): longest away first.
+    this.away = [...(save.away ?? [])];
+    const room = TIERS[this.monitor.tier].maxFish - this.fishes.filter((f) => !f.ghost && !f.guest).length;
+    for (const f of this.away.splice(0, Math.max(room, 0))) this.bringBack(f, now, save.savedAt ?? now);
     if (save.moon) {
       const m = save.moon;
       this.sky.setMoon({ x: m.x * W, y: m.y * H, r: m.r * S, phase: m.phase, dark: { x: m.dark[0], y: m.dark[1] }, rise: false });
@@ -458,8 +440,43 @@ export class Engine {
     for (const [x, y] of save.stars) this.sky.addStar(x * W, y * H);
     for (const [x, y, w] of save.clouds) this.sky.addCloud(x * W, y * H, w * S);
     // A restored world was already drawn in: its first fish, if any, is still the one.
-    this.honmeiTaken = save.fish.length > 0;
+    this.honmeiTaken = save.fish.length > 0 || (save.away?.length ?? 0) > 0;
     if (save.savedAt) this.whileAway(now - save.savedAt);
+  }
+
+  /** One saved fish back in the lake, grown by the days since it was saved. */
+  private bringBack(f: SavedFish, now: number, savedAt: number): void {
+    const W = this.width;
+    const H = this.height;
+    const S = this.minDim;
+    const pts: StrokePoint[] = [];
+    let length = 0;
+    f.spine.forEach(([nx, ny], i) => {
+      const p = { x: nx * W, y: ny * H, t: 0, pressure: 0.5 };
+      if (i > 0) length += Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y);
+      pts.push(p);
+    });
+    if (length < 1) return;
+    // An older save has no birth time: the fish starts growing from now.
+    const bornAt = f.bornAt ?? now;
+    // The saved spine is the fish as it was last made: it grows only by the rest (an older save without size: as of savedAt).
+    const { size, ratio } = regrow(f.size ?? growthFor(maturity(bornAt, savedAt), !!f.honmei), bornAt, now, !!f.honmei);
+    const fish = new Fish(pts, length, length / f.drawSpeed, S, this.palette, {
+      calm: this.calm,
+      look: { seed: f.seed, patch: f.patch, glow: f.glow, variety: f.variety, honmei: f.honmei },
+      origin: f.origin,
+      lively: f.origin ? this.livelyFrom(f.origin.speed, f.origin.pointer) : undefined,
+      bornAt,
+      maturity: maturity(bornAt, now),
+      growth: ratio,
+      size,
+      restored: true,
+      gift: f.gift,
+    });
+    this.births = Math.max(this.births, f.origin?.born ?? 0);
+    if (this.art) fish.setSkins(this.art.koi);
+    this.fishes.push(fish);
+    this.scene.add(fish.group);
   }
 
   /** The one small thing that happened while the user was away, if any (time.ts). */
@@ -499,7 +516,8 @@ export class Engine {
     const history = this.history;
     this.history = [];
     const timer = window.setTimeout(() => this.commitRestart(), RESTART_UNDO_MS);
-    this.restartPending = { fishes, atmosphere, history, timer };
+    this.restartPending = { fishes, away: this.away, atmosphere, history, timer };
+    this.away = [];
     logEvent('restart', { fish: fishes.length });
   }
 
@@ -509,6 +527,7 @@ export class Engine {
     clearTimeout(r.timer);
     this.restartPending = null;
     for (const f of r.fishes) f.show();
+    this.away = r.away;
     this.sky.setVeil(1);
     this.atmosphere.set(r.atmosphere);
     this.history = r.history;
@@ -928,7 +947,13 @@ export class Engine {
   private evictOverflow(): void {
     // A fish still at the lake's edge (送一条鱼) does not count until it is taken in.
     const real = this.fishes.filter((f) => !f.ghost && !f.guest && f.state !== 'leaving' && !f.hidden);
-    for (const f of overflowing(real, TIERS[this.monitor.tier].maxFish)) f.leave();
+    // At most two at a time: when the device slows and the lake holds fewer (quality.ts), it thins out over a few creations, not all at once.
+    for (const f of overflowing(real, TIERS[this.monitor.tier].maxFish).slice(0, 2)) {
+      // Swimming off is not the end: the fish stays in this world, in the distance (docs/02 §11 decision 12).
+      this.away.push(this.saveFish(f));
+      if (this.away.length > AWAY_MAX) this.away.shift();
+      f.leave();
+    }
   }
 
   private spawnFish(stroke: Stroke, ghost: boolean, spine?: Pt[], pointer = 'mouse'): void {

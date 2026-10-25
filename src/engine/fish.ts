@@ -60,8 +60,10 @@ export interface FishOptions {
   bornAt?: number;
   /** How far it has grown up, 0..1 (time.ts): sets its size and deepens its colours a shade. */
   maturity?: number;
-  /** Size multiplier for its age (time.ts growthFor). */
+  /** Size multiplier for its age (time.ts growthFor), applied to the length it is given. */
   growth?: number;
+  /** The size multiplier it has once made (time.ts regrow): saved with it, so coming back does not count growth twice. */
+  size?: number;
   /** A restored fish: its spine is already its body, so its length is kept as it is (no limits, no rescale). */
   restored?: boolean;
   /** A fish someone sent (送一条鱼): the gift it came in, and the sender's optional seal. */
@@ -122,6 +124,8 @@ export class Fish {
   readonly variety: string | null;
   readonly origin: FishOrigin | null;
   readonly bornAt: number;
+  /** How much it has grown past what was drawn (time.ts growthFor); 1 for a newborn. */
+  readonly size: number;
   /** Stable for this page, for pointing at a fish from the UI. */
   readonly id = nextFishId++;
   readonly gift: FishGift | null;
@@ -184,6 +188,7 @@ export class Fish {
     this.variety = this.glow ? null : (options.look?.variety ?? null);
     this.origin = options.origin ?? null;
     this.bornAt = options.bornAt ?? Date.now();
+    this.size = options.size ?? 1;
     this.gift = options.gift ?? null;
     this.guest = !!options.guest;
     this.depth = 0.2 + 0.4 * ((this.seed * 0.7548777) % 1);
@@ -711,6 +716,8 @@ function resample(points: StrokePoint[], length: number, n: number): { x: number
     }
     acc += d;
   }
+  // Rounding can leave the last step just short: end on the stroke's own end, or a body saved before it swims comes back a step shorter.
+  if (out.length < n) out.push({ x: rev[rev.length - 1].x, y: rev[rev.length - 1].y });
   while (out.length < n) out.push({ ...out[out.length - 1] });
   return out;
 }
