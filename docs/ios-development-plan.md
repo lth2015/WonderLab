@@ -6,6 +6,9 @@
 
 - 将现有 React + TypeScript + Three.js / Vite 应用通过 **Capacitor** 构建 iOS 应用；业务核心、世界状态、笔迹识别、AI 指令 schema 与 Web 共享。
 - iOS V1：无账号首笔、一笔化鱼、画圆生月、写给鱼的话、离线本地交互、世界保存、图片保存、系统分享；视频导出以真机可行为发布门槛，失败则仅宣传图片保存。
+- **文字能力只用本地规则**（02 §11 决策 5）：iOS 构建不请求 `/api/scene`，不读取 `#invite=`；`src/ai.ts` 在 iOS 下直接走本地路径，界面上不出现「灵感歇一会儿」之类的限流文案。
+- **不含账户与支付**：iOS 构建里不出现「更多 → 账户」，也不打包 `src/account`、Stripe、加密货币支付和 Google 登录的前端代码（用构建开关在打包时剔除，而不是运行时隐藏）。
+- 应用名 **Wonderful World**（02 §11 决策 6）。
 - 未来商业化：预留权益接口与 StoreKit 集成边界；**本次不实现购买、订阅或价格**。任何数字商品支付方案需在上架前核查当时 Apple 日本区规则，不直接复用 Web Stripe Checkout。
 - 发布主体：日本个人开发者账号；App Store 可能公开法定姓名。另行核实 trader 信息披露、支持联系方式、税务及隐私政策，绝不承诺家庭住址等信息一定不公开。
 
@@ -15,6 +18,7 @@
 - 盘点 Three.js/WebGL、Canvas captureStream、MediaRecorder、Web Audio、localStorage、Pointer Events、分享/下载和权限在 iOS WKWebView 的实际支持情况，形成兼容性表。
 - 选择与当前 Vite/React/Node 兼容的 Capacitor 稳定版本，记录版本锁定及升级风险；不要盲目更新所有依赖。
 - 创建独立的 iOS 入口/适配层，不在渲染循环中引入原生桥调用；保留 Web 运行方式。
+- 定一个构建期平台开关（例如 `VITE_PLATFORM=ios`），用它剔除账户、支付和 AI 请求代码；加一个测试，确认 iOS 构建产物里没有 `/api/scene`、Stripe 和钱包相关代码。
 
 ### IOS-02 · Capacitor 工程
 - 添加 Capacitor 配置、iOS 工程、npm 脚本和 README 本地构建步骤；配置唯一 Bundle ID（正式值待 Apple 账号确认），应用名 Wonderful World。
@@ -34,7 +38,7 @@
 ### IOS-05 · 商业化与合规基础
 - 预留平台无关的 entitlement / feature-gate 接口，但不引入假订阅或强制登录。
 - 编制 App Store Connect 元数据清单：法定销售者姓名、支持邮箱、隐私政策 URL、支持 URL、年龄分级、内容版权、App Privacy、第三方 SDK、加密出口合规、AI 数据处理说明。
-- 确认日本个人开发者在目标销售地区的 trader/联系信息展示义务；优先使用业务邮箱，必要时合法合规地安排业务联系地址，不填写虚假信息。
+- 首发只上架**日本区**（02 §13）；扩展到其他地区（尤其欧盟）前，再确认日本个人开发者的 trader/联系信息展示义务；优先使用业务邮箱，必要时合法合规地安排业务联系地址，不填写虚假信息。
 - 对未来 IAP/StoreKit、购买恢复、服务端交易验证、订阅管理与退款处理只做设计预留；实施前重新核对 Apple 审核规则。
 
 ### IOS-06 · 测试与交付
@@ -56,4 +60,4 @@
 
 ## Codex 执行指令
 
-请先阅读 docs/02-product-design.md §13、docs/03-ux-ui-design.md iOS 补充、docs/ios-acceptance.md 和当前 package.json。按 IOS-01 → IOS-06 分阶段实现；先提交技术预检与最小 Capacitor 工程 PR，不要一次性大改核心渲染。所有改动保持 Web 可运行，运行现有测试与构建，清楚报告未能在真实 iPhone 验证的部分。不得提交个人笔迹数据、签名密钥或账号资料。
+请先阅读 docs/02-product-design.md §13、docs/03-ux-ui-design.md iOS 补充、docs/ios-acceptance.md 和当前 package.json。按 IOS-01 → IOS-06 分阶段实现；先提交技术预检与最小 Capacitor 工程 PR，不要一次性大改核心渲染。所有改动保持 Web 可运行，运行现有测试与构建，清楚报告未能在真实 iPhone 验证的部分。不得提交个人笔迹数据、签名密钥或账号资料。iOS 首发只用本地文字规则，构建中剔除账户、支付和 AI 请求代码；应用名 Wonderful World。
