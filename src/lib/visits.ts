@@ -3,6 +3,10 @@
 // this browser only, with no content at all — nothing drawn or written —
 // and handed over only when the moderator exports it on the tester's phone.
 
+import { BUILD } from '../build';
+import { handOver } from './hand-over';
+import { buildSpans } from './record-builds';
+
 const KEY = 'wonderlab.visits';
 const MAX = 300;
 /** Hidden at least this long, and coming back counts as a new visit (mirrors time.ts TIME.awayMs). */
@@ -15,6 +19,9 @@ export interface Visit {
   ms: number;
   /** Creations and sentences during the visit. */
   creations: number;
+  /** The build that recorded the visit; 'unknown' for visits from before build stamping. */
+  sha: string;
+  exp: string;
 }
 
 let current: Visit | null = null;
@@ -25,7 +32,16 @@ let hiddenAt = 0;
 function read(): Visit[] {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(v) ? v.filter((x) => x && typeof x.at === 'number' && typeof x.ms === 'number' && typeof x.creations === 'number') : [];
+    if (!Array.isArray(v)) return [];
+    return v
+      .filter((x) => x && typeof x.at === 'number' && typeof x.ms === 'number' && typeof x.creations === 'number')
+      .map((x) => ({
+        at: x.at,
+        ms: x.ms,
+        creations: x.creations,
+        sha: typeof x.sha === 'string' && x.sha ? x.sha : 'unknown',
+        exp: typeof x.exp === 'string' && x.exp ? x.exp : 'unknown',
+      }));
   } catch {
     return [];
   }
@@ -53,7 +69,7 @@ function flush(now: number): void {
 }
 
 export function startVisit(now = Date.now()): void {
-  current = { at: now, ms: 0, creations: 0 };
+  current = { at: now, ms: 0, creations: 0, sha: BUILD.sha, exp: BUILD.experiment };
   shownSince = now;
   flush(now);
 }
@@ -90,23 +106,9 @@ export function clearVisits(): void {
   }
 }
 
-/** Hand the visits over as JSON: the share sheet on a phone, a download elsewhere. */
-export async function exportVisits(): Promise<'shared' | 'downloaded' | 'cancelled'> {
-  const name = `wonderful-world-visits-${Date.now()}.json`;
-  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), visits: read() }, null, 2)], { type: 'application/json' });
-  const file = new File([blob], name, { type: 'application/json' });
-  if (window.matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: name });
-      return 'shared';
-    } catch (e) {
-      if ((e as DOMException).name === 'AbortError') return 'cancelled';
-    }
-  }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  return 'downloaded';
+/** Hand the visits over as JSON, for the moderator panel. Each visit names its own build; `exportedBy` is only the build doing the export. */
+export function exportVisits(): Promise<'shared' | 'downloaded' | 'cancelled'> {
+  const visits = read();
+  const builds = buildSpans([], visits);
+  return handOver(`wonderful-world-visits-${Date.now()}.json`, { exportedAt: new Date().toISOString(), exportedBy: BUILD, builds, mixedBuilds: builds.length > 1, visits });
 }

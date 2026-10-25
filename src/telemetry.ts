@@ -2,6 +2,9 @@
 // device: nothing is sent anywhere, and nothing the user writes or draws is
 // recorded, only event types, times and a few non-personal fields. The
 // moderator exports it at the end of a session with a hidden shortcut.
+// In a field build the same events are also kept on the device across
+// visits (lib/study-log.ts), for the tester to export by choice (Study.tsx).
+// Every export says which build it came from (build.ts).
 
 export type EventType =
   | 'world_ready'
@@ -37,6 +40,8 @@ export interface LoggedEvent {
 type Fields = Record<string, string | number | boolean>;
 
 import { noteCreation } from './lib/visits';
+import { BUILD, FIELD_BUILD } from './build';
+import { keepFields, storeEvent } from './lib/study-log';
 
 // "Unprompted" is pre-registered in docs/02 §1: not within 10 s of a hint
 // that invited it. The H2 threshold is judged against this, so it must not drift.
@@ -57,7 +62,9 @@ const HINT_INVITES: Record<string, string> = {
 };
 
 export function logEvent(type: EventType, fields: Fields = {}): void {
-  events.push({ t: Math.round(performance.now()), type, ...fields });
+  // Both logs keep only the fields listed for the type (study-log.ts STUDY_FIELDS).
+  events.push({ t: Math.round(performance.now()), type, ...keepFields(type, fields) });
+  if (FIELD_BUILD) storeEvent(type, fields);
   // The diary study only counts what was made, never what (lib/visits.ts).
   if (type === 'create' || type === 'text_submit') noteCreation();
 }
@@ -110,7 +117,7 @@ export function deviceType(): string {
 export async function exportLog(): Promise<'shared' | 'downloaded' | 'cancelled'> {
   const count = events.length;
   const name = `wonderlab-session-${Date.now()}.json`;
-  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), device: deviceType(), events }, null, 2)], {
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), device: deviceType(), build: BUILD, events }, null, 2)], {
     type: 'application/json',
   });
   const file = new File([blob], name, { type: 'application/json' });

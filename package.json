@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:r1": "WW_EXPERIMENT=poc-r1 npm run build && cp deploy/static/_headers dist/_headers",
+    "build:gift": "WW_EXPERIMENT=poc-gift-r1 npm run build && cp deploy/static/_headers dist/_headers",
     "typecheck": "tsc -b && tsc -p server/tsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",

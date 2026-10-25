@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import { buildDefine } from './build-info';
 
 const at = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -15,6 +16,7 @@ export const alias = {
 // server/test/db, run by `npm run test:db` (vitest.db.config.ts).
 export default defineConfig({
   resolve: { alias },
+  define: buildDefine(),
   test: {
     include: ['src/**/*.test.ts', 'server/test/*.test.ts'],
   },

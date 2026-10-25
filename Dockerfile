@@ -7,7 +7,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+# .git is not in the image: pass the commit and experiment in (docs/验证路线图.md §4),
+# e.g. --build-arg WW_BUILD_SHA=$(git rev-parse --short=12 HEAD) --build-arg WW_EXPERIMENT=poc-r1
+ARG WW_BUILD_SHA=unknown
+ARG WW_EXPERIMENT=dev
+RUN WW_BUILD_SHA=$WW_BUILD_SHA WW_EXPERIMENT=$WW_EXPERIMENT npm run build
 
 FROM node:22-slim
 WORKDIR /app
