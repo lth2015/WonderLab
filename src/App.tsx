@@ -14,6 +14,7 @@ import { loadArt } from './engine/art';
 import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
 import { sound } from './sound';
 import { describeWorld } from './describe';
+import { dismissBoot } from './boot';
 import { freshUrl, onReset, resetForNext } from './moderator';
 import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
@@ -142,6 +143,7 @@ export function App() {
     const canvas = canvasRef.current!;
     if (!hasWebGL()) {
       setFailed(true);
+      dismissBoot();
       return;
     }
     // Timers run on visible time only: a link opened in a background tab must
@@ -310,6 +312,7 @@ export function App() {
     engine.start();
     requestAnimationFrame(() => {
       setReady(true);
+      dismissBoot();
       logEvent('world_ready', { ms: Math.round(performance.now()), device: deviceType(), tier: engine.tier });
     });
     // Painted koi and moon, when generated textures are present (public/art).
