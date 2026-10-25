@@ -9,6 +9,7 @@ import { weatherFrag } from './shaders/weather';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { FORM_TIME, Fish, type FishOrigin } from './fish';
+import { awayEvent, growthFor, maturity, type AwayEvent } from './time';
 import { overflowing, pickVariety, resampleTimed, STYLE, strokeStyle, VARIETIES } from './koi-style';
 import { MOON_RISE, Sky, type MoonSpec } from './sky';
 import { classify, spineFromOutline, type Classification, type Pt } from './classify';
@@ -160,6 +161,8 @@ export class Engine {
   private fading: FadingStroke[] = [];
   private input: ActiveInput | null = null;
   private demo: { points: StrokePoint[]; stroke: Stroke; start: number } | null = null;
+  /** A fish's first stroke drawing itself again (docs/02 §5.6). */
+  private replay: { points: StrokePoint[]; stroke: Stroke; start: number } | null = null;
   private hadFirstStroke = false;
   private tierHeld = false;
   private sound: SoundSink | null = null;
@@ -377,11 +380,13 @@ export class Engine {
         ...(f.variety ? { variety: f.variety } : {}),
         ...(f.honmei ? { honmei: true } : {}),
         ...(f.origin ? { origin: f.origin } : {}),
+        bornAt: f.bornAt,
       }));
     const sky = this.sky.snapshot();
     const m = sky.moon;
     return {
       version: SAVE_VERSION,
+      savedAt: Date.now(),
       atmosphere: this.restartPending ? { ...INITIAL } : { ...this.atmosphere.state },
       fish,
       moon: m ? { x: m.x / W, y: m.y / H, r: m.r / S, phase: m.phase, dark: [m.dark.x, m.dark.y] } : null,
@@ -391,8 +396,12 @@ export class Engine {
     };
   }
 
-  /** Bring a saved world back. Not undoable, and nothing is announced as a new creation. */
-  restore(save: WorldSave): void {
+  /**
+   * Bring a saved world back. Not undoable, and nothing is announced as a new
+   * creation. Fish have grown with the days since they were born, and if the
+   * user was away a while, one small thing happened meanwhile (docs/02 §5.6).
+   */
+  restore(save: WorldSave, now = Date.now()): void {
     const W = this.width;
     const H = this.height;
     const S = this.minDim;
@@ -406,11 +415,20 @@ export class Engine {
         pts.push(p);
       });
       if (length < 1) continue;
+      // An older save has no birth time: the fish starts growing from now.
+      const bornAt = f.bornAt ?? now;
+      const grown = maturity(bornAt, now);
+      // The saved spine is the fish as it was when saved: it only grows by what the days since have added.
+      const sinceSave = growthFor(grown, !!f.honmei) / growthFor(maturity(bornAt, save.savedAt ?? now), !!f.honmei);
       const fish = new Fish(pts, length, length / f.drawSpeed, S, this.palette, {
         calm: this.calm,
         look: { seed: f.seed, patch: f.patch, glow: f.glow, variety: f.variety, honmei: f.honmei },
         origin: f.origin,
         lively: f.origin ? this.livelyFrom(f.origin.speed, f.origin.pointer) : undefined,
+        bornAt,
+        maturity: grown,
+        growth: sinceSave,
+        restored: true,
       });
       this.births = Math.max(this.births, f.origin?.born ?? 0);
       if (this.art) fish.setSkins(this.art.koi);
@@ -426,6 +444,28 @@ export class Engine {
     for (const [x, y, w] of save.clouds) this.sky.addCloud(x * W, y * H, w * S);
     // A restored world was already drawn in: its first fish, if any, is still the one.
     this.honmeiTaken = save.fish.length > 0;
+    if (save.savedAt) this.whileAway(now - save.savedAt);
+  }
+
+  /** The one small thing that happened while the user was away, if any (time.ts). */
+  private whileAway(awayMs: number): void {
+    const honmei = this.fishes.find((f) => f.honmei && f.origin && !f.hidden && f.state !== 'leaving');
+    const what: AwayEvent | null = awayEvent(awayMs, { raining: this.atmosphere.state.weather === 'rain', honmeiWithHome: !!honmei });
+    if (!what) return;
+    const W = this.width;
+    if (what === 'rain_stopped') {
+      // The rain is still falling as the world opens, then eases off; the water keeps its rings a while.
+      this.atmosphere.apply({ weather: 'clear' });
+      for (let i = 0; i < 6; i++) this.addRipple(W * (0.15 + 0.7 * Math.random()), this.horizonY * (0.15 + 0.7 * Math.random()), 0.4);
+    } else if (what === 'honmei_home' && honmei) {
+      const [nx, ny] = honmei.origin!.stroke[honmei.origin!.stroke.length - 1];
+      const m = this.minDim * 0.06;
+      honmei.moveHeadTo(THREE.MathUtils.clamp(nx * W, m, W - m), THREE.MathUtils.clamp(ny * this.height, m, this.horizonY - this.minDim * 0.05 - m));
+    } else {
+      const y = this.horizonY + (this.height - this.horizonY) * (0.35 + 0.55 * Math.random());
+      this.sky.addStar(W * (0.08 + 0.84 * Math.random()), y);
+    }
+    logEvent('return', { awayMin: Math.round(awayMs / 60000), what });
   }
 
   /** Clear the world, keeping it for a few seconds so the restart can be taken back. */
@@ -589,6 +629,7 @@ export class Engine {
     }
 
     if (this.demo) this.advanceDemo();
+    if (this.replay) this.advanceReplay();
 
     const bounds = {
       minX: 0,
@@ -657,6 +698,55 @@ export class Engine {
       this.demo = null;
       this.spawnFish(d.stroke, true);
     }
+  }
+
+  /**
+   * Long-pressed a fish: the stroke it was born from draws itself again on
+   * the water, at its own pace, while the fish swims back to where that
+   * stroke ended (docs/02 §5.6). Needs only the fish's saved origin.
+   */
+  private replayOrigin(fish: Fish): void {
+    this.cancelReplay();
+    const o = fish.origin!;
+    const W = this.width;
+    const H = this.height;
+    // At its own pace, but never longer than four seconds.
+    const span = Math.max(o.stroke[o.stroke.length - 1][2], 1);
+    const k = Math.min(1, 4000 / span);
+    const points = o.stroke.map(([x, y, t]) => ({ x: x * W, y: y * H, t: t * k, pressure: 0.5 }));
+    const stroke = new Stroke(this.palette, this.minDim, false);
+    stroke.setOpacity(0.45);
+    this.scene.add(stroke.mesh);
+    if (this.calm) {
+      // Reduced motion: the whole line at once, then it fades.
+      for (const p of points) stroke.add(p);
+      stroke.finish();
+      this.fadeStroke(stroke, 1.2, 1.5);
+    } else this.replay = { points, stroke, start: this.time };
+    const end = points[points.length - 1];
+    fish.lure(end.x, Math.min(end.y, this.horizonY - this.minDim * 0.08), this.time, { duration: (span * k) / 1000 + 2 });
+    this.addRipple(fish.headX, fish.headY, 0.4);
+    logEvent('replay', { born: o.born, honmei: fish.honmei });
+  }
+
+  private advanceReplay(): void {
+    const r = this.replay!;
+    const elapsed = (this.time - r.start) * 1000;
+    while (r.stroke.points.length < r.points.length && r.points[r.stroke.points.length].t <= elapsed) {
+      r.stroke.add(r.points[r.stroke.points.length]);
+    }
+    if (r.stroke.points.length >= r.points.length) {
+      r.stroke.finish();
+      this.replay = null;
+      // The line lingers a moment, then goes back into the water.
+      this.fadeStroke(r.stroke, 0.8, 1.4);
+    }
+  }
+
+  private cancelReplay(): void {
+    if (!this.replay) return;
+    this.fadeStroke(this.replay.stroke, 0, 0.3);
+    this.replay = null;
   }
 
   private cancelDemo(): void {
@@ -729,6 +819,7 @@ export class Engine {
       look: { seed: Math.random() * 100, variety, honmei },
       origin,
       lively: this.livelyFrom(style.speed, pointer),
+      bornAt: Date.now(),
     });
     if (this.art) fish.setSkins(this.art.koi);
     this.fishes.push(fish);
@@ -1039,7 +1130,8 @@ export class Engine {
 
     if (inp.moved < TAP_MOVE) {
       if (stroke) this.fadeStroke(stroke, 0, 0.35);
-      if (held >= LONG_PRESS_MS) this.longPress(inp.downX, inp.downY);
+      if (held >= LONG_PRESS_MS && inp.fish?.origin && !inp.fish.undone) this.replayOrigin(inp.fish);
+      else if (held >= LONG_PRESS_MS) this.longPress(inp.downX, inp.downY);
       else this.tap(inp.downX, inp.downY, inp.fish);
       return;
     }
@@ -1197,9 +1289,16 @@ export class Engine {
     this.monitor.settle(performance.now());
   };
 
+  /** When the page was hidden, ms since the epoch: a tab left open in the background is a return too. */
+  private hiddenAt = 0;
+
   private onVisibility = (): void => {
-    if (document.hidden) this.stop();
-    else {
+    if (document.hidden) {
+      this.stop();
+      this.hiddenAt = Date.now();
+    } else {
+      if (this.hiddenAt) this.whileAway(Date.now() - this.hiddenAt);
+      this.hiddenAt = 0;
       this.monitor.settle(performance.now());
       this.start();
     }

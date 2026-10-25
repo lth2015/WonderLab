@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { moderatorMode, resetForNext } from './moderator';
 import { currentPhase, exportLog, togglePhase } from './telemetry';
+import { exportVisits } from './lib/visits';
 
 // The moderator panel (docs/02 §8): switch the test phase, export the log,
 // reset for the next tester. Opened by five quick taps in the top-left
@@ -61,6 +62,11 @@ export function ModeratorPanel() {
     const how = await exportLog();
     setStatus(how === 'cancelled' ? '没有导出' : '日志已导出');
   };
+  // The diary study (testkit/日记式测试.md): every visit on this phone, times and counts only.
+  const doExportVisits = async () => {
+    const how = await exportVisits();
+    setStatus(how === 'cancelled' ? '没有导出' : '回访记录已导出');
+  };
 
   return (
     <>
@@ -75,6 +81,9 @@ export function ModeratorPanel() {
           </button>
           <button type="button" className="text-btn" onClick={() => void doExport()}>
             导出日志
+          </button>
+          <button type="button" className="text-btn" onClick={() => void doExportVisits()}>
+            导出回访记录
           </button>
           <button type="button" className="text-btn" onClick={() => resetForNext()}>
             换下一位（重置）

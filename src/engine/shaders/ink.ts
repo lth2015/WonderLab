@@ -95,6 +95,7 @@ uniform float uDepth;      // 0 at the surface .. 1 deep: how much water lies ov
 uniform float uTime;
 uniform float uGlow;       // > 0: a meteor's fish, pale gold and lit from within
 uniform float uMark;       // 1: the first fish (本命鱼), a small cinnabar mark at a pectoral fin's root
+uniform float uAge;        // 0..1, grown up: colours settle a shade deeper
 varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
 varying vec2 vPos;
 
@@ -133,6 +134,7 @@ void main() {
 
     vec3 c = tex.rgb;
     float mark = honmeiMark(s, vSV.y / gws) * step(0.3, tex.a);
+    c *= 1.0 - 0.08 * uAge;
     // Night, and under water: less saturated, darker, and tinted by the water
     // column above, more so the deeper the fish swims.
     float lum = dot(c, vec3(0.299, 0.587, 0.114));
@@ -212,6 +214,7 @@ void main() {
   // Seen through a little water.
   col = mix(col, uWater, 0.12);
   if (uGlow > 0.0) col = mix(col, vec3(1.0, 0.86, 0.56), 0.5 * uGlow) * (1.0 + 0.3 * uGlow);
+  col *= 1.0 - 0.08 * uAge;
   float mark = honmeiMark(s, vSV.y / gw) * step(abs(vSV.y) / gw, env);
   col = mix(col, uCinnabar, mark * 0.85);
   a = max(a, mark * 0.8 * smoothstep(0.0, 0.08, uGrow * 1.15 - s));

@@ -17,6 +17,7 @@ import { describeWorld } from './describe';
 import { dismissBoot } from './boot';
 import { StaticLake } from './StaticLake';
 import { freshUrl, onReset, resetForNext } from './moderator';
+import { clearVisits, startVisit, visibilityChanged } from './lib/visits';
 import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
 
@@ -308,6 +309,7 @@ export function App() {
     };
     onReset(() => {
       resetting = true;
+      clearVisits();
       clearWorld();
       location.replace(freshUrl());
     });
@@ -316,6 +318,7 @@ export function App() {
     const describeTimer = window.setInterval(() => setWorldLabel(describeWorld(engine.serialize())), 1500);
     const onHide = () => {
       if (document.visibilityState === 'hidden') save();
+      visibilityChanged(document.visibilityState === 'hidden');
     };
     document.addEventListener('visibilitychange', onHide);
     window.addEventListener('pagehide', save);
@@ -324,6 +327,7 @@ export function App() {
       setReady(true);
       dismissBoot();
       logEvent('world_ready', { ms: Math.round(performance.now()), device: deviceType(), tier: engine.tier });
+      startVisit();
     });
     // Painted koi and moon, when generated textures are present (public/art).
     loadArt().then((art) => {

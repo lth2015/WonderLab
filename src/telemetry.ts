@@ -9,6 +9,8 @@ export type EventType =
   | 'stroke_classified'
   | 'create'
   | 'emerge'
+  | 'return'
+  | 'replay'
   | 'touch'
   | 'text_submit'
   | 'hint_shown'
@@ -28,6 +30,8 @@ export interface LoggedEvent {
 }
 
 type Fields = Record<string, string | number | boolean>;
+
+import { noteCreation } from './lib/visits';
 
 // "Unprompted" is pre-registered in docs/02 §1: not within 10 s of a hint
 // that invited it. The H2 threshold is judged against this, so it must not drift.
@@ -49,6 +53,8 @@ const HINT_INVITES: Record<string, string> = {
 
 export function logEvent(type: EventType, fields: Fields = {}): void {
   events.push({ t: Math.round(performance.now()), type, ...fields });
+  // The diary study only counts what was made, never what (lib/visits.ts).
+  if (type === 'create' || type === 'text_submit') noteCreation();
 }
 
 export function hintShown(id: string): void {

@@ -56,6 +56,14 @@ export interface FishOptions {
   /** 0..1 from the stroke's normalised speed; without it, from the raw drawing speed. */
   lively?: number;
   origin?: FishOrigin;
+  /** When it was born (ms since the epoch); now when absent. */
+  bornAt?: number;
+  /** How far it has grown up, 0..1 (time.ts): sets its size and deepens its colours a shade. */
+  maturity?: number;
+  /** Size multiplier for its age (time.ts growthFor). */
+  growth?: number;
+  /** A restored fish: its spine is already its body, so its length is kept as it is (no limits, no rescale). */
+  restored?: boolean;
 }
 
 const LEAP_TIME = 1.1;     // s in the air
@@ -101,6 +109,7 @@ export class Fish {
   readonly honmei: boolean;
   readonly variety: string | null;
   readonly origin: FishOrigin | null;
+  readonly bornAt: number;
   private readonly calm: boolean;
   /** Stroke length over drawing time, px/ms: sets how lively the fish is. */
   readonly drawSpeed: number;
@@ -157,6 +166,7 @@ export class Fish {
     this.honmei = !!options.look?.honmei && !ghost && !this.glow;
     this.variety = this.glow ? null : (options.look?.variety ?? null);
     this.origin = options.origin ?? null;
+    this.bornAt = options.bornAt ?? Date.now();
     this.depth = 0.2 + 0.4 * ((this.seed * 0.7548777) % 1);
     this.sociability = (this.seed * 0.3819) % 1 < 0.2 ? 0.1 : 0.6 + 0.4 * ((this.seed * 1.618) % 1);
     this.patch = this.glow
@@ -164,8 +174,9 @@ export class Fish {
       : (options.look?.patch ?? (this.variety ? patchFor(this.variety, Math.random) : Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0));
     this.opacity = ghost ? 0.38 : 1;
     this.fadeTime = ghost ? 1.2 : 2.2;
-    // Length follows the stroke, within limits.
-    this.L = THREE.MathUtils.clamp(strokeLength, minDim * 0.1, minDim * 0.26);
+    // Length follows the stroke, within limits; an older fish has grown a little past it.
+    const drawn = options.restored ? strokeLength : THREE.MathUtils.clamp(strokeLength, minDim * 0.1, minDim * 0.26);
+    this.L = drawn * (options.growth ?? 1);
     this.maxW = this.L * 0.12;
     this.seg = this.L / (N - 1);
 
@@ -212,6 +223,7 @@ export class Fish {
       uTime: { value: 0 },
       uGlow: { value: this.glow ? 1 : 0 },
       uMark: { value: this.honmei && !shadow ? 1 : 0 },
+      uAge: { value: options.maturity ?? 0 },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
@@ -322,6 +334,17 @@ export class Fish {
 
   setRest(until: number): void {
     this.restUntil = until;
+  }
+
+  /** Put the fish, body and all, with its head at a point (it was found there on return). */
+  moveHeadTo(x: number, y: number): void {
+    const dx = x - this.xs[0];
+    const dy = y - this.ys[0];
+    for (let i = 0; i < N; i++) {
+      this.xs[i] += dx;
+      this.ys[i] += dy;
+    }
+    this.rebuild();
   }
 
   get orbiting(): boolean {
