@@ -48,6 +48,15 @@ describe('parseWorld', () => {
     }
   });
 
+  it('keeps when the world was saved and when each fish was born, and drops nonsense', () => {
+    const w = parseWorld(JSON.parse(JSON.stringify({ ...valid, savedAt: 1761300000000, fish: [{ ...valid.fish[0], bornAt: 1761200000000 }] })));
+    expect(w!.savedAt).toBe(1761300000000);
+    expect(w!.fish[0].bornAt).toBe(1761200000000);
+    const bad = parseWorld(JSON.parse(JSON.stringify({ ...valid, savedAt: 'yesterday', fish: [{ ...valid.fish[0], bornAt: -5 }] })));
+    expect('savedAt' in bad!).toBe(false);
+    expect('bornAt' in bad!.fish[0]).toBe(false);
+  });
+
   it('rejects other versions and non-objects', () => {
     expect(parseWorld({ ...valid, version: 2 })).toBeNull();
     expect(parseWorld(null)).toBeNull();

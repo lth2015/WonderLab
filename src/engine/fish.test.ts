@@ -56,3 +56,20 @@ describe('fish in a ring (群鱼成圆)', () => {
     expect(f.orbiting).toBe(false);
   });
 });
+
+describe('growing with time (docs/02 §5.6)', () => {
+  const spine = (len: number) => Array.from({ length: 20 }, (_, i) => ({ x: 100 + (len * i) / 19, y: 100, t: i * 10, pressure: 0.5 }));
+
+  it('a newly drawn fish is held to the size limits, then grown by its age', () => {
+    const young = new Fish(spine(400), 400, 300, 800, palette);
+    const old = new Fish(spine(400), 400, 300, 800, palette, { growth: 1.18 });
+    expect(young.L).toBeCloseTo(800 * 0.26);
+    expect(old.L).toBeCloseTo(800 * 0.26 * 1.18);
+  });
+
+  it('a restored fish keeps the length it had grown to, and only adds what the days since have added', () => {
+    const grown = 800 * 0.26 * 1.1;
+    const back = new Fish(spine(grown), grown, 300, 800, palette, { restored: true, growth: 1.02 });
+    expect(back.L).toBeCloseTo(grown * 1.02);
+  });
+});

@@ -26,10 +26,14 @@ export interface SavedFish {
   honmei?: boolean;
   /** The stroke and readings it came from (docs/02 §5.1). Absent in older saves and for meteor fish. */
   origin?: FishOrigin;
+  /** When it was born, ms since the epoch (docs/02 §5.6: it grows with real time). Absent in older saves. */
+  bornAt?: number;
 }
 
 export interface WorldSave {
   version: typeof SAVE_VERSION;
+  /** When the world was last saved, ms since the epoch: how long the user was away. Absent in older saves. */
+  savedAt?: number;
   atmosphere: AtmosphereState;
   fish: SavedFish[];
   /** x, y normalised; r as a share of the short screen edge. */
@@ -96,6 +100,7 @@ export function parseWorld(data: unknown): WorldSave | null {
       ...(typeof f.variety === 'string' && /^[a-z]{2,16}$/.test(f.variety) ? { variety: f.variety } : {}),
       ...(f.honmei === true ? { honmei: true } : {}),
       ...(origin ? { origin } : {}),
+      ...(isPos(f.bornAt) ? { bornAt: f.bornAt } : {}),
     });
   }
 
@@ -126,7 +131,7 @@ export function parseWorld(data: unknown): WorldSave | null {
     .slice(0, LIMITS.clouds)
     .filter((c): c is [number, number, number] => Array.isArray(c) && c.length === 3 && isUnitish(c[0]) && isUnitish(c[1]) && isPos(c[2]));
 
-  return { version: SAVE_VERSION, atmosphere, fish, moon, planets, stars, clouds };
+  return { version: SAVE_VERSION, ...(isPos(data.savedAt) ? { savedAt: data.savedAt } : {}), atmosphere, fish, moon, planets, stars, clouds };
 }
 
 function parseOrigin(o: unknown): FishOrigin | undefined {
