@@ -9,6 +9,7 @@
 export type EventType =
   | 'world_ready'
   | 'first_stroke'
+  | 'demo_shown'
   | 'stroke_classified'
   | 'create'
   | 'emerge'

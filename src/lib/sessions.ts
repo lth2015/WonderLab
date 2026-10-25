@@ -139,6 +139,8 @@ export interface TesterResult {
   /** The observer's reason this session does not count, if any. */
   invalid: string | null;
   firstStrokeMs: number | null;
+  /** The ghost demo played before the first stroke: that stroke was taught, so it is not an H1 success. */
+  demoBeforeFirstStroke: boolean;
   /** Minutes spent in the free phase, or null when the log has none. */
   freeMinutes: number | null;
   unpromptedInFree: number;
@@ -187,6 +189,7 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
   const events = [...log.events].sort((a, b) => a.t - b.t);
   const first = events.find((e) => e.type === 'first_stroke');
   const firstStrokeMs = first && typeof first.after === 'number' ? first.after : null;
+  const demoBeforeFirstStroke = events.some((e) => e.type === 'demo_shown' && (!first || e.t <= first.t));
 
   const spans = freeSpans(events);
   const inFree = (t: number) => spans.some(([a, b]) => t >= a && t < b);
@@ -211,7 +214,8 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
   }
 
   let h1: boolean | null;
-  if (firstStrokeMs === null || firstStrokeMs > H1_FIRST_STROKE_MS || notes.helpBeforeFirstStroke === true) h1 = false;
+  // The first-screen hint is the product's own invitation, not a tutorial; the ghost demo is one (docs/02 §1).
+  if (firstStrokeMs === null || firstStrokeMs > H1_FIRST_STROKE_MS || demoBeforeFirstStroke || notes.helpBeforeFirstStroke === true) h1 = false;
   else h1 = notes.helpBeforeFirstStroke === false ? true : null;
 
   const freeMinutes = spans.length ? spans.reduce((s, [a, b]) => s + (b - a), 0) / 60000 : null;
@@ -236,6 +240,7 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
     sceneModes: [...new Set(events.filter((e) => e.type === 'world_ready').map((e) => String(e.sceneMode ?? 'unknown')))],
     invalid: typeof notes.invalid === 'string' && notes.invalid.trim() ? notes.invalid.trim() : null,
     firstStrokeMs,
+    demoBeforeFirstStroke,
     freeMinutes,
     unpromptedInFree,
     promptedInFree,
@@ -348,7 +353,7 @@ export function formatReport(r: StudyResult): string {
     '',
     '| 假设 | 判定规则（docs/02 §1） | 达到的人 | 阈值 | 结论 |',
     '|---|---|---|---|---|',
-    line('H1', `${H1_FIRST_STROKE_MS / 1000} 秒内、无求助落下第一笔`, r.h1),
+    line('H1', `${H1_FIRST_STROKE_MS / 1000} 秒内、无求助、未看过自动演示落下第一笔`, r.h1),
     line('H2', `自由段内 ≥${H2_UNPROMPTED} 次无提示创造`, r.h2),
     line('H3', '主动保存，或询问如何发送', r.h3),
     '',
