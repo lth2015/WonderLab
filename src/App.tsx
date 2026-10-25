@@ -15,6 +15,7 @@ import { RecordButton, RecordOverlays, useRecorder } from './record/RecordContro
 import { sound } from './sound';
 import { describeWorld } from './describe';
 import { dismissBoot } from './boot';
+import { StaticLake } from './StaticLake';
 import { freshUrl, onReset, resetForNext } from './moderator';
 import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
@@ -575,6 +576,7 @@ export function App() {
   if (failed) {
     return (
       <div className="fallback" role="alert">
+        <StaticLake />
         <p>这里进不去，换个浏览器试试</p>
         <p className="sub">最新版 Chrome、Safari 或 Edge 都可以</p>
       </div>
