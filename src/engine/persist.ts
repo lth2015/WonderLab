@@ -11,6 +11,12 @@ import { FAMILIES, type Family } from './koi-style';
 export const SAVE_VERSION = 1;
 const KEY = 'wonderlab.world';
 const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64, origin: 48 };
+/**
+ * Fish kept 「在远处」 (docs/02 §11 decision 12): when the lake is full, the
+ * oldest fish swims off but stays in the world. Past this many, the one away
+ * longest is let go; at a fish or two a day that is months of drawing.
+ */
+export const AWAY_MAX = 60;
 
 export interface SavedFish {
   /** Tail to head, normalised to the view (x / width, y / height, from the bottom). */
@@ -38,6 +44,8 @@ export interface WorldSave {
   savedAt?: number;
   atmosphere: AtmosphereState;
   fish: SavedFish[];
+  /** Fish that swam off when the lake was full: still part of the world, longest away first. Absent in older saves. */
+  away?: SavedFish[];
   /** x, y normalised; r as a share of the short screen edge. */
   moon: { x: number; y: number; r: number; phase: MoonPhase; dark: [number, number] } | null;
   /** x, y normalised; r as a share of the short screen edge; pigment index. Absent in older saves. */
@@ -85,29 +93,14 @@ export function parseWorld(data: unknown): WorldSave | null {
     intensity: unit(a.intensity, 0.5),
   };
 
-  const fish: SavedFish[] = [];
-  for (const f of arr(data.fish).slice(0, LIMITS.fish)) {
-    if (!isObj(f)) continue;
-    const spine = arr(f.spine)
-      .slice(0, LIMITS.spine)
-      .filter((p): p is [number, number] => Array.isArray(p) && p.length === 2 && p.every(isUnitish));
-    if (spine.length < 2 || !isPos(f.drawSpeed) || !isNum(f.seed) || !isNum(f.patch)) continue;
-    const origin = parseOrigin(f.origin);
-    fish.push({
-      spine,
-      drawSpeed: Math.min(f.drawSpeed, 10),
-      seed: f.seed,
-      patch: unit(f.patch, 0),
-      ...(f.glow === true ? { glow: true } : {}),
-      ...(typeof f.variety === 'string' && /^[a-z]{2,16}$/.test(f.variety) ? { variety: f.variety } : {}),
-      ...(f.honmei === true ? { honmei: true } : {}),
-      ...(origin ? { origin } : {}),
-      ...(isPos(f.bornAt) ? { bornAt: f.bornAt } : {}),
-      ...(isObj(f.gift) && typeof f.gift.id === 'string' && /^[0-9a-z]{1,13}$/.test(f.gift.id)
-        ? { gift: { id: f.gift.id, ...(typeof f.gift.seal === 'string' && /^[\p{L}\p{N}]$/u.test(f.gift.seal) ? { seal: f.gift.seal } : {}) } }
-        : {}),
-    });
-  }
+  const fish = arr(data.fish)
+    .slice(0, LIMITS.fish)
+    .map(parseFish)
+    .filter((f): f is SavedFish => f !== null);
+  const away = arr(data.away)
+    .slice(-AWAY_MAX)
+    .map(parseFish)
+    .filter((f): f is SavedFish => f !== null);
 
   let moon: WorldSave['moon'] = null;
   const m = data.moon;
@@ -136,8 +129,43 @@ export function parseWorld(data: unknown): WorldSave | null {
     .slice(0, LIMITS.clouds)
     .filter((c): c is [number, number, number] => Array.isArray(c) && c.length === 3 && isUnitish(c[0]) && isUnitish(c[1]) && isPos(c[2]));
 
-  return { version: SAVE_VERSION, ...(isPos(data.savedAt) ? { savedAt: data.savedAt } : {}), atmosphere, fish, moon, planets, stars, clouds };
+  return {
+    version: SAVE_VERSION,
+    ...(isPos(data.savedAt) ? { savedAt: data.savedAt } : {}),
+    atmosphere,
+    fish,
+    ...(away.length ? { away } : {}),
+    moon,
+    planets,
+    stars,
+    clouds,
+  };
 }
+
+/** One saved fish, validated field by field; null if it cannot be a fish. */
+function parseFish(f: unknown): SavedFish | null {
+  if (!isObj(f)) return null;
+  const spine = arr(f.spine)
+    .slice(0, LIMITS.spine)
+    .filter((p): p is [number, number] => Array.isArray(p) && p.length === 2 && p.every(isUnitish));
+  if (spine.length < 2 || !isPos(f.drawSpeed) || !isNum(f.seed) || !isNum(f.patch)) return null;
+  const origin = parseOrigin(f.origin);
+  return {
+    spine,
+    drawSpeed: Math.min(f.drawSpeed, 10),
+    seed: f.seed,
+    patch: unit(f.patch, 0),
+    ...(f.glow === true ? { glow: true } : {}),
+    ...(typeof f.variety === 'string' && /^[a-z]{2,16}$/.test(f.variety) ? { variety: f.variety } : {}),
+    ...(f.honmei === true ? { honmei: true } : {}),
+    ...(origin ? { origin } : {}),
+    ...(isPos(f.bornAt) ? { bornAt: f.bornAt } : {}),
+    ...(isObj(f.gift) && typeof f.gift.id === 'string' && /^[0-9a-z]{1,13}$/.test(f.gift.id)
+      ? { gift: { id: f.gift.id, ...(typeof f.gift.seal === 'string' && /^[\p{L}\p{N}]$/u.test(f.gift.seal) ? { seal: f.gift.seal } : {}) } }
+      : {}),
+  };
+}
+
 
 function parseOrigin(o: unknown): FishOrigin | undefined {
   if (!isObj(o)) return undefined;
