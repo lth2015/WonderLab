@@ -9,6 +9,8 @@
 //              swim round together in a ring, and then go their own ways.
 //              The ring is an ellipse, wide and flat like the lake itself
 //              (a landscape lake is far too shallow for a round one);
+//  - 记得出生地 when the hand has rested a while, the first fish (本命鱼)
+//              now and then swims back to where it was drawn;
 //  - 流星入湖  a meteor drawn down to the horizon falls into the lake and
 //              becomes a small glowing fish (decided in the engine; the
 //              geometry lives here as `meteorDive`).
@@ -39,6 +41,13 @@ export const RELATIONS = {
   /** Share of the fish within this fraction of the radius for the ring to count as formed. */
   ringTolerance: 0.3,
   ringFormedShare: 0.7,
+  /** Seconds without input before the first fish may visit where it was drawn. */
+  homeIdle: 20,
+  /** Seconds between chances of a visit, and the chance at each. */
+  homeEvery: [45, 90] as [number, number],
+  homeChance: 0.5,
+  /** How long the visit's pull lasts, seconds. */
+  homeStay: 8,
   /** A meteor ending within this share of the sky's height above the horizon falls into the lake. */
   meteorDive: 0.2,
 };
@@ -74,7 +83,7 @@ export interface Swimmer {
   readonly L: number;
   readonly canLeap: boolean;
   leap(): void;
-  lure(x: number, y: number, now: number): void;
+  lure(x: number, y: number, now: number, opts?: { duration?: number; eager?: boolean }): void;
   setWeather(rise: number, mist: number): void;
   setOrbit(o: Orbit | null, slot?: number): void;
 }
@@ -94,6 +103,8 @@ export interface RelationWorld {
   /** Where fish may swim. */
   lake: { minX: number; maxX: number; minY: number; maxY: number };
   minDim: number;
+  /** The first fish and where it was drawn, while it swims. */
+  home?: { fish: Swimmer; x: number; y: number } | null;
 }
 
 export interface RelationEffects {
@@ -101,7 +112,7 @@ export interface RelationEffects {
   ripple(x: number, y: number, strength: number): void;
   sound(kind: 'chime' | 'ripple' | 'drop', x: number, strength: number): void;
   /** For the event log: which relation showed itself. */
-  emerged(what: 'moon_leap' | 'ring'): void;
+  emerged(what: 'moon_leap' | 'ring' | 'home'): void;
 }
 
 const between = (r: () => number, [a, b]: [number, number]) => a + (b - a) * r();
@@ -162,11 +173,13 @@ export class Relations {
   private lastLeap = -Infinity;
   private nextKiss = 0;
   private nextRing: number;
+  private nextHome: number;
   private ring: { orbit: Orbit; members: Swimmer[]; formed: boolean } | null = null;
 
   constructor(private readonly random: () => number = Math.random) {
     this.nextVisit = between(random, RELATIONS.moonVisitEvery);
     this.nextRing = between(random, RELATIONS.ringEvery);
+    this.nextHome = between(random, RELATIONS.homeEvery);
   }
 
   get ringing(): boolean {
@@ -183,6 +196,15 @@ export class Relations {
     this.moon(w, fx);
     this.rain(w, fx);
     this.rings(w, fx);
+    this.homeVisit(w, fx);
+  }
+
+  private homeVisit(w: RelationWorld, fx: RelationEffects): void {
+    if (!w.home || this.ring || w.time < this.nextHome || w.idle < RELATIONS.homeIdle) return;
+    this.nextHome = w.time + between(this.random, RELATIONS.homeEvery);
+    if (this.random() >= RELATIONS.homeChance) return;
+    w.home.fish.lure(w.home.x, w.home.y, w.time, { duration: RELATIONS.homeStay });
+    fx.emerged('home');
   }
 
   private moon(w: RelationWorld, fx: RelationEffects): void {

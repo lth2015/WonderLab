@@ -10,7 +10,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { THRESHOLDS, type Thresholds } from '../src/engine/classify';
-import { ACCEPTANCE, evaluate, measureAll, sweep, type Evaluation, type Measured } from '../src/collect/calibrate';
+import { ACCEPTANCE, evaluate, measureAll, styleSplits, sweep, type Evaluation, type Measured } from '../src/collect/calibrate';
 import { CATEGORIES, OUTCOME_LABEL, isSession, type Session } from '../src/collect/protocol';
 import { syntheticStudy } from '../src/collect/synth';
 
@@ -123,6 +123,26 @@ if (e.misses.length) {
     lines.push(`| ${label} | ${OUTCOME_LABEL[m.outcome]} | ${m.tester ?? ''} | ${m.pointerType} | ${cols.join(' | ')} |`);
   }
   lines.push('');
+}
+
+// 笔性 (koi-style.ts): where fast and slow divide, per pointer type.
+const splits = styleSplits(sessions.flatMap((x) => x.session.samples));
+if (splits.length) {
+  lines.push(
+    '## 笔性分界（花色倾向）',
+    '',
+    '「画鱼的一笔」的速度（画面短边 / 秒）和弯度（总转角 / π）。分界设在中位数时，快、慢各占一半。',
+    '',
+    '| 指针 | 笔数 | 速度 25% / 50% / 75% | 弯度中位数 | 现在的分界 | 建议 | 现在的四族分布（利落 / 热闹 / 沉静 / 圆润） |',
+    '|---|---|---|---|---|---|---|',
+  );
+  for (const x of splits) {
+    const f = x.families;
+    lines.push(
+      `| ${x.pointerType} | ${x.n} | ${x.speed.map((v) => fmt(v)).join(' / ')} | ${fmt(x.curviness)} | ${fmt(x.current)} | ${fmt(x.suggested)} | ${f.brisk} / ${f.lively} / ${f.calm} / ${f.round} |`,
+    );
+  }
+  lines.push('', '改分界：`src/engine/koi-style.ts` 的 `STYLE.fastSplit`，同步更新 03 §6.2。', '');
 }
 
 if (doSweep) {

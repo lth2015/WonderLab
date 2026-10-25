@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { THRESHOLDS } from '../engine/classify';
-import { evaluate, measureAll, sweep } from './calibrate';
+import { evaluate, measureAll, styleSplits, sweep } from './calibrate';
 import { isSession, REPS, CATEGORIES } from './protocol';
 import { seededRandom, syntheticSession, syntheticStudy } from './synth';
 
@@ -55,5 +55,16 @@ describe('calibration', () => {
     expect(top).toHaveLength(3);
     expect(top[0].evaluation.meetsAcceptance).toBe(true);
     expect(top[0].evaluation.correct).toBeGreaterThanOrEqual(top[1].evaluation.correct);
+  });
+
+  it('reads where fast and slow strokes divide, per pointer type', () => {
+    const splits = styleSplits(study.flatMap((s) => s.samples));
+    expect(splits.map((x) => x.pointerType).sort()).toEqual(['mouse', 'touch']);
+    for (const x of splits) {
+      expect(x.n).toBe((study.length / 2) * REPS);
+      expect(x.speed[0]).toBeLessThanOrEqual(x.speed[1]);
+      expect(x.speed[1]).toBeLessThanOrEqual(x.speed[2]);
+      expect(Object.values(x.families).reduce((a, b) => a + b, 0)).toBe(x.n);
+    }
   });
 });

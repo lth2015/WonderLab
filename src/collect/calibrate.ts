@@ -6,6 +6,7 @@
 // person reads the report and changes THRESHOLDS (and 03 §6.2) by hand.
 
 import { decide, measureStroke, THRESHOLDS, type Features, type Thresholds } from '../engine/classify';
+import { familyOf, STYLE, strokeStyle, type Family } from '../engine/koi-style';
 import { CATEGORIES, LONG_PRESS_MS, TAP_MOVE, type Outcome, type Sample } from './protocol';
 
 export const ACCEPTANCE = { circleRate: 0.9, fishAsCircle: 0.1 };
@@ -157,4 +158,49 @@ export function sweep(measured: Measured[], base: Thresholds = THRESHOLDS, top =
       a.change - b.change,
   );
   return out.slice(0, top);
+}
+
+/** The everyday fish stroke, for reading 笔性 (koi-style.ts). */
+export const STYLE_CATEGORIES = ['line'];
+
+export interface StyleSplit {
+  pointerType: string;
+  n: number;
+  /** Speed quartiles, short screen edges per second. */
+  speed: [number, number, number];
+  curviness: number;
+  /** STYLE.fastSplit now, and the median as a suggestion: half fast, half slow. */
+  current: number;
+  suggested: number;
+  /** How the strokes fall into families with the current splits. */
+  families: Record<Family, number>;
+}
+
+const quantile = (sorted: number[], q: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))];
+
+/** Per pointer type: how fast people draw, and where fast and slow would split evenly. */
+export function styleSplits(samples: Sample[]): StyleSplit[] {
+  const by = new Map<string, { speed: number; curviness: number }[]>();
+  for (const s of samples) {
+    if (!STYLE_CATEGORIES.includes(s.category) || s.points.length < 2) continue;
+    const pts = s.points.map(([x, y, t]) => ({ x, y, t }));
+    const st = strokeStyle(pts, Math.min(s.width, s.height), s.pointerType);
+    if (!by.has(s.pointerType)) by.set(s.pointerType, []);
+    by.get(s.pointerType)!.push(st);
+  }
+  return [...by.entries()].map(([pointerType, list]) => {
+    const speeds = list.map((x) => x.speed).sort((a, b) => a - b);
+    const curv = list.map((x) => x.curviness).sort((a, b) => a - b);
+    const families: Record<Family, number> = { brisk: 0, lively: 0, calm: 0, round: 0 };
+    for (const x of list) families[familyOf(x.speed, x.curviness, pointerType)]++;
+    return {
+      pointerType,
+      n: list.length,
+      speed: [quantile(speeds, 0.25), quantile(speeds, 0.5), quantile(speeds, 0.75)],
+      curviness: quantile(curv, 0.5),
+      current: STYLE.fastSplit[pointerType] ?? STYLE.fastSplit.mouse,
+      suggested: quantile(speeds, 0.5),
+      families,
+    };
+  });
 }

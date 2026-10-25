@@ -155,6 +155,29 @@ describe('relations', () => {
   });
 });
 
+describe('the first fish’s birthplace', () => {
+  it('sends it home now and then once the hand has rested', () => {
+    const f = new FakeFish(100, 100);
+    const r = new Relations(low);
+    const { fx, log } = effects();
+    const home = { fish: f, x: 640, y: 200 };
+    const t = RELATIONS.homeEvery[0];
+    r.update(world({ time: t, fish: [f], home, idle: RELATIONS.homeIdle - 1 }), fx);
+    expect(f.lured).toBeNull();
+    r.update(world({ time: t, fish: [f], home, idle: RELATIONS.homeIdle }), fx);
+    expect(f.lured).toEqual({ x: 640, y: 200 });
+    expect(log.emerged).toContain('home');
+  });
+
+  it('only some of the time', () => {
+    const f = new FakeFish(100, 100);
+    const r = new Relations(() => 0.99);
+    const { fx } = effects();
+    r.update(world({ time: 999, fish: [f], home: { fish: f, x: 640, y: 200 }, idle: 999 }), fx);
+    expect(f.lured).toBeNull();
+  });
+});
+
 describe('ringFor', () => {
   const inside = (at: NonNullable<ReturnType<typeof ringFor>>, L: number, l = lake) => {
     const m = L * RING_MARGIN;
