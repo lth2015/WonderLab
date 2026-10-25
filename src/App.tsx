@@ -383,6 +383,7 @@ export function App() {
         buildSha: BUILD.sha,
         experimentId: BUILD.experiment,
         schemaVersion: BUILD.schema,
+        sceneMode: BUILD.scene,
       });
       startVisit();
     });

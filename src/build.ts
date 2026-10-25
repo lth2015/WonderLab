@@ -1,5 +1,6 @@
-// Which build is running (docs/验证路线图.md §4). Written in at build time by
-// vite.config.ts: the commit, and the experiment the build is for. Every
+// Which build is running (docs/验证路线图.md §2). Written in at build time by
+// vite.config.ts: the commit, the experiment the build is for, and how it
+// reads a sentence. Every
 // exported log carries it, so data from different builds is never pooled.
 
 /** Version of the exported log format. 2: build info, field-build event store, study export. */
@@ -8,6 +9,8 @@ export const LOG_SCHEMA = 2;
 export const BUILD = {
   sha: __BUILD__.sha,
   experiment: __BUILD__.experiment,
+  /** How 一句成境 reads a sentence: experiment builds are always 'local' (build-info.ts). */
+  scene: __BUILD__.scene,
   schema: LOG_SCHEMA,
 } as const;
 

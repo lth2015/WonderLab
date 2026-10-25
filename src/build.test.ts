@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { sceneModeFor } from '../build-info';
 import { BUILD, giftEnabled, LOG_SCHEMA } from './build';
 
 describe('build info (docs/验证路线图.md §4)', () => {
@@ -15,5 +16,15 @@ describe('build info (docs/验证路线图.md §4)', () => {
     expect(giftEnabled(new URLSearchParams('giftlab'), true)).toBe(true);
     // A production build of anything but poc-gift-r1 ignores ?giftlab.
     expect(giftEnabled(new URLSearchParams('giftlab'), false)).toBe(false);
+  });
+
+  it('fixes local rules only into every experiment build; AI is a development option', () => {
+    expect(sceneModeFor('poc-r1', undefined)).toBe('local');
+    expect(sceneModeFor('poc-gift-r1', 'local')).toBe('local');
+    expect(() => sceneModeFor('poc-r1', 'ai')).toThrow(/local rules only/);
+    expect(() => sceneModeFor('dev', 'gpt')).toThrow(/WW_SCENE/);
+    expect(sceneModeFor('dev', undefined)).toBe('ai');
+    expect(sceneModeFor('dev', 'local')).toBe('local');
+    expect(BUILD.scene).toBe('ai');
   });
 });

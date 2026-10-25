@@ -134,6 +134,8 @@ export interface TesterResult {
   build: BuildId | null;
   /** Every build the log's records came from; more than one means the log mixes builds. */
   builds: BuildId[];
+  /** How 一句成境 read sentences, from world_ready (build.ts scene); 'unknown' in logs from before it was recorded. */
+  sceneModes: string[];
   /** The observer's reason this session does not count, if any. */
   invalid: string | null;
   firstStrokeMs: number | null;
@@ -231,6 +233,7 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
     device: String(world?.device ?? log.device ?? 'unknown'),
     build: buildOf(log),
     builds: buildsOf(log),
+    sceneModes: [...new Set(events.filter((e) => e.type === 'world_ready').map((e) => String(e.sceneMode ?? 'unknown')))],
     invalid: typeof notes.invalid === 'string' && notes.invalid.trim() ? notes.invalid.trim() : null,
     firstStrokeMs,
     freeMinutes,
@@ -299,6 +302,13 @@ export function analyzeStudy(sessions: { id: string; log: SessionLog; notes?: Ob
     );
   const builds = new Set(testers.flatMap((t) => (t.builds.length ? t.builds.map(label) : ['未记录'])));
   if (builds.size > 1) warnings.push(`这些记录来自不同的构建：${[...builds].join('、')}。不同版本的数据不能直接合并，先确认差异是否影响所测的体验。`);
+  // R1 is local rules only for everyone (docs/验证路线图.md §2): any other mode, or any sentence the AI read, breaks the shared condition.
+  const modes = new Set(testers.flatMap((t) => (t.sceneModes.length ? t.sceneModes : ['unknown'])));
+  const readByAi = testers.filter((t) => (t.textSources.ai ?? 0) > 0).map((t) => t.id);
+  if (modes.size > 1 || readByAi.length)
+    warnings.push(
+      `文字理解的条件不一致：模式 ${[...modes].join('、')}${readByAi.length ? `；${readByAi.join('、')} 有句子经 AI 理解` : ''}。R1 要求所有人只用本地规则。`,
+    );
   const unfrozen = testers
     .filter((t) => !t.builds.length || t.builds.some((b) => b.experiment === 'dev' || b.experiment === 'unknown' || b.sha.endsWith('-dirty')))
     .map((t) => t.id);
