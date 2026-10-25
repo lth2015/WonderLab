@@ -7,7 +7,17 @@ export interface Pt {
   y: number;
 }
 
-export const THRESHOLDS = {
+export interface Thresholds {
+  shortStroke: number;
+  closeGap: number;
+  closeTurn: number;
+  maxAspect: number;
+  maxResidual: number;
+  arcMinTurn: number;
+  gibbousTurn: number;
+}
+
+export const THRESHOLDS: Thresholds = {
   shortStroke: 0.06,   // path length, fraction of the short screen edge
   closeGap: 0.25,      // end-to-end distance, fraction of the bbox diagonal
   closeTurn: 330,      // degrees of accumulated turning that also counts as closed
@@ -30,6 +40,7 @@ export interface CircleFit {
 export interface Features {
   length: number;
   turn: number;      // |net turning| in degrees
+  sweep: number;     // degrees swept around the fitted circle's centre
   gap: number;       // end-to-end distance / bbox diagonal
   aspect: number;    // principal-axis extent ratio, >= 1
   fit: CircleFit;
@@ -46,20 +57,35 @@ export interface Classification {
 
 export type MoonPhase = 'full' | 'gibbous' | 'crescent';
 
-export function classify(points: Pt[], minDim: number): Classification {
-  const length = pathLength(points);
-  const features = measure(points, length);
-  const T = THRESHOLDS;
-  if (length < minDim * T.shortStroke) return { kind: 'short', features };
+export function classify(points: Pt[], minDim: number, T: Thresholds = THRESHOLDS): Classification {
+  return decide(measureStroke(points), minDim, T);
+}
 
-  const closed = features.gap < T.closeGap || features.turn >= T.closeTurn;
+/** The shape of a stroke, which does not depend on any threshold. */
+export function measureStroke(points: Pt[]): Features {
+  return measure(points, pathLength(points));
+}
+
+/**
+ * The docs/02 §4 table applied to measured features. Separate from
+ * measuring so a threshold sweep (src/collect/calibrate.ts) measures each
+ * stroke once.
+ */
+export function decide(features: Features, minDim: number, T: Thresholds = THRESHOLDS): Classification {
+  if (features.length < minDim * T.shortStroke) return { kind: 'short', features };
+
   const fitsCircle = features.fit.residual < T.maxResidual;
+  // How far round the stroke goes. For a stroke that fits a circle, the
+  // angle swept about its centre, which a trembling hand barely moves; for
+  // anything else (an S, a spiral) the turning of the path itself.
+  const bend = fitsCircle ? features.sweep : features.turn;
+  const closed = features.gap < T.closeGap || bend >= T.closeTurn;
   if (closed) {
     if (fitsCircle && features.aspect <= T.maxAspect) return { kind: 'circle', features, phase: 'full' };
     return { kind: 'elongated', features };
   }
-  if (features.turn >= T.arcMinTurn && fitsCircle) {
-    return { kind: 'arc', features, phase: features.turn >= T.gibbousTurn ? 'gibbous' : 'crescent' };
+  if (bend >= T.arcMinTurn && fitsCircle) {
+    return { kind: 'arc', features, phase: bend >= T.gibbousTurn ? 'gibbous' : 'crescent' };
   }
   return { kind: 'open', features };
 }
@@ -146,11 +172,15 @@ function measure(points: Pt[], length: number): Features {
   const aspect = Math.max(extU, extV) / Math.max(Math.min(extU, extV), 1e-6);
   const axis = extU >= extV ? ax : { x: -ax.y, y: ax.x };
 
-  let turn = 0;
-  for (let i = 2; i < n; i++) {
-    const a1 = Math.atan2(pts[i - 1].y - pts[i - 2].y, pts[i - 1].x - pts[i - 2].x);
-    const a2 = Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x);
-    turn += angleDiff(a2, a1);
+  const turn = netTurn(points, length);
+
+  const fit = fitCircle(pts, cx, cy);
+  // Unwrapped angle about the fitted centre, from the first point to the last.
+  let sweep = 0;
+  for (let i = 1; i < n; i++) {
+    const a1 = Math.atan2(pts[i - 1].y - fit.cy, pts[i - 1].x - fit.cx);
+    const a2 = Math.atan2(pts[i].y - fit.cy, pts[i].x - fit.cx);
+    sweep += angleDiff(a2, a1);
   }
 
   const diag = Math.hypot(maxX - minX, maxY - minY) || 1;
@@ -161,10 +191,43 @@ function measure(points: Pt[], length: number): Features {
     turn: Math.abs(turn) * (180 / Math.PI),
     gap,
     aspect,
-    fit: fitCircle(pts, cx, cy),
+    fit,
+    sweep: Math.abs(sweep) * (180 / Math.PI),
     centroid: { x: cx, y: cy },
     axis,
   };
+}
+
+/** Points at least this far apart when summing turns, in px. */
+const TURN_SPACING = 4;
+
+/**
+ * Net turning along the stroke, in radians.
+ *
+ * Measured on a coarser, lightly smoothed copy of the path. At the slow
+ * ends of a stroke the hand moves less per frame than it trembles, so the
+ * raw path zigzags back and forth; summed point to point, those zigzags read
+ * as turns (and a reversal as ±180°), which made clean half circles read as
+ * nearly straight and U shapes as closed. Spacing the points at least a few
+ * pixels apart and averaging neighbours keeps the tremor out of the sum
+ * while leaving the shape's own bends in it.
+ */
+function netTurn(points: Pt[], length: number): number {
+  const n = Math.max(8, Math.min(64, Math.round(length / TURN_SPACING) + 1));
+  const raw = resample(points, n, length);
+  const pts = raw.map((p, i) => {
+    if (i === 0 || i === raw.length - 1) return p;
+    const a = raw[i - 1];
+    const b = raw[i + 1];
+    return { x: (a.x + 2 * p.x + b.x) / 4, y: (a.y + 2 * p.y + b.y) / 4 };
+  });
+  let turn = 0;
+  for (let i = 2; i < pts.length; i++) {
+    const a1 = Math.atan2(pts[i - 1].y - pts[i - 2].y, pts[i - 1].x - pts[i - 2].x);
+    const a2 = Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x);
+    turn += angleDiff(a2, a1);
+  }
+  return turn;
 }
 
 /** Algebraic (Kåsa) least-squares circle fit. */
