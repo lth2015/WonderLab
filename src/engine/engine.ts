@@ -9,7 +9,7 @@ import { weatherFrag } from './shaders/weather';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { FORM_TIME, Fish, type FishOrigin } from './fish';
-import { awayEvent, growthFor, maturity, type AwayEvent } from './time';
+import { awayEvent, growthFor, maturity, regrow, type AwayEvent } from './time';
 import type { GiftFish } from '../gift/codec';
 import { overflowing, pickVariety, resampleTimed, STYLE, strokeStyle, VARIETIES } from './koi-style';
 import { MOON_RISE, Sky, type MoonSpec } from './sky';
@@ -412,6 +412,7 @@ export class Engine {
       ...(f.honmei ? { honmei: true } : {}),
       ...(f.origin ? { origin: f.origin } : {}),
       bornAt: f.bornAt,
+      size: f.size,
       ...(f.gift ? { gift: { ...f.gift } } : {}),
     };
   }
@@ -458,17 +459,17 @@ export class Engine {
     if (length < 1) return;
     // An older save has no birth time: the fish starts growing from now.
     const bornAt = f.bornAt ?? now;
-    const grown = maturity(bornAt, now);
-    // The saved spine is the fish as it was when saved: it only grows by what the days since have added.
-    const sinceSave = growthFor(grown, !!f.honmei) / growthFor(maturity(bornAt, savedAt), !!f.honmei);
+    // The saved spine is the fish as it was last made: it grows only by the rest (an older save without size: as of savedAt).
+    const { size, ratio } = regrow(f.size ?? growthFor(maturity(bornAt, savedAt), !!f.honmei), bornAt, now, !!f.honmei);
     const fish = new Fish(pts, length, length / f.drawSpeed, S, this.palette, {
       calm: this.calm,
       look: { seed: f.seed, patch: f.patch, glow: f.glow, variety: f.variety, honmei: f.honmei },
       origin: f.origin,
       lively: f.origin ? this.livelyFrom(f.origin.speed, f.origin.pointer) : undefined,
       bornAt,
-      maturity: grown,
-      growth: sinceSave,
+      maturity: maturity(bornAt, now),
+      growth: ratio,
+      size,
       restored: true,
       gift: f.gift,
     });

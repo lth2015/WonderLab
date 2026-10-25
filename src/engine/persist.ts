@@ -34,6 +34,8 @@ export interface SavedFish {
   origin?: FishOrigin;
   /** When it was born, ms since the epoch (docs/02 §5.6: it grows with real time). Absent in older saves. */
   bornAt?: number;
+  /** How much it had grown past what was drawn when this body was saved (time.ts regrow). Absent in older saves. */
+  size?: number;
   /** Someone sent it (送一条鱼): the gift's id and the sender's optional one-character seal. */
   gift?: { id: string; seal?: string };
 }
@@ -160,6 +162,7 @@ function parseFish(f: unknown): SavedFish | null {
     ...(f.honmei === true ? { honmei: true } : {}),
     ...(origin ? { origin } : {}),
     ...(isPos(f.bornAt) ? { bornAt: f.bornAt } : {}),
+    ...(isPos(f.size) && f.size >= 1 && f.size <= 2 ? { size: f.size } : {}),
     ...(isObj(f.gift) && typeof f.gift.id === 'string' && /^[0-9a-z]{1,13}$/.test(f.gift.id)
       ? { gift: { id: f.gift.id, ...(typeof f.gift.seal === 'string' && /^[\p{L}\p{N}]$/u.test(f.gift.seal) ? { seal: f.gift.seal } : {}) } }
       : {}),

@@ -29,6 +29,18 @@ export function maturity(bornAt: number | undefined, now: number): number {
   return Math.min((now - bornAt) / (TIME.growDays * DAY), 1);
 }
 
+/**
+ * A saved fish coming back to life, in the lake or from afar. Its saved body
+ * already embodies `was` (the size multiplier it had when it was last made),
+ * so it grows by the rest: whatever was saved, left or came back in between,
+ * its size is growthFor(maturity(now)) of what was drawn. Never smaller than
+ * before, even if the clock moved back.
+ */
+export function regrow(was: number, bornAt: number, now: number, honmei: boolean): { size: number; ratio: number } {
+  const size = Math.max(growthFor(maturity(bornAt, now), honmei), was);
+  return { size, ratio: size / was };
+}
+
 /** Size multiplier for a fish of the given maturity; eased, so the first days show most. */
 export function growthFor(m: number, honmei: boolean): number {
   const eased = 1 - (1 - m) * (1 - m);

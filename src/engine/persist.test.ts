@@ -103,6 +103,11 @@ describe('parseWorld', () => {
     expect(w.fish).toHaveLength(1);
   });
 
+  it('keeps how much a fish had grown when saved, within range', () => {
+    const fish = [1.06, 0.5, 5, 'big'].map((size) => ({ ...valid.fish[0], size }));
+    expect(parseWorld({ ...valid, fish })!.fish.map((f) => f.size)).toEqual([1.06, undefined, undefined, undefined]);
+  });
+
   it('reads saves from before 在远处 as having none, and keeps at most AWAY_MAX, the most recent', () => {
     expect(parseWorld(valid)!.away).toBeUndefined();
     const many = Array.from({ length: AWAY_MAX + 15 }, (_, i) => ({ ...valid.fish[0], seed: i }));
