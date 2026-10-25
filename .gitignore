@@ -8,3 +8,5 @@ server-data
 .playwright-mcp
 # Collected strokes stay out of the repository (strokes/README.md)
 strokes/*.json
+# and the sentences colleagues wrote for rule calibration (strokes/README.md)
+strokes/*.txt
