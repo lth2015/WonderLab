@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { afterFirstFish, afterGift, analyzeStudy, buildOf, needed, analyzeTester, formatReport, freeSpans, isSessionLog, judge, type SessionEvent, type SessionLog } from './sessions';
+import { afterFirstFish, afterGift, analyzeStudy, buildOf, buildsOf, needed, analyzeTester, formatReport, freeSpans, isSessionLog, judge, type SessionEvent, type SessionLog } from './sessions';
 
 const log = (events: SessionEvent[]): SessionLog => ({ device: 'desktop', events });
 const ev = (t: number, type: string, fields: Record<string, string | number | boolean> = {}): SessionEvent => ({ t, type, ...fields });
@@ -181,6 +181,33 @@ describe('builds and invalid samples (docs/验证路线图.md)', () => {
     expect(buildOf({ build: { sha: 'abc', experiment: 'poc-r1', schema: 2 }, events: [] })).toEqual({ sha: 'abc', experiment: 'poc-r1' });
     expect(buildOf(log([ready('def', 'poc-gift-r1')]))).toEqual({ sha: 'def', experiment: 'poc-gift-r1' });
     expect(buildOf(log([ev(0, 'world_ready')]))).toBeNull();
+  });
+
+  it("in a field tester's export, each record's own build wins over the exporting build", () => {
+    const fieldExport = {
+      exportedBy: { sha: 'bbb222', experiment: 'poc-r1', schema: 2 },
+      events: [ev(100, 'create', { what: 'fish', sha: 'aaa111', exp: 'poc-r1' }), ev(200, 'create', { what: 'moon', sha: 'bbb222', exp: 'poc-r1' })],
+      visits: [{ at: 90, ms: 1, creations: 1, sha: 'aaa111', exp: 'poc-r1' }],
+    };
+    expect(buildsOf(fieldExport)).toEqual([
+      { sha: 'aaa111', experiment: 'poc-r1' },
+      { sha: 'bbb222', experiment: 'poc-r1' },
+    ]);
+    expect(buildOf(fieldExport)).toBeNull();
+    const one = { events: [ev(100, 'create', { what: 'fish', sha: 'aaa111', exp: 'poc-r1' })] };
+    expect(buildOf(one)).toEqual({ sha: 'aaa111', experiment: 'poc-r1' });
+  });
+
+  it('flags a log that mixes builds, and one with records from before build stamping', () => {
+    const mixed = log([ev(0, 'phase_change', { phase: 'free', sha: 'aaa111', exp: 'poc-r1' }), ev(200, 'create', { what: 'fish', sha: 'bbb222', exp: 'poc-r1' })]);
+    const old = log([ev(0, 'phase_change', { phase: 'free', sha: 'unknown', exp: 'unknown' }), ev(200, 'create', { what: 'fish', sha: 'unknown', exp: 'unknown' })]);
+    const r = analyzeStudy([
+      { id: 'C1', log: mixed },
+      { id: 'C2', log: old },
+    ]);
+    expect(r.warnings.some((w) => w.includes('同一份记录里混有多个构建') && w.includes('C1（poc-r1@aaa111、poc-r1@bbb222）'))).toBe(true);
+    expect(r.warnings.some((w) => w.includes('不是冻结的实验构建') && w.includes('C2'))).toBe(true);
+    expect(formatReport(r)).toContain('poc-r1@aaa111 + poc-r1@bbb222');
   });
 
   it('the thresholds in whole testers: 7, 5 and 3 of 8', () => {

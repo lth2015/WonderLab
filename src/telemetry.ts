@@ -41,7 +41,7 @@ type Fields = Record<string, string | number | boolean>;
 
 import { noteCreation } from './lib/visits';
 import { BUILD, FIELD_BUILD } from './build';
-import { storeEvent } from './lib/study-log';
+import { keepFields, storeEvent } from './lib/study-log';
 
 // "Unprompted" is pre-registered in docs/02 §1: not within 10 s of a hint
 // that invited it. The H2 threshold is judged against this, so it must not drift.
@@ -62,8 +62,9 @@ const HINT_INVITES: Record<string, string> = {
 };
 
 export function logEvent(type: EventType, fields: Fields = {}): void {
-  events.push({ t: Math.round(performance.now()), type, ...fields });
-  if (FIELD_BUILD) storeEvent({ t: Date.now(), type, ...fields });
+  // Both logs keep only the fields listed for the type (study-log.ts STUDY_FIELDS).
+  events.push({ t: Math.round(performance.now()), type, ...keepFields(type, fields) });
+  if (FIELD_BUILD) storeEvent(type, fields);
   // The diary study only counts what was made, never what (lib/visits.ts).
   if (type === 'create' || type === 'text_submit') noteCreation();
 }

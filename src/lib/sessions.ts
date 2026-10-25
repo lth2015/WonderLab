@@ -22,12 +22,37 @@ export interface SessionLog {
   events: SessionEvent[];
 }
 
-/** The build a log came from: the export's own stamp, else what world_ready recorded. */
-export function buildOf(log: SessionLog): { sha: string; experiment: string } | null {
+export interface BuildId {
+  sha: string;
+  experiment: string;
+}
+
+/**
+ * Every build a log's records came from. A field tester's export stamps each
+ * event (and visit) with the build that recorded it, and those stamps win:
+ * the export's own build is only the one that did the exporting, which after
+ * a site update is not the build that recorded older events. A moderator's
+ * log covers one page load, so its export stamp or world_ready names it.
+ */
+export function buildsOf(log: SessionLog & { visits?: unknown }): BuildId[] {
+  const stamped = [...log.events, ...(Array.isArray(log.visits) ? log.visits : [])].filter(
+    (r): r is { sha: string; exp: string } => !!r && typeof r === 'object' && typeof (r as { sha?: unknown }).sha === 'string' && typeof (r as { exp?: unknown }).exp === 'string',
+  );
+  if (stamped.length) {
+    const seen = new Map<string, BuildId>();
+    for (const r of stamped) seen.set(`${r.exp}@${r.sha}`, { sha: r.sha, experiment: r.exp });
+    return [...seen.values()];
+  }
   const world = log.events.find((e) => e.type === 'world_ready');
   const sha = log.build?.sha ?? (typeof world?.buildSha === 'string' ? world.buildSha : undefined);
   const experiment = log.build?.experiment ?? (typeof world?.experimentId === 'string' ? world.experimentId : undefined);
-  return sha || experiment ? { sha: sha ?? 'unknown', experiment: experiment ?? 'unknown' } : null;
+  return sha || experiment ? [{ sha: sha ?? 'unknown', experiment: experiment ?? 'unknown' }] : [];
+}
+
+/** The one build a log came from; null when none is recorded or the log mixes builds (see buildsOf). */
+export function buildOf(log: SessionLog): BuildId | null {
+  const all = buildsOf(log);
+  return all.length === 1 ? all[0] : null;
 }
 
 /** The observer's notes for one tester. Omitted fields are unknown. */
@@ -106,7 +131,9 @@ export function afterFirstFish(events: SessionEvent[]): AfterFirstFish | null {
 export interface TesterResult {
   id: string;
   device: string;
-  build: { sha: string; experiment: string } | null;
+  build: BuildId | null;
+  /** Every build the log's records came from; more than one means the log mixes builds. */
+  builds: BuildId[];
   /** The observer's reason this session does not count, if any. */
   invalid: string | null;
   firstStrokeMs: number | null;
@@ -203,6 +230,7 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
     id,
     device: String(world?.device ?? log.device ?? 'unknown'),
     build: buildOf(log),
+    builds: buildsOf(log),
     invalid: typeof notes.invalid === 'string' && notes.invalid.trim() ? notes.invalid.trim() : null,
     firstStrokeMs,
     freeMinutes,
@@ -254,6 +282,8 @@ export interface StudyResult {
   warnings: string[];
 }
 
+const label = (b: BuildId): string => `${b.experiment}@${b.sha}`;
+
 export function analyzeStudy(sessions: { id: string; log: SessionLog; notes?: ObserverNotes }[]): StudyResult {
   const all = sessions.map((s) => analyzeTester(s.id, s.log, s.notes));
   const warnings: string[] = [];
@@ -262,9 +292,16 @@ export function analyzeStudy(sessions: { id: string; log: SessionLog; notes?: Ob
   if (invalid.length) warnings.push(`无效样本，不计入判定：${invalid.map((t) => `${t.id}（${t.invalid}）`).join('、')}。`);
   const testers = all.filter((t) => !t.invalid);
   // Data from different builds is never pooled silently (docs/验证路线图.md §4).
-  const builds = new Set(testers.map((t) => (t.build ? `${t.build.experiment}@${t.build.sha}` : '未记录')));
+  const mixed = testers.filter((t) => t.builds.length > 1);
+  if (mixed.length)
+    warnings.push(
+      `同一份记录里混有多个构建（测试期间网站更新过，或有构建标记之前的旧记录）：${mixed.map((t) => `${t.id}（${t.builds.map(label).join('、')}）`).join('、')}。按版本拆开再看，不能直接合并。`,
+    );
+  const builds = new Set(testers.flatMap((t) => (t.builds.length ? t.builds.map(label) : ['未记录'])));
   if (builds.size > 1) warnings.push(`这些记录来自不同的构建：${[...builds].join('、')}。不同版本的数据不能直接合并，先确认差异是否影响所测的体验。`);
-  const unfrozen = testers.filter((t) => !t.build || t.build.experiment === 'dev' || t.build.sha.endsWith('-dirty')).map((t) => t.id);
+  const unfrozen = testers
+    .filter((t) => !t.builds.length || t.builds.some((b) => b.experiment === 'dev' || b.experiment === 'unknown' || b.sha.endsWith('-dirty')))
+    .map((t) => t.id);
   if (unfrozen.length) warnings.push(`不是冻结的实验构建（开发版、有未提交改动或没有版本记录）：${unfrozen.join('、')}。`);
   if (testers.length < 5) warnings.push(`只有 ${testers.length} 份有效记录；方案是 5–10 名测试者，结论只作方向参考。`);
   const noFree = testers.filter((t) => t.freeMinutes === null).map((t) => t.id);
@@ -314,7 +351,7 @@ export function formatReport(r: StudyResult): string {
     '|---|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...r.testers.map(
       (t) =>
-        `| ${t.id}${t.invalid ? '（无效）' : ''} | ${t.device} | ${t.build ? `${t.build.experiment}@${t.build.sha}` : '—'} | ${t.firstStrokeMs === null ? '—' : `${(t.firstStrokeMs / 1000).toFixed(1)}s`} | ${
+        `| ${t.id}${t.invalid ? '（无效）' : ''} | ${t.device} | ${t.builds.length ? t.builds.map(label).join(' + ') : '—'} | ${t.firstStrokeMs === null ? '—' : `${(t.firstStrokeMs / 1000).toFixed(1)}s`} | ${
           t.freeMinutes === null ? '—' : `${t.freeMinutes.toFixed(1)} 分`
         } | ${t.unpromptedInFree} / ${t.promptedInFree} | ${t.saves} | ${t.recordsCompleted}/${t.recordsStarted} | ${counts(t.quickUndos)} | ${counts(
           t.textSources,

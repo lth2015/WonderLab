@@ -5,6 +5,7 @@
 
 import { BUILD } from '../build';
 import { handOver } from './hand-over';
+import { buildSpans } from './record-builds';
 
 const KEY = 'wonderlab.visits';
 const MAX = 300;
@@ -18,6 +19,9 @@ export interface Visit {
   ms: number;
   /** Creations and sentences during the visit. */
   creations: number;
+  /** The build that recorded the visit; 'unknown' for visits from before build stamping. */
+  sha: string;
+  exp: string;
 }
 
 let current: Visit | null = null;
@@ -28,7 +32,16 @@ let hiddenAt = 0;
 function read(): Visit[] {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(v) ? v.filter((x) => x && typeof x.at === 'number' && typeof x.ms === 'number' && typeof x.creations === 'number') : [];
+    if (!Array.isArray(v)) return [];
+    return v
+      .filter((x) => x && typeof x.at === 'number' && typeof x.ms === 'number' && typeof x.creations === 'number')
+      .map((x) => ({
+        at: x.at,
+        ms: x.ms,
+        creations: x.creations,
+        sha: typeof x.sha === 'string' && x.sha ? x.sha : 'unknown',
+        exp: typeof x.exp === 'string' && x.exp ? x.exp : 'unknown',
+      }));
   } catch {
     return [];
   }
@@ -56,7 +69,7 @@ function flush(now: number): void {
 }
 
 export function startVisit(now = Date.now()): void {
-  current = { at: now, ms: 0, creations: 0 };
+  current = { at: now, ms: 0, creations: 0, sha: BUILD.sha, exp: BUILD.experiment };
   shownSince = now;
   flush(now);
 }
@@ -93,7 +106,9 @@ export function clearVisits(): void {
   }
 }
 
-/** Hand the visits over as JSON, for the moderator panel. */
+/** Hand the visits over as JSON, for the moderator panel. Each visit names its own build; `exportedBy` is only the build doing the export. */
 export function exportVisits(): Promise<'shared' | 'downloaded' | 'cancelled'> {
-  return handOver(`wonderful-world-visits-${Date.now()}.json`, { exportedAt: new Date().toISOString(), build: BUILD, visits: read() });
+  const visits = read();
+  const builds = buildSpans([], visits);
+  return handOver(`wonderful-world-visits-${Date.now()}.json`, { exportedAt: new Date().toISOString(), exportedBy: BUILD, builds, mixedBuilds: builds.length > 1, visits });
 }

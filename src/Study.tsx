@@ -44,6 +44,7 @@ export function StudySheet({ onClose }: { onClose: () => void }) {
         <p className="note" role="status">
           打开 {summary.visits} 次 · 创造 {summary.creations} 次 · 收下的鱼 {summary.giftsTaken} 条 · 事件 {summary.events} 条
         </p>
+        {summary.builds > 1 && <p className="note">这些记录来自 {summary.builds} 个版本（测试期间网站更新过），导出时每条记录都会标明来自哪个版本。</p>}
         <label>
           参与者编号（测试说明里给你的，例如 P01；可不填）
           <input value={participant} maxLength={12} autoComplete="off" onChange={(e) => setParticipant(e.target.value)} />
@@ -65,7 +66,7 @@ export function StudySheet({ onClose }: { onClose: () => void }) {
           </p>
         )}
         <p className="note study-build">
-          版本 {BUILD.experiment} · {BUILD.sha}
+          当前版本 {BUILD.experiment} · {BUILD.sha}
         </p>
       </div>
     </>

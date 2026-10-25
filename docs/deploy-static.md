@@ -17,7 +17,7 @@
 
 - 两个站点地址不同，浏览器存储互不相通：在 `r1` 上画的世界，不会出现在 `gift` 上；送鱼人要在 `gift` 站点上画要送的鱼。
 - 构建前确认工作区干净（`git status` 无改动），否则版本号会带 `-dirty`。冻结后从 `poc-r1` 标签构建。
-- 用独立的测试子域名，和将来的正式产品分开。两个站点都返回 `X-Robots-Tag: noindex`，不会被搜索引擎收录。
+- 用独立的测试子域名，和将来的正式产品分开。两个站点都返回 `X-Robots-Tag: noindex`，要求搜索引擎不收录。这是对守规矩的搜索引擎的请求，**不是保证**：站点地址仍然只发给参与者，不公开发布。
 
 ## 推荐：Cloudflare Pages 直接上传
 
@@ -46,7 +46,7 @@ npx wrangler pages deploy dist --project-name wonderful-world-gift
 | `Referrer-Policy: strict-origin-when-cross-origin` | 跳出站点时只带域名，不带路径 |
 | `X-Content-Type-Options: nosniff` | 基本安全 |
 | `Permissions-Policy: camera=(), microphone=(), geolocation=()` | 从浏览器层面禁止摄像头、麦克风、定位（P8） |
-| `X-Robots-Tag: noindex, nofollow` | 测试站点不进搜索引擎 |
+| `X-Robots-Tag: noindex, nofollow` | 请搜索引擎不收录测试站点（不是保证） |
 | `/assets/*` 一年缓存 | 带哈希的文件，更新时文件名会变 |
 
 ## 部署后验收（每个站点各做一遍）
@@ -57,4 +57,5 @@ npx wrangler pages deploy dist --project-name wonderful-world-gift
 - [ ] 响应头里有上表的几项（开发者工具 → 网络 → 任意请求 → 响应头）
 - [ ] `r1` 站点：打开一个礼物链接，什么也不发生；长按鱼没有「送给朋友」
 - [ ] `gift` 站点：两台设备完成一次送鱼、收鱼；收鱼人的 `/?study` 能看到「收下的鱼 1 条」并能导出
-- [ ] 导出的测试记录里没有画的内容、写的字、名字和链接
+- [ ] 导出的测试记录里没有画的内容、写的字、名字和链接；每条记录带着 `sha`、`exp`，文件里的 `builds` 只有预期的版本
+- [ ] iPhone Safari 上打开 `/?study`：刷新、返回后计数不变；「导出并发给研究人员」弹出系统分享面板，能存到「文件」或用信息、邮件发出
