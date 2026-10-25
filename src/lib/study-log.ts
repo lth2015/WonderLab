@@ -25,6 +25,7 @@ const MAX = 3000;
 export const STUDY_FIELDS: Record<EventType, readonly string[]> = {
   world_ready: ['ms', 'device', 'tier', 'buildSha', 'experimentId', 'schemaVersion', 'sceneMode'],
   first_stroke: ['after', 'via'],
+  demo_shown: ['n', 'after'],
   stroke_classified: ['kind', 'region', 'length', 'gap', 'turn', 'aspect', 'residual'],
   create: ['what', 'prompted', 'variety', 'family', 'affinity', 'honmei', 'speed', 'bend', 'pointer'],
   emerge: ['what'],

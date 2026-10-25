@@ -27,7 +27,8 @@ import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
-const DEMO_IDLE_MS = 4000;
+// After H1's 5 s window (docs/02 §1): a stroke within the window is never one the demo taught.
+const DEMO_IDLE_MS = 6000;
 const DEMO_MAX = 2;
 const DEMO_GAP_MS = 9000;
 const HINT_MS = 6000;
@@ -414,6 +415,7 @@ export function App() {
       demoTimer = later(() => {
         if (drawn || demos >= DEMO_MAX || giftParam) return;
         demos++;
+        logEvent('demo_shown', { n: demos, after: Math.round(performance.now() - readyAt) });
         // Reduced motion: a still, dashed line instead of the animated ghost.
         if (reducedQuery.matches) setStaticDemo((n) => n + 1);
         else engine.playDemo();
