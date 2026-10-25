@@ -198,6 +198,22 @@ describe('builds and invalid samples (docs/验证路线图.md)', () => {
     expect(buildOf(one)).toEqual({ sha: 'aaa111', experiment: 'poc-r1' });
   });
 
+  it('warns when testers did not all read sentences with local rules only', () => {
+    const local = log([ev(0, 'world_ready', { device: 'phone', buildSha: 'aaa', experimentId: 'poc-r1', sceneMode: 'local' }), ...freeRun(0)]);
+    const same = analyzeStudy([
+      { id: 'P1', log: local },
+      { id: 'P2', log: local },
+    ]);
+    expect(same.testers[0].sceneModes).toEqual(['local']);
+    expect(same.warnings.some((w) => w.includes('文字理解的条件不一致'))).toBe(false);
+    const ai = log([ev(0, 'world_ready', { device: 'phone', buildSha: 'aaa', experimentId: 'poc-r1', sceneMode: 'ai' }), ev(50, 'text_submit', { source: 'ai' }), ...freeRun(0)]);
+    const mixed = analyzeStudy([
+      { id: 'P1', log: local },
+      { id: 'P2', log: ai },
+    ]);
+    expect(mixed.warnings.some((w) => w.includes('文字理解的条件不一致') && w.includes('P2 有句子经 AI 理解'))).toBe(true);
+  });
+
   it('flags a log that mixes builds, and one with records from before build stamping', () => {
     const mixed = log([ev(0, 'phase_change', { phase: 'free', sha: 'aaa111', exp: 'poc-r1' }), ev(200, 'create', { what: 'fish', sha: 'bbb222', exp: 'poc-r1' })]);
     const old = log([ev(0, 'phase_change', { phase: 'free', sha: 'unknown', exp: 'unknown' }), ev(200, 'create', { what: 'fish', sha: 'unknown', exp: 'unknown' })]);

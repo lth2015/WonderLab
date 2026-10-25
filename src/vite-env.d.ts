@@ -6,4 +6,4 @@ interface ImportMetaEnv {
 }
 
 /** Written in by vite.config.ts at build time. */
-declare const __BUILD__: { sha: string; experiment: 'dev' | 'poc-r1' | 'poc-gift-r1' };
+declare const __BUILD__: { sha: string; experiment: 'dev' | 'poc-r1' | 'poc-gift-r1'; scene: 'local' | 'ai' };

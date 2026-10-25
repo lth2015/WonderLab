@@ -1,3 +1,4 @@
+import { BUILD } from './build';
 import { validateCommand, type SceneCommand } from './engine/intent';
 
 // The AI half of 一句成境 (docs/02 §5.3): ask the server proxy, which holds
@@ -46,7 +47,8 @@ export function bareFlags(params: URLSearchParams): string {
 
 /** One sentence to the proxy, within the 2.5 s budget (docs/03 §6.3). */
 export async function askScene(invite: string | null, text: string, shortlist: number[]): Promise<AiOutcome> {
-  if (!invite) return { status: 'off' };
+  // An experiment build reads sentences with local rules only: nothing is sent, invite or not.
+  if (BUILD.scene === 'local' || !invite) return { status: 'off' };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
   try {
