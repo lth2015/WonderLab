@@ -1,9 +1,11 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { buildDefine } from './build-info';
 
 export default defineConfig({
   plugins: [react()],
+  define: buildDefine(),
   resolve: {
     // Shared request/response shapes from the server (types only in the browser).
     alias: { '@wonderlab/contracts': fileURLToPath(new URL('./server/packages/contracts/src/index.ts', import.meta.url)) },

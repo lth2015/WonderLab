@@ -20,6 +20,9 @@ import { freshUrl, onReset, resetForNext } from './moderator';
 import { clearVisits, startVisit, visibilityChanged } from './lib/visits';
 import { cleanSeal, decodeGift, giftLink } from './gift/codec';
 import { hasReceived, markReceived, takeGiftFromAddress } from './gift/received';
+import { BUILD, giftEnabled } from './build';
+import { clearStudy } from './lib/study-log';
+import { StudySheet } from './Study';
 import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
 
@@ -46,10 +49,19 @@ const SAVE_EVERY_MS = 3000;
 const ECHO_DELAY_MS = 900;   // after the words have risen into the sky
 const ECHO_SHORTLIST = 24;
 const RECENT_ECHOES = 10;
-// 送一条鱼 (docs/02 §5.7) is a prototype behind ?giftlab: sending, receiving
-// and releasing are only reachable there. The gift is read from the address
-// first and removed from it at once (docs/gift-protocol.md §3).
-const giftlab = params.has('giftlab');
+// 送一条鱼 (docs/02 §5.7) is in the poc-gift-r1 build only (in development,
+// behind ?giftlab): no poc-r1 tester can reach it (docs/验证路线图.md). The
+// gift is read from the address first and removed from it at once
+// (docs/gift-protocol.md §3).
+const giftlab = giftEnabled(params);
+// ?study opens the tester's own view of their records (Study.tsx), from the
+// link in the written test instructions; then it leaves the address.
+const studyOpen = params.has('study');
+if (studyOpen) {
+  params.delete('study');
+  const q = bareFlags(params);
+  history.replaceState(null, '', location.pathname + (q ? `?${q}` : '') + location.hash);
+}
 const giftParam = giftlab ? takeGiftFromAddress() : null;
 const invite = captureInvite(params);
 // ?fresh starts from an empty world (docs/02 §3.1), then drops out of the
@@ -138,6 +150,7 @@ export function App() {
   const [sealMark, setSealMark] = useState<{ char: string; x: number; y: number; key: number } | null>(null);
   const [sendSheet, setSendSheet] = useState<{ fishId: number; seal: string } | null>(null);
   const [giftNote, setGiftNote] = useState('');
+  const [study, setStudy] = useState(studyOpen);
   const [announce, setAnnounce] = useState('');
   const [worldLabel, setWorldLabel] = useState('夜晚的湖面，还空着');
   const [text, setText] = useState('');
@@ -346,6 +359,7 @@ export function App() {
     onReset(() => {
       resetting = true;
       clearVisits();
+      clearStudy();
       clearWorld();
       location.replace(freshUrl());
     });
@@ -362,7 +376,14 @@ export function App() {
     requestAnimationFrame(() => {
       setReady(true);
       dismissBoot();
-      logEvent('world_ready', { ms: Math.round(performance.now()), device: deviceType(), tier: engine.tier });
+      logEvent('world_ready', {
+        ms: Math.round(performance.now()),
+        device: deviceType(),
+        tier: engine.tier,
+        buildSha: BUILD.sha,
+        experimentId: BUILD.experiment,
+        schemaVersion: BUILD.schema,
+      });
       startVisit();
     });
     const takeGift = (value: string, delay: number) => {
@@ -574,7 +595,8 @@ export function App() {
     if (!g) return;
     const seal = cleanSeal(sealInput);
     // Prototype links open the prototype; the gift itself stays after #.
-    const link = giftLink(`${location.origin}/?giftlab`, { ...g, ...(seal ? { seal } : {}) });
+    // The gift build opens gifts by itself; in development the link keeps ?giftlab.
+    const link = giftLink(`${location.origin}/${BUILD.experiment === 'poc-gift-r1' ? '' : '?giftlab'}`, { ...g, ...(seal ? { seal } : {}) });
     setSendSheet(null);
     setHeld(null);
     let how = 'copied';
@@ -828,6 +850,7 @@ export function App() {
       </Menu>
       <RecordOverlays api={recorder} />
       <ModeratorPanel />
+      {study && <StudySheet onClose={() => setStudy(false)} />}
       {overlay?.kind === 'account' && <AccountSheet onClose={closeOverlay} />}
       {overlay?.kind === 'complete' && <CheckoutComplete orderId={overlay.orderId} onClose={closeOverlay} />}
       {overlay?.kind === 'simulate' && <SimulatedCheckout onClose={closeOverlay} />}

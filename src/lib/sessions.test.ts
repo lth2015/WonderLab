@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { afterFirstFish, afterGift, analyzeStudy, analyzeTester, formatReport, freeSpans, isSessionLog, judge, type SessionEvent, type SessionLog } from './sessions';
+import { afterFirstFish, afterGift, analyzeStudy, buildOf, needed, analyzeTester, formatReport, freeSpans, isSessionLog, judge, type SessionEvent, type SessionLog } from './sessions';
 
 const log = (events: SessionEvent[]): SessionLog => ({ device: 'desktop', events });
 const ev = (t: number, type: string, fields: Record<string, string | number | boolean> = {}): SessionEvent => ({ t, type, ...fields });
@@ -119,7 +119,9 @@ describe('judge', () => {
 describe('analyzeStudy', () => {
   it('warns about a small study and logs without a free phase, and formats a report', () => {
     const r = analyzeStudy([{ id: 's1.json', log: log([ev(0, 'world_ready'), ev(2000, 'first_stroke', { after: 2000 })]), notes: { helpBeforeFirstStroke: false } }]);
-    expect(r.warnings).toHaveLength(3);
+    // Small study, no free phase, H3 unknown — and a log that records no build.
+    expect(r.warnings).toHaveLength(4);
+    expect(r.warnings.some((w) => w.includes('不是冻结的实验构建') && w.includes('s1.json'))).toBe(true);
     expect(r.h1.verdict).toBe('成立');
     const md = formatReport(r);
     expect(md).toContain('| H1 |');
@@ -168,5 +170,38 @@ describe('afterGift (送一条鱼)', () => {
     expect(afterGift([ev(0, 'gift_shown'), ev(2000, 'gift_accepted'), ev(9000, 'create', { what: 'fish' })])).toEqual({ createdOwnFish: true, afterMs: 7000 });
     expect(afterGift([ev(2000, 'gift_accepted'), ev(5000, 'touch', { object: 'fish' })])).toEqual({ createdOwnFish: false, afterMs: null });
     expect(afterGift([ev(0, 'gift_shown')])).toBeNull();
+  });
+});
+
+describe('builds and invalid samples (docs/验证路线图.md)', () => {
+  const ready = (sha: string, experiment: string) => ev(0, 'world_ready', { device: 'phone', buildSha: sha, experimentId: experiment, schemaVersion: 2 });
+  const freeRun = (t0: number) => [ev(t0 + 100, 'phase_change', { phase: 'free' }), ev(t0 + 200, 'create', { what: 'fish' })];
+
+  it('reads the build from the export, or from world_ready', () => {
+    expect(buildOf({ build: { sha: 'abc', experiment: 'poc-r1', schema: 2 }, events: [] })).toEqual({ sha: 'abc', experiment: 'poc-r1' });
+    expect(buildOf(log([ready('def', 'poc-gift-r1')]))).toEqual({ sha: 'def', experiment: 'poc-gift-r1' });
+    expect(buildOf(log([ev(0, 'world_ready')]))).toBeNull();
+  });
+
+  it('the thresholds in whole testers: 7, 5 and 3 of 8', () => {
+    expect(needed({ threshold: 0.8, total: 8 })).toBe(7);
+    expect(needed({ threshold: 0.6, total: 8 })).toBe(5);
+    expect(needed({ threshold: 0.3, total: 8 })).toBe(3);
+  });
+
+  it('warns when builds are mixed or not frozen, and keeps invalid sessions out of the count', () => {
+    const r = analyzeStudy([
+      { id: 'P1', log: log([ready('aaa', 'poc-r1'), ...freeRun(0)]) },
+      { id: 'P2', log: log([ready('bbb', 'poc-r1'), ...freeRun(0)]) },
+      { id: 'P3', log: log([ready('aaa-dirty', 'dev'), ...freeRun(0)]), notes: { invalid: '中途离开' } },
+    ]);
+    expect(r.h2.total).toBe(2);
+    expect(r.testers).toHaveLength(3);
+    expect(r.warnings.some((w) => w.includes('无效样本') && w.includes('P3（中途离开）'))).toBe(true);
+    expect(r.warnings.some((w) => w.includes('不同的构建'))).toBe(true);
+    expect(r.warnings.some((w) => w.includes('不是冻结的实验构建'))).toBe(false);
+    const report = formatReport(r);
+    expect(report).toContain('P3（无效）');
+    expect(report).toContain('2 人中需');
   });
 });

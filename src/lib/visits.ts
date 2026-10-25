@@ -3,6 +3,9 @@
 // this browser only, with no content at all — nothing drawn or written —
 // and handed over only when the moderator exports it on the tester's phone.
 
+import { BUILD } from '../build';
+import { handOver } from './hand-over';
+
 const KEY = 'wonderlab.visits';
 const MAX = 300;
 /** Hidden at least this long, and coming back counts as a new visit (mirrors time.ts TIME.awayMs). */
@@ -90,23 +93,7 @@ export function clearVisits(): void {
   }
 }
 
-/** Hand the visits over as JSON: the share sheet on a phone, a download elsewhere. */
-export async function exportVisits(): Promise<'shared' | 'downloaded' | 'cancelled'> {
-  const name = `wonderful-world-visits-${Date.now()}.json`;
-  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), visits: read() }, null, 2)], { type: 'application/json' });
-  const file = new File([blob], name, { type: 'application/json' });
-  if (window.matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: name });
-      return 'shared';
-    } catch (e) {
-      if ((e as DOMException).name === 'AbortError') return 'cancelled';
-    }
-  }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  return 'downloaded';
+/** Hand the visits over as JSON, for the moderator panel. */
+export function exportVisits(): Promise<'shared' | 'downloaded' | 'cancelled'> {
+  return handOver(`wonderful-world-visits-${Date.now()}.json`, { exportedAt: new Date().toISOString(), build: BUILD, visits: read() });
 }
