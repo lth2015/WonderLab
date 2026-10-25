@@ -57,6 +57,15 @@ describe('parseWorld', () => {
     expect('bornAt' in bad!.fish[0]).toBe(false);
   });
 
+  it('keeps a received fish’s gift id and seal, and drops a malformed one', () => {
+    const ok = parseWorld(JSON.parse(JSON.stringify({ ...valid, fish: [{ ...valid.fish[0], gift: { id: 'kgwurf', seal: '月' } }] })));
+    expect(ok!.fish[0].gift).toEqual({ id: 'kgwurf', seal: '月' });
+    const badSeal = parseWorld(JSON.parse(JSON.stringify({ ...valid, fish: [{ ...valid.fish[0], gift: { id: 'kgwurf', seal: '<b>' } }] })));
+    expect(badSeal!.fish[0].gift).toEqual({ id: 'kgwurf' });
+    const badId = parseWorld(JSON.parse(JSON.stringify({ ...valid, fish: [{ ...valid.fish[0], gift: { id: '../../x' } }] })));
+    expect('gift' in badId!.fish[0]).toBe(false);
+  });
+
   it('rejects other versions and non-objects', () => {
     expect(parseWorld({ ...valid, version: 2 })).toBeNull();
     expect(parseWorld(null)).toBeNull();

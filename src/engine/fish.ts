@@ -64,7 +64,19 @@ export interface FishOptions {
   growth?: number;
   /** A restored fish: its spine is already its body, so its length is kept as it is (no limits, no rescale). */
   restored?: boolean;
+  /** A fish someone sent (送一条鱼): the gift it came in, and the sender's optional seal. */
+  gift?: FishGift;
+  /** Still at the lake's edge, not yet taken in: never saved. */
+  guest?: boolean;
 }
+
+export interface FishGift {
+  /** The gift link's id (gift/codec.ts), so the same link is not taken in twice. */
+  id: string;
+  seal?: string;
+}
+
+let nextFishId = 1;
 
 const LEAP_TIME = 1.1;     // s in the air
 const LEAP_COOLDOWN = 6;   // s before the same fish leaps again
@@ -110,6 +122,11 @@ export class Fish {
   readonly variety: string | null;
   readonly origin: FishOrigin | null;
   readonly bornAt: number;
+  /** Stable for this page, for pointing at a fish from the UI. */
+  readonly id = nextFishId++;
+  readonly gift: FishGift | null;
+  /** At the lake's edge, not yet taken in (送一条鱼): swims, but is never saved. */
+  guest: boolean;
   private readonly calm: boolean;
   /** Stroke length over drawing time, px/ms: sets how lively the fish is. */
   readonly drawSpeed: number;
@@ -167,6 +184,8 @@ export class Fish {
     this.variety = this.glow ? null : (options.look?.variety ?? null);
     this.origin = options.origin ?? null;
     this.bornAt = options.bornAt ?? Date.now();
+    this.gift = options.gift ?? null;
+    this.guest = !!options.guest;
     this.depth = 0.2 + 0.4 * ((this.seed * 0.7548777) % 1);
     this.sociability = (this.seed * 0.3819) % 1 < 0.2 ? 0.1 : 0.6 + 0.4 * ((this.seed * 1.618) % 1);
     this.patch = this.glow

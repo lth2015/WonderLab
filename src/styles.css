@@ -846,12 +846,74 @@ body {
 }
 
 /* Moderator panel (?mod links only). */
-.sheet.moderator .stack {
+.sheet.moderator .stack,
+.sheet.gift-send .stack {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin: 12px 0 4px;
 }
-.sheet.moderator .stack .text-btn {
+.sheet.moderator .stack .text-btn,
+.sheet.gift-send .stack .text-btn {
   margin-top: 0;
+}
+
+/* 送一条鱼 prototype (?giftlab, docs/02 §5.7) */
+.held-actions {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 6;
+  animation: undo-life 7s var(--ease-ink) forwards;
+}
+.held-actions .text-btn {
+  background: rgba(11, 14, 19, 0.72);
+  backdrop-filter: blur(6px);
+}
+/* The sender's seal, where their stroke ended: a small cinnabar 落款. */
+.seal-mark {
+  position: fixed;
+  transform: translate(6px, -50%);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 3px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: rgba(176, 58, 46, 0.86);
+  color: #f6eee0;
+  font: 14px/1 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
+  pointer-events: none;
+  z-index: 5;
+  animation: seal-life 3.2s var(--ease-ink) forwards;
+}
+@keyframes seal-life {
+  0% {
+    opacity: 0;
+    transform: translate(6px, -50%) scale(1.15);
+  }
+  15%,
+  70% {
+    opacity: 0.92;
+    transform: translate(6px, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(6px, -50%) scale(1);
+  }
+}
+.gift-send label {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.gift-send input {
+  width: 4em;
+  font-size: 18px;
+  text-align: center;
+}
+/* Gift notices sit just below the horizon, where the sent fish arrives, apart from the other hints. */
+.hint.gift-note {
+  top: 54%;
 }

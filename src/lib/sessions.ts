@@ -60,6 +60,18 @@ export interface AfterFirstFish {
   touched: boolean;
 }
 
+/**
+ * 送一条鱼 (docs/02 §5.7): did someone who took in a sent fish go on to make
+ * their own? The experiment's question — whether one person's imagining
+ * became the starting point of another's. Null when no gift was taken in.
+ */
+export function afterGift(events: SessionEvent[]): { createdOwnFish: boolean; afterMs: number | null } | null {
+  const i = events.findIndex((e) => e.type === 'gift_accepted');
+  if (i < 0) return null;
+  const own = events.slice(i + 1).find((e) => e.type === 'create' && e.what === 'fish');
+  return { createdOwnFish: !!own, afterMs: own ? own.t - events[i].t : null };
+}
+
 export function afterFirstFish(events: SessionEvent[]): AfterFirstFish | null {
   const i = events.findIndex((e) => e.type === 'create' && e.what === 'fish');
   if (i < 0) return null;
@@ -89,6 +101,7 @@ export interface TesterResult {
   quickUndos: Record<string, number>;
   textSources: Record<string, number>;
   afterFirstFish: AfterFirstFish | null;
+  afterGift: { createdOwnFish: boolean; afterMs: number | null } | null;
   /** true / false, or null when the answer needs notes that are missing. */
   h1: boolean | null;
   h2: boolean | null;
@@ -180,6 +193,7 @@ export function analyzeTester(id: string, log: SessionLog, notes: ObserverNotes 
     quickUndos,
     textSources,
     afterFirstFish: afterFirstFish(events),
+    afterGift: afterGift(events),
     h1,
     h2,
     h3,
@@ -289,5 +303,18 @@ export function formatReport(r: StudyResult): string {
       return `| ${t.id} | ${kind} | ${a.gapMs === null ? '—' : `${(a.gapMs / 1000).toFixed(1)}s`} | ${a.touched ? '是' : '否'} |`;
     }),
   );
+  const gifted = r.testers.filter((t) => t.afterGift);
+  if (gifted.length) {
+    out.push(
+      '',
+      '## 收到一条鱼之后（送一条鱼实验，02 §5.7）',
+      '',
+      '收下别人送的鱼之后，有没有在自己的湖里画出第一条自己的鱼。',
+      '',
+      '| 记录 | 画了自己的鱼 | 收下之后多久 |',
+      '|---|---|---|',
+      ...gifted.map((t) => `| ${t.id} | ${t.afterGift!.createdOwnFish ? '是' : '否'} | ${t.afterGift!.afterMs === null ? '—' : `${(t.afterGift!.afterMs / 1000).toFixed(1)}s`} |`),
+    );
+  }
   return out.join('\n') + '\n';
 }
