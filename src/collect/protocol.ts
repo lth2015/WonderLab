@@ -1,4 +1,4 @@
-// The stroke test set from docs/02-product-design.md §4: nine shapes, each
+// The stroke test set from docs/02-product-design.md §4: ten shapes, each
 // drawn five times per tester. Real strokes collected here replace the
 // synthetic ones in classify.test.ts when tuning the docs/03 §6.2 thresholds.
 import { classify, type MoonPhase, type StrokeKind } from '../engine/classify';
@@ -19,6 +19,8 @@ export interface Category {
 }
 
 export const CATEGORIES: Category[] = [
+  // The everyday fish stroke: how fast and how curved people draw it sets 笔性 (koi-style.ts).
+  { id: 'line', label: '画鱼的一笔', hint: '在湖面上画一条鱼：随手一笔弯线', accept: ['open', 'arc'] },
   { id: 'circle', label: '随手圆', hint: '像平时一样随手画一个圆', accept: ['circle'] },
   { id: 'wonky', label: '歪圆', hint: '画一个不太圆、有点扁的圆', accept: ['circle'] },
   { id: 'half', label: '半圆', hint: '画半个圆，不要闭合', accept: ['arc'] },

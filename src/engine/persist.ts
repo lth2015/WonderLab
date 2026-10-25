@@ -5,10 +5,12 @@
 
 import type { AtmosphereState } from './atmosphere';
 import type { MoonPhase } from './classify';
+import type { FishOrigin } from './fish';
+import { FAMILIES, type Family } from './koi-style';
 
 export const SAVE_VERSION = 1;
 const KEY = 'wonderlab.world';
-const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64 };
+const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64, origin: 48 };
 
 export interface SavedFish {
   /** Tail to head, normalised to the view (x / width, y / height, from the bottom). */
@@ -18,6 +20,12 @@ export interface SavedFish {
   patch: number;
   /** A meteor's glowing fish. Absent for drawn fish. */
   glow?: boolean;
+  /** Koi variety (koi-style.ts). Absent in older saves. */
+  variety?: string;
+  /** The world's first fish (本命鱼). */
+  honmei?: boolean;
+  /** The stroke and readings it came from (docs/02 §5.1). Absent in older saves and for meteor fish. */
+  origin?: FishOrigin;
 }
 
 export interface WorldSave {
@@ -78,7 +86,17 @@ export function parseWorld(data: unknown): WorldSave | null {
       .slice(0, LIMITS.spine)
       .filter((p): p is [number, number] => Array.isArray(p) && p.length === 2 && p.every(isUnitish));
     if (spine.length < 2 || !isPos(f.drawSpeed) || !isNum(f.seed) || !isNum(f.patch)) continue;
-    fish.push({ spine, drawSpeed: Math.min(f.drawSpeed, 10), seed: f.seed, patch: unit(f.patch, 0), ...(f.glow === true ? { glow: true } : {}) });
+    const origin = parseOrigin(f.origin);
+    fish.push({
+      spine,
+      drawSpeed: Math.min(f.drawSpeed, 10),
+      seed: f.seed,
+      patch: unit(f.patch, 0),
+      ...(f.glow === true ? { glow: true } : {}),
+      ...(typeof f.variety === 'string' && /^[a-z]{2,16}$/.test(f.variety) ? { variety: f.variety } : {}),
+      ...(f.honmei === true ? { honmei: true } : {}),
+      ...(origin ? { origin } : {}),
+    });
   }
 
   let moon: WorldSave['moon'] = null;
@@ -109,6 +127,24 @@ export function parseWorld(data: unknown): WorldSave | null {
     .filter((c): c is [number, number, number] => Array.isArray(c) && c.length === 3 && isUnitish(c[0]) && isUnitish(c[1]) && isPos(c[2]));
 
   return { version: SAVE_VERSION, atmosphere, fish, moon, planets, stars, clouds };
+}
+
+function parseOrigin(o: unknown): FishOrigin | undefined {
+  if (!isObj(o)) return undefined;
+  const stroke = arr(o.stroke)
+    .slice(0, LIMITS.origin)
+    .filter((p): p is [number, number, number] => Array.isArray(p) && p.length === 3 && isUnitish(p[0]) && isUnitish(p[1]) && isNum(p[2]) && p[2] >= 0);
+  if (stroke.length < 2 || !isNum(o.speed) || o.speed < 0 || !isNum(o.curviness) || o.curviness < 0) return undefined;
+  if (!(typeof o.family === 'string' && o.family in FAMILIES)) return undefined;
+  if (!isNum(o.born) || o.born < 1) return undefined;
+  return {
+    stroke: stroke.map(([x, y, t]): [number, number, number] => [x, y, Math.min(Math.round(t), 60000)]),
+    speed: Math.min(o.speed, 100),
+    curviness: Math.min(o.curviness, 4),
+    family: o.family as Family,
+    pointer: oneOf(o.pointer, ['mouse', 'touch', 'pen', 'keyboard'], 'mouse'),
+    born: Math.round(o.born),
+  };
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {

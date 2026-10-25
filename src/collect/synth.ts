@@ -88,6 +88,17 @@ function uPath(r: Rand): Path {
   };
 }
 
+function linePath(r: Rand): Path {
+  // A gentle bend, the way people draw a fish: some nearly straight, some well curved.
+  const bend = between(r, 0.08, 0.6) * (r() < 0.5 ? 1 : -1);
+  const ang = between(r, -0.5, 0.5) + (r() < 0.5 ? 0 : Math.PI);
+  return (u) => {
+    const x = u * 2 - 1;
+    const y = bend * Math.sin(Math.PI * u);
+    return [x * Math.cos(ang) - y * Math.sin(ang), x * Math.sin(ang) + y * Math.cos(ang)];
+  };
+}
+
 function dashPath(r: Rand): Path {
   const ang = between(r, 0, Math.PI * 2);
   const bend = between(r, -0.15, 0.15);
@@ -146,6 +157,9 @@ function stroke(r: Rand, category: string, W: number, H: number): [number, numbe
       return draw(r, spiralPath(r), between(r, 0.06, 0.12) * S, cx, cy, between(r, 900, 1800), false);
     case 'u':
       return draw(r, uPath(r), between(r, 0.05, 0.1) * S, cx, cy, between(r, 400, 800), hook);
+    case 'line':
+      // Hands differ most here: some flick it off in a quarter second, some take their time.
+      return draw(r, linePath(r), between(r, 0.08, 0.16) * S, cx, cy, between(r, 220, 1100), hook);
     case 'dash':
       return draw(r, dashPath(r), between(r, 0.025, 0.05) * S, cx, cy, between(r, 80, 200), false);
     case 'tap': {

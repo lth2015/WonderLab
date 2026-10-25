@@ -4,6 +4,7 @@ import type { Palette } from './palette';
 import type { StrokePoint } from './stroke';
 import type { KoiSkin } from './art';
 import { RING_MARGIN, slotPoint, type Orbit } from './relations';
+import { patchFor, totalTurn, type Family } from './koi-style';
 
 const N = 32;
 export const FORM_TIME = 0.9; // s, mirrors docs/03 §6.3 (creation 1.2–1.8 s incl. ink bleed)
@@ -22,9 +23,29 @@ const envW = (s: number, k: number) => Math.max(bodyW(s) + pectW(s, k), tailW(s)
 /** How a fish looks, kept so a saved fish comes back the same. */
 export interface FishLook {
   seed: number;
-  patch: number;
+  /** Cinnabar for the procedural koi; chosen from the variety when absent. */
+  patch?: number;
   /** A fish a meteor turned into (docs/02 §5.5): small, pale gold, glowing. */
   glow?: boolean;
+  /** The koi variety its stroke leaned toward (koi-style.ts); absent in older saves. */
+  variety?: string;
+  /** The world's first fish, the user's own (本命鱼, docs/02 §5.1). */
+  honmei?: boolean;
+}
+
+/** Where a fish came from (docs/02 §5.1): kept so the stroke behind it can be shown again one day. */
+export interface FishOrigin {
+  /** The stroke in drawing order: x / width, y / height (from the bottom), ms from its first point. */
+  stroke: [number, number, number][];
+  /** Short screen edges per second. */
+  speed: number;
+  /** Total turn over π. */
+  curviness: number;
+  family: Family;
+  /** mouse, touch, pen or keyboard. */
+  pointer: string;
+  /** 1 for the world's first fish, counting up. */
+  born: number;
 }
 
 export interface FishOptions {
@@ -32,6 +53,9 @@ export interface FishOptions {
   /** Reduced motion: no growth, half speed. */
   calm?: boolean;
   look?: FishLook;
+  /** 0..1 from the stroke's normalised speed; without it, from the raw drawing speed. */
+  lively?: number;
+  origin?: FishOrigin;
 }
 
 const LEAP_TIME = 1.1;     // s in the air
@@ -74,6 +98,9 @@ export class Fish {
   readonly patch: number;
   readonly ghost: boolean;
   readonly glow: boolean;
+  readonly honmei: boolean;
+  readonly variety: string | null;
+  readonly origin: FishOrigin | null;
   private readonly calm: boolean;
   /** Stroke length over drawing time, px/ms: sets how lively the fish is. */
   readonly drawSpeed: number;
@@ -92,7 +119,7 @@ export class Fish {
   private grow = 0;
   private startle = 0;
   private startleDir = 0;
-  private attract: { x: number; y: number; until: number } | null = null;
+  private attract: { x: number; y: number; until: number; eager: boolean } | null = null;
   private orbit: Orbit | null = null;
   private slot = 0;
   /** Rain brings fish up, mist lets them sink a little (docs/02 §5.5); eased toward the targets. */
@@ -124,9 +151,14 @@ export class Fish {
     const calm = (this.calm = !!options.calm);
     this.seed = options.look?.seed ?? Math.random() * 100;
     this.glow = !!options.look?.glow;
+    this.honmei = !!options.look?.honmei && !ghost && !this.glow;
+    this.variety = this.glow ? null : (options.look?.variety ?? null);
+    this.origin = options.origin ?? null;
     this.depth = 0.2 + 0.4 * ((this.seed * 0.7548777) % 1);
     this.sociability = (this.seed * 0.3819) % 1 < 0.2 ? 0.1 : 0.6 + 0.4 * ((this.seed * 1.618) % 1);
-    this.patch = this.glow ? 0 : (options.look?.patch ?? (Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0));
+    this.patch = this.glow
+      ? 0
+      : (options.look?.patch ?? (this.variety ? patchFor(this.variety, Math.random) : Math.random() < 0.65 ? 0.5 + Math.random() * 0.5 : 0));
     this.opacity = ghost ? 0.38 : 1;
     this.fadeTime = ghost ? 1.2 : 2.2;
     // Length follows the stroke, within limits.
@@ -144,8 +176,12 @@ export class Fish {
     this.heading = Math.atan2(this.ys[0] - this.ys[2], this.xs[0] - this.xs[2]);
 
     // Quick strokes make lively fish; curvy strokes make softer swimmers.
+    // Each fish also has a temperament of its own (from its seed), so its
+    // character follows the stroke without being fixed by it or by its colours.
     const drawSpeed = (this.drawSpeed = strokeLength / Math.max(strokeDuration, 16));
-    const lively = THREE.MathUtils.clamp(drawSpeed / 1.6, 0, 1);
+    const fromStroke = options.lively ?? THREE.MathUtils.clamp(drawSpeed / 1.6, 0, 1);
+    const temper = (this.seed * 0.5772157) % 1;
+    const lively = THREE.MathUtils.clamp(0.65 * fromStroke + 0.35 * temper, 0, 1);
     this.baseSpeed = this.L * (0.3 + 0.75 * lively) * (calm ? 0.5 : 1);
     if (calm) this.grow = 1;
     const curviness = THREE.MathUtils.clamp(totalTurn(spine) / Math.PI, 0, 1);
@@ -172,6 +208,7 @@ export class Fish {
       uDepth: { value: this.depth },
       uTime: { value: 0 },
       uGlow: { value: this.glow ? 1 : 0 },
+      uMark: { value: this.honmei && !shadow ? 1 : 0 },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
@@ -244,9 +281,10 @@ export class Fish {
     this.phase += 1.2;
   }
 
-  lure(x: number, y: number, now: number): void {
-    if (this.state !== 'swimming' || this.ghost) return;
-    this.attract = { x, y, until: now + 2.5 };
+  /** Swim over to a point for a while; an eager fish hurries. */
+  lure(x: number, y: number, now: number, opts: { duration?: number; eager?: boolean } = {}): void {
+    if (this.state !== 'swimming' || this.ghost || this.orbit) return;
+    this.attract = { x, y, until: now + (opts.duration ?? 2.5), eager: !!opts.eager };
   }
 
   leave(): void {
@@ -262,7 +300,8 @@ export class Fish {
 
   /** Pick a painted koi from the generated set (by seed, so a saved fish keeps it), or none. */
   setSkins(skins: KoiSkin[]): void {
-    const skin = skins.length && !this.glow ? skins[Math.floor(((this.seed * 0.618034) % 1) * skins.length)] : null;
+    const named = this.variety ? skins.find((k) => k.name === this.variety) : undefined;
+    const skin = this.glow || !skins.length ? null : (named ?? skins[Math.floor(((this.seed * 0.618034) % 1) * skins.length)]);
     this.skinHalf = skin ? skin.halfWidth / 0.12 : 0; // maxW is 0.12 of the length
     for (const m of [this.material, this.shadowMaterial]) {
       m.uniforms.uSkin.value = skin?.texture ?? null;
@@ -422,7 +461,7 @@ export class Fish {
       chase = slotPoint(this.orbit, this.slot, time);
       const gap = Math.hypot(chase.x - this.headX, chase.y - this.headY);
       target = Math.max(target, this.L * 0.65) * (1 + 0.9 * Math.min(gap / (this.L * 1.5), 1));
-    }
+    } else if (this.attract?.eager) target *= 1.35;
     this.speed += (target - this.speed) * Math.min(dt * 1.8, 1);
 
     // Gentle wandering.
@@ -462,7 +501,8 @@ export class Fish {
         sx += (dx / d) * (1 - d / r) * 1.4;
         sy += (dy / d) * (1 - d / r) * 1.4;
       } else if (!o.ghost && d < r * 3.2) {
-        const w = 1 - (d - r) / (r * 2.2);
+        // The first fish draws company more than the rest (本命鱼).
+        const w = (1 - (d - r) / (r * 2.2)) * (o.honmei ? 1.8 : 1);
         ax += Math.cos(o.heading) * w;
         ay += Math.sin(o.heading) * w;
         gx += o.headX * w;
@@ -618,16 +658,6 @@ function resample(points: StrokePoint[], length: number, n: number): { x: number
   }
   while (out.length < n) out.push({ ...out[out.length - 1] });
   return out;
-}
-
-function totalTurn(pts: { x: number; y: number }[]): number {
-  let sum = 0;
-  for (let i = 2; i < pts.length; i++) {
-    const a1 = Math.atan2(pts[i - 1].y - pts[i - 2].y, pts[i - 1].x - pts[i - 2].x);
-    const a2 = Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x);
-    sum += Math.abs(angleDiff(a2, a1));
-  }
-  return sum;
 }
 
 function angleDiff(a: number, b: number): number {

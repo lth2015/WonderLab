@@ -94,11 +94,19 @@ uniform float uSkinFlip;
 uniform float uDepth;      // 0 at the surface .. 1 deep: how much water lies over the fish
 uniform float uTime;
 uniform float uGlow;       // > 0: a meteor's fish, pale gold and lit from within
+uniform float uMark;       // 1: the first fish (本命鱼), a small cinnabar mark at a pectoral fin's root
 varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
 varying vec2 vPos;
 
 ${noiseGLSL}
 ${fishProfileGLSL}
+
+// The 本命鱼 mark: a small soft cinnabar dot where one pectoral fin meets the
+// body, painted only where the fish itself is (side is in maxW units).
+float honmeiMark(float s, float side) {
+  vec2 d = vec2((s - 0.29) * uL, (side - 1.0) * uMaxW);
+  return uMark * (1.0 - smoothstep(uMaxW * 0.12, uMaxW * 0.22, length(d)));
+}
 
 void main() {
   float s = vSV.x;
@@ -124,6 +132,7 @@ void main() {
     ta *= mix(1.0, 0.5, fin);
 
     vec3 c = tex.rgb;
+    float mark = honmeiMark(s, vSV.y / gws) * step(0.3, tex.a);
     // Night, and under water: less saturated, darker, and tinted by the water
     // column above, more so the deeper the fish swims.
     float lum = dot(c, vec3(0.299, 0.587, 0.114));
@@ -139,7 +148,8 @@ void main() {
     float n2 = noise(vPos / 15.0 - vec2(uTime * 0.23, -uTime * 0.29) + 7.3);
     float caustic = pow(1.0 - abs(n1 - n2), 10.0);
     c += vec3(0.85, 0.9, 1.0) * caustic * 0.1 * (1.0 - 0.7 * depth) * (1.0 - fin * 0.5);
-    gl_FragColor = vec4(c, ta * uOpacity);
+    c = mix(c, uCinnabar * 0.9, mark * 0.85);
+    gl_FragColor = vec4(c, max(ta, mark * 0.8 * reveal * loose) * uOpacity);
     return;
   }
   float env = envW(s, uPect);
@@ -202,6 +212,9 @@ void main() {
   // Seen through a little water.
   col = mix(col, uWater, 0.12);
   if (uGlow > 0.0) col = mix(col, vec3(1.0, 0.86, 0.56), 0.5 * uGlow) * (1.0 + 0.3 * uGlow);
+  float mark = honmeiMark(s, vSV.y / gw) * step(abs(vSV.y) / gw, env);
+  col = mix(col, uCinnabar, mark * 0.85);
+  a = max(a, mark * 0.8 * smoothstep(0.0, 0.08, uGrow * 1.15 - s));
 
   if (uShadow > 0.5) {
     // Under a glowing fish the water is lit, not shadowed.

@@ -8,7 +8,8 @@ import type { SceneCommand } from './intent';
 import { weatherFrag } from './shaders/weather';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
-import { FORM_TIME, Fish } from './fish';
+import { FORM_TIME, Fish, type FishOrigin } from './fish';
+import { overflowing, pickVariety, resampleTimed, STYLE, strokeStyle, VARIETIES } from './koi-style';
 import { MOON_RISE, Sky, type MoonSpec } from './sky';
 import { classify, spineFromOutline, type Classification, type Pt } from './classify';
 import { FrameMonitor, TIERS, type Tier } from './quality';
@@ -112,6 +113,7 @@ interface ActiveInput {
   downT: number;
   moved: number;
   fish: Fish | null;
+  pointer: string;
 }
 
 export class Engine {
@@ -133,6 +135,10 @@ export class Engine {
   private readonly relations = new Relations();
   /** Engine time of the last pointer down or key creation, for the relations' idle wait. */
   private lastInput = 0;
+  /** Whether this world has its first fish (本命鱼); cleared if that fish is undone or the world restarts. */
+  private honmeiTaken = false;
+  /** Fish born in this world so far, for each fish's birth order. */
+  private births = 0;
   private readonly monitor: FrameMonitor;
   private readonly pinnedTier: boolean;
   private calm: boolean;
@@ -352,7 +358,7 @@ export class Engine {
     for (const p of pts) stroke.add(p);
     stroke.finish();
     this.scene.add(stroke.mesh);
-    this.resolveStroke(stroke);
+    this.resolveStroke(stroke, 'keyboard');
   }
 
   /** The world as it stands, for saving (docs/02 §6.3). */
@@ -368,6 +374,9 @@ export class Engine {
         seed: f.seed,
         patch: f.patch,
         ...(f.glow ? { glow: true } : {}),
+        ...(f.variety ? { variety: f.variety } : {}),
+        ...(f.honmei ? { honmei: true } : {}),
+        ...(f.origin ? { origin: f.origin } : {}),
       }));
     const sky = this.sky.snapshot();
     const m = sky.moon;
@@ -399,8 +408,11 @@ export class Engine {
       if (length < 1) continue;
       const fish = new Fish(pts, length, length / f.drawSpeed, S, this.palette, {
         calm: this.calm,
-        look: { seed: f.seed, patch: f.patch, glow: f.glow },
+        look: { seed: f.seed, patch: f.patch, glow: f.glow, variety: f.variety, honmei: f.honmei },
+        origin: f.origin,
+        lively: f.origin ? this.livelyFrom(f.origin.speed, f.origin.pointer) : undefined,
       });
+      this.births = Math.max(this.births, f.origin?.born ?? 0);
       if (this.art) fish.setSkins(this.art.koi);
       this.fishes.push(fish);
       this.scene.add(fish.group);
@@ -412,6 +424,8 @@ export class Engine {
     for (const [x, y, r, tint] of save.planets) this.sky.addPlanet(x * W, y * H, r * S, tint);
     for (const [x, y] of save.stars) this.sky.addStar(x * W, y * H);
     for (const [x, y, w] of save.clouds) this.sky.addCloud(x * W, y * H, w * S);
+    // A restored world was already drawn in: its first fish, if any, is still the one.
+    this.honmeiTaken = save.fish.length > 0;
   }
 
   /** Clear the world, keeping it for a few seconds so the restart can be taken back. */
@@ -453,6 +467,8 @@ export class Engine {
     this.restartPending = null;
     for (const f of r.fishes) f.dead = true;
     this.sky.clear();
+    this.honmeiTaken = false;
+    this.births = 0;
     this.events.onRestartSettled?.(false);
   }
 
@@ -654,7 +670,19 @@ export class Engine {
     this.fading.push({ stroke, fadeFrom: this.time + delay, duration });
   }
 
-  private spawnFish(stroke: Stroke, ghost: boolean, spine?: Pt[]): void {
+  /** 0..1 liveliness from a stroke's normalised speed: the fast split sits at the middle. */
+  private livelyFrom(speed: number, pointer: string): number {
+    const split = STYLE.fastSplit[pointer] ?? STYLE.fastSplit.mouse;
+    return THREE.MathUtils.clamp(speed / (2 * split), 0, 1);
+  }
+
+  /** Over the tier's fish limit, the oldest leave first, but never the first fish (本命鱼). */
+  private evictOverflow(): void {
+    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden);
+    for (const f of overflowing(real, TIERS[this.monitor.tier].maxFish)) f.leave();
+  }
+
+  private spawnFish(stroke: Stroke, ghost: boolean, spine?: Pt[], pointer = 'mouse'): void {
     let pts: StrokePoint[] = stroke.points;
     let length = stroke.length;
     if (spine) {
@@ -665,29 +693,64 @@ export class Engine {
       length = 0;
       for (let i = 1; i < spine.length; i++) length += Math.hypot(spine[i].x - spine[i - 1].x, spine[i].y - spine[i - 1].y);
     }
-    const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, { ghost, calm: this.calm });
+    if (ghost) {
+      const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, { ghost, calm: this.calm });
+      if (this.art) fish.setSkins(this.art.koi);
+      this.fishes.push(fish);
+      this.scene.add(fish.group);
+      this.fadeStroke(stroke, 0.25, 0.6);
+      return;
+    }
+    // 笔性 (docs/02 §5.1): the stroke as drawn, not the outline's spine, sets the variety's leaning.
+    const style = strokeStyle(stroke.points, this.minDim, pointer);
+    const { variety, inFamily } = pickVariety(style.family, Math.random, this.art?.koi.map((k) => k.name) ?? VARIETIES);
+    const honmei = !this.honmeiTaken;
+    this.honmeiTaken = true;
+    const origin: FishOrigin = {
+      stroke: resampleTimed(stroke.points, Math.max(2, Math.min(stroke.points.length, 48))).map((p) => [
+        round4(p.x / this.width),
+        round4(p.y / this.height),
+        Math.round(p.t - stroke.points[0].t),
+      ]),
+      speed: round4(style.speed),
+      curviness: round4(style.curviness),
+      family: style.family,
+      pointer,
+      born: ++this.births,
+    };
+    const fish = new Fish(pts, length, stroke.duration, this.minDim, this.palette, {
+      calm: this.calm,
+      look: { seed: Math.random() * 100, variety, honmei },
+      origin,
+      lively: this.livelyFrom(style.speed, pointer),
+    });
     if (this.art) fish.setSkins(this.art.koi);
     this.fishes.push(fish);
     this.scene.add(fish.group);
     // The line lingers briefly, then the fish's body takes over.
     this.fadeStroke(stroke, 0.25, 0.6);
-    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden);
-    const maxFish = TIERS[this.monitor.tier].maxFish;
-    while (real.length > maxFish) real.shift()!.leave();
-    if (ghost) return;
+    this.evictOverflow();
     this.sfx('drop', fish.headX);
-    this.events.onFishCreated?.(real.length);
-    this.record('fish', fish.headX, fish.headY, () => {
-      fish.disperse();
-      this.addRipple(fish.headX, fish.headY, 0.5);
-    });
+    this.events.onFishCreated?.(this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden).length);
+    this.record(
+      'fish',
+      fish.headX,
+      fish.headY,
+      () => {
+        fish.disperse();
+        this.addRipple(fish.headX, fish.headY, 0.5);
+        // Undo the first fish and the next one drawn becomes the first.
+        if (fish.honmei) this.honmeiTaken = false;
+      },
+      { variety, family: style.family, affinity: inFamily, honmei, speed: round(style.speed), bend: round(style.curviness), pointer },
+    );
   }
 
-  private record(kind: CreationKind, x: number, y: number, undo: () => void): void {
+  private record(kind: CreationKind, x: number, y: number, undo: () => void, fields: Record<string, string | number | boolean> = {}): void {
     const id = this.nextHistoryId++;
     this.history.push({ id, kind, undo, time: this.time });
     // 一句成境 is logged as text_submit by the UI, with its own prompted flag.
-    if (kind !== 'atmosphere') logEvent('create', { what: kind, prompted: prompted(kind) });
+    if (kind !== 'atmosphere') logEvent('create', { what: kind, prompted: prompted(kind), ...fields });
     if (this.history.length > UNDO_DEPTH) this.history.shift();
     this.events.onCreated?.({ id, kind, x, y: this.height - y });
   }
@@ -812,9 +875,7 @@ export class Engine {
     const fish = new Fish(pts, length, 300, S, this.palette, { calm: this.calm, look: { seed: Math.random() * 100, patch: 0, glow: true } });
     this.fishes.push(fish);
     this.scene.add(fish.group);
-    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden);
-    const maxFish = TIERS[this.monitor.tier].maxFish;
-    while (real.length > maxFish) real.shift()!.leave();
+    this.evictOverflow();
     return fish;
   }
 
@@ -849,6 +910,7 @@ export class Engine {
         mist: atmos.mist,
         lake: { minX: 0, maxX: this.width, minY: 0, maxY: this.horizonY - this.minDim * 0.05 },
         minDim: this.minDim,
+        home: this.honmeiHome(swimmers),
       },
       {
         pulseMoon: () => this.sky.pulseMoon(),
@@ -857,6 +919,19 @@ export class Engine {
         emerged: (what) => logEvent('emerge', { what }),
       },
     );
+  }
+
+  /** Where the first fish was drawn: the pen-up end of its stroke, kept inside the lake. */
+  private honmeiHome(swimmers: Fish[]): { fish: Fish; x: number; y: number } | null {
+    const fish = swimmers.find((f) => f.honmei && f.origin);
+    if (!fish) return null;
+    const [nx, ny] = fish.origin!.stroke[fish.origin!.stroke.length - 1];
+    const m = this.minDim * 0.06;
+    return {
+      fish,
+      x: THREE.MathUtils.clamp(nx * this.width, m, this.width - m),
+      y: THREE.MathUtils.clamp(ny * this.height, m, this.horizonY - this.minDim * 0.05 - m),
+    };
   }
 
   private noteInput(): void {
@@ -922,7 +997,7 @@ export class Engine {
       this.scene.add(stroke.mesh);
       this.sfx('stroke', x);
     }
-    this.input = { id: e.pointerId, stroke, downX: x, downY: y, downT: e.timeStamp, moved: 0, fish };
+    this.input = { id: e.pointerId, stroke, downX: x, downY: y, downT: e.timeStamp, moved: 0, fish, pointer: e.pointerType || 'mouse' };
   };
 
   private onMove = (e: PointerEvent): void => {
@@ -961,11 +1036,11 @@ export class Engine {
     }
     if (!stroke) return;
     stroke.finish();
-    this.resolveStroke(stroke);
+    this.resolveStroke(stroke, inp.pointer);
   };
 
   /** The docs/02 §4 table: every cell answers. */
-  private resolveStroke(stroke: Stroke): void {
+  private resolveStroke(stroke: Stroke, pointer: string): void {
     this.commitRestart();
     const c = classify(stroke.points, this.minDim);
     const { centroid } = c.features;
@@ -992,15 +1067,15 @@ export class Engine {
         this.leadMoon(c, stroke, lake);
         return;
       case 'elongated':
-        if (lake) this.leadFish(stroke, spineFromOutline(stroke.points, c.features));
+        if (lake) this.leadFish(stroke, pointer, spineFromOutline(stroke.points, c.features));
         else this.placeCloud(c, stroke);
         return;
       case 'arc':
-        if (lake) this.leadFish(stroke);
+        if (lake) this.leadFish(stroke, pointer);
         else this.leadMoon(c, stroke, false);
         return;
       case 'open':
-        if (lake) this.leadFish(stroke);
+        if (lake) this.leadFish(stroke, pointer);
         else this.launchMeteor(stroke);
         return;
     }
@@ -1012,9 +1087,9 @@ export class Engine {
     else this.leadQueue.push({ stroke, start });
   }
 
-  private leadFish(stroke: Stroke, spine?: Pt[]): void {
+  private leadFish(stroke: Stroke, pointer: string, spine?: Pt[]): void {
     this.lead(stroke, () => {
-      this.spawnFish(stroke, false, spine);
+      this.spawnFish(stroke, false, spine, pointer);
       return FORM_TIME;
     });
   }
@@ -1075,6 +1150,8 @@ export class Engine {
     for (const f of this.fishes) {
       const d = Math.hypot(f.headX - x, f.headY - y);
       if (d < r) f.scare(x, y, 0.5);
+      // The first fish comes from further off and hurries, most times but not every time.
+      else if (f.honmei && d < this.minDim * 0.75 && Math.random() < 0.7) f.lure(x, y, this.time, { eager: true });
       else if (d < this.minDim * 0.4) f.lure(x, y, this.time);
     }
   }
@@ -1124,8 +1201,7 @@ export class Engine {
     this.worldMat.uniforms.uPost.value = t.post ? 1 : 0;
     this.weatherMat.uniforms.uParticles.value = t.particles;
     this.resize();
-    const real = this.fishes.filter((f) => !f.ghost && f.state !== 'leaving' && !f.hidden);
-    while (real.length > t.maxFish) real.shift()!.leave();
+    this.evictOverflow();
   }
 
   private resize(forcedDpr?: number): void {
@@ -1177,4 +1253,8 @@ export class Engine {
 
 function round(v: number): number {
   return Math.round(v * 100) / 100;
+}
+
+function round4(v: number): number {
+  return Math.round(v * 10000) / 10000;
 }

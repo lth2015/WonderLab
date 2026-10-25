@@ -26,6 +26,28 @@ describe('parseWorld', () => {
     expect('glow' in w!.fish[1]).toBe(false);
   });
 
+  it('keeps each fish’s variety, its being the first, and where it came from', () => {
+    const origin = { stroke: [[0.2, 0.3, 0], [0.25, 0.32, 120], [0.3, 0.31, 260]], speed: 1.4, curviness: 0.3, family: 'brisk', pointer: 'touch', born: 1 };
+    const fish = [{ ...valid.fish[0], variety: 'kohaku', honmei: true, origin }];
+    const w = parseWorld(JSON.parse(JSON.stringify({ ...valid, fish })));
+    expect(w!.fish[0]).toEqual(fish[0]);
+  });
+
+  it('drops a malformed origin or variety, keeping the fish', () => {
+    const bad = [
+      { stroke: [[0.2, 0.3, 0]], speed: 1, curviness: 0, family: 'brisk', pointer: 'mouse', born: 1 },
+      { stroke: [[0.2, 0.3, 0], [0.3, 0.3, 10]], speed: 1, curviness: 0, family: 'gold', pointer: 'mouse', born: 1 },
+      { stroke: [[0.2, 0.3, 0], [0.3, 0.3, 10]], speed: -1, curviness: 0, family: 'calm', pointer: 'mouse', born: 1 },
+      { stroke: [[0.2, 0.3, 0], [0.3, 0.3, 10]], speed: 1, curviness: 0, family: 'calm', pointer: 'mouse', born: 0 },
+    ];
+    for (const origin of bad) {
+      const w = parseWorld(JSON.parse(JSON.stringify({ ...valid, fish: [{ ...valid.fish[0], origin, variety: '<b>' }] })));
+      expect(w!.fish).toHaveLength(1);
+      expect('origin' in w!.fish[0]).toBe(false);
+      expect('variety' in w!.fish[0]).toBe(false);
+    }
+  });
+
   it('rejects other versions and non-objects', () => {
     expect(parseWorld({ ...valid, version: 2 })).toBeNull();
     expect(parseWorld(null)).toBeNull();
