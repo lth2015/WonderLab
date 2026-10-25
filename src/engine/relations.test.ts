@@ -22,6 +22,10 @@ class FakeFish implements Swimmer {
     this.weather = [rise, mist];
   }
   slot = -1;
+  restUntil = -1;
+  setRest(until: number) {
+    this.restUntil = until;
+  }
   setOrbit(o: Orbit | null, slot = 0) {
     this.orbit = o;
     this.slot = slot;
@@ -152,6 +156,55 @@ describe('relations', () => {
     r.update(world({ time: t, fish, idle: 30 }), fx);
     r.update(world({ time: t + RELATIONS.ringTime + 0.1, fish, idle: 30 }), fx);
     expect(r.ringing).toBe(false);
+  });
+});
+
+describe('words for the fish (写是魔法)', () => {
+  it('do nothing to an empty lake', () => {
+    const { fx } = effects();
+    for (const intent of ['explore', 'gather', 'rest', 'play'] as const) expect(new Relations(low).ask(intent, world({}), fx)).toBe(0);
+  });
+
+  it('explore: each fish heads for a far edge, away from where it is', () => {
+    const left = new FakeFish(100, 150);
+    const right = new FakeFish(1180, 150);
+    const { fx } = effects();
+    expect(new Relations(low).ask('explore', world({ fish: [left, right] }), fx)).toBe(2);
+    expect(left.lured!.x).toBeGreaterThan(640);
+    expect(right.lured!.x).toBeLessThan(640);
+  });
+
+  it('gather: a ring with enough fish, otherwise round the first fish', () => {
+    const { fx } = effects();
+    const four = [0, 1, 2, 3].map((i) => new FakeFish(200 + i * 200, 150));
+    const r = new Relations(low);
+    r.ask('gather', world({ fish: four }), fx);
+    expect(r.ringing).toBe(true);
+    const first = new FakeFish(300, 120);
+    const other = new FakeFish(900, 200);
+    new Relations(low).ask('gather', world({ fish: [first, other], home: { fish: first, x: 0, y: 0 } }), fx);
+    expect(other.lured).toEqual({ x: 300, y: 120 });
+    expect(first.lured).toBeNull();
+  });
+
+  it('rest: every fish slows for a while', () => {
+    const fish = [new FakeFish(100, 100), new FakeFish(300, 100)];
+    const { fx } = effects();
+    new Relations(low).ask('rest', world({ time: 5, fish }), fx);
+    expect(fish.every((f) => f.restUntil === 5 + RELATIONS.restTime)).toBe(true);
+  });
+
+  it('play: a couple of leaps, one after another; none under reduced motion', () => {
+    const fish = [new FakeFish(100, 100), new FakeFish(300, 100), new FakeFish(500, 100)];
+    const { fx } = effects();
+    const r = new Relations(low);
+    r.ask('play', world({ time: 0, fish }), fx);
+    r.update(world({ time: 0, fish }), fx);
+    expect(fish.reduce((n, f) => n + f.leaps, 0)).toBe(1);
+    r.update(world({ time: RELATIONS.playGap, fish }), fx);
+    expect(fish.reduce((n, f) => n + f.leaps, 0)).toBe(2);
+    const calm = [new FakeFish(100, 100)];
+    expect(new Relations(low).ask('play', world({ fish: calm, calm: true }), fx)).toBe(0);
   });
 });
 

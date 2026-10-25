@@ -34,7 +34,8 @@ const UNDO_BUTTON_MS = 4000;
 const CHROME_RESTORE_MS = 1200;
 const MAX_CHARS = 50;
 const COUNT_FROM = 40;
-const PLACEHOLDERS = ['今夜下一场小雨', '我想念夏天', '让世界安静下来'];
+// 画是主角，写是魔法 (docs/02 §5.3): the box invites a thought, not a prompt.
+const PLACEHOLDER = '告诉这个世界你在想什么…';
 const TOAST_MS = 5000;
 const params = new URLSearchParams(location.search);
 const forcedTier = params.get('tier');
@@ -80,7 +81,15 @@ const ANNOUNCE: Record<Exclude<CreationKind, 'atmosphere'>, string> = {
   cloud: '一缕流云飘过',
 };
 
-function describe(cmd: SceneCommand): string {
+const FISH_ANSWER: Record<NonNullable<SceneCommand['fish']>, string> = {
+  explore: '鱼儿游向远处',
+  gather: '鱼儿聚到了一起',
+  rest: '鱼儿慢了下来',
+  play: '鱼儿欢跃起来',
+};
+
+/** What a screen reader hears after 一句成境; the fish part only when fish answered. */
+function describe(cmd: SceneCommand, fishAnswered = 0): string {
   const parts: string[] = [];
   if (cmd.weather === 'rain') parts.push('下起了小雨');
   if (cmd.weather === 'mist') parts.push('湖上起了雾');
@@ -91,6 +100,7 @@ function describe(cmd: SceneCommand): string {
   if (cmd.palette === 'warm') parts.push('世界变得温暖');
   if (cmd.palette === 'melancholy') parts.push('世界变得清冷');
   if (cmd.palette === 'serene') parts.push('世界安静下来');
+  if (cmd.fish && fishAnswered) parts.push(FISH_ANSWER[cmd.fish]);
   return parts.join('，') || '世界听见了';
 }
 
@@ -118,7 +128,6 @@ export function App() {
   const [announce, setAnnounce] = useState('');
   const [worldLabel, setWorldLabel] = useState('夜晚的湖面，还空着');
   const [text, setText] = useState('');
-  const [placeholder, setPlaceholder] = useState(0);
   const [dim, setDim] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [toast, setToast] = useState(false);
@@ -337,7 +346,7 @@ export function App() {
     if (saved?.fish.length) {
       drawn = true;
     } else {
-      later(() => show('draw_lake', '在湖面上画一笔', 'lake'), 600);
+      later(() => show('draw_lake', '轻轻画一笔，看看会发生什么', 'lake'), 600);
       scheduleDemo(DEMO_IDLE_MS);
     }
     later(moonHint, MOON_HINT_TIMEOUT_MS);
@@ -460,13 +469,6 @@ export function App() {
     };
   }, []);
 
-  // Rotate the example placeholders while the box is empty.
-  useEffect(() => {
-    if (text) return;
-    const id = window.setInterval(() => setPlaceholder((i) => (i + 1) % PLACEHOLDERS.length), 4000);
-    return () => clearInterval(id);
-  }, [text]);
-
   const noteTimer = useRef(0);
   const showNote = useCallback((text: string) => {
     setHostNote(text);
@@ -534,27 +536,36 @@ export function App() {
       const local = interpret(value);
       const { command, source } = local;
       const wasPrompted = prompted('text_submit');
-      engine.applyScene(command);
+      const fishAnswered = engine.applyScene(command);
       wordsUsedRef.current();
-      setAnnounce(describe(command));
+      setAnnounce(describe(command, fishAnswered));
 
       // Echo: the AI picks from a local shortlist within 2.5 s; otherwise the
       // best local match. Either way the line comes from the library.
       const shortlist = rankPoems(command, local.mood, value, recentEchoes.current).slice(0, ECHO_SHORTLIST);
       const started = performance.now();
+      let fishIntent = command.fish;
       void askScene(invite, value, shortlist.map((p) => p.id)).then((ai) => {
         if (engineRef.current !== engine) return;
         let poem = shortlist[0];
         if (ai.status === 'ok') {
           const extra = mergeAi(local, ai.command);
           if (Object.keys(extra).length) engine.amendScene(extra);
+          fishIntent = extra.fish ?? fishIntent;
           poem = (ai.echoId && poemById(ai.echoId)) || poem;
         }
         if (ai.status === 'limited') {
           setQuiet('灵感歇一会儿，画笔仍在');
           window.setTimeout(() => setQuiet(''), 5000);
         }
-        logEvent('text_submit', { source: ai.status === 'ok' ? 'ai' : ai.status === 'off' ? 'local' : ai.status, rule: source, prompted: wasPrompted });
+        logEvent('text_submit', {
+          source: ai.status === 'ok' ? 'ai' : ai.status === 'off' ? 'local' : ai.status,
+          rule: source,
+          prompted: wasPrompted,
+          // What the words asked of the fish, and whether any were there to answer (no text is logged).
+          fish: fishIntent ?? '',
+          fishAnswered: fishAnswered > 0,
+        });
         recentEchoes.current = [poem.id, ...recentEchoes.current].slice(0, RECENT_ECHOES);
         const wait = Math.max(ECHO_DELAY_MS - (performance.now() - started), 0);
         window.setTimeout(() => engine.showEcho(poem.text, poem.author), wait);
@@ -619,7 +630,7 @@ export function App() {
           ref={inputRef}
           value={text}
           onChange={(e) => setText([...e.target.value].slice(0, MAX_CHARS).join(''))}
-          placeholder={PLACEHOLDERS[placeholder]}
+          placeholder={PLACEHOLDER}
           aria-label="写一句话，改变世界"
           enterKeyHint="send"
           autoComplete="off"

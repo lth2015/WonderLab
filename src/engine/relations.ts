@@ -15,9 +15,14 @@
 //              becomes a small glowing fish (decided in the engine; the
 //              geometry lives here as `meteorDive`).
 //
+// Words reach the fish here too (`ask`, docs/02 §5.3): explore, gather,
+// rest or play — 写是魔法, acting on what the user drew rather than adding.
+//
 // Nothing here creates an undo step or counts as a creation: these are the
 // world's answers, not the user's acts. Reduced motion keeps the weather
 // relations and drops leaps and rings. Values mirror docs/03 §7.1.
+
+import type { FishIntent } from './intent';
 
 export const RELATIONS = {
   /** Seconds between fish visiting the moon's reflection. */
@@ -48,6 +53,13 @@ export const RELATIONS = {
   homeChance: 0.5,
   /** How long the visit's pull lasts, seconds. */
   homeStay: 8,
+  /** Words: how long explore and gather pull, and how long rest lasts, seconds. */
+  exploreTime: 9,
+  gatherTime: 6,
+  restTime: 20,
+  /** Words: how many fish leap for "play", and the gap between leaps, seconds. */
+  playLeaps: 2,
+  playGap: 0.7,
   /** A meteor ending within this share of the sky's height above the horizon falls into the lake. */
   meteorDive: 0.2,
 };
@@ -86,6 +98,8 @@ export interface Swimmer {
   lure(x: number, y: number, now: number, opts?: { duration?: number; eager?: boolean }): void;
   setWeather(rise: number, mist: number): void;
   setOrbit(o: Orbit | null, slot?: number): void;
+  /** Slow down and drift up toward the surface until `until`. */
+  setRest(until: number): void;
 }
 
 export interface RelationWorld {
@@ -175,6 +189,7 @@ export class Relations {
   private nextRing: number;
   private nextHome: number;
   private ring: { orbit: Orbit; members: Swimmer[]; formed: boolean } | null = null;
+  private leaps: { fish: Swimmer; at: number }[] = [];
 
   constructor(private readonly random: () => number = Math.random) {
     this.nextVisit = between(random, RELATIONS.moonVisitEvery);
@@ -191,8 +206,67 @@ export class Relations {
     this.endRing();
   }
 
+  /**
+   * Words asked something of the fish (一句成境, docs/02 §5.3). Returns how
+   * many fish answer; none when the lake is empty, so the words only change
+   * the mood.
+   */
+  ask(intent: FishIntent, w: RelationWorld, fx: RelationEffects): number {
+    const fish = w.fish;
+    if (!fish.length) return 0;
+    const { minX, maxX, minY, maxY } = w.lake;
+    const m = w.minDim * 0.1;
+    switch (intent) {
+      case 'explore': {
+        // Each fish heads for the far edge of the lake it is furthest from.
+        this.endRing();
+        const edges = [
+          { x: minX + m, y: (minY + maxY) / 2 },
+          { x: maxX - m, y: (minY + maxY) / 2 },
+          { x: minX + m, y: maxY - m * 0.6 },
+          { x: maxX - m, y: maxY - m * 0.6 },
+          { x: (minX + maxX) / 2, y: maxY - m * 0.6 },
+        ];
+        for (const f of fish) {
+          const far = edges.reduce((a, b) => (Math.hypot(b.x - f.headX, b.y - f.headY) > Math.hypot(a.x - f.headX, a.y - f.headY) ? b : a));
+          f.lure(far.x, far.y, w.time, { duration: RELATIONS.exploreTime });
+        }
+        return fish.length;
+      }
+      case 'gather': {
+        // Enough fish and motion allowed: a ring; otherwise they come together
+        // round the first fish, or the middle of the lake.
+        if (!this.ring && !w.calm && fish.length >= RELATIONS.ringMinFish && this.startRing(w)) return fish.length;
+        const c = w.home && fish.includes(w.home.fish) ? { x: w.home.fish.headX, y: w.home.fish.headY } : { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+        for (const f of fish) if (f !== w.home?.fish) f.lure(c.x, c.y, w.time, { duration: RELATIONS.gatherTime });
+        return fish.length;
+      }
+      case 'rest':
+        this.endRing();
+        for (const f of fish) f.setRest(w.time + RELATIONS.restTime);
+        return fish.length;
+      case 'play': {
+        if (w.calm) return 0;
+        const ready = fish.filter((f) => f.canLeap);
+        for (let i = 0; i < Math.min(RELATIONS.playLeaps, ready.length); i++) {
+          this.leaps.push({ fish: ready[Math.floor(this.random() * ready.length)], at: w.time + i * RELATIONS.playGap });
+        }
+        fx.sound('chime', (minX + maxX) / 2, 0.2);
+        return fish.length;
+      }
+    }
+  }
+
   update(w: RelationWorld, fx: RelationEffects): void {
     for (const f of w.fish) f.setWeather(w.rain, w.mist);
+    this.leaps = this.leaps.filter(({ fish, at }) => {
+      if (w.time < at) return true;
+      if (fish.canLeap && w.fish.includes(fish)) {
+        fish.leap();
+        fx.ripple(fish.headX, fish.headY, 1.1);
+      }
+      return false;
+    });
     this.moon(w, fx);
     this.rain(w, fx);
     this.rings(w, fx);
@@ -272,9 +346,14 @@ export class Relations {
     if (w.time < this.nextRing) return;
     if (w.calm || w.idle < RELATIONS.ringIdle || w.fish.length < RELATIONS.ringMinFish) return;
     this.nextRing = w.time + RELATIONS.ringTime + between(this.random, RELATIONS.ringEvery);
+    this.startRing(w);
+  }
+
+  /** Put the swimming fish in a ring, if one fits. */
+  private startRing(w: RelationWorld): boolean {
     const L = Math.max(...w.fish.map((f) => f.L));
     const at = ringFor(w.fish.length, L, w.lake, w.minDim, w.moonReflection);
-    if (!at) return;
+    if (!at) return false;
     // Slots in the order the fish already lie round the centre, so no two cross paths to reach them.
     const dir = this.random() < 0.5 ? 1 : -1;
     const angle = (f: Swimmer) => Math.atan2((f.headY - at.cy) / at.ry, (f.headX - at.cx) / at.rx);
@@ -292,6 +371,7 @@ export class Relations {
     };
     members.forEach((f, i) => f.setOrbit(orbit, i));
     this.ring = { orbit, members, formed: false };
+    return true;
   }
 
   private endRing(): void {

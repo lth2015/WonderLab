@@ -133,16 +133,21 @@ if (splits.length) {
     '',
     '「画鱼的一笔」的速度（画面短边 / 秒）和弯度（总转角 / π）。分界设在中位数时，快、慢各占一半。',
     '',
-    '| 指针 | 笔数 | 速度 25% / 50% / 75% | 弯度中位数 | 现在的分界 | 建议 | 现在的四族分布（利落 / 热闹 / 沉静 / 圆润） |',
-    '|---|---|---|---|---|---|---|',
+    '| 指针 | 笔数 | 速度 25% / 50% / 75% | 弯度中位数 | 现在的分界 | 建议 | 现在的四族分布（利落 / 热闹 / 沉静 / 圆润） | 异常值 |',
+    '|---|---|---|---|---|---|---|---|',
   );
   for (const x of splits) {
     const f = x.families;
     lines.push(
-      `| ${x.pointerType} | ${x.n} | ${x.speed.map((v) => fmt(v)).join(' / ')} | ${fmt(x.curviness)} | ${fmt(x.current)} | ${fmt(x.suggested)} | ${f.brisk} / ${f.lively} / ${f.calm} / ${f.round} |`,
+      `| ${x.pointerType} | ${x.n} | ${x.speed.map((v) => fmt(v)).join(' / ')} | ${fmt(x.curviness)} | ${fmt(x.current)} | ${fmt(x.suggested)} | ${f.brisk} / ${f.lively} / ${f.calm} / ${f.round} | ${x.outliers.length ? x.outliers.map((v) => fmt(v)).join('、') : '无'} |`,
     );
   }
-  lines.push('', '改分界：`src/engine/koi-style.ts` 的 `STYLE.fastSplit`，同步更新 03 §6.2。', '');
+  lines.push(
+    '',
+    '「建议」只是中位数，是起点不是结论：先看分布和异常值，再决定统一分界、按设备分层还是个体自适应。笔数少于 20 的设备不要据此改值。',
+    '改分界：`src/engine/koi-style.ts` 的 `STYLE.fastSplit`，同步更新 03 §6.2。',
+    '',
+  );
 }
 
 if (doSweep) {

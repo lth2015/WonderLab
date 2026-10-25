@@ -50,10 +50,9 @@ describe('fish in a ring (群鱼成圆)', () => {
     const f = drawn(300, 100);
     let t = run([f], FORM_TIME + 0.2);
     f.setOrbit({ cx: 640, cy: 180, rx: 200, ry: 110, dir: -1, until: t + 2, start: t, phase: 0, omega: 0.5, slots: 1 });
-    t = run([f], 4, t);
-    // Free again: it wanders off the circle within a while.
-    const before = Math.hypot(f.headX - 640, f.headY - 180);
-    run([f], 20, t);
-    expect(Math.abs(Math.hypot(f.headX - 640, f.headY - 180) - before)).toBeGreaterThan(5);
+    t = run([f], 1, t);
+    expect(f.orbiting).toBe(true);
+    run([f], 1.5, t);
+    expect(f.orbiting).toBe(false);
   });
 });

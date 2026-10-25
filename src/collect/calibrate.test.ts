@@ -65,6 +65,7 @@ describe('calibration', () => {
       expect(x.speed[0]).toBeLessThanOrEqual(x.speed[1]);
       expect(x.speed[1]).toBeLessThanOrEqual(x.speed[2]);
       expect(Object.values(x.families).reduce((a, b) => a + b, 0)).toBe(x.n);
+      expect(Array.isArray(x.outliers)).toBe(true);
     }
   });
 });

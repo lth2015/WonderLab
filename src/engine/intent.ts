@@ -1,10 +1,17 @@
 // 一句成境, local half (docs/02 §5.3): keywords first, then a small
 // sentiment dictionary. Pure, so it can be tested and reused when the AI
 // result is merged in stage B (local fields win).
+//
+// 画是主角，写是魔法 (docs/02 §5.3): words never create a fish or a moon.
+// They change the world's mood, and give the fish already there something
+// to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk';
 export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies';
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
+/** What the words ask of the fish already in the lake. */
+export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
+export const FISH_INTENTS: readonly FishIntent[] = ['explore', 'gather', 'rest', 'play'];
 
 /** The constrained scene command. Every field is optional. */
 export interface SceneCommand {
@@ -13,6 +20,7 @@ export interface SceneCommand {
   palette?: PaletteName;
   wind?: number;      // 0..1
   intensity?: number; // 0..1
+  fish?: FishIntent;
 }
 
 export type Mood = 'bright' | 'low' | 'calm';
@@ -42,6 +50,15 @@ const KEYWORDS: Rule[] = [
   [['狂风', '大风', '刮风', '风大'], { wind: 0.9 }],
   [['微风', '清风', '风'], { wind: 0.45 }],
   [['无风', '风停', '水平如镜', '镜子'], { wind: 0 }],
+];
+
+// Words about the fish (or anyone) wanting something. The first rule that
+// matches wins; a negated match ("不想出去") is skipped.
+const FISH_RULES: [words: string[], intent: FishIntent][] = [
+  [['外面的世界', '看看外面', '远方', '远处', '探索', '出去', '去看看', '旅行', '冒险', '游远', '走走'], 'explore'],
+  [['在一起', '一起', '团聚', '团圆', '相聚', '陪伴', '陪着', '陪', '聚', '拥抱', '朋友', '家人'], 'gather'],
+  [['睡觉', '睡吧', '睡', '休息', '歇', '累了', '做梦', '梦', '晚安'], 'rest'],
+  [['跳舞', '跳', '玩耍', '玩', '嬉戏', '调皮', '欢腾', '闹', '撒欢'], 'play'],
 ];
 
 // "不要下雨" should not start rain; it simply cancels that rule.
@@ -83,6 +100,14 @@ export function interpret(input: string): Interpretation {
     }
   }
 
+  for (const [words, intent] of FISH_RULES) {
+    const w = words.find((x) => text.includes(x) && !negated(text, text.indexOf(x)));
+    if (!w) continue;
+    command.fish = intent;
+    hit = true;
+    break;
+  }
+
   // A palette a keyword chose says more about the mood than counting words.
   const mood: Mood = command.palette === 'melancholy' ? 'low' : command.palette === 'warm' ? 'bright' : moodOf(text);
   if (!hit) return { command: { ...MOOD_COMMAND[mood] }, source: 'sentiment', mood };
@@ -120,6 +145,7 @@ export function validateCommand(raw: unknown): SceneCommand {
     const v = r[k];
     if (typeof v === 'number' && Number.isFinite(v)) out[k] = Math.min(Math.max(v, 0), 1);
   }
+  if (FISH_INTENTS.includes(r.fish as FishIntent)) out.fish = r.fish as FishIntent;
   return out;
 }
 
@@ -131,7 +157,7 @@ export function validateCommand(raw: unknown): SceneCommand {
 export function mergeAi(local: Interpretation, ai: SceneCommand): SceneCommand {
   const out: SceneCommand = {};
   const locked = local.source === 'keyword' ? local.command : {};
-  for (const k of ['timeOfDay', 'weather', 'palette', 'wind'] as const) {
+  for (const k of ['timeOfDay', 'weather', 'palette', 'wind', 'fish'] as const) {
     if (ai[k] !== undefined && locked[k] === undefined && ai[k] !== local.command[k]) (out as Record<string, unknown>)[k] = ai[k];
   }
   if (ai.intensity !== undefined) out.intensity = ai.intensity;
