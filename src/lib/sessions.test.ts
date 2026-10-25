@@ -226,6 +226,18 @@ describe('builds and invalid samples (docs/验证路线图.md)', () => {
     expect(formatReport(r)).toContain('poc-r1@aaa111 + poc-r1@bbb222');
   });
 
+  it('H1: the first-screen hint is no tutorial, the ghost demo is', () => {
+    const hint = log([ev(0, 'hint_shown', { hint: 'draw_lake' }), ev(3000, 'first_stroke', { after: 3000 })]);
+    expect(analyzeTester('P1', hint, { helpBeforeFirstStroke: false }).h1).toBe(true);
+    // Only if the demo ever came before the stroke within the window (it now waits 6 s): taught, so no success.
+    const taught = log([ev(4000, 'demo_shown', { n: 1, after: 4000 }), ev(4800, 'first_stroke', { after: 4800 })]);
+    const t = analyzeTester('P2', taught, { helpBeforeFirstStroke: false });
+    expect(t.demoBeforeFirstStroke).toBe(true);
+    expect(t.h1).toBe(false);
+    const after = log([ev(4800, 'first_stroke', { after: 4800 }), ev(6000, 'demo_shown', { n: 1, after: 6000 })]);
+    expect(analyzeTester('P3', after, { helpBeforeFirstStroke: false }).h1).toBe(true);
+  });
+
   it('the thresholds in whole testers: 7, 5 and 3 of 8', () => {
     expect(needed({ threshold: 0.8, total: 8 })).toBe(7);
     expect(needed({ threshold: 0.6, total: 8 })).toBe(5);

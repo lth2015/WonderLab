@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { FIXED_SENTENCES } from './fixed-sentences';
 import { interpret } from './intent';
 
 describe('interpret', () => {
@@ -98,3 +99,29 @@ describe('words for the fish (画是主角，写是魔法)', () => {
     expect(mergeAi(interpret('明天会更好'), { fish: 'play' })).toEqual({ fish: 'play' });
   });
 });
+
+describe('rule changes before the freeze (docs/验证路线图.md §2)', () => {
+  it('a negated wish never starts what it names', () => {
+    // Any keyword added from the calibration set must keep these.
+    for (const s of ['不想下雨', '别下雨了', '不要下雨', '不要起雾', '别起雾']) expect(interpret(s).command.weather).not.toMatch(/rain|mist/);
+    expect(interpret('不想要萤火虫').command.weather).not.toBe('fireflies');
+    expect(interpret('我不开心').command.palette).not.toBe('warm');
+  });
+
+  it('records how the ten fixed R1 sentences are read: a change here goes in the roadmap appendix', () => {
+    // Recorded, not a target: 天快黑了 and 一个人的晚上 are not caught by a keyword, and stay in the set.
+    expect(FIXED_SENTENCES.map((s) => interpret(s).source)).toEqual([
+      'keyword',
+      'keyword',
+      'sentiment',
+      'keyword',
+      'keyword',
+      'keyword',
+      'keyword',
+      'keyword',
+      'keyword',
+      'sentiment',
+    ]);
+  });
+});
+
