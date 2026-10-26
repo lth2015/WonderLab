@@ -18,6 +18,20 @@ export const BUILD = {
 export const FIELD_BUILD = BUILD.experiment !== 'dev';
 
 /**
+ * Opened from a home-screen icon: no address bar, so a field tester cannot
+ * type /?study. Only then does the menu offer 测试记录 (docs/testkit/日记式测试.md);
+ * in a browser tab, R1's moderated testers never see it.
+ */
+export function studyInMenu(standalone: boolean): boolean {
+  return FIELD_BUILD && standalone;
+}
+
+export function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia?.('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
+}
+
+/**
  * 送一条鱼 is part of the poc-gift-r1 build only, so no poc-r1 tester can
  * reach it; in development it stays behind ?giftlab.
  */

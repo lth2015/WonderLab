@@ -8,12 +8,14 @@ interface MenuProps {
   onRestart: () => void;
   onAccount: () => void;
   onWallpaper: () => void;
+  /** The tester's own study records (Study.tsx); offered only where there is no address bar to type ?study. */
+  onStudy?: () => void;
   dim: boolean;
   /** Other top-right controls, placed before 更多. */
   children?: ReactNode;
 }
 
-export function Menu({ canUndo, onUndo, onRestart, onAccount, onWallpaper, dim, children }: MenuProps) {
+export function Menu({ canUndo, onUndo, onRestart, onAccount, onWallpaper, onStudy, dim, children }: MenuProps) {
   const [open, setOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [undoable, setUndoable] = useState(false);
@@ -76,6 +78,11 @@ export function Menu({ canUndo, onUndo, onRestart, onAccount, onWallpaper, dim, 
             <button type="button" role="menuitem" onClick={pick(onWallpaper)}>
               保存为壁纸
             </button>
+            {onStudy && (
+              <button type="button" role="menuitem" onClick={pick(onStudy)}>
+                测试记录
+              </button>
+            )}
             <button type="button" role="menuitem" onClick={pick(onAccount)}>
               账户
             </button>
