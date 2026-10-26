@@ -25,7 +25,7 @@ export interface FishLook {
   seed: number;
   /** Cinnabar for the procedural koi; chosen from the variety when absent. */
   patch?: number;
-  /** A fish a meteor turned into (docs/02 §5.5): small, pale gold, glowing. */
+  /** A fish a meteor turned into (docs/02 §5.5): a small golden koi (ogon) that lights the water under it. */
   glow?: boolean;
   /** The koi variety its stroke leaned toward (koi-style.ts); absent in older saves. */
   variety?: string;
@@ -339,8 +339,10 @@ export class Fish {
 
   /** Pick a painted koi from the generated set (by seed, so a saved fish keeps it), or none. */
   setSkins(skins: KoiSkin[]): void {
-    const named = this.variety ? skins.find((k) => k.name === this.variety) : undefined;
-    const skin = this.glow || !skins.length ? null : (named ?? skins[Math.floor(((this.seed * 0.618034) % 1) * skins.length)]);
+    // A meteor's fish wears the golden koi like the rest of the lake; its light, not a different style, sets it apart.
+    const name = this.glow ? 'ogon' : this.variety;
+    const named = name ? skins.find((k) => k.name === name) : undefined;
+    const skin = !skins.length ? null : (named ?? skins[Math.floor(((this.seed * 0.618034) % 1) * skins.length)]);
     this.skinHalf = skin ? skin.halfWidth / 0.12 : 0; // maxW is 0.12 of the length
     for (const m of [this.material, this.shadowMaterial]) {
       m.uniforms.uSkin.value = skin?.texture ?? null;
