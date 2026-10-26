@@ -21,7 +21,8 @@
 https://want.world/#gift=v1.<payload>
 ```
 
-- 礼物在 `#` 之后。`poc-gift-r1` 构建发出的链接是 `/#gift=v1.…`；开发环境发出的是 `/?giftlab#gift=v1.…`。其他构建打开礼物链接时什么也不发生。
+- 礼物在 `#` 之后。`poc-gift-r1` 构建发出的链接是 `/?openExternalBrowser=1#gift=v1.…`；开发环境发出的是 `/?giftlab&openExternalBrowser=1#gift=v1.…`。其他构建打开礼物链接时什么也不发生。
+- `openExternalBrowser=1` 请 LINE 用手机自己的浏览器（Safari、Chrome）打开链接，而不是 LINE 的内置浏览器：内置浏览器的存储和手机浏览器是分开的，在 LINE 里收下的鱼，之后用 Safari 打开会看不到（2026-10-26 决定，待 LINE 真机验证）。不认识这个参数的应用会忽略它；页面打开后它立即从地址栏移除。`world_ready` 记录打开方式的代号（`browser`：`line` / `wechat` / `other-inapp` / `home-screen` / `browser`），不记录 user agent。
 - `v1` 是协议版本。不认识的版本不解码，提示「这条鱼没能游过来」。
 - `<payload>` 是 base64url（`A–Z a–z 0–9 - _`，无填充），长度上限 **1200 字符**，超过直接拒绝。
 

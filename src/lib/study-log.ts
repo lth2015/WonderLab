@@ -23,7 +23,7 @@ const MAX = 3000;
  * until it is listed here; a new field is dropped until it is.
  */
 export const STUDY_FIELDS: Record<EventType, readonly string[]> = {
-  world_ready: ['ms', 'device', 'tier', 'buildSha', 'experimentId', 'schemaVersion', 'sceneMode'],
+  world_ready: ['ms', 'device', 'browser', 'tier', 'buildSha', 'experimentId', 'schemaVersion', 'sceneMode'],
   first_stroke: ['after', 'via'],
   demo_shown: ['n', 'after'],
   stroke_classified: ['kind', 'region', 'length', 'gap', 'turn', 'aspect', 'residual'],
