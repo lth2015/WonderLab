@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWAY_MAX, parseWorld, SAVE_VERSION, type WorldSave } from './persist';
+import { AWAY_MAX, cleanTitle, parseWorld, SAVE_VERSION, TITLE_MAX, type WorldSave } from './persist';
 
 const valid: WorldSave = {
   version: SAVE_VERSION,
@@ -138,6 +138,16 @@ describe('parseWorld', () => {
     };
     const bytes = JSON.stringify({ ...valid, away: Array(AWAY_MAX).fill(fish) }).length * 2; // UTF-16 in localStorage
     expect(bytes).toBeLessThan(2.5 * 1024 * 1024);
+  });
+
+  it('keeps the world\'s name: one short line, nothing else', () => {
+    expect(parseWorld({ ...valid, title: '  雨后  月湖 ' })!.title).toBe('雨后 月湖');
+    expect(parseWorld({ ...valid, title: '第一行\n第二行' })!.title).toBe('第一行 第二行');
+    expect(parseWorld({ ...valid, title: '   ' })!.title).toBeUndefined();
+    expect(parseWorld({ ...valid, title: 42 })!.title).toBeUndefined();
+    expect(parseWorld(valid)!.title).toBeUndefined();
+    expect([...cleanTitle('一二三四五六七八九十甲乙丙丁')].length).toBe(TITLE_MAX);
+    expect(cleanTitle('🐟鱼')).toBe('🐟鱼');
   });
 
   it('reads saves from before planets as having none, and keeps planets in range', () => {

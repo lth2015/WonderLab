@@ -17,7 +17,7 @@ import { classify, spineFromOutline, type Classification, type Pt } from './clas
 import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
-import { AWAY_MAX, SAVE_VERSION, type SavedFish, type WorldSave } from './persist';
+import { AWAY_MAX, SAVE_VERSION, cleanTitle, type SavedFish, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
 import { meteorDive, Relations, type RelationEffects, type RelationWorld } from './relations';
@@ -93,6 +93,7 @@ interface QueuedLead {
 interface PendingRestart {
   fishes: Fish[];
   away: SavedFish[];
+  title: string;
   atmosphere: AtmosphereState;
   history: HistoryEntry[];
   timer: number;
@@ -181,6 +182,8 @@ export class Engine {
   private leaving: { fish: Fish; at: number }[] = [];
   /** Fish that swam off when the lake was full (docs/02 §11 decision 12): still this world's, longest away first. */
   private away: SavedFish[] = [];
+  /** The world's name, given when a work is saved (docs/02 §12); empty until then. */
+  private title = '';
   private hadFirstStroke = false;
   private tierHeld = false;
   private sound: SoundSink | null = null;
@@ -393,6 +396,7 @@ export class Engine {
     return {
       version: SAVE_VERSION,
       savedAt: Date.now(),
+      ...(this.title && !this.restartPending ? { title: this.title } : {}),
       atmosphere: this.restartPending ? { ...INITIAL } : { ...this.atmosphere.state },
       fish,
       ...(this.away.length && !this.restartPending ? { away: this.away.map((f) => ({ ...f })) } : {}),
@@ -401,6 +405,16 @@ export class Engine {
       stars: sky.stars.map((st): [number, number] => [st.x / W, st.y / H]),
       clouds: sky.clouds.map((c): [number, number, number] => [c.x / W, c.y / H, c.w / S]),
     };
+  }
+
+  /** The world's name, if it has one. */
+  get worldTitle(): string {
+    return this.title;
+  }
+
+  /** Name the world (or clear the name), when a work is saved. */
+  setTitle(title: string): void {
+    this.title = cleanTitle(title);
   }
 
   private saveFish(f: Fish): SavedFish {
@@ -429,6 +443,7 @@ export class Engine {
     const H = this.height;
     const S = this.minDim;
     this.atmosphere.set(save.atmosphere);
+    this.title = save.title ?? '';
     for (const f of save.fish) this.bringBack(f, now, save.savedAt ?? now);
     // Fish from afar come back while the lake has room (after an undo, or on a device that shows more): longest away first.
     this.away = [...(save.away ?? [])];
@@ -518,8 +533,9 @@ export class Engine {
     const history = this.history;
     this.history = [];
     const timer = window.setTimeout(() => this.commitRestart(), RESTART_UNDO_MS);
-    this.restartPending = { fishes, away: this.away, atmosphere, history, timer };
+    this.restartPending = { fishes, away: this.away, title: this.title, atmosphere, history, timer };
     this.away = [];
+    this.title = '';
     logEvent('restart', { fish: fishes.length });
   }
 
@@ -530,6 +546,7 @@ export class Engine {
     this.restartPending = null;
     for (const f of r.fishes) f.show();
     this.away = r.away;
+    this.title = r.title;
     this.sky.setVeil(1);
     this.atmosphere.set(r.atmosphere);
     this.history = r.history;

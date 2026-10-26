@@ -44,7 +44,7 @@ export const STUDY_FIELDS: Record<EventType, readonly string[]> = {
   hint_followed: ['hint', 'after'],
   undo: ['kind', 'after'],
   restart: ['fish'],
-  save: ['kind', 'how', 'format'],
+  save: ['kind', 'how', 'format', 'titled'],
   tier_change: ['tier'],
   phase_change: ['phase'],
   record_start: [],

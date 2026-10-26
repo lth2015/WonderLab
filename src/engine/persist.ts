@@ -46,6 +46,8 @@ export interface WorldSave {
   version: typeof SAVE_VERSION;
   /** When the world was last saved, ms since the epoch: how long the user was away. Absent in older saves. */
   savedAt?: number;
+  /** The world's name, if the user gave one when saving a work (docs/02 §12). Kept only on this device. */
+  title?: string;
   atmosphere: AtmosphereState;
   fish: SavedFish[];
   /** Fish that swam off when the lake was full: still part of the world, longest away first. Absent in older saves. */
@@ -73,6 +75,16 @@ export function clearWorld(): void {
   } catch {
     // Nothing to clear.
   }
+}
+
+/** At most this many characters in a world's name: a short inscription, not a caption. */
+export const TITLE_MAX = 12;
+
+/** A world's name as typed: one line, no control characters, at most TITLE_MAX characters; empty if nothing is left. */
+export function cleanTitle(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  const one = input.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  return [...one].slice(0, TITLE_MAX).join('').trim();
 }
 
 export function loadWorld(): WorldSave | null {
@@ -136,6 +148,7 @@ export function parseWorld(data: unknown): WorldSave | null {
   return {
     version: SAVE_VERSION,
     ...(isPos(data.savedAt) ? { savedAt: data.savedAt } : {}),
+    ...(cleanTitle(data.title) ? { title: cleanTitle(data.title) } : {}),
     atmosphere,
     fish,
     ...(away.length ? { away } : {}),

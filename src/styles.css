@@ -848,6 +848,7 @@ body {
 /* Moderator panel (?mod links only). */
 .sheet.moderator .stack,
 .sheet.gift-send .stack,
+.sheet.title-sheet .stack,
 .sheet.study .stack {
   display: flex;
   flex-direction: column;
@@ -856,6 +857,7 @@ body {
 }
 .sheet.moderator .stack .text-btn,
 .sheet.gift-send .stack .text-btn,
+.sheet.title-sheet .stack .text-btn,
 .sheet.study .stack .text-btn {
   margin-top: 0;
 }
@@ -906,6 +908,7 @@ body {
   }
 }
 .gift-send label,
+.title-sheet label,
 .study label {
   display: grid;
   gap: 6px;
@@ -919,6 +922,11 @@ body {
 .study input {
   width: 8em;
   font-size: 16px;
+}
+/* 题个名字: a short name, written like the inscription it becomes. */
+.title-sheet input {
+  width: 10em;
+  font: 18px 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif;
 }
 /* Gift notices sit just below the horizon, where the sent fish arrives, apart from the other hints. */
 .hint.gift-note {

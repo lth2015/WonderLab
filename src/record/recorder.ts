@@ -217,8 +217,53 @@ export async function saveTake(take: Take): Promise<'shared' | 'downloaded' | 'c
   return 'downloaded';
 }
 
-/** A saved image with the seal drawn on, or null if this browser cannot redraw it (the image is then saved as it is). */
-export async function withSeal(png: Blob): Promise<Blob | null> {
+const NUMERALS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+
+/** 1–31 the way a date is written on a painting: 十, 十五, 二十, 廿六, 三十一. */
+function chineseNumber(n: number): string {
+  if (n < 10) return NUMERALS[n];
+  const tens = Math.floor(n / 10);
+  const ones = n % 10;
+  const head = tens === 1 ? '十' : tens === 2 && ones ? '廿' : `${NUMERALS[tens]}十`;
+  return head + (ones ? NUMERALS[ones] : '');
+}
+
+/** The date of an inscription, in characters: 二〇二六年十月廿六日. */
+export function inscriptionDate(d: Date): string {
+  const year = [...String(d.getFullYear())].map((c) => NUMERALS[Number(c)]).join('');
+  return `${year}年${chineseNumber(d.getMonth() + 1)}月${chineseNumber(d.getDate())}日`;
+}
+
+/**
+ * The inscription beside the seal (题款, docs/02 §12): the world's name if it
+ * has one, then the date, in one small vertical column ending level with the
+ * seal's foot.
+ */
+export function drawInscription(ctx: CanvasRenderingContext2D, width: number, height: number, title: string, date: string): void {
+  const s = Math.round(Math.min(width, height) * 0.06);
+  const m = Math.round(s * 0.6);
+  const sealLeft = width - m - s;
+  const bottom = height - m;
+  const size = s * 0.3;
+  const step = size * 1.12;
+  const chars = [...title, ...(title ? [''] : []), ...date];
+  const x = sealLeft - s * 0.38;
+  let y = bottom - step * (chars.length - 1) - step / 2;
+  ctx.save();
+  ctx.fillStyle = '#EFEADF';
+  ctx.globalAlpha = 0.72;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${size}px 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif`;
+  for (const c of chars) {
+    if (c) ctx.fillText(c, x, y);
+    y += step;
+  }
+  ctx.restore();
+}
+
+/** A saved image with the seal (and inscription, if given) drawn on, or null if this browser cannot redraw it (the image is then saved as it is). */
+export async function withSeal(png: Blob, inscription?: { title: string; date: string }): Promise<Blob | null> {
   try {
     const bitmap = await createImageBitmap(png);
     const canvas = document.createElement('canvas');
@@ -229,6 +274,7 @@ export async function withSeal(png: Blob): Promise<Blob | null> {
     ctx.drawImage(bitmap, 0, 0);
     bitmap.close();
     drawSeal(ctx, canvas.width, canvas.height);
+    if (inscription) drawInscription(ctx, canvas.width, canvas.height, inscription.title, inscription.date);
     return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
   } catch {
     return null;

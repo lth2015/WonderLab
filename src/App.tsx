@@ -9,7 +9,7 @@ import { Menu } from './Menu';
 import { AccountSheet, CheckoutComplete, SimulatedCheckout, useGoogleReturn } from './account/AccountSheet';
 import { GOOGLE_WEB_RETURN_PATH } from '../server/src/auth/google-paths';
 import { browserKind, deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
-import { clearWorld, loadWorld, saveWorld } from './engine/persist';
+import { clearWorld, loadWorld, saveWorld, TITLE_MAX } from './engine/persist';
 import { loadArt } from './engine/art';
 import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
 import { sound } from './sound';
@@ -19,7 +19,7 @@ import { StaticLake } from './StaticLake';
 import { freshUrl, onReset, resetForNext } from './moderator';
 import { clearVisits, startVisit, visibilityChanged } from './lib/visits';
 import { cleanSeal, decodeGift, giftLink } from './gift/codec';
-import { withSeal } from './record/recorder';
+import { inscriptionDate, withSeal } from './record/recorder';
 import { hasReceived, markReceived, takeGiftFromAddress } from './gift/received';
 import { BUILD, giftEnabled, isStandalone, studyInMenu } from './build';
 import { clearStudy } from './lib/study-log';
@@ -159,6 +159,8 @@ export function App() {
   const [letGo, setLetGo] = useState<{ fishId: number; x: number; y: number; key: number } | null>(null);
   const [sealMark, setSealMark] = useState<{ char: string; x: number; y: number; key: number } | null>(null);
   const [sendSheet, setSendSheet] = useState<{ fishId: number; seal: string } | null>(null);
+  /** Saving a wallpaper: an optional name for the world first, like the inscription on a painting (docs/02 §12). */
+  const [titleSheet, setTitleSheet] = useState<string | null>(null);
   const [giftNote, setGiftNote] = useState('');
   const [study, setStudy] = useState(studyOpen);
   const [announce, setAnnounce] = useState('');
@@ -581,14 +583,15 @@ export function App() {
     setAnnounce('世界已重置');
   }, []);
   // 保存为壁纸: the current frame at high resolution, shared on phones, downloaded elsewhere.
-  const saveWallpaper = useCallback(async () => {
+  const saveWallpaper = useCallback(async (title: string) => {
     const engine = engineRef.current;
     if (!engine) return;
+    engine.setTitle(title);
     const raw = await engine.captureWallpaper();
     if (!raw) return;
-    // The same 万象 seal as a recording: the work's signature, not an ad (docs/02 §12).
-    const blob = (await withSeal(raw)) ?? raw;
-    logEvent('save', { kind: 'wallpaper' });
+    // The same 万象 seal as a recording, the work's signature, not an ad; beside it the world's name, if any, and the date (docs/02 §12).
+    const blob = (await withSeal(raw, { title: engine.worldTitle, date: inscriptionDate(new Date()) })) ?? raw;
+    logEvent('save', { kind: 'wallpaper', titled: !!engine.worldTitle });
     const name = `wonderful-world-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '')}.png`;
     const file = new File([blob], name, { type: 'image/png' });
     if (coarse() && navigator.canShare?.({ files: [file] })) {
@@ -809,6 +812,38 @@ export function App() {
           {giftNote}
         </p>
       )}
+      {titleSheet !== null && (
+        <>
+          <div className="scrim" onClick={() => setTitleSheet(null)} />
+          <form
+            className="sheet title-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="title-sheet-title"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const title = titleSheet;
+              setTitleSheet(null);
+              void saveWallpaper(title);
+            }}
+          >
+            <h2 id="title-sheet-title">保存为壁纸</h2>
+            <label>
+              题个名字（可不填）
+              <input value={titleSheet} maxLength={TITLE_MAX} autoComplete="off" onChange={(e) => setTitleSheet(e.target.value)} />
+            </label>
+            <p className="note">名字只留在这台设备上，和日期、印章一起题在画的一角。</p>
+            <div className="stack">
+              <button type="submit" className="text-btn primary">
+                保存
+              </button>
+              <button type="button" className="link-btn" onClick={() => setTitleSheet(null)}>
+                取消
+              </button>
+            </div>
+          </form>
+        </>
+      )}
       {sendSheet && (
         <>
           <div className="scrim" onClick={() => setSendSheet(null)} />
@@ -885,7 +920,7 @@ export function App() {
         onUndo={() => undo()}
         onRestart={restart}
         onAccount={() => setOverlay({ kind: 'account' })}
-        onWallpaper={() => void saveWallpaper()}
+        onWallpaper={() => setTitleSheet(engineRef.current?.worldTitle ?? '')}
         onStudy={studyInMenu(isStandalone()) ? () => setStudy(true) : undefined}
         dim={dim}
       >
