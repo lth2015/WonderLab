@@ -20,7 +20,7 @@ import { freshUrl, onReset, resetForNext } from './moderator';
 import { clearVisits, startVisit, visibilityChanged } from './lib/visits';
 import { cleanSeal, decodeGift, giftLink } from './gift/codec';
 import { hasReceived, markReceived, takeGiftFromAddress } from './gift/received';
-import { BUILD, giftEnabled } from './build';
+import { BUILD, giftEnabled, isStandalone, studyInMenu } from './build';
 import { clearStudy } from './lib/study-log';
 import { StudySheet } from './Study';
 import { ModeratorPanel } from './ModeratorPanel';
@@ -847,7 +847,15 @@ export function App() {
           ))}
         </div>
       ))}
-      <Menu canUndo={canUndo} onUndo={() => undo()} onRestart={restart} onAccount={() => setOverlay({ kind: 'account' })} onWallpaper={() => void saveWallpaper()} dim={dim}>
+      <Menu
+        canUndo={canUndo}
+        onUndo={() => undo()}
+        onRestart={restart}
+        onAccount={() => setOverlay({ kind: 'account' })}
+        onWallpaper={() => void saveWallpaper()}
+        onStudy={studyInMenu(isStandalone()) ? () => setStudy(true) : undefined}
+        dim={dim}
+      >
         <SoundToggle />
         <RecordButton api={recorder} />
       </Menu>

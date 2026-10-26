@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sceneModeFor } from '../build-info';
-import { BUILD, giftEnabled, LOG_SCHEMA } from './build';
+import { BUILD, giftEnabled, LOG_SCHEMA, studyInMenu } from './build';
 
 describe('build info (docs/验证路线图.md §4)', () => {
   it('is written in at build time: a commit, an experiment and the log schema', () => {
@@ -16,6 +16,12 @@ describe('build info (docs/验证路线图.md §4)', () => {
     expect(giftEnabled(new URLSearchParams('giftlab'), true)).toBe(true);
     // A production build of anything but poc-gift-r1 ignores ?giftlab.
     expect(giftEnabled(new URLSearchParams('giftlab'), false)).toBe(false);
+  });
+
+  it('offers 测试记录 in the menu only in a field build opened from the home screen', () => {
+    // These tests run as the dev build: never, standalone or not.
+    expect(studyInMenu(true)).toBe(false);
+    expect(studyInMenu(false)).toBe(false);
   });
 
   it('fixes local rules only into every experiment build; AI is a development option', () => {
