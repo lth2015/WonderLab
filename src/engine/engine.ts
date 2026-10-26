@@ -403,7 +403,7 @@ export class Engine {
 
   private saveFish(f: Fish): SavedFish {
     return {
-      spine: f.spineFromTail().map((p): [number, number] => [p.x / this.width, p.y / this.height]),
+      spine: f.spineFromTail().map((p): [number, number] => [round4(p.x / this.width), round4(p.y / this.height)]),
       drawSpeed: f.drawSpeed,
       seed: f.seed,
       patch: f.patch,
@@ -950,8 +950,9 @@ export class Engine {
     // At most two at a time: when the device slows and the lake holds fewer (quality.ts), it thins out over a few creations, not all at once.
     for (const f of overflowing(real, TIERS[this.monitor.tier].maxFish).slice(0, 2)) {
       // Swimming off is not the end: the fish stays in this world, in the distance (docs/02 §11 decision 12).
+      // With the distance full, it stays in the lake: no fish is ever deleted to make room.
+      if (this.away.length >= AWAY_MAX) break;
       this.away.push(this.saveFish(f));
-      if (this.away.length > AWAY_MAX) this.away.shift();
       f.leave();
     }
   }

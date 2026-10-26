@@ -116,6 +116,30 @@ describe('parseWorld', () => {
     expect(w.away![0].seed).toBe(15);
   });
 
+  it('a full distance of fish fits the browser with room to spare', () => {
+    // A fish as engine.saveFish writes it: 32 spine points and a 48-point origin, at four decimals.
+    const r4 = (v: number) => Math.round(v * 1e4) / 1e4;
+    const fish = {
+      spine: Array.from({ length: 32 }, (_, i): [number, number] => [r4(0.123456 + i * 0.0137), r4(0.345678 + Math.sin(i) * 0.01)]),
+      drawSpeed: 0.8123,
+      seed: 37.123456,
+      patch: 0.71234,
+      variety: 'kohaku',
+      origin: {
+        stroke: Array.from({ length: 48 }, (_, i): [number, number, number] => [r4(0.1234 + i * 0.0091), r4(0.4567 + Math.cos(i) * 0.02), i * 3]),
+        speed: 0.61,
+        curviness: 0.42,
+        family: 'brisk',
+        pointer: 'touch',
+        born: 123,
+      },
+      bornAt: 1792849180122,
+      size: 1.0712,
+    };
+    const bytes = JSON.stringify({ ...valid, away: Array(AWAY_MAX).fill(fish) }).length * 2; // UTF-16 in localStorage
+    expect(bytes).toBeLessThan(2.5 * 1024 * 1024);
+  });
+
   it('reads saves from before planets as having none, and keeps planets in range', () => {
     const { planets: _omit, ...old } = valid;
     expect(parseWorld(JSON.parse(JSON.stringify(old)))?.planets).toEqual([]);
