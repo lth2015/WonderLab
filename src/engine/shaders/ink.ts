@@ -213,7 +213,8 @@ void main() {
   a *= 1.0 - smoothstep(0.0, 0.35, loose * 1.6 - fbm(vec2(s * 6.0, v * 2.0) + uSeed) + 0.25);
   // Seen through a little water.
   col = mix(col, uWater, 0.12);
-  if (uGlow > 0.0) col = mix(col, vec3(1.0, 0.86, 0.56), 0.5 * uGlow) * (1.0 + 0.3 * uGlow);
+  // Warmed toward pale gold, lightly, so the painted koi still shows through.
+  if (uGlow > 0.0) col = mix(col, vec3(1.0, 0.86, 0.56), 0.25 * uGlow) * (1.0 + 0.25 * uGlow);
   col *= 1.0 - 0.08 * uAge;
   float mark = honmeiMark(s, vSV.y / gw) * step(abs(vSV.y) / gw, env);
   col = mix(col, uCinnabar, mark * 0.85);
@@ -221,7 +222,7 @@ void main() {
 
   if (uShadow > 0.5) {
     // Under a glowing fish the water is lit, not shadowed.
-    if (uGlow > 0.0) gl_FragColor = vec4(vec3(1.0, 0.78, 0.42) * 0.7, a * 0.26 * uGlow * uOpacity);
+    if (uGlow > 0.0) gl_FragColor = vec4(vec3(1.0, 0.78, 0.42) * 0.7, a * 0.4 * uGlow * uOpacity);
     else gl_FragColor = vec4(0.0, 0.01, 0.03, a * 0.32 * uOpacity);
   } else {
     gl_FragColor = vec4(col, a * uOpacity);

@@ -1142,12 +1142,14 @@ export class Engine {
     const pts: StrokePoint[] = [];
     for (let i = 0; i <= 12; i++) {
       const u = i / 12;
-      // Toward the viewer and a little sideways, the way the meteor was going.
-      pts.push({ x: x + dir * u * S * 0.05, y: y - u * S * 0.08 + Math.sin(u * Math.PI) * S * 0.01, t: u * 300, pressure: 0.5 });
+      // Toward the viewer and a little sideways, the way the meteor was going: about 0.14 of the short edge,
+      // the smallest fish in the lake but still plainly a koi.
+      pts.push({ x: x + dir * u * S * 0.075, y: y - u * S * 0.12 + Math.sin(u * Math.PI) * S * 0.015, t: u * 300, pressure: 0.5 });
     }
     let length = 0;
     for (let i = 1; i < pts.length; i++) length += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
     const fish = new Fish(pts, length, 300, S, this.palette, { calm: this.calm, look: { seed: Math.random() * 100, patch: 0, glow: true } });
+    if (this.art) fish.setSkins(this.art.koi);
     this.fishes.push(fish);
     this.scene.add(fish.group);
     this.evictOverflow();
