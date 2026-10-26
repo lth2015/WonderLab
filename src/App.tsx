@@ -19,6 +19,7 @@ import { StaticLake } from './StaticLake';
 import { freshUrl, onReset, resetForNext } from './moderator';
 import { clearVisits, startVisit, visibilityChanged } from './lib/visits';
 import { cleanSeal, decodeGift, giftLink } from './gift/codec';
+import { withSeal } from './record/recorder';
 import { hasReceived, markReceived, takeGiftFromAddress } from './gift/received';
 import { BUILD, giftEnabled, isStandalone, studyInMenu } from './build';
 import { clearStudy } from './lib/study-log';
@@ -583,8 +584,10 @@ export function App() {
   const saveWallpaper = useCallback(async () => {
     const engine = engineRef.current;
     if (!engine) return;
-    const blob = await engine.captureWallpaper();
-    if (!blob) return;
+    const raw = await engine.captureWallpaper();
+    if (!raw) return;
+    // The same 万象 seal as a recording: the work's signature, not an ad (docs/02 §12).
+    const blob = (await withSeal(raw)) ?? raw;
     logEvent('save', { kind: 'wallpaper' });
     const name = `wonderful-world-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '')}.png`;
     const file = new File([blob], name, { type: 'image/png' });

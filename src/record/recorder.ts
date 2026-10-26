@@ -112,28 +112,8 @@ export class Compositor {
     ctx.restore();
   }
 
-  /** A small cinnabar seal, bottom right (docs/03 §3.1 朱砂 · 印章水印). */
   private drawSeal(): void {
-    const { ctx, canvas } = this;
-    const s = Math.round(Math.min(canvas.width, canvas.height) * 0.06);
-    const m = Math.round(s * 0.6);
-    const x = canvas.width - m - s;
-    const y = canvas.height - m - s;
-    ctx.save();
-    ctx.globalAlpha = 0.82;
-    ctx.fillStyle = '#C8553D';
-    const r = s * 0.12;
-    ctx.beginPath();
-    ctx.roundRect(x, y, s, s, r);
-    ctx.fill();
-    // Paper-coloured characters, not a cut-out: video encoders drop alpha.
-    ctx.fillStyle = '#EFEADF';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `${s * 0.4}px 'Kaiti SC', 'STKaiti', 'KaiTi', serif`;
-    ctx.fillText('万', x + s * 0.5, y + s * 0.29);
-    ctx.fillText('象', x + s * 0.5, y + s * 0.72);
-    ctx.restore();
+    drawSeal(this.ctx, this.canvas.width, this.canvas.height);
   }
 
   snapshot(): Promise<Blob> {
@@ -141,6 +121,33 @@ export class Compositor {
       this.canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'),
     );
   }
+}
+
+/**
+ * A small cinnabar 万象 seal, bottom right (docs/03 §3.1 朱砂 · 印章水印): the
+ * work's signature, on recordings and wallpapers alike, never removable for
+ * money (docs/02 §12).
+ */
+export function drawSeal(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  const s = Math.round(Math.min(width, height) * 0.06);
+  const m = Math.round(s * 0.6);
+  const x = width - m - s;
+  const y = height - m - s;
+  ctx.save();
+  ctx.globalAlpha = 0.82;
+  ctx.fillStyle = '#C8553D';
+  const r = s * 0.12;
+  ctx.beginPath();
+  ctx.roundRect(x, y, s, s, r);
+  ctx.fill();
+  // Paper-coloured characters, not a cut-out: video encoders drop alpha.
+  ctx.fillStyle = '#EFEADF';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${s * 0.4}px 'Kaiti SC', 'STKaiti', 'KaiTi', serif`;
+  ctx.fillText('万', x + s * 0.5, y + s * 0.29);
+  ctx.fillText('象', x + s * 0.5, y + s * 0.72);
+  ctx.restore();
 }
 
 /** One recording: feed it frames, stop it (or let it run out), get a Take. */
@@ -208,4 +215,22 @@ export async function saveTake(take: Take): Promise<'shared' | 'downloaded' | 'c
   a.download = name;
   a.click();
   return 'downloaded';
+}
+
+/** A saved image with the seal drawn on, or null if this browser cannot redraw it (the image is then saved as it is). */
+export async function withSeal(png: Blob): Promise<Blob | null> {
+  try {
+    const bitmap = await createImageBitmap(png);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    drawSeal(ctx, canvas.width, canvas.height);
+    return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  } catch {
+    return null;
+  }
 }
