@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Engine, type Creation, type CreationKind } from './engine/engine';
+import { Engine, RELEASE_GRACE_S, type Creation, type CreationKind } from './engine/engine';
 import { interpret, mergeAi, type SceneCommand } from './engine/intent';
 import { askScene, bareFlags, captureInvite } from './ai';
 import { rankPoems } from './echo';
@@ -153,7 +153,9 @@ export function App() {
   const [hint, setHint] = useState<Hint>(null);
   const [undoBtn, setUndoBtn] = useState<UndoButton>(null);
   // 送一条鱼 prototype (?giftlab): what to offer after a long-pressed fish, the sender's seal, the send sheet.
-  const [held, setHeld] = useState<{ fishId: number; x: number; y: number; received: boolean; canGift: boolean; key: number } | null>(null);
+  const [held, setHeld] = useState<{ fishId: number; x: number; y: number; received: boolean; canGift: boolean; canRelease: boolean; key: number } | null>(null);
+  /** A fish just let go, still swimming off: 留下它 is offered until it fades. */
+  const [letGo, setLetGo] = useState<{ fishId: number; x: number; y: number; key: number } | null>(null);
   const [sealMark, setSealMark] = useState<{ char: string; x: number; y: number; key: number } | null>(null);
   const [sendSheet, setSendSheet] = useState<{ fishId: number; seal: string } | null>(null);
   const [giftNote, setGiftNote] = useState('');
@@ -328,9 +330,11 @@ export function App() {
         onTierChange: setTier,
         onRestartSettled: () => setToast(false),
         onFishHeld: (h) => {
-          if (!giftlab || (!h.canGift && !h.received)) return;
+          // 送给朋友 only where gifts are on; 让它游向远方 for any fish but the first (docs/02 §12).
+          const canGift = giftlab && h.canGift;
+          if (!canGift && !h.canRelease) return;
           const key = Date.now();
-          setHeld({ ...h, key });
+          setHeld({ ...h, canGift, key });
           later(() => setHeld((x) => (x?.key === key ? null : x)), 7000);
         },
         onSeal: (s) => {
@@ -759,12 +763,15 @@ export function App() {
               送给朋友
             </button>
           )}
-          {held.received && (
+          {held.canRelease && (
             <button
               type="button"
               className="text-btn"
               onClick={() => {
-                engineRef.current?.release(held.fishId);
+                if (!engineRef.current?.release(held.fishId)) return;
+                const key = Date.now();
+                setLetGo({ fishId: held.fishId, x: held.x, y: held.y, key });
+                window.setTimeout(() => setLetGo((x) => (x?.key === key ? null : x)), RELEASE_GRACE_S * 1000);
                 setHeld(null);
                 setAnnounce('它游向了远方');
               }}
@@ -772,6 +779,21 @@ export function App() {
               让它游向远方
             </button>
           )}
+        </div>
+      )}
+      {letGo && (
+        <div key={letGo.key} className="held-actions" style={{ left: `clamp(8px, ${letGo.x - 60}px, calc(100% - 160px))`, top: `clamp(8px, ${letGo.y + 28}px, calc(100% - 120px))` }}>
+          <button
+            type="button"
+            className="text-btn"
+            onClick={() => {
+              engineRef.current?.keep(letGo.fishId);
+              setLetGo(null);
+              setAnnounce('它留了下来');
+            }}
+          >
+            留下它
+          </button>
         </div>
       )}
       {sealMark && (
