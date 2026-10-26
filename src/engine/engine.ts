@@ -28,6 +28,8 @@ const LONG_PRESS_MS = 500;
 const EDGE_GUARD = 16;
 const UNDO_DEPTH = 20;
 const RESTART_UNDO_MS = 5000;
+/** A released fish swims off this long (s) before it fades: the window for 留下它. */
+export const RELEASE_GRACE_S = 4;
 const DOUBLE_TAP_S = 1.5;
 
 export type CreationKind = 'fish' | 'moon' | 'planet' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
@@ -58,7 +60,7 @@ export interface EngineEvents {
   /** Right after each render, while the drawing buffer is still readable. */
   onFrame?: (canvas: HTMLCanvasElement) => void;
   /** A fish was long-pressed (its stroke replays): where it is, in CSS pixels from the top left. */
-  onFishHeld?: (h: { fishId: number; x: number; y: number; received: boolean; canGift: boolean }) => void;
+  onFishHeld?: (h: { fishId: number; x: number; y: number; received: boolean; canGift: boolean; canRelease: boolean }) => void;
   /** A replayed stroke ended on a sender's seal: show it there, like the 落款 on a painting. */
   onSeal?: (s: { char: string; x: number; y: number }) => void;
   /** A sent fish arrived at the lake's edge (送一条鱼). */
@@ -769,6 +771,8 @@ export class Engine {
       y: this.height - fish.headY,
       received: !!fish.gift,
       canGift: !fish.gift && !fish.glow,
+      // 让它游向远方: a received fish, or one the user drew, but never the world's first fish (docs/02 §12).
+      canRelease: !fish.honmei,
     });
   }
 
@@ -904,14 +908,30 @@ export class Engine {
     return true;
   }
 
-  /** 让它游向远方: a received fish swims off toward the far shore and is gone from this world. */
-  release(fishId: number): void {
+  /**
+   * 让它游向远方: a fish the user chooses to let go (one they drew or one they
+   * received, never the first fish) swims off toward the far shore and is
+   * gone from this world. Their choice, not the world's (docs/02 §12).
+   */
+  release(fishId: number): boolean {
     const fish = this.fishes.find((f) => f.id === fishId);
-    if (!fish || !fish.gift || fish.state === 'leaving') return;
+    if (!fish || fish.honmei || fish.state === 'leaving' || this.leaving.some((l) => l.fish === fish)) return false;
     const toLeft = fish.headX < this.width / 2;
     fish.lure(toLeft ? this.minDim * 0.02 : this.width - this.minDim * 0.02, this.horizonY - this.minDim * 0.08, this.time, { duration: 5 });
-    this.leaving.push({ fish, at: this.time + 2.5 });
-    logEvent('gift_released', {});
+    // It swims toward the far shore for a while before it fades: time enough to keep it after all.
+    this.leaving.push({ fish, at: this.time + RELEASE_GRACE_S });
+    logEvent(fish.gift ? 'gift_released' : 'fish_released', {});
+    return true;
+  }
+
+  /** 留下它: a released fish still swimming off stays after all. */
+  keep(fishId: number): boolean {
+    const i = this.leaving.findIndex((l) => l.fish.id === fishId);
+    if (i < 0) return false;
+    const [{ fish }] = this.leaving.splice(i, 1);
+    fish.stopLure();
+    logEvent('fish_kept', { received: !!fish.gift });
+    return true;
   }
 
   private cancelReplay(): void {

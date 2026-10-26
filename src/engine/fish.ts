@@ -330,6 +330,11 @@ export class Fish {
     if (this.state !== 'leaving') this.state = 'leaving';
   }
 
+  /** Stop heading where it was lured: 留下它, while a released fish is still swimming off. */
+  stopLure(): void {
+    this.attract = null;
+  }
+
   /** Undo: the ink loosens and dissolves into the water. */
   disperse(): void {
     this.state = 'leaving';
