@@ -105,6 +105,21 @@ export function togglePhase(): 'guided' | 'free' {
   return phase;
 }
 
+/**
+ * Where the page is running, as a code word only (no user agent is kept):
+ * a chat app's own browser keeps its storage apart from the phone's, so a
+ * gift taken in LINE is not there when Safari opens the site
+ * (testkit/送鱼实验说明.md).
+ */
+export function browserKind(ua: string, standalone: boolean): string {
+  if (/\bLine\//i.test(ua)) return 'line';
+  if (/MicroMessenger/i.test(ua)) return 'wechat';
+  if (/FBAN|FBAV|Instagram|KAKAOTALK|; wv\)/i.test(ua)) return 'other-inapp';
+  // An iPhone app's own web view says neither Safari nor another browser's name.
+  if (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua)) return standalone ? 'home-screen' : 'other-inapp';
+  return standalone ? 'home-screen' : 'browser';
+}
+
 export function deviceType(): string {
   const coarse = window.matchMedia('(pointer: coarse)').matches;
   const small = Math.min(window.innerWidth, window.innerHeight) < 600;

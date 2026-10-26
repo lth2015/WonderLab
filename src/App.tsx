@@ -8,7 +8,7 @@ import type { Tier } from './engine/quality';
 import { Menu } from './Menu';
 import { AccountSheet, CheckoutComplete, SimulatedCheckout, useGoogleReturn } from './account/AccountSheet';
 import { GOOGLE_WEB_RETURN_PATH } from '../server/src/auth/google-paths';
-import { deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
+import { browserKind, deviceType, exportLog, hintShown, logEvent, prompted, togglePhase } from './telemetry';
 import { clearWorld, loadWorld, saveWorld } from './engine/persist';
 import { loadArt } from './engine/art';
 import { RecordButton, RecordOverlays, useRecorder } from './record/RecordControl';
@@ -60,6 +60,12 @@ const giftlab = giftEnabled(params);
 const studyOpen = params.has('study');
 if (studyOpen) {
   params.delete('study');
+  const q = bareFlags(params);
+  history.replaceState(null, '', location.pathname + (q ? `?${q}` : '') + location.hash);
+}
+// openExternalBrowser=1 only asks LINE to open the link in the phone's own browser (gift links carry it); then it leaves the address.
+if (params.has('openExternalBrowser')) {
+  params.delete('openExternalBrowser');
   const q = bareFlags(params);
   history.replaceState(null, '', location.pathname + (q ? `?${q}` : '') + location.hash);
 }
@@ -380,6 +386,7 @@ export function App() {
       logEvent('world_ready', {
         ms: Math.round(performance.now()),
         device: deviceType(),
+        browser: browserKind(navigator.userAgent, isStandalone()),
         tier: engine.tier,
         buildSha: BUILD.sha,
         experimentId: BUILD.experiment,
@@ -599,7 +606,8 @@ export function App() {
     const seal = cleanSeal(sealInput);
     // Prototype links open the prototype; the gift itself stays after #.
     // The gift build opens gifts by itself; in development the link keeps ?giftlab.
-    const link = giftLink(`${location.origin}/${BUILD.experiment === 'poc-gift-r1' ? '' : '?giftlab'}`, { ...g, ...(seal ? { seal } : {}) });
+    // LINE opens links in its own browser, whose storage is not the phone's browser's: ask it for the phone's own (gift-protocol.md §2.1).
+    const link = giftLink(`${location.origin}/?${BUILD.experiment === 'poc-gift-r1' ? '' : 'giftlab&'}openExternalBrowser=1`, { ...g, ...(seal ? { seal } : {}) });
     setSendSheet(null);
     setHeld(null);
     let how = 'copied';
