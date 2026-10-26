@@ -13,10 +13,12 @@ const KEY = 'wonderlab.world';
 const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64, origin: 48 };
 /**
  * Fish kept 「在远处」 (docs/02 §11 decision 12): when the lake is full, the
- * oldest fish swims off but stays in the world. Past this many, the one away
- * longest is let go; at a fish or two a day that is months of drawing.
+ * oldest fish swims off but stays in the world. None is ever let go: once
+ * this many are away, the lake keeps its extra fish instead. A fish saves to
+ * about 2 KB, so this is about 1 MB of the browser's 5; at a fish a day it
+ * is well over a year of drawing.
  */
-export const AWAY_MAX = 60;
+export const AWAY_MAX = 500;
 
 export interface SavedFish {
   /** Tail to head, normalised to the view (x / width, y / height, from the bottom). */
