@@ -2,7 +2,7 @@ name: Artifact Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, ci-fast]
   workflow_dispatch:
     inputs:
       commit_sha:
