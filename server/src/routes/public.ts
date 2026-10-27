@@ -14,13 +14,14 @@ import { enabledStablecoinTokens } from '../services/stablecoin-tokens.js';
 export default async function publicRoutes(app: FastifyInstance, opts: { config: AppConfig; ctx: AppContext | null }) {
   const { config, ctx } = opts;
 
-  app.get('/ready', async (_req, reply) => {
+  app.get('/ready', async (request, reply) => {
     if (!ctx) return { status: 'ready', accounts: false };
     try {
       const { query } = await import('@wonderlab/db');
       await query('SELECT 1');
       return { status: 'ready', accounts: true };
     } catch (err) {
+      request.log.warn({ err }, 'readiness database check failed');
       return reply.status(503).send({ status: 'not-ready', reason: (err as Error).message });
     }
   });

@@ -155,38 +155,65 @@ jobs:
             kubectl get events --namespace "$NAMESPACE" --sort-by=.lastTimestamp | tail -n 50 || true
           }
 
+          # Keep only the ten most recent migration Jobs. Deleting a Job also
+          # garbage-collects its Pods, so failed and successful releases are
+          # both retained for diagnosis without unbounded namespace growth.
+          kubectl get jobs --namespace "$NAMESPACE" \
+            --selector='app.kubernetes.io/component=migration,app.kubernetes.io/part-of=wonderlab' \
+            --output=json \
+            | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[0:-10] | .[].metadata.name' \
+            | while read -r old_job; do
+                [ -z "$old_job" ] || kubectl delete job --namespace "$NAMESPACE" "$old_job" --ignore-not-found
+              done
+
           if ! kubectl apply --namespace "$NAMESPACE" --filename "$workdir/migration.yaml"; then
             diagnose_migration
             exit 1
           fi
 
-          # Fail promptly on a terminal Job failure and do not let a missing
-          # Pod consume the full migration timeout.
-          migration_complete=false
-          for attempt in $(seq 1 180); do
-            succeeded="$(kubectl get job --namespace "$NAMESPACE" "$migration_job" \
-              --output=jsonpath='{.status.succeeded}' 2>/dev/null || true)"
-            failed="$(kubectl get job --namespace "$NAMESPACE" "$migration_job" \
-              --output=jsonpath='{.status.failed}' 2>/dev/null || true)"
-            pod="$(kubectl get pods --namespace "$NAMESPACE" --selector="job-name=$migration_job" \
+          echo 'Waiting for migration Pod to start...'
+          migration_pod=""
+          for attempt in $(seq 1 24); do
+            migration_pod="$(kubectl get pods --namespace "$NAMESPACE" \
+              --selector="job-name=$migration_job" \
               --output=jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-            if [ "$succeeded" = '1' ]; then
-              migration_complete=true
-              break
+            if [ -n "$migration_pod" ]; then
+              phase="$(kubectl get pod "$migration_pod" --namespace "$NAMESPACE" \
+                --output=jsonpath='{.status.phase}' 2>/dev/null || true)"
+              echo "migration pod=$migration_pod phase=${phase:-unknown}"
+              case "$phase" in
+                Running)
+                  echo 'Migration started. Streaming logs:'
+                  kubectl logs --follow "$migration_pod" --namespace "$NAMESPACE" &
+                  migration_logs_pid=$!
+                  break
+                  ;;
+                Succeeded)
+                  echo 'Migration Pod completed before log streaming began.'
+                  break
+                  ;;
+              esac
             fi
-            if [ "${failed:-0}" -ge 1 ] 2>/dev/null; then
-              diagnose_migration
-              exit 1
-            fi
-            if [ "$attempt" -eq 24 ] && [ -z "$pod" ]; then
+            if [ "$attempt" -eq 24 ]; then
               echo '::error::Migration Pod did not start within two minutes.'
               diagnose_migration
               exit 1
             fi
             sleep 5
           done
-          if [ "$migration_complete" != true ]; then
-            echo '::error::Migration Job timed out.'
+
+          if kubectl wait --namespace "$NAMESPACE" \
+            --for=condition=complete "job/$migration_job" --timeout=15m; then
+            if [ -n "${migration_logs_pid:-}" ]; then
+              wait "$migration_logs_pid" || true
+            fi
+            echo 'Migration succeeded.'
+          else
+            if [ -n "${migration_logs_pid:-}" ]; then
+              kill "$migration_logs_pid" 2>/dev/null || true
+              wait "$migration_logs_pid" 2>/dev/null || true
+            fi
+            echo '::error::Migration failed; runtime workloads were not applied.'
             diagnose_migration
             exit 1
           fi

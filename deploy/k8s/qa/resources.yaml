@@ -18,12 +18,83 @@ metadata:
 spec:
   provider: aws
   parameters:
+    usePodIdentity: "true"
     # Runtime credentials are a different Secret ARN from migration and the
     # RDS-managed master credential. This file contains username/password only.
     objects: |
       - objectName: "REPLACE_WITH_RUNTIME_DATABASE_SECRET_ARN"
         objectType: "secretsmanager"
         objectAlias: "mysql-credentials.json"
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: wonderlab-api-runtime
+  namespace: wonder-lab
+spec:
+  provider: aws
+  parameters:
+    usePodIdentity: "true"
+    objects: |
+      - objectName: "qa-wonderlab-api-runtime-secrets-kv"
+        objectType: "secretsmanager"
+        jmesPath:
+          - path: GOOGLE_CLIENT_ID
+            objectAlias: GOOGLE_CLIENT_ID
+          - path: GOOGLE_CLIENT_SECRET
+            objectAlias: GOOGLE_CLIENT_SECRET
+          - path: GOOGLE_REDIRECT_URI
+            objectAlias: GOOGLE_REDIRECT_URI
+          - path: GOOGLE_SESSION_SECRET
+            objectAlias: GOOGLE_SESSION_SECRET
+          - path: STRIPE_API_VERSION
+            objectAlias: STRIPE_API_VERSION
+          - path: STRIPE_PRICE_ID_INK_10
+            objectAlias: STRIPE_PRICE_ID_INK_10
+          - path: STRIPE_PRICE_ID_INK_MONTH
+            objectAlias: STRIPE_PRICE_ID_INK_MONTH
+          - path: STRIPE_PUBLISHABLE_KEY
+            objectAlias: STRIPE_PUBLISHABLE_KEY
+          - path: STRIPE_SECRET_KEY
+            objectAlias: STRIPE_SECRET_KEY
+          - path: STRIPE_WEBHOOK_SECRET
+            objectAlias: STRIPE_WEBHOOK_SECRET
+          - path: LEGAL_ENTITY_NAME
+            objectAlias: LEGAL_ENTITY_NAME
+          - path: LEGAL_ENTITY_CONTACT
+            objectAlias: LEGAL_ENTITY_CONTACT
+          - path: CATALOGUE_JSON
+            objectAlias: CATALOGUE_JSON
+  secretObjects:
+    - secretName: wonderlab-api-runtime
+      type: Opaque
+      data:
+        - objectName: GOOGLE_CLIENT_ID
+          key: GOOGLE_CLIENT_ID
+        - objectName: GOOGLE_CLIENT_SECRET
+          key: GOOGLE_CLIENT_SECRET
+        - objectName: GOOGLE_REDIRECT_URI
+          key: GOOGLE_REDIRECT_URI
+        - objectName: GOOGLE_SESSION_SECRET
+          key: GOOGLE_SESSION_SECRET
+        - objectName: STRIPE_API_VERSION
+          key: STRIPE_API_VERSION
+        - objectName: STRIPE_PRICE_ID_INK_10
+          key: STRIPE_PRICE_ID_INK_10
+        - objectName: STRIPE_PRICE_ID_INK_MONTH
+          key: STRIPE_PRICE_ID_INK_MONTH
+        - objectName: STRIPE_PUBLISHABLE_KEY
+          key: STRIPE_PUBLISHABLE_KEY
+        - objectName: STRIPE_SECRET_KEY
+          key: STRIPE_SECRET_KEY
+        - objectName: STRIPE_WEBHOOK_SECRET
+          key: STRIPE_WEBHOOK_SECRET
+        - objectName: LEGAL_ENTITY_NAME
+          key: LEGAL_ENTITY_NAME
+        - objectName: LEGAL_ENTITY_CONTACT
+          key: LEGAL_ENTITY_CONTACT
+        - objectName: CATALOGUE_JSON
+          key: CATALOGUE_JSON
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -46,6 +117,8 @@ data:
   HOST: "0.0.0.0"
   PORT: "8787"
   RUN_WORKER: "false"
+  PUBLIC_WEB_URL: "https://want.world"
+  PUBLIC_API_URL: "https://want.world"
   DATABASE_SSL: "true"
   # Non-sensitive values are supplied through reviewed configuration. Secret
   # values and database identities are injected externally after IAM review.
@@ -92,9 +165,28 @@ spec:
               value: /app/dist
             - name: DATABASE_SECRET_FILE
               value: /var/run/wonderlab-secrets/mysql-credentials.json
+            - name: API_RUNTIME_SECRET_DIR
+              value: /var/run/wonderlab-api-secrets
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              for key in \
+                GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REDIRECT_URI GOOGLE_SESSION_SECRET \
+                STRIPE_API_VERSION STRIPE_PRICE_ID_INK_10 STRIPE_PRICE_ID_INK_MONTH \
+                STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET \
+                LEGAL_ENTITY_NAME LEGAL_ENTITY_CONTACT CATALOGUE_JSON; do
+                export "$key=$(cat "$API_RUNTIME_SECRET_DIR/$key")"
+              done
+              exec ./node_modules/.bin/tsx --tsconfig server/tsconfig.json server/src/index.ts
           volumeMounts:
             - name: runtime-database
               mountPath: /var/run/wonderlab-secrets
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: api-runtime
+              mountPath: /var/run/wonderlab-api-secrets
               readOnly: true
           ports:
             - name: http
@@ -120,6 +212,15 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: wonderlab-runtime-database
+        - name: api-runtime
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: wonderlab-api-runtime
+        - name: tmp
+          emptyDir:
+            medium: Memory
 ---
 apiVersion: v1
 kind: Service
@@ -137,3 +238,29 @@ spec:
     - name: http
       port: 80
       targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wonderlab
+  namespace: wonder-lab
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-1:654654578710:certificate/6ab53b30-1417-4df9-82af-a5c799ee157a
+    alb.ingress.kubernetes.io/healthcheck-path: /api/health
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - host: want.world
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wonderlab-api
+                port:
+                  number: 80
