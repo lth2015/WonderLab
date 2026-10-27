@@ -123,9 +123,9 @@ jobs:
           # is deliberately restricted to namespaced runtime objects. Only
           # migration prerequisites are applied before the hard gate; API
           # identity and runtime SecretProviderClass wait with the Deployment.
-          awk 'BEGIN { RS="---"; ORS="---\\n" } /kind: ServiceAccount|kind: SecretProviderClass/ { print }' \
+          awk 'BEGIN { RS="---"; ORS="---\n" } /kind: ServiceAccount|kind: SecretProviderClass/ { print }' \
             "$workdir/migration.yaml" > "$workdir/migration-prerequisites.yaml"
-          awk 'BEGIN { RS="---"; ORS="---\\n" } /kind: ConfigMap/ && /name: wonderlab-database-config/ { print }' \
+          awk 'BEGIN { RS="---"; ORS="---\n" } /kind: ConfigMap/ && /name: wonderlab-database-config/ { print }' \
             "$workdir/resources.yaml" >> "$workdir/migration-prerequisites.yaml"
           kubectl apply --namespace "$NAMESPACE" --filename "$workdir/migration-prerequisites.yaml"
 
