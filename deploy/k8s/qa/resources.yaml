@@ -88,6 +88,8 @@ spec:
             - configMapRef:
                 name: wonderlab-database-config
           env:
+            - name: WEB_DIST_DIR
+              value: /app/dist
             - name: DATABASE_SECRET_FILE
               value: /var/run/wonderlab-secrets/mysql-credentials.json
           volumeMounts:
