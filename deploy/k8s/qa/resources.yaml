@@ -45,6 +45,8 @@ spec:
             objectAlias: GOOGLE_CLIENT_SECRET
           - path: GOOGLE_REDIRECT_URI
             objectAlias: GOOGLE_REDIRECT_URI
+          - path: GOOGLE_SESSION_SECRET
+            objectAlias: GOOGLE_SESSION_SECRET
           - path: STRIPE_API_VERSION
             objectAlias: STRIPE_API_VERSION
           - path: STRIPE_PRICE_ID_INK_10
@@ -73,6 +75,8 @@ spec:
           key: GOOGLE_CLIENT_SECRET
         - objectName: GOOGLE_REDIRECT_URI
           key: GOOGLE_REDIRECT_URI
+        - objectName: GOOGLE_SESSION_SECRET
+          key: GOOGLE_SESSION_SECRET
         - objectName: STRIPE_API_VERSION
           key: STRIPE_API_VERSION
         - objectName: STRIPE_PRICE_ID_INK_10
@@ -113,6 +117,8 @@ data:
   HOST: "0.0.0.0"
   PORT: "8787"
   RUN_WORKER: "false"
+  PUBLIC_WEB_URL: "https://want.world"
+  PUBLIC_API_URL: "https://want.world"
   DATABASE_SSL: "true"
   # Non-sensitive values are supplied through reviewed configuration. Secret
   # values and database identities are injected externally after IAM review.
@@ -166,7 +172,7 @@ spec:
             - |
               set -eu
               for key in \
-                GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REDIRECT_URI \
+                GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REDIRECT_URI GOOGLE_SESSION_SECRET \
                 STRIPE_API_VERSION STRIPE_PRICE_ID_INK_10 STRIPE_PRICE_ID_INK_MONTH \
                 STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET \
                 LEGAL_ENTITY_NAME LEGAL_ENTITY_CONTACT CATALOGUE_JSON; do
