@@ -19,6 +19,8 @@ export type EventType =
   | 'gift_shown'
   | 'gift_accepted'
   | 'gift_released'
+  | 'fish_released'
+  | 'fish_kept'
   | 'gift_failed'
   | 'touch'
   | 'text_submit'
