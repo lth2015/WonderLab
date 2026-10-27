@@ -26,6 +26,72 @@ spec:
         objectType: "secretsmanager"
         objectAlias: "mysql-credentials.json"
 ---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: wonderlab-api-runtime
+  namespace: wonder-lab
+spec:
+  provider: aws
+  parameters:
+    usePodIdentity: "true"
+    objects: |
+      - objectName: "qa-wonderlab-api-runtime-secrets-kv"
+        objectType: "secretsmanager"
+        jmesPath:
+          - path: GOOGLE_CLIENT_ID
+            objectAlias: GOOGLE_CLIENT_ID
+          - path: GOOGLE_CLIENT_SECRET
+            objectAlias: GOOGLE_CLIENT_SECRET
+          - path: GOOGLE_REDIRECT_URI
+            objectAlias: GOOGLE_REDIRECT_URI
+          - path: STRIPE_API_VERSION
+            objectAlias: STRIPE_API_VERSION
+          - path: STRIPE_PRICE_ID_INK_10
+            objectAlias: STRIPE_PRICE_ID_INK_10
+          - path: STRIPE_PRICE_ID_INK_MONTH
+            objectAlias: STRIPE_PRICE_ID_INK_MONTH
+          - path: STRIPE_PUBLISHABLE_KEY
+            objectAlias: STRIPE_PUBLISHABLE_KEY
+          - path: STRIPE_SECRET_KEY
+            objectAlias: STRIPE_SECRET_KEY
+          - path: STRIPE_WEBHOOK_SECRET
+            objectAlias: STRIPE_WEBHOOK_SECRET
+          - path: LEGAL_ENTITY_NAME
+            objectAlias: LEGAL_ENTITY_NAME
+          - path: LEGAL_ENTITY_CONTACT
+            objectAlias: LEGAL_ENTITY_CONTACT
+          - path: CATALOGUE_JSON
+            objectAlias: CATALOGUE_JSON
+  secretObjects:
+    - secretName: wonderlab-api-runtime
+      type: Opaque
+      data:
+        - objectName: GOOGLE_CLIENT_ID
+          key: GOOGLE_CLIENT_ID
+        - objectName: GOOGLE_CLIENT_SECRET
+          key: GOOGLE_CLIENT_SECRET
+        - objectName: GOOGLE_REDIRECT_URI
+          key: GOOGLE_REDIRECT_URI
+        - objectName: STRIPE_API_VERSION
+          key: STRIPE_API_VERSION
+        - objectName: STRIPE_PRICE_ID_INK_10
+          key: STRIPE_PRICE_ID_INK_10
+        - objectName: STRIPE_PRICE_ID_INK_MONTH
+          key: STRIPE_PRICE_ID_INK_MONTH
+        - objectName: STRIPE_PUBLISHABLE_KEY
+          key: STRIPE_PUBLISHABLE_KEY
+        - objectName: STRIPE_SECRET_KEY
+          key: STRIPE_SECRET_KEY
+        - objectName: STRIPE_WEBHOOK_SECRET
+          key: STRIPE_WEBHOOK_SECRET
+        - objectName: LEGAL_ENTITY_NAME
+          key: LEGAL_ENTITY_NAME
+        - objectName: LEGAL_ENTITY_CONTACT
+          key: LEGAL_ENTITY_CONTACT
+        - objectName: CATALOGUE_JSON
+          key: CATALOGUE_JSON
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -88,6 +154,8 @@ spec:
                 name: wonderlab-api-config
             - configMapRef:
                 name: wonderlab-database-config
+            - secretRef:
+                name: wonderlab-api-runtime
           env:
             - name: WEB_DIST_DIR
               value: /app/dist
@@ -99,6 +167,9 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            - name: api-runtime
+              mountPath: /var/run/wonderlab-api-secrets
+              readOnly: true
           ports:
             - name: http
               containerPort: 8787
@@ -123,6 +194,12 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: wonderlab-runtime-database
+        - name: api-runtime
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: wonderlab-api-runtime
         - name: tmp
           emptyDir:
             medium: Memory
