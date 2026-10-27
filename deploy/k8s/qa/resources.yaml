@@ -18,6 +18,7 @@ metadata:
 spec:
   provider: aws
   parameters:
+    usePodIdentity: "true"
     # Runtime credentials are a different Secret ARN from migration and the
     # RDS-managed master credential. This file contains username/password only.
     objects: |

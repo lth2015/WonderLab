@@ -18,6 +18,7 @@ metadata:
 spec:
   provider: aws
   parameters:
+    usePodIdentity: "true"
     # The external Secret value is never copied into this manifest or a
     # Kubernetes Secret. It contains only username/password; connection
     # coordinates are supplied by the non-sensitive ConfigMap.
