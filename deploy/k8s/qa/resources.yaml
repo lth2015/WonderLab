@@ -1,0 +1,137 @@
+# Runtime objects are deliberately separate from migration.yaml so the deploy
+# workflow can apply them only after the migration Job reaches Complete.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api
+  namespace: wonder-lab
+  labels:
+    app.kubernetes.io/name: wonderlab
+    app.kubernetes.io/component: api
+automountServiceAccountToken: false
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: wonderlab-runtime-database
+  namespace: wonder-lab
+spec:
+  provider: aws
+  parameters:
+    # Runtime credentials are a different Secret ARN from migration and the
+    # RDS-managed master credential. This file contains username/password only.
+    objects: |
+      - objectName: "REPLACE_WITH_RUNTIME_DATABASE_SECRET_ARN"
+        objectType: "secretsmanager"
+        objectAlias: "mysql-credentials.json"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wonderlab-database-config
+  namespace: wonder-lab
+data:
+  DATABASE_HOST: "REPLACE_WITH_DATABASE_HOST"
+  DATABASE_PORT: "REPLACE_WITH_DATABASE_PORT"
+  DATABASE_NAME: "REPLACE_WITH_DATABASE_NAME"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wonderlab-api-config
+  namespace: wonder-lab
+data:
+  RUN_MODE: "production"
+  NODE_ENV: "production"
+  HOST: "0.0.0.0"
+  PORT: "8787"
+  RUN_WORKER: "false"
+  DATABASE_SSL: "true"
+  # Non-sensitive values are supplied through reviewed configuration. Secret
+  # values and database identities are injected externally after IAM review.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wonderlab-api
+  namespace: wonder-lab
+  labels:
+    app.kubernetes.io/name: wonderlab
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wonderlab
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wonderlab
+        app.kubernetes.io/component: api
+    spec:
+      serviceAccountName: api
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: ECR_REGISTRY/shared-wonderlab/api@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: wonderlab-api-config
+            - configMapRef:
+                name: wonderlab-database-config
+          env:
+            - name: DATABASE_SECRET_FILE
+              value: /var/run/wonderlab-secrets/mysql-credentials.json
+          volumeMounts:
+            - name: runtime-database
+              mountPath: /var/run/wonderlab-secrets
+              readOnly: true
+          ports:
+            - name: http
+              containerPort: 8787
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            privileged: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: runtime-database
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: wonderlab-runtime-database
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wonderlab-api
+  namespace: wonder-lab
+  labels:
+    app.kubernetes.io/name: wonderlab
+    app.kubernetes.io/component: api
+spec:
+  selector:
+    app.kubernetes.io/name: wonderlab
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -1,0 +1,84 @@
+# This file contains only migration-specific objects. The deploy workflow
+# substitutes both placeholders into a temporary copy before applying it.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: migration
+  namespace: wonder-lab
+  labels:
+    app.kubernetes.io/name: wonderlab
+    app.kubernetes.io/component: migration
+automountServiceAccountToken: false
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: wonderlab-migration-database
+  namespace: wonder-lab
+spec:
+  provider: aws
+  parameters:
+    # The external Secret value is never copied into this manifest or a
+    # Kubernetes Secret. It contains only username/password; connection
+    # coordinates are supplied by the non-sensitive ConfigMap.
+    objects: |
+      - objectName: "REPLACE_WITH_MIGRATION_DATABASE_SECRET_ARN"
+        objectType: "secretsmanager"
+        objectAlias: "mysql-credentials.json"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: MIGRATION_JOB_NAME
+  namespace: wonder-lab
+  labels:
+    app.kubernetes.io/name: wonderlab
+    app.kubernetes.io/component: migration
+    app.kubernetes.io/part-of: wonderlab
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wonderlab
+        app.kubernetes.io/component: migration
+    spec:
+      serviceAccountName: migration
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: migration-database
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: wonderlab-migration-database
+      containers:
+        - name: migrate
+          image: ECR_REGISTRY/shared-wonderlab/migration@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_SECRET_FILE
+              value: /var/run/wonderlab-secrets/mysql-credentials.json
+            - name: DATABASE_SSL
+              value: "true"
+          envFrom:
+            - configMapRef:
+                name: wonderlab-database-config
+          volumeMounts:
+            - name: migration-database
+              mountPath: /var/run/wonderlab-secrets
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            privileged: false
+            capabilities:
+              drop: ["ALL"]

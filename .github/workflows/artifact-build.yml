@@ -1,0 +1,94 @@
+name: Artifact Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Commit SHA to build (defaults to the selected ref)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-1
+  ECR_REGISTRY: 654654578710.dkr.ecr.ap-northeast-1.amazonaws.com
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: qa
+    steps:
+      - name: Resolve commit
+        id: commit
+        env:
+          REQUESTED_SHA: ${{ inputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          echo "sha=${REQUESTED_SHA:-${GITHUB_SHA}}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.commit.outputs.sha }}
+
+      - name: Resolve immutable release tag
+        id: image
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+          test -n "${ECR_REGISTRY}"
+          date_tag="$(git show -s --date=format:%Y%m%d --format=%cd "$SHA")"
+          echo "tag=${date_tag}-${SHA:0:12}" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-wonderlab-build-${{ github.run_id }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push API image
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform linux/amd64 \
+            --file Dockerfile.api \
+            --tag "$ECR_REGISTRY/shared-wonderlab/api:$IMAGE_TAG" \
+            --cache-from type=gha,scope=wonderlab-api \
+            --cache-to type=gha,mode=max,scope=wonderlab-api \
+            --push .
+
+      - name: Build and push migration image
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform linux/amd64 \
+            --file Dockerfile.migration \
+            --tag "$ECR_REGISTRY/shared-wonderlab/migration:$IMAGE_TAG" \
+            --cache-from type=gha,scope=wonderlab-migration \
+            --cache-to type=gha,mode=max,scope=wonderlab-migration \
+            --push .
+
+      - name: Publish build summary
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          {
+            echo "### WonderLab artifact build"
+            echo "- commit: $SHA"
+            echo "- API image: $ECR_REGISTRY/shared-wonderlab/api:$IMAGE_TAG"
+            echo "- migration image: $ECR_REGISTRY/shared-wonderlab/migration:$IMAGE_TAG"
+          } >> "$GITHUB_STEP_SUMMARY"

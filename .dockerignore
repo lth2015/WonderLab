@@ -1,9 +1,12 @@
 node_modules
 dist
+coverage
 .env
 .env.*
 !.env.example
 .git
+.github
+wonderlab-infra
 art-raw
 server-data
 strokes/*.json

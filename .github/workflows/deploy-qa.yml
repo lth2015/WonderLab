@@ -1,0 +1,181 @@
+name: Deploy QA
+
+on:
+  workflow_run:
+    workflows: [Artifact Build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Commit SHA produced by Artifact Build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-1
+  NAMESPACE: wonder-lab
+  ECR_REGISTRY: 654654578710.dkr.ecr.ap-northeast-1.amazonaws.com
+  EKS_CLUSTER: qa-web3-netx-tokyo-eks
+  DATABASE_HOST: qa-wonderlab-db.cn0qgmcaw2fj.ap-northeast-1.rds.amazonaws.com
+  DATABASE_PORT: "3306"
+  DATABASE_NAME: wonderlab
+  RUNTIME_DATABASE_SECRET_ARN: arn:aws:secretsmanager:ap-northeast-1:654654578710:secret:qa-wonderlab-runtime-database-secrets-kv-zQlzdb
+  MIGRATION_DATABASE_SECRET_ARN: arn:aws:secretsmanager:ap-northeast-1:654654578710:secret:qa-wonderlab-migration-database-secrets-kv-7dIpim
+
+concurrency:
+  group: wonderlab-deploy-qa
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: qa
+    steps:
+      - name: Resolve release commit
+        id: release
+        env:
+          REQUESTED_SHA: ${{ inputs.commit_sha }}
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          sha="${REQUESTED_SHA:-$WORKFLOW_SHA}"
+          test -n "$sha"
+          echo "commit_sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.release.outputs.commit_sha }}
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Resolve immutable release tag
+        id: image
+        env:
+          SHA: ${{ steps.release.outputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          test -n "${ECR_REGISTRY}"
+          test -n "${EKS_CLUSTER}"
+          test -n "${DATABASE_HOST}"
+          test -n "${DATABASE_PORT}"
+          test -n "${DATABASE_NAME}"
+          test -n "${RUNTIME_DATABASE_SECRET_ARN}"
+          test -n "${MIGRATION_DATABASE_SECRET_ARN}"
+          date_tag="$(git show -s --date=format:%Y%m%d --format=%cd "$SHA")"
+          echo "tag=${date_tag}-${SHA:0:12}" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-wonderlab-deploy-${{ github.run_id }}
+
+      - name: Resolve immutable image digests
+        id: images
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          set -euo pipefail
+          api_digest="$(aws ecr describe-images --repository-name shared-wonderlab/api --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          migration_digest="$(aws ecr describe-images --repository-name shared-wonderlab/migration --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          case "$api_digest" in sha256:*) ;; *) echo "::error::API image digest not found"; exit 1 ;; esac
+          case "$migration_digest" in sha256:*) ;; *) echo "::error::Migration image digest not found"; exit 1 ;; esac
+          echo "api_digest=$api_digest" >> "$GITHUB_OUTPUT"
+          echo "migration_digest=$migration_digest" >> "$GITHUB_OUTPUT"
+
+      - name: Point kubectl at QA EKS
+        run: aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+
+      - name: Deploy with migration gate
+        env:
+          COMMIT_SHA: ${{ steps.release.outputs.commit_sha }}
+          API_DIGEST: ${{ steps.images.outputs.api_digest }}
+          MIGRATION_DIGEST: ${{ steps.images.outputs.migration_digest }}
+        run: |
+          set -euo pipefail
+          workdir="$RUNNER_TEMP/wonderlab-k8s"
+          mkdir -p "$workdir"
+          cp deploy/k8s/qa/resources.yaml deploy/k8s/qa/migration.yaml "$workdir/"
+
+          placeholder='sha256:0000000000000000000000000000000000000000000000000000000000000000'
+          migration_job="wonderlab-migrate-${COMMIT_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          sed -i "s#ECR_REGISTRY/shared-wonderlab/api@$placeholder#$ECR_REGISTRY/shared-wonderlab/api@$API_DIGEST#g" "$workdir/resources.yaml"
+          sed -i "s#ECR_REGISTRY/shared-wonderlab/migration@$placeholder#$ECR_REGISTRY/shared-wonderlab/migration@$MIGRATION_DIGEST#g" "$workdir/migration.yaml"
+          sed -i "s/MIGRATION_JOB_NAME/$migration_job/g" "$workdir/migration.yaml"
+          sed -i "s#REPLACE_WITH_DATABASE_HOST#$DATABASE_HOST#g" "$workdir/resources.yaml"
+          sed -i "s#REPLACE_WITH_DATABASE_PORT#$DATABASE_PORT#g" "$workdir/resources.yaml"
+          sed -i "s#REPLACE_WITH_DATABASE_NAME#$DATABASE_NAME#g" "$workdir/resources.yaml"
+          sed -i "s#REPLACE_WITH_MIGRATION_DATABASE_SECRET_ARN#$MIGRATION_DATABASE_SECRET_ARN#g" "$workdir/migration.yaml"
+          sed -i "s#REPLACE_WITH_RUNTIME_DATABASE_SECRET_ARN#$RUNTIME_DATABASE_SECRET_ARN#g" "$workdir/resources.yaml"
+          if grep -Fq "$placeholder" "$workdir/resources.yaml" "$workdir/migration.yaml" || grep -Fq 'MIGRATION_JOB_NAME' "$workdir/migration.yaml" || grep -Fq 'REPLACE_WITH_' "$workdir/resources.yaml" "$workdir/migration.yaml"; then
+            echo '::error::A deployment placeholder remains.'
+            exit 1
+          fi
+
+          # The qa/kubernetes Terraform State owns the Namespace. This CI role
+          # is deliberately restricted to namespaced runtime objects. Only
+          # migration prerequisites are applied before the hard gate; API
+          # identity and runtime SecretProviderClass wait with the Deployment.
+          awk 'BEGIN { RS="---"; ORS="---\\n" } /kind: ServiceAccount|kind: SecretProviderClass/ { print }' \
+            "$workdir/migration.yaml" > "$workdir/migration-prerequisites.yaml"
+          awk 'BEGIN { RS="---"; ORS="---\\n" } /kind: ConfigMap/ && /name: wonderlab-database-config/ { print }' \
+            "$workdir/resources.yaml" >> "$workdir/migration-prerequisites.yaml"
+          kubectl apply --namespace "$NAMESPACE" --filename "$workdir/migration-prerequisites.yaml"
+
+          # Failure evidence intentionally contains workload logs and Kubernetes
+          # metadata only; this workflow never reads or prints mounted files.
+          diagnose_migration() {
+            echo '::error::Migration failed; runtime workloads were not applied.'
+            kubectl logs --namespace "$NAMESPACE" "job/$migration_job" --all-containers=true --tail=-1 || true
+            kubectl describe job --namespace "$NAMESPACE" "$migration_job" || true
+            kubectl get events --namespace "$NAMESPACE" --sort-by=.lastTimestamp | tail -n 50 || true
+          }
+
+          if ! kubectl apply --namespace "$NAMESPACE" --filename "$workdir/migration.yaml"; then
+            diagnose_migration
+            exit 1
+          fi
+
+          # Fail promptly on a terminal Job failure and do not let a missing
+          # Pod consume the full migration timeout.
+          migration_complete=false
+          for attempt in $(seq 1 180); do
+            succeeded="$(kubectl get job --namespace "$NAMESPACE" "$migration_job" \
+              --output=jsonpath='{.status.succeeded}' 2>/dev/null || true)"
+            failed="$(kubectl get job --namespace "$NAMESPACE" "$migration_job" \
+              --output=jsonpath='{.status.failed}' 2>/dev/null || true)"
+            pod="$(kubectl get pods --namespace "$NAMESPACE" --selector="job-name=$migration_job" \
+              --output=jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+            if [ "$succeeded" = '1' ]; then
+              migration_complete=true
+              break
+            fi
+            if [ "${failed:-0}" -ge 1 ] 2>/dev/null; then
+              diagnose_migration
+              exit 1
+            fi
+            if [ "$attempt" -eq 24 ] && [ -z "$pod" ]; then
+              echo '::error::Migration Pod did not start within two minutes.'
+              diagnose_migration
+              exit 1
+            fi
+            sleep 5
+          done
+          if [ "$migration_complete" != true ]; then
+            echo '::error::Migration Job timed out.'
+            diagnose_migration
+            exit 1
+          fi
+
+          # This is reachable only after the release-unique migration Job succeeds.
+          kubectl apply --namespace "$NAMESPACE" --filename "$workdir/resources.yaml"
+
+      - name: Verify API rollout
+        run: kubectl rollout status deployment/wonderlab-api --namespace "$NAMESPACE" --timeout=5m

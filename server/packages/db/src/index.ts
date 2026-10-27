@@ -1,5 +1,6 @@
 export * from './pool.js';
 export * from './migrate.js';
+export * from './credentials.js';
 export * from './ledger.js';
 export * from './users.js';
 export * from './billing.js';

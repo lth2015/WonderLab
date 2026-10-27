@@ -1,4 +1,4 @@
-import { closeDb, migrate } from '@wonderlab/db';
+import { closeDb, databaseUrlFromSecretFile } from '@wonderlab/db';
 import { buildServer } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
 import { createContext } from './context.js';
@@ -11,6 +11,20 @@ try {
   process.loadEnvFile('.env');
 } catch {
   // No .env: rely on the environment.
+}
+
+// The runtime CSI mount contains only the database username/password. The
+// endpoint, port and database name come from reviewed non-sensitive config.
+// Do this before config validation and never print the mounted file or URL.
+if (!process.env.DATABASE_URL && process.env.DATABASE_SECRET_FILE) {
+  const databaseUrl = databaseUrlFromSecretFile(process.env.DATABASE_SECRET_FILE);
+  if (!databaseUrl) {
+    console.error(
+      'Database credential file or DATABASE_HOST, DATABASE_PORT, DATABASE_NAME is incomplete.',
+    );
+    process.exit(1);
+  }
+  process.env.DATABASE_URL = databaseUrl;
 }
 
 let config;
@@ -31,8 +45,9 @@ let ctx = null;
 let stopWorker: (() => Promise<void>) | null = null;
 if (config.accountsEnabled) {
   ctx = createContext(config);
-  // Bring the schema and the catalogue up to date before taking traffic.
-  await migrate();
+  // Schema changes are performed by the release-gated migration Job, never by
+  // an API or Worker process. Catalogue sync remains part of this process's
+  // existing runtime lifecycle.
   if (!(await syncCatalogue(ctx, config))) process.exit(1);
   if (config.RUN_WORKER) stopWorker = startWorker(ctx);
 }
