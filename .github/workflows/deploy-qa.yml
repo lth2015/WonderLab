@@ -70,7 +70,7 @@ jobs:
             --update
           export PATH="$RUNNER_TEMP/bin:$PATH"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-          aws --version
+          "$RUNNER_TEMP/bin/aws" --version
 
       - name: Resolve immutable release tag
         id: image
