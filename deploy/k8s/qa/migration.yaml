@@ -61,6 +61,9 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: wonderlab-migration-database
+        - name: tmp
+          emptyDir:
+            medium: Memory
       containers:
         - name: migrate
           image: ECR_REGISTRY/shared-wonderlab/migration@sha256:0000000000000000000000000000000000000000000000000000000000000000
@@ -77,6 +80,8 @@ spec:
             - name: migration-database
               mountPath: /var/run/wonderlab-secrets
               readOnly: true
+            - name: tmp
+              mountPath: /tmp
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

@@ -97,6 +97,8 @@ spec:
             - name: runtime-database
               mountPath: /var/run/wonderlab-secrets
               readOnly: true
+            - name: tmp
+              mountPath: /tmp
           ports:
             - name: http
               containerPort: 8787
@@ -121,6 +123,9 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: wonderlab-runtime-database
+        - name: tmp
+          emptyDir:
+            medium: Memory
 ---
 apiVersion: v1
 kind: Service
