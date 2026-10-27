@@ -68,6 +68,7 @@ jobs:
             --install-dir "$RUNNER_TEMP/aws-cli/current" \
             --bin-dir "$RUNNER_TEMP/bin" \
             --update
+          export PATH="$RUNNER_TEMP/bin:$PATH"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           aws --version
 
