@@ -155,6 +155,17 @@ jobs:
             kubectl get events --namespace "$NAMESPACE" --sort-by=.lastTimestamp | tail -n 50 || true
           }
 
+          # Keep only the ten most recent migration Jobs. Deleting a Job also
+          # garbage-collects its Pods, so failed and successful releases are
+          # both retained for diagnosis without unbounded namespace growth.
+          kubectl get jobs --namespace "$NAMESPACE" \
+            --selector='app.kubernetes.io/component=migration,app.kubernetes.io/part-of=wonderlab' \
+            --output=json \
+            | jq -r '.items | sort_by(.metadata.creationTimestamp) | .[0:-10] | .[].metadata.name' \
+            | while read -r old_job; do
+                [ -z "$old_job" ] || kubectl delete job --namespace "$NAMESPACE" "$old_job" --ignore-not-found
+              done
+
           if ! kubectl apply --namespace "$NAMESPACE" --filename "$workdir/migration.yaml"; then
             diagnose_migration
             exit 1
