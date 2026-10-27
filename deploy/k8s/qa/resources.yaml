@@ -154,13 +154,25 @@ spec:
                 name: wonderlab-api-config
             - configMapRef:
                 name: wonderlab-database-config
-            - secretRef:
-                name: wonderlab-api-runtime
           env:
             - name: WEB_DIST_DIR
               value: /app/dist
             - name: DATABASE_SECRET_FILE
               value: /var/run/wonderlab-secrets/mysql-credentials.json
+            - name: API_RUNTIME_SECRET_DIR
+              value: /var/run/wonderlab-api-secrets
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              for key in \
+                GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REDIRECT_URI \
+                STRIPE_API_VERSION STRIPE_PRICE_ID_INK_10 STRIPE_PRICE_ID_INK_MONTH \
+                STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET \
+                LEGAL_ENTITY_NAME LEGAL_ENTITY_CONTACT CATALOGUE_JSON; do
+                export "$key=$(cat "$API_RUNTIME_SECRET_DIR/$key")"
+              done
+              exec ./node_modules/.bin/tsx --tsconfig server/tsconfig.json server/src/index.ts
           volumeMounts:
             - name: runtime-database
               mountPath: /var/run/wonderlab-secrets
