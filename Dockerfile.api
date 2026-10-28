@@ -7,7 +7,12 @@ RUN npm ci
 FROM dependencies AS web-build
 
 COPY . .
-RUN npm run build
+# .git is not in the image, so pass in which build this is (docs/验证路线图.md §2):
+# --build-arg WW_EXPERIMENT=poc-r1 --build-arg WW_BUILD_SHA=<12-char commit>.
+# Without them the site is a development build.
+ARG WW_EXPERIMENT=dev
+ARG WW_BUILD_SHA=unknown
+RUN WW_EXPERIMENT=$WW_EXPERIMENT WW_BUILD_SHA=$WW_BUILD_SHA npm run build
 
 FROM node:22.13.1-bookworm-slim AS runtime
 
