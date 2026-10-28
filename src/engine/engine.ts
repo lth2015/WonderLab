@@ -158,6 +158,11 @@ export class Engine {
   private nextFlash = -1;
   private flash = { at: -100, x: 0 };
   private thunder: { at: number; x: number; strength: number } | null = null;
+  /** 孤舟渔火 on a moonlit night: drifting slowly along the far water. */
+  private boat = { x: 0, presence: 0, placed: false };
+  /** 飞鸟掠月: one or two birds crossing the sky now and then. */
+  private birds: { x: number; y: number; size: number; phase: number; vx: number }[] = [];
+  private nextBirds = -1;
   private readonly relations = new Relations();
   /** Engine time of the last pointer down or key creation, for the relations' idle wait. */
   private lastInput = 0;
@@ -248,12 +253,15 @@ export class Engine {
         uRipples: { value: Array.from({ length: MAX_RIPPLES }, () => new THREE.Vector4()) },
         uRippleCount: { value: 0 },
         uPaper: { value: p.paper },
+        uInk: { value: p.ink },
         uWaveT: { value: 0 },
         uWind: { value: this.atmosphere.wind },
         uDusk: { value: 0 },
         uSnow: { value: 0 },
         uMoonlit: { value: 0 },
         uFlash: { value: new THREE.Vector2() },
+        uBoat: { value: new THREE.Vector4() },
+        uBirds: { value: [new THREE.Vector4(), new THREE.Vector4()] },
         uPost: { value: 1 },
         uMoonTex: { value: null as THREE.Texture | null },
         uMoonTexOn: { value: 0 },
@@ -745,6 +753,7 @@ export class Engine {
     this.updateRelations();
     this.updateMoonlight();
     this.updateStorm();
+    this.updateMoonNight(dt);
 
     this.fading = this.fading.filter((f) => {
       const k = (t - f.fadeFrom) / f.duration;
@@ -1289,6 +1298,48 @@ export class Engine {
     const a = t - this.flash.at;
     const level = a < 0 || a > 1.2 || this.calm ? 0 : Math.exp(-a * 10) + (a > 0.16 ? 0.75 * Math.exp(-(a - 0.16) * 6) : 0);
     this.worldMat.uniforms.uFlash.value.set(Math.min(level, 1), this.flash.x);
+  }
+
+  /** 月夜: a boat with its lamp on the far water, and birds crossing the moon. */
+  private updateMoonNight(dt: number): void {
+    const ml = this.atmosphere.moonlit;
+    const S = this.minDim;
+    const moon = this.sky.moonPos;
+    const u = this.worldMat.uniforms;
+    const on = ml > 0.5;
+    const b = this.boat;
+    if (on && !b.placed) {
+      // Upstream of the light path, so it drifts across it.
+      b.x = moon ? moon.x + S * 0.22 : this.width * 0.6;
+      b.placed = true;
+    }
+    b.presence += ((on ? 1 : 0) - b.presence) * Math.min(dt / 3, 1);
+    if (b.presence < 0.01 && !on) b.placed = false;
+    b.x -= dt * S * 0.006;
+    if (b.x < -S * 0.15) b.x = this.width + S * 0.15;
+    u.uBoat.value.set(b.x, this.horizonY - S * 0.045, S * 0.062, b.presence);
+
+    if (!on || this.calm) {
+      this.nextBirds = -1;
+    } else if (this.nextBirds < 0) this.nextBirds = this.time + 5 + Math.random() * 4;
+    else if (this.time >= this.nextBirds && !this.birds.length) {
+      this.nextBirds = this.time + 25 + Math.random() * 15;
+      const y = moon ? moon.y + S * (Math.random() * 0.06 - 0.02) : this.height - S * 0.35;
+      const size = S * 0.022;
+      this.birds.push({ x: this.width + size * 2, y, size, phase: 0, vx: -S * 0.13 });
+      if (Math.random() < 0.6) this.birds.push({ x: this.width + size * 5, y: y - S * 0.03, size: size * 0.8, phase: 1.7, vx: -S * 0.13 });
+    }
+    for (const bird of this.birds) {
+      bird.x += bird.vx * dt;
+      bird.y += Math.sin(this.time * 0.9 + bird.phase) * S * 0.004 * dt;
+      bird.phase += dt * Math.PI * 2 * 1.9;
+    }
+    this.birds = this.birds.filter((bird) => bird.x > -bird.size * 3);
+    u.uBirds.value.forEach((v: THREE.Vector4, i: number) => {
+      const bird = this.birds[i];
+      if (bird) v.set(bird.x, bird.y, bird.size, bird.phase);
+      else v.set(0, 0, 0, 0);
+    });
   }
 
   /** 月夜: each fish catches as much moonlight as lies where it swims; now and then a far bell. */
