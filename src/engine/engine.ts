@@ -21,7 +21,7 @@ import { logEvent, prompted } from '../telemetry';
 import { AWAY_MAX, SAVE_VERSION, type SavedFish, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
-import { meteorDive, Relations, type RelationEffects, type RelationWorld } from './relations';
+import { meteorDive, meteorPath, Relations, type RelationEffects, type RelationWorld } from './relations';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
@@ -1153,8 +1153,8 @@ export class Engine {
 
   private launchMeteor(stroke: Stroke): void {
     const pts = stroke.points;
-    const a = pts[0];
-    let b = pts[pts.length - 1];
+    const [a, end] = meteorPath(pts[0], pts[pts.length - 1]);
+    let b = end;
     let starId = 0;
     let fish: Fish | null = null;
     let cancelled = false;

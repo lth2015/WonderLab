@@ -178,6 +178,15 @@ export function ringFor(
   return { cx, cy, rx, ry };
 }
 
+/**
+ * The path a meteor takes along a line drawn from `first` to `last` (y up):
+ * always from the higher end down, since nothing falls upward. A swipe up
+ * the sky gives the same meteor as a swipe down along the same line.
+ */
+export function meteorPath<T extends { y: number }>(first: T, last: T): [from: T, to: T] {
+  return last.y > first.y ? [last, first] : [first, last];
+}
+
 /** Whether a meteor from a to b (y up) dives into the lake rather than ending in the sky. */
 export function meteorDive(a: { y: number }, b: { y: number }, horizonY: number, height: number): boolean {
   return b.y < a.y && b.y - horizonY < (height - horizonY) * RELATIONS.meteorDive;
