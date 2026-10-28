@@ -1,7 +1,7 @@
 import { noiseGLSL } from './common';
 
 // Weather overlay, drawn over the fish and under the brush: rain streaks
-// and splash rings, drifting mist, fireflies, falling snow. Output is premultiplied alpha.
+// and splash rings, drifting mist, fireflies, the pale hush of snow. Output is premultiplied alpha.
 export const weatherFrag = /* glsl */ `
 precision highp float;
 uniform vec2 uRes;
@@ -31,31 +31,6 @@ float rainLayer(vec2 p, float S, float cell, float speed, float seed) {
   float x = abs(f.x - hash(id + seed + 3.1)) * cell;
   float along = smoothstep(0.0, 0.25, f.y) * (1.0 - smoothstep(0.55, 0.85, f.y));
   return exp(-x * x / 0.6) * along * (h - 0.55) * 2.2;
-}
-
-// One depth of snow. Flakes are paper left unpainted: soft, uneven, each
-// drifting on its own sway. cell and r are in S units; dens is the share
-// of cells holding a flake.
-float snowLayer(vec2 p, float S, float cell, float speed, float r, float soft, float dens, float seed) {
-  float c = cell * S;
-  float slant = 0.05 + uWind * 0.75;
-  float y = p.y + uTime * speed * S;
-  vec2 q = vec2(p.x + y * slant, y) / c;
-  vec2 id = floor(q);
-  vec2 f = fract(q);
-  float h = hash(id + seed);
-  if (h > dens) return 0.0;
-  float h2 = hash(id + seed + 4.7);
-  float h3 = hash(id + seed + 9.1);
-  vec2 ctr = vec2(0.3 + 0.4 * h2, 0.3 + 0.4 * h3);
-  ctr.x += sin(uTime * (0.4 + 0.5 * h2) + h * 40.0) * 0.12;
-  vec2 v = (f - ctr) * c;
-  float rad = r * S * (0.6 + 0.8 * hash(id + seed + 2.3));
-  v.y *= 1.0 + 0.35 * (h3 - 0.5);
-  float d = length(v) / rad;
-  d *= 1.0 + 0.45 * (noise(v / rad * 1.6 + h * 17.0) - 0.5);
-  float body = 1.0 - smoothstep(1.0 - soft, 1.0, d);
-  return body * (0.55 + 0.45 * hash(id + seed + 6.6));
 }
 
 float splashes(vec2 p, float hpx, float S) {
@@ -109,7 +84,6 @@ void main() {
     // How much snow: sparse for 小雪, generous for 大雪.
     float dens = uSnowDensity * smoothstep(0.0, 0.6, uSnow);
     float on = smoothstep(0.0, 0.3, uSnow);
-    float slow = mix(1.0, 0.5, uCalm);
     vec3 paper = vec3(0.84, 0.85, 0.86);
     // A pale hush over everything, thickest at the horizon where the far
     // snow blurs together.
@@ -117,21 +91,7 @@ void main() {
     vec3 hc = mix(uSkyLow * 1.6, paper, 0.3);
     col = hc * hush + col * (1.0 - hush);
     a = hush + a * (1.0 - hush);
-    // Far to near: small, slow and faint, then larger, faster and softer.
-    float far = snowLayer(p, S, 0.030, 0.035 * slow, 0.0035, 0.5, 0.7 * dens * dens, 0.0);
-    float mid = snowLayer(p, S, 0.055, 0.055 * slow, 0.0060, 0.45, 0.55 * dens, 11.0);
-    float near = snowLayer(p, S, 0.10, 0.085 * slow, 0.0105, 0.6, 0.36 * dens, 23.0);
-    float big = 0.0;
-    if (uParticles > 0.5 && uCalm < 0.5) big = snowLayer(p, S, 0.19, 0.13, 0.017, 0.85, 0.22 * dens * dens, 37.0);
-    vec3 farC = mix(paper, uSkyLow * 1.5, 0.45);
-    float layers[4];
-    layers[0] = far * 0.45; layers[1] = mid * 0.7; layers[2] = near * 0.85; layers[3] = big * 0.6;
-    for (int i = 0; i < 4; i++) {
-      float al = layers[i] * on;
-      vec3 fc = i == 0 ? farC : paper;
-      col = fc * al + col * (1.0 - al);
-      a = al + a * (1.0 - al);
-    }
+    // The flakes themselves are points (snow.ts), drawn over this.
   }
 
   if (uFireflies > 0.001) {
