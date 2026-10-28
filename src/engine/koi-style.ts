@@ -1,7 +1,7 @@
 // 笔性 (docs/02 §5.1): what kind of stroke made a fish, and the koi variety
 // it leans toward. The stroke sets the tendency; chance keeps the surprise:
 // three times in four the fish comes from its stroke's family, otherwise
-// from any other variety. Liveliness and temperament are separate (fish.ts),
+// from any other variety, and never the same variety three times running. Liveliness and temperament are separate (fish.ts),
 // so a kohaku can be calm and a sumi lively.
 //
 // Measures are normalised so the same hand gives the same reading anywhere:
@@ -13,15 +13,20 @@
 
 export type Family = 'brisk' | 'lively' | 'calm' | 'round';
 
-/** Fast·straight, fast·curvy, slow·straight, slow·curvy. */
+/**
+ * Fast·straight, fast·curvy, slow·straight, slow·curvy. A variety may lean
+ * two ways: slow, curving finger strokes are the most common, and with ogon
+ * alone that family came up golden almost every time.
+ */
 export const FAMILIES: Record<Family, readonly string[]> = {
   brisk: ['kohaku', 'tancho'],
   lively: ['sanke', 'showa'],
   calm: ['asagi', 'sumi'],
-  round: ['ogon'],
+  round: ['ogon', 'tancho'],
 };
 
-export const VARIETIES: readonly string[] = Object.values(FAMILIES).flat();
+/** Every variety once. The order is part of the gift link format (gift/codec.ts): only ever append. */
+export const VARIETIES: readonly string[] = ['kohaku', 'tancho', 'sanke', 'showa', 'asagi', 'sumi', 'ogon'];
 
 export const STYLE = {
   /** Chance the variety comes from the stroke's own family. */
@@ -148,9 +153,18 @@ export function strokeStyle(points: Required<P>[], minDim: number, pointerType: 
 /**
  * Which variety a fish of `family` becomes. `available` limits the choice
  * to the skins that loaded (none: any of them, for the procedural koi).
+ * `recent` is the varieties born just before, newest last: a variety that
+ * came up twice in a row is left out this time, if anything else can come.
  */
-export function pickVariety(family: Family, random: () => number, available: readonly string[] = VARIETIES): { variety: string; inFamily: boolean } {
-  const pool = available.length ? available : VARIETIES;
+export function pickVariety(
+  family: Family,
+  random: () => number,
+  available: readonly string[] = VARIETIES,
+  recent: readonly string[] = [],
+): { variety: string; inFamily: boolean } {
+  let pool = available.length ? available : VARIETIES;
+  const last = recent[recent.length - 1];
+  if (last !== undefined && recent[recent.length - 2] === last && pool.some((v) => v !== last)) pool = pool.filter((v) => v !== last);
   const own = FAMILIES[family].filter((v) => pool.includes(v));
   const others = pool.filter((v) => !own.includes(v));
   const inFamily = own.length > 0 && (others.length === 0 || random() < STYLE.familyChance);
