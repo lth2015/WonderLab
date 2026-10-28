@@ -30,6 +30,8 @@ export class Atmosphere {
   moonlit = 0;
   /** 秋风落叶, 0..1. */
   autumn = 0;
+  /** 流星雨, 0..1. */
+  shower = 0;
   /** 雷雨: 1 while lightning may strike. */
   storm = 0;
   wind = INITIAL.wind;
@@ -72,6 +74,7 @@ export class Atmosphere {
     const wet = s.weather === 'rain' || s.weather === 'storm';
     this.rain += ((wet ? amount : 0) - this.rain) * k;
     this.storm += ((s.weather === 'storm' ? 1 : 0) - this.storm) * k;
+    this.shower += ((s.weather === 'shower' ? 1 : 0) - this.shower) * k;
     this.mist += ((s.weather === 'mist' ? amount : 0) - this.mist) * k;
     this.fireflies += ((s.weather === 'fireflies' ? amount : 0) - this.fireflies) * k;
     // Snow comes and goes more slowly than rain.

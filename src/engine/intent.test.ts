@@ -55,6 +55,11 @@ describe('interpret', () => {
     expect(interpret('不要打雷').command.weather).toBe('clear');
   });
 
+  it('reads a meteor shower and a wish', () => {
+    for (const t of ['流星雨', '许个愿吧', '看流星']) expect(interpret(t).command).toMatchObject({ weather: 'shower' });
+    expect(interpret('不要流星').command.weather).toBe('clear');
+  });
+
   it('stops rain and snow when asked', () => {
     for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
   });

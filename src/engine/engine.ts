@@ -158,6 +158,8 @@ export class Engine {
   private nextBell = -1;
   /** 雷雨: when the next lightning strikes, the last one (time, x), and the thunder on its way. */
   private nextFlash = -1;
+  /** 流星雨: when the next meteor falls into the lake. */
+  private nextDive = -1;
   private flash = { at: -100, x: 0 };
   private thunder: { at: number; x: number; strength: number } | null = null;
   /** 孤舟渔火 on a moonlit night: drifting slowly along the far water. */
@@ -262,6 +264,7 @@ export class Engine {
         uSnow: { value: 0 },
         uMoonlit: { value: 0 },
         uFlash: { value: new THREE.Vector2() },
+        uShower: { value: 0 },
         uBoat: { value: new THREE.Vector4() },
         uBirds: { value: [new THREE.Vector4(), new THREE.Vector4()] },
         uPost: { value: 1 },
@@ -766,6 +769,7 @@ export class Engine {
     this.updateRelations();
     this.updateMoonlight();
     this.updateStorm();
+    this.updateShower();
     this.updateMoonNight(dt);
 
     this.fading = this.fading.filter((f) => {
@@ -1286,6 +1290,35 @@ export class Engine {
 
   private lakeView(): { width: number; horizonY: number; S: number } {
     return { width: this.width, horizonY: this.horizonY, S: this.minDim };
+  }
+
+  /**
+   * 流星雨: the streaks are drawn in the sky shader; now and then one of
+   * them falls into the lake and becomes a small glowing fish, like a
+   * drawn meteor (流星入湖), but only while the lake has room: the world
+   * never pushes out a fish the visitor drew.
+   */
+  private updateShower(): void {
+    const level = this.atmosphere.shower;
+    this.worldMat.uniforms.uShower.value = level;
+    if (level < 0.5) {
+      this.nextDive = -1;
+      return;
+    }
+    const t = this.time;
+    if (this.nextDive < 0) this.nextDive = t + 4 + Math.random() * 2;
+    if (t < this.nextDive) return;
+    this.nextDive = t + 18 + Math.random() * 14;
+    const room = TIERS[this.monitor.tier].maxFish - this.fishes.filter((f) => !f.ghost && !f.guest).length;
+    if (room < 2 || this.calm) return;
+    const S = this.minDim;
+    const ax = this.width * (0.3 + 0.6 * Math.random());
+    const a = { x: ax, y: this.height - S * (0.05 + 0.15 * Math.random()) };
+    const b = { x: THREE.MathUtils.clamp(ax - S * (0.25 + 0.3 * Math.random()), 24, this.width - 24), y: this.horizonY + 1 };
+    this.sfx('meteor', (a.x + b.x) / 2);
+    this.sky.meteor(a.x, a.y, b.x, b.y, () => {
+      if (this.atmosphere.state.weather === 'shower') this.meteorFish(b.x, a.x < b.x ? 1 : -1);
+    });
   }
 
   /**
