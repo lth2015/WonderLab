@@ -28,6 +28,8 @@ export class Atmosphere {
   fireflies = 0;
   snow = 0;
   moonlit = 0;
+  /** 秋风落叶, 0..1. */
+  autumn = 0;
   /** 雷雨: 1 while lightning may strike. */
   storm = 0;
   wind = INITIAL.wind;
@@ -74,6 +76,7 @@ export class Atmosphere {
     this.fireflies += ((s.weather === 'fireflies' ? amount : 0) - this.fireflies) * k;
     // Snow comes and goes more slowly than rain.
     this.snow += ((s.weather === 'snow' ? amount : 0) - this.snow) * k * 0.6;
+    this.autumn += ((s.weather === 'autumn' ? 1 : 0) - this.autumn) * k;
     // Moonlight answers at once: clearly there within two seconds.
     this.moonlit += ((s.weather === 'moonlit' ? amount : 0) - this.moonlit) * Math.min(k * 1.6, 1);
     this.wind += (s.wind - this.wind) * k;

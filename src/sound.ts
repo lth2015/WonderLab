@@ -47,6 +47,8 @@ export interface AmbientLevels {
   fireflies: number;
   /** Optional so older callers stay valid; 0 when absent. */
   snow?: number;
+  /** 秋风, 0..1: the wind is heard. */
+  autumn?: number;
   /** 0 at night, 1 at dusk. */
   dusk: number;
 }
@@ -183,7 +185,7 @@ export class Voices {
     this.rainGain.gain.setTargetAtTime(0.13 * levels.rain, at, 1.2);
     // Rain covers the lake; wind roughens it a little; snow muffles it.
     this.waterGain.gain.setTargetAtTime(0.115 * (1 - 0.5 * levels.rain) * (1 - 0.6 * snow) * (0.85 + 0.3 * levels.wind), at, 1.2);
-    this.windGain.gain.setTargetAtTime(0.07 * snow * (0.5 + levels.wind), at, 2.5);
+    this.windGain.gain.setTargetAtTime(0.07 * Math.max(snow, 0.9 * (levels.autumn ?? 0)) * (0.5 + levels.wind), at, 2.5);
     // Insects at night and with fireflies, quieter in rain, gone in snow.
     const insects = (1 - levels.dusk * 0.7) * (1 - levels.rain) * (1 - snow) * (0.6 + 0.4 * levels.fireflies);
     this.insectGain.gain.setTargetAtTime(insects, at, 1.5);
