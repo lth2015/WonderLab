@@ -157,6 +157,9 @@ export class Fish {
   private mist = 0;
   private riseTarget = 0;
   private mistTarget = 0;
+  /** Snow: slower and a little deeper, heavier in the cold water. */
+  private chill = 0;
+  private chillTarget = 0;
   /** Asked to rest (一句成境): slow and near the surface until then. */
   private restUntil = -1;
   private rest = 0;
@@ -358,9 +361,10 @@ export class Fish {
   }
 
   /** Weather levels, 0..1 (docs/02 §5.5). */
-  setWeather(rise: number, mist: number): void {
+  setWeather(rise: number, mist: number, chill = 0): void {
     this.riseTarget = rise;
     this.mistTarget = mist;
+    this.chillTarget = chill;
   }
 
   setRest(until: number): void {
@@ -462,8 +466,9 @@ export class Fish {
     this.rest += ((ctx.time < this.restUntil ? 1 : 0) - this.rest) * ease;
     this.rise += (Math.max(this.riseTarget, 0.6 * this.rest) - this.rise) * ease;
     this.mist += (this.mistTarget - this.mist) * ease;
+    this.chill += (this.chillTarget - this.chill) * ease * 0.5;
     const leapH = this.leapT >= 0 ? Math.sin(Math.PI * this.leapT) : 0;
-    const swimDepth = this.depth * (1 - 0.7 * this.rise) + 0.2 * this.mist;
+    const swimDepth = this.depth * (1 - 0.7 * this.rise) + 0.2 * this.mist + 0.12 * this.chill;
     const depth = Math.min(Math.max(0, swimDepth + 0.08 * Math.sin(ctx.time * 0.13 + this.seed) - leapH), 1);
     for (const m of [this.material, this.shadowMaterial]) {
       m.uniforms.uDepth.value = depth;
@@ -528,7 +533,7 @@ export class Fish {
       const gap = Math.hypot(chase.x - this.headX, chase.y - this.headY);
       target = Math.max(target, this.L * 0.65) * (1 + 0.9 * Math.min(gap / (this.L * 1.5), 1));
     } else if (this.attract?.eager) target *= 1.35;
-    target *= 1 - 0.6 * this.rest;
+    target *= (1 - 0.6 * this.rest) * (1 - 0.4 * this.chill);
     this.speed += (target - this.speed) * Math.min(dt * 1.8, 1);
 
     // Gentle wandering.

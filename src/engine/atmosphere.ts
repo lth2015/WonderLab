@@ -26,6 +26,7 @@ export class Atmosphere {
   rain = 0;
   mist = 0;
   fireflies = 0;
+  snow = 0;
   wind = INITIAL.wind;
   dusk = 0;
 
@@ -66,6 +67,8 @@ export class Atmosphere {
     this.rain += ((s.weather === 'rain' ? amount : 0) - this.rain) * k;
     this.mist += ((s.weather === 'mist' ? amount : 0) - this.mist) * k;
     this.fireflies += ((s.weather === 'fireflies' ? amount : 0) - this.fireflies) * k;
+    // Snow comes and goes more slowly than rain.
+    this.snow += ((s.weather === 'snow' ? amount : 0) - this.snow) * k * 0.6;
     this.wind += (s.wind - this.wind) * k;
     this.dusk += ((s.timeOfDay === 'dusk' ? 1 : 0) - this.dusk) * k;
 

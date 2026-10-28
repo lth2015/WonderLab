@@ -7,6 +7,7 @@ import type { AtmosphereState } from './atmosphere';
 import type { MoonPhase } from './classify';
 import type { FishOrigin } from './fish';
 import { FAMILIES, type Family } from './koi-style';
+import { WEATHERS } from './intent';
 
 export const SAVE_VERSION = 1;
 const KEY = 'wonderlab.world';
@@ -91,7 +92,7 @@ export function parseWorld(data: unknown): WorldSave | null {
   if (!isObj(a)) return null;
   const atmosphere: AtmosphereState = {
     timeOfDay: oneOf(a.timeOfDay, ['night', 'dusk'], 'night'),
-    weather: oneOf(a.weather, ['clear', 'rain', 'mist', 'fireflies'], 'clear'),
+    weather: oneOf(a.weather, WEATHERS, 'clear'),
     palette: oneOf(a.palette, ['serene', 'warm', 'melancholy'], 'serene'),
     wind: unit(a.wind, 0.25),
     intensity: unit(a.intensity, 0.5),
@@ -209,6 +210,6 @@ function isUnitish(v: unknown): v is number {
 function unit(v: unknown, fallback: number): number {
   return isNum(v) ? Math.min(Math.max(v, 0), 1) : fallback;
 }
-function oneOf<T extends string>(v: unknown, options: T[], fallback: T): T {
+function oneOf<T extends string>(v: unknown, options: readonly T[], fallback: T): T {
   return options.includes(v as T) ? (v as T) : fallback;
 }

@@ -121,6 +121,7 @@ function describe(cmd: SceneCommand, fishAnswered = 0): string {
   if (cmd.weather === 'rain') parts.push('下起了小雨');
   if (cmd.weather === 'mist') parts.push('湖上起了雾');
   if (cmd.weather === 'fireflies') parts.push('萤火飞了起来');
+  if (cmd.weather === 'snow') parts.push('下起了雪');
   if (cmd.weather === 'clear') parts.push('天色放晴');
   if (cmd.timeOfDay === 'dusk') parts.push('天色转为黄昏');
   if (cmd.timeOfDay === 'night') parts.push('夜色深了');

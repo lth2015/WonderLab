@@ -7,7 +7,8 @@
 // to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies';
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -37,11 +38,19 @@ type Rule = [words: string[], set: SceneCommand];
 // Longer words are listed first inside each rule so that e.g. 不下雨 can be
 // caught before 雨 (see NEGATIONS).
 const KEYWORDS: Rule[] = [
+  // Before rain and snow, or their 雨 / 雪 would take these.
+  [['雨停', '雪停', '雨过天晴'], { weather: 'clear' }],
   [['暴雨', '大雨', '雷雨', '倾盆'], { weather: 'rain', intensity: 0.9, wind: 0.6 }],
   [['下雨', '小雨', '细雨', '春雨', '雨夜', '雨声', '淋雨', '雨'], { weather: 'rain' }],
-  [['雾', '朦胧', '迷蒙', '烟波', '云雾', '模糊', '看不清', '雪'], { weather: 'mist' }],
+  // Snow: heavy, medium, light, then any snow. Quiet by default: little wind,
+  // so the lake goes still; heavy snow slants a little.
+  [['暴雪', '大雪', '鹅毛', '漫天飞雪', '风雪'], { weather: 'snow', intensity: 0.95, wind: 0.35 }],
+  [['中雪'], { weather: 'snow', intensity: 0.6, wind: 0.12 }],
+  [['小雪', '细雪', '微雪', '初雪'], { weather: 'snow', intensity: 0.25, wind: 0.06 }],
+  [['下雪', '飘雪', '落雪', '雪夜', '雪花', '雪景', '寒江', '冬夜', '冬天', '雪'], { weather: 'snow', wind: 0.08 }],
+  [['雾', '朦胧', '迷蒙', '烟波', '云雾', '模糊', '看不清'], { weather: 'mist' }],
   [['萤火', '流萤', '萤', '夏夜', '夏天', '盛夏', '蝉'], { weather: 'fireflies' }],
-  [['晴', '星空', '星星', '满天星', '天亮了', '雨停', '放晴'], { weather: 'clear' }],
+  [['晴', '星空', '星星', '满天星', '天亮了', '放晴'], { weather: 'clear' }],
   [['黄昏', '夕阳', '日落', '傍晚', '晚霞', '落日', '暮色', '余晖'], { timeOfDay: 'dusk' }],
   [['深夜', '午夜', '半夜', '夜深', '月夜', '夜晚'], { timeOfDay: 'night' }],
   [['孤独', '寂寞', '思念', '想念', '怀念', '离别', '悲伤', '难过', '伤心', '失落', '想家', '秋'], { palette: 'melancholy' }],
@@ -139,7 +148,7 @@ export function validateCommand(raw: unknown): SceneCommand {
   if (typeof raw !== 'object' || raw === null) return out;
   const r = raw as Record<string, unknown>;
   if (r.timeOfDay === 'night' || r.timeOfDay === 'dusk') out.timeOfDay = r.timeOfDay;
-  if (r.weather === 'clear' || r.weather === 'rain' || r.weather === 'mist' || r.weather === 'fireflies') out.weather = r.weather;
+  if (WEATHERS.includes(r.weather as Weather)) out.weather = r.weather as Weather;
   if (r.palette === 'serene' || r.palette === 'warm' || r.palette === 'melancholy') out.palette = r.palette;
   for (const k of ['wind', 'intensity'] as const) {
     const v = r[k];
