@@ -40,6 +40,7 @@ uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint ind
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
+uniform float uGalaxy;                // 星河, 0..1 (also how far it has risen)
 uniform float uShower;                // 流星雨, 0..1
 uniform vec2 uFlash;                  // 雷雨: lightning brightness 0..1, and where along the sky (px)
 uniform vec4 uBoat;                   // 孤舟: x, waterline y, length unit (px), presence
@@ -251,6 +252,26 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   // 月明星稀: a moonlit night has fewer stars, fewer still with the moon up.
   stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
   c += vec3(0.96, 0.93, 0.86) * stars;
+  if (uGalaxy > 0.001) {
+    // 星河: a band of light rising from behind the hills at the lower left
+    // and across the sky, clumped, split by dark dust, thick with small
+    // stars. It rises as it comes, and the lake holds it too.
+    vec2 dir = normalize(vec2(0.55, 1.0));
+    vec2 nrm = vec2(-dir.y, dir.x);
+    vec2 d = p - vec2(uRes.x * 0.22, hpx);
+    float along = dot(d, dir) / S;
+    float wave = 0.06 * sin(along * 2.2 + 1.0);
+    float across = dot(d, nrm) / S - wave;
+    float band = exp(-pow(across / (0.15 + 0.05 * max(along, 0.0)), 2.0));
+    float clump = fbm(vec2(along * 3.0, across * 6.0) + 3.7);
+    float rift = smoothstep(0.55, 0.8, fbm(vec2(along * 5.0 + 9.0, across * 14.0)));
+    float reveal = 1.0 - smoothstep(uGalaxy * 2.8 - 0.25, uGalaxy * 2.8, along);
+    float shown = band * reveal * uGalaxy * land.a;
+    vec3 gc = mix(vec3(0.70, 0.75, 0.90), vec3(0.93, 0.87, 0.74), smoothstep(0.55, 1.0, band) * clump);
+    c += gc * shown * (0.45 + 0.75 * clump) * (1.0 - 0.65 * rift * band) * 0.32;
+    float dense = starLayer(p + 31.0, 7.0, 0.55, 0.9) + 0.6 * starLayer(p + 77.0, 4.0, 0.35, 0.6);
+    c += vec3(0.96, 0.95, 0.9) * dense * shown * (1.0 - 0.5 * rift);
+  }
   if (uShower > 0.001) {
     // 流星雨: meteors streaming from one radiant beyond the upper right,
     // each a short bright streak; a few at a time, in the lake too.

@@ -7,8 +7,8 @@
 // to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower';
-export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower'];
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -40,6 +40,8 @@ type Rule = [words: string[], set: SceneCommand];
 const KEYWORDS: Rule[] = [
   // Before rain and snow, or their 雨 / 雪 would take these.
   [['雨停', '雪停', '雨过天晴'], { weather: 'clear' }],
+  // 星河: the Milky Way rising from behind the hills and across the sky, and in the lake.
+  [['银河', '星河', '天河', '满天星', '星空', '繁星'], { weather: 'galaxy', timeOfDay: 'night' }],
   // 流星雨: meteors streaming across the sky from one point; now and then one falls into the lake.
   [['流星雨', '星雨', '许个愿', '许愿', '流星'], { weather: 'shower', timeOfDay: 'night' }],
   // 雷雨: heavy rain, and now and then lightning over the far hills and the thunder after it.
@@ -58,7 +60,7 @@ const KEYWORDS: Rule[] = [
   [['秋风', '落叶', '枫叶', '红叶', '叶落', '秋叶', '萧萧', '秋天'], { weather: 'autumn', wind: 0.55, palette: 'melancholy' }],
   [['雾', '朦胧', '迷蒙', '烟波', '云雾', '模糊', '看不清'], { weather: 'mist' }],
   [['萤火', '流萤', '萤', '夏夜', '夏天', '盛夏', '蝉'], { weather: 'fireflies' }],
-  [['晴', '星空', '星星', '满天星', '天亮了', '放晴'], { weather: 'clear' }],
+  [['晴', '星星', '天亮了', '放晴'], { weather: 'clear' }],
   [['黄昏', '夕阳', '日落', '傍晚', '晚霞', '落日', '暮色', '余晖'], { timeOfDay: 'dusk' }],
   [['深夜', '午夜', '半夜', '夜深', '夜晚'], { timeOfDay: 'night' }],
   [['孤独', '寂寞', '思念', '想念', '怀念', '离别', '悲伤', '难过', '伤心', '失落', '想家', '秋'], { palette: 'melancholy' }],
