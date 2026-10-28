@@ -110,10 +110,10 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   vec2 sc = uMoon.xy + uMoonShade.xy * uMoonShade.z * r;
   float shade = 1.0 - smoothstep(r * 0.9, r * 1.06, length(p - sc));
   // The glow comes from the lit limb, not from the dark part of the disc.
-  float halo = (exp(-max(dist - r, 0.0) / (r * 0.8)) * 0.2 + exp(-max(dist - r, 0.0) / (r * 4.0)) * 0.07) * (1.0 + 1.8 * uMoonPulse * (1.0 - 0.6 * uMoonlit));
-  halo *= 1.0 + 1.0 * uMoonlit;
+  float halo = (exp(-max(dist - r, 0.0) / (r * 0.8)) * 0.2 + exp(-max(dist - r, 0.0) / (r * 3.0)) * 0.05) * (1.0 + 1.8 * uMoonPulse * (1.0 - 0.6 * uMoonlit));
+  halo *= 1.0 + 0.45 * uMoonlit;
   // 月晕: a faint wide ring on a moonlit night.
-  halo += exp(-pow((dist - r * 2.8) / (r * 0.7), 2.0)) * 0.09 * uMoonlit;
+  halo += exp(-pow((dist - r * 2.4) / (r * 0.5), 2.0)) * 0.04 * uMoonlit;
   c += mix(uAccent, MOONLIGHT, 0.5 * uMoonlit) * halo * lit * uMoon.w * mix(0.5, 1.0, open) * (1.0 - disc * shade * 0.6);
   vec2 q = d / r;
   float z = sqrt(max(1.0 - dot(q, q), 0.0));
@@ -387,7 +387,7 @@ void main() {
       float streak = exp(-dot(lr, lr)) * step(q.y, 0.0) * (0.65 + 0.35 * sin(uTime * 3.1 + q.y * 9.0));
       col += vec3(1.0, 0.72, 0.38) * (lamp * 0.9 + streak * 0.35) * uBoat.w;
     }
-    col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.35 + 0.2 * uSnow);
+    col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.25 + 0.2 * uSnow);
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;
   }
 
@@ -403,7 +403,7 @@ void main() {
     col += grain * 0.028 + fibre * 0.02;
   }
   vec2 vq = (vUv - 0.5) * vec2(uRes.x / uRes.y, 1.0);
-  col *= mix(1.0, 0.72, smoothstep(0.45, 1.15, length(vq)));
+  col *= mix(1.0, 0.8, smoothstep(0.45, 1.15, length(vq)));
 
   gl_FragColor = vec4(col, 1.0);
 }

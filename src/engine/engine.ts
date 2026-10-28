@@ -218,7 +218,7 @@ export class Engine {
     this.sky.calm = this.calm;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: false });
     this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace; // colours are already sRGB values
-    this.renderer.setClearColor(0x0b0e13, 1);
+    this.renderer.setClearColor(0x121826, 1);
 
     const quad = new THREE.PlaneGeometry(2, 2);
     const p = this.palette;
@@ -616,6 +616,11 @@ export class Engine {
     const prev = this.atmosphere.apply(cmd);
     this.record('atmosphere', this.width / 2, this.horizonY, () => this.atmosphere.set(prev));
     return cmd.fish ? this.relations.ask(cmd.fish, this.relationWorld(), this.relationFx) : 0;
+  }
+
+  /** Whether an echo line is in the sky now (hints in the sky wait for it). */
+  get echoShowing(): boolean {
+    return this.echo.showing;
   }
 
   /** Show an echo line from the poem library in the sky. */

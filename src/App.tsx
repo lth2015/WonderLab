@@ -259,6 +259,11 @@ export function App() {
         pendingHint = { id, text, place };
         return;
       }
+      // A hint in the sky would be written across the echo line: wait for it to go.
+      if (place === 'sky' && engineRef.current?.echoShowing) {
+        later(() => show(id, text, place), 1200);
+        return;
+      }
       hintShown(id);
       const key = ++hintKey;
       setHint({ text, place, key });
