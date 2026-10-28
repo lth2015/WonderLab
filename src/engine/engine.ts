@@ -154,6 +154,10 @@ export class Engine {
   private snowCap = 0;
   /** Engine time of the next far bell on a moonlit night; -1 until the night is moonlit. */
   private nextBell = -1;
+  /** 雷雨: when the next lightning strikes, the last one (time, x), and the thunder on its way. */
+  private nextFlash = -1;
+  private flash = { at: -100, x: 0 };
+  private thunder: { at: number; x: number; strength: number } | null = null;
   /** 孤舟渔火 on a moonlit night: drifting slowly along the far water. */
   private boat = { x: 0, presence: 0, placed: false };
   /** 飞鸟掠月: one or two birds crossing the sky now and then. */
@@ -255,6 +259,7 @@ export class Engine {
         uDusk: { value: 0 },
         uSnow: { value: 0 },
         uMoonlit: { value: 0 },
+        uFlash: { value: new THREE.Vector2() },
         uBoat: { value: new THREE.Vector4() },
         uBirds: { value: [new THREE.Vector4(), new THREE.Vector4()] },
         uPost: { value: 1 },
@@ -747,6 +752,7 @@ export class Engine {
     this.echo.update(t);
     this.updateRelations();
     this.updateMoonlight();
+    this.updateStorm();
     this.updateMoonNight(dt);
 
     this.fading = this.fading.filter((f) => {
@@ -1267,6 +1273,31 @@ export class Engine {
 
   private lakeView(): { width: number; horizonY: number; S: number } {
     return { width: this.width, horizonY: this.horizonY, S: this.minDim };
+  }
+
+  /**
+   * 雷雨: now and then lightning behind the far hills, a quick double
+   * flicker, and the thunder a few seconds later (further strikes, later
+   * and softer). Reduced motion keeps the thunder and drops the flicker.
+   */
+  private updateStorm(): void {
+    const t = this.time;
+    const on = this.atmosphere.storm > 0.5;
+    if (!on) this.nextFlash = -1;
+    else if (this.nextFlash < 0) this.nextFlash = t + 2 + Math.random() * 2;
+    else if (t >= this.nextFlash) {
+      this.nextFlash = t + 7 + Math.random() * 10;
+      const far = Math.random();
+      this.flash = { at: t, x: this.width * (0.15 + 0.7 * Math.random()) };
+      this.thunder = { at: t + 1.2 + far * 2.8, x: this.flash.x, strength: 1.2 - 0.6 * far };
+    }
+    if (this.thunder && t >= this.thunder.at) {
+      this.sfx('thunder', this.thunder.x, this.thunder.strength);
+      this.thunder = null;
+    }
+    const a = t - this.flash.at;
+    const level = a < 0 || a > 1.2 || this.calm ? 0 : Math.exp(-a * 10) + (a > 0.16 ? 0.75 * Math.exp(-(a - 0.16) * 6) : 0);
+    this.worldMat.uniforms.uFlash.value.set(Math.min(level, 1), this.flash.x);
   }
 
   /** 月夜: a boat with its lamp on the far water, and birds crossing the moon. */

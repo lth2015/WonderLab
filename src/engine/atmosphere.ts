@@ -28,6 +28,8 @@ export class Atmosphere {
   fireflies = 0;
   snow = 0;
   moonlit = 0;
+  /** 雷雨: 1 while lightning may strike. */
+  storm = 0;
   wind = INITIAL.wind;
   dusk = 0;
 
@@ -65,7 +67,9 @@ export class Atmosphere {
     const s = this.state;
     const k = Math.min(dt / (this.duration * 0.45), 1);
     const amount = 0.55 + 0.45 * s.intensity;
-    this.rain += ((s.weather === 'rain' ? amount : 0) - this.rain) * k;
+    const wet = s.weather === 'rain' || s.weather === 'storm';
+    this.rain += ((wet ? amount : 0) - this.rain) * k;
+    this.storm += ((s.weather === 'storm' ? 1 : 0) - this.storm) * k;
     this.mist += ((s.weather === 'mist' ? amount : 0) - this.mist) * k;
     this.fireflies += ((s.weather === 'fireflies' ? amount : 0) - this.fireflies) * k;
     // Snow comes and goes more slowly than rain.
