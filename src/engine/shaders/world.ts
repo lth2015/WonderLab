@@ -39,6 +39,7 @@ uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint ind
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
+uniform vec2 uFlash;                  // 雷雨: lightning brightness 0..1, and where along the sky (px)
 uniform float uMoonlit;               // 0..1: 月夜, the light of the moon (or of one beyond the frame)
 uniform float uSnow;                  // 0..1: snow clouds veil the stars; the lake goes dark and still
 uniform float uSkyVeil;               // 0..1, fades all user sky items (restart)
@@ -220,6 +221,14 @@ vec4 skyAt(vec2 p, float hpx, float S) {
     c += MOONLIGHT * beyond * uMoonlit * (1.0 - uMoon.w) * land.a;
   }
   c *= 1.0 + 0.08 * uMoonLight * uSkyVeil;
+  if (uFlash.x > 0.001) {
+    // Lightning behind the far hills: the sky and the clouds light up, most
+    // near where it struck; the mountains stay dark against it.
+    vec2 d = (p - vec2(uFlash.y, uRes.y * 0.95)) / S;
+    float near = exp(-length(d) * 1.4);
+    float lit = uFlash.x * (0.1 + 0.55 * near + 0.5 * cloud * 4.0 * near);
+    c += vec3(0.8, 0.84, 0.95) * lit * mix(0.25, 1.0, land.a);
+  }
   c = userSky(p, c, land.a);
   return vec4(c, land.a);
 }
@@ -320,6 +329,7 @@ void main() {
       // Rings crossing the path catch its light: a splash breaks it into bright arcs.
       col += MOONLIGHT * sheen * path * 0.6 * uMoonlit * (1.0 - uMoon.w);
     }
+    col += vec3(0.8, 0.84, 0.95) * uFlash.x * 0.05;
     col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.35 + 0.2 * uSnow);
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;
   }

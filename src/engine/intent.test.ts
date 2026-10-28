@@ -44,6 +44,12 @@ describe('interpret', () => {
     expect(interpret('深夜').command.weather).toBeUndefined();
   });
 
+  it('reads thunder as a storm: heavy rain with lightning', () => {
+    for (const t of ['雷雨', '打雷了', '电闪雷鸣']) expect(interpret(t).command).toMatchObject({ weather: 'storm' });
+    expect(interpret('下大雨').command.weather).toBe('rain');
+    expect(interpret('不要打雷').command.weather).toBe('clear');
+  });
+
   it('stops rain and snow when asked', () => {
     for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
   });

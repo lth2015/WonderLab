@@ -39,7 +39,7 @@ export function panFor(x: number, width: number): number {
   return Math.max(-0.6, Math.min(0.6, (x / width) * 1.2 - 0.6));
 }
 
-export type SoundKind = 'stroke' | 'drop' | 'ripple' | 'chime' | 'star' | 'meteor' | 'bell';
+export type SoundKind = 'stroke' | 'drop' | 'ripple' | 'chime' | 'star' | 'meteor' | 'bell' | 'thunder';
 
 export interface AmbientLevels {
   rain: number;
@@ -270,6 +270,35 @@ export class Voices {
       case 'star':
         this.tone(at, pentatonicHz(15 + Math.floor(Math.random() * 5)), 0.07, 0.9, this.panner(pan));
         return;
+      case 'thunder': {
+        // Thunder over the hills: low noise that swells and rolls (a few
+        // slow surges), the highs gone with distance. `strength` is
+        // nearness: nearer is louder and starts with a short crack.
+        const low = this.ctx.createBiquadFilter();
+        low.type = 'lowpass';
+        low.frequency.value = 160 + 160 * Math.min(strength, 1);
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0, at);
+        g.gain.linearRampToValueAtTime(0.45 * strength, at + 0.25);
+        let when = at + 0.25;
+        for (let i = 0; i < 3; i++) {
+          when += 0.5 + Math.random() * 0.6;
+          g.gain.linearRampToValueAtTime((0.18 + Math.random() * 0.22) * strength, when);
+        }
+        g.gain.setTargetAtTime(0, when, 0.9);
+        this.burst(at, Math.min(this.noise.duration - 0.2, 3.6)).connect(low).connect(g).connect(this.panner(pan));
+        if (strength > 0.9) {
+          const crack = this.ctx.createBiquadFilter();
+          crack.type = 'bandpass';
+          crack.frequency.value = 900;
+          const cg = this.ctx.createGain();
+          cg.gain.setValueAtTime(0, at);
+          cg.gain.linearRampToValueAtTime(0.07, at + 0.01);
+          cg.gain.setTargetAtTime(0, at + 0.02, 0.12);
+          this.burst(at, 0.5).connect(crack).connect(cg).connect(this.panner(pan));
+        }
+        return;
+      }
       case 'bell': {
         // 夜半钟声: a temple bell far across the water. A low hum with a
         // slow beat (two partials a hair apart), a few inharmonic overtones
