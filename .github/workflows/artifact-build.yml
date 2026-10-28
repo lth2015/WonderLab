@@ -58,11 +58,15 @@ jobs:
       - name: Build and push API image
         env:
           IMAGE_TAG: ${{ steps.image.outputs.tag }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
         run: |
           set -euo pipefail
+          # The site is the R1 test build (docs/验证路线图.md §2); the commit shows in /?study.
           docker buildx build \
             --platform linux/amd64 \
             --file Dockerfile.api \
+            --build-arg WW_EXPERIMENT=poc-r1 \
+            --build-arg WW_BUILD_SHA="${COMMIT_SHA:0:12}" \
             --tag "$ECR_REGISTRY/shared-wonderlab/api:$IMAGE_TAG" \
             --cache-from type=gha,scope=wonderlab-api \
             --cache-to type=gha,mode=max,scope=wonderlab-api \
