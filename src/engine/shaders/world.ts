@@ -23,6 +23,7 @@ uniform vec3 uAccent;
 uniform vec4 uRipples[MAX_RIPPLES];   // x, y (px), start time, strength
 uniform int uRippleCount;
 uniform vec3 uPaper;
+uniform vec3 uInk;
 uniform vec4 uMoon;                   // x, y, radius (px), presence
 uniform vec3 uMoonShade;              // direction to the dark side, shadow disc offset in radii
 uniform float uMoonLight;             // 0..1, how much the moon lifts the night
@@ -39,6 +40,9 @@ uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint ind
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
+uniform vec2 uFlash;                  // 雷雨: lightning brightness 0..1, and where along the sky (px)
+uniform vec4 uBoat;                   // 孤舟: x, waterline y, length unit (px), presence
+uniform vec4 uBirds[2];               // 飞鸟: x, y, size (px), wing phase; size 0 = none
 uniform float uMoonlit;               // 0..1: 月夜, the light of the moon (or of one beyond the frame)
 uniform float uSnow;                  // 0..1: snow clouds veil the stars; the lake goes dark and still
 uniform float uSkyVeil;               // 0..1, fades all user sky items (restart)
@@ -58,6 +62,41 @@ float starLayer(vec2 p, float cellSize, float density, float size) {
 }
 
 const vec3 MOONLIGHT = vec3(0.78, 0.83, 0.92);
+
+// 孤舟蓑笠翁: a small fishing boat in ink, in its own units (length 2,
+// waterline at y = 0): a shallow hull, a rounded mat canopy, a figure in a
+// straw hat at the stern, and a rod with its line.
+float segDist(vec2 p, vec2 a, vec2 b) {
+  vec2 pa = p - a;
+  vec2 ba = b - a;
+  return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0));
+}
+
+float boatShape(vec2 q) {
+  float e = 0.025;
+  float yt = 0.07 * q.x * q.x;
+  float yb = yt - 0.15 * max(1.0 - q.x * q.x, 0.0);
+  float hull = smoothstep(1.0 + e, 1.0 - e, abs(q.x)) * smoothstep(yb - e, yb + e, q.y) * smoothstep(yt + e, yt - e, q.y);
+  vec2 c = vec2((q.x - 0.15) / 0.36, (q.y - yt) / 0.21);
+  float canopy = smoothstep(1.08, 0.92, length(c)) * smoothstep(-0.02, 0.01, q.y - yt);
+  vec2 m = q - vec2(-0.55, 0.0);
+  float body = smoothstep(0.055, 0.035, abs(m.x)) * smoothstep(-0.02, 0.0, m.y) * smoothstep(0.19, 0.17, m.y);
+  float hat = smoothstep(0.015, -0.015, abs(m.x) - 0.13 * (0.28 - m.y) / 0.1) * smoothstep(0.165, 0.18, m.y);
+  float rod = smoothstep(0.024, 0.01, segDist(q, vec2(-0.5, 0.14), vec2(-1.45, 0.52)));
+  float line = smoothstep(0.012, 0.004, segDist(q, vec2(-1.45, 0.52), vec2(-1.5, -0.02)));
+  return max(max(max(hull, canopy), max(body, hat)), max(rod, line * 0.7));
+}
+
+// 飞鸟: a small bird in two strokes, wings rising and falling with the phase.
+float birdShape(vec2 q, float phase) {
+  float flap = sin(phase);
+  float ax = abs(q.x);
+  float yw = 0.05 + flap * 0.45 * ax - 0.22 * ax * ax;
+  float th = 0.1 * (1.0 - ax) + 0.025;
+  float wing = smoothstep(th, th * 0.35, abs(q.y - yw)) * smoothstep(1.0, 0.82, ax);
+  float body = smoothstep(0.17, 0.1, length(q * vec2(1.0, 1.9)));
+  return max(wing, body);
+}
 
 vec3 moonLayer(vec2 p, vec3 c, float open) {
   if (uMoon.w <= 0.0) return c;
@@ -163,6 +202,11 @@ vec3 userSky(vec2 p, vec3 c, float open) {
   }
   c = planetLayer(p, c, open);
   c = moonLayer(p, c, open);
+  for (int i = 0; i < 2; i++) {
+    vec4 b = uBirds[i];
+    if (b.z <= 0.0) continue;
+    c = mix(c, uInk * 0.4, birdShape((p - b.xy) / b.z, b.w) * 0.9);
+  }
   vec3 starCol = vec3(0.98, 0.95, 0.86);
   for (int i = 0; i < MAX_STARS; i++) {
     if (i >= uStarCount) break;
@@ -220,6 +264,14 @@ vec4 skyAt(vec2 p, float hpx, float S) {
     c += MOONLIGHT * beyond * uMoonlit * (1.0 - uMoon.w) * land.a;
   }
   c *= 1.0 + 0.08 * uMoonLight * uSkyVeil;
+  if (uFlash.x > 0.001) {
+    // Lightning behind the far hills: the sky and the clouds light up, most
+    // near where it struck; the mountains stay dark against it.
+    vec2 d = (p - vec2(uFlash.y, uRes.y * 0.95)) / S;
+    float near = exp(-length(d) * 1.4);
+    float lit = uFlash.x * (0.1 + 0.55 * near + 0.5 * cloud * 4.0 * near);
+    c += vec3(0.8, 0.84, 0.95) * lit * mix(0.25, 1.0, land.a);
+  }
   c = userSky(p, c, land.a);
   return vec4(c, land.a);
 }
@@ -319,6 +371,21 @@ void main() {
       col += MOONLIGHT * path * (0.05 + 0.45 * glints) * uMoonlit * (1.0 - uMoon.w);
       // Rings crossing the path catch its light: a splash breaks it into bright arcs.
       col += MOONLIGHT * sheen * path * 0.6 * uMoonlit * (1.0 - uMoon.w);
+    }
+    col += vec3(0.8, 0.84, 0.95) * uFlash.x * 0.05;
+    if (uBoat.w > 0.001) {
+      vec2 q = (p - uBoat.xy) / uBoat.z;
+      float ink = boatShape(q);
+      // Its reflection: mirrored under the waterline, stretched a little and broken by the waves.
+      vec2 qr = vec2(q.x + wave2 * 0.12, -q.y * 1.2);
+      float under = boatShape(qr) * step(q.y, 0.0) * 0.4;
+      col = mix(col, uInk * 0.5, max(ink, under) * uBoat.w);
+      // 渔火: a small warm lamp at the canopy's mouth, and its light trembling on the water below.
+      vec2 l = (q - vec2(0.52, 0.1)) * uBoat.z / S;
+      float lamp = exp(-dot(l, l) / 0.000006) + exp(-length(l) / 0.012) * 0.22;
+      vec2 lr = vec2((q.x - 0.52 + wave2 * 0.15) / 0.06, (q.y + 0.35) / 0.32);
+      float streak = exp(-dot(lr, lr)) * step(q.y, 0.0) * (0.65 + 0.35 * sin(uTime * 3.1 + q.y * 9.0));
+      col += vec3(1.0, 0.72, 0.38) * (lamp * 0.9 + streak * 0.35) * uBoat.w;
     }
     col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.35 + 0.2 * uSnow);
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;

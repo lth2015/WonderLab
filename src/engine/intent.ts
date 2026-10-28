@@ -7,8 +7,8 @@
 // to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn';
-export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn'];
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -40,7 +40,9 @@ type Rule = [words: string[], set: SceneCommand];
 const KEYWORDS: Rule[] = [
   // Before rain and snow, or their 雨 / 雪 would take these.
   [['雨停', '雪停', '雨过天晴'], { weather: 'clear' }],
-  [['暴雨', '大雨', '雷雨', '倾盆'], { weather: 'rain', intensity: 0.9, wind: 0.6 }],
+  // 雷雨: heavy rain, and now and then lightning over the far hills and the thunder after it.
+  [['电闪雷鸣', '雷雨', '打雷', '雷声', '雷电', '闪电', '雷'], { weather: 'storm', intensity: 0.9, wind: 0.65 }],
+  [['暴雨', '大雨', '倾盆'], { weather: 'rain', intensity: 0.9, wind: 0.6 }],
   [['下雨', '小雨', '细雨', '春雨', '雨夜', '雨声', '淋雨', '雨'], { weather: 'rain' }],
   // Snow: heavy, medium, light, then any snow. Quiet by default: little wind,
   // so the lake goes still; heavy snow slants a little.
