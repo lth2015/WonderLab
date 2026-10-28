@@ -7,7 +7,8 @@
 //
 //   ambient      the lake at night — low water, distant insects — plus rain
 //                that follows the weather, so 雨声渐入 is the same smooth
-//                change the picture makes.
+//                change the picture makes. Snow hushes it all: water and
+//                insects fall away and only a little wind is left.
 //   interaction  paper under the brush, a water drop when a fish is born,
 //                soft water for a touch, a 磬 when the moon rises, a high
 //                note for a star. Pitched notes come from the pentatonic
@@ -43,6 +44,8 @@ export interface AmbientLevels {
   rain: number;
   wind: number;
   fireflies: number;
+  /** Optional so older callers stay valid; 0 when absent. */
+  snow?: number;
   /** 0 at night, 1 at dusk. */
   dusk: number;
 }
@@ -81,6 +84,7 @@ export class Voices {
   private readonly rainGain: GainNode;
   private readonly waterGain: GainNode;
   private readonly insectGain: GainNode;
+  private readonly windGain: GainNode;
   private insectsAt = 0;
 
   constructor(private readonly ctx: BaseAudioContext) {
@@ -113,6 +117,22 @@ export class Voices {
     this.rainGain = ctx.createGain();
     this.rainGain.gain.value = 0;
     rain.connect(hp).connect(lp).connect(this.rainGain).connect(this.out);
+
+    // Wind over snow: low, hollow noise that swells and falls very slowly.
+    const wind = this.loop(2.6);
+    const band = ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 380;
+    band.Q.value = 0.8;
+    this.windGain = ctx.createGain();
+    this.windGain.gain.value = 0;
+    const gust = ctx.createOscillator();
+    gust.frequency.value = 0.045;
+    const gustDepth = ctx.createGain();
+    gustDepth.gain.value = 120;
+    gust.connect(gustDepth).connect(band.frequency);
+    gust.start();
+    wind.connect(band).connect(this.windGain).connect(this.out);
 
     this.insectGain = ctx.createGain();
     this.insectGain.gain.value = 1;
@@ -158,11 +178,13 @@ export class Voices {
 
   /** Follow the atmosphere. Smooth by construction: it only sets targets. */
   ambient(levels: AmbientLevels, at = this.ctx.currentTime): void {
+    const snow = levels.snow ?? 0;
     this.rainGain.gain.setTargetAtTime(0.13 * levels.rain, at, 1.2);
-    // Rain covers the lake; wind roughens it a little.
-    this.waterGain.gain.setTargetAtTime(0.115 * (1 - 0.5 * levels.rain) * (0.85 + 0.3 * levels.wind), at, 1.2);
-    // Insects at night and with fireflies, quieter in rain.
-    const insects = (1 - levels.dusk * 0.7) * (1 - levels.rain) * (0.6 + 0.4 * levels.fireflies);
+    // Rain covers the lake; wind roughens it a little; snow muffles it.
+    this.waterGain.gain.setTargetAtTime(0.115 * (1 - 0.5 * levels.rain) * (1 - 0.6 * snow) * (0.85 + 0.3 * levels.wind), at, 1.2);
+    this.windGain.gain.setTargetAtTime(0.07 * snow * (0.5 + levels.wind), at, 2.5);
+    // Insects at night and with fireflies, quieter in rain, gone in snow.
+    const insects = (1 - levels.dusk * 0.7) * (1 - levels.rain) * (1 - snow) * (0.6 + 0.4 * levels.fireflies);
     this.insectGain.gain.setTargetAtTime(insects, at, 1.5);
     if (at >= this.insectsAt) {
       this.insectsAt = at + 2 + Math.random() * 5;

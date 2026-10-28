@@ -11,6 +11,7 @@ uniform vec3 uZenith;
 uniform vec3 uSkyLow;
 uniform vec3 uMountain;
 uniform vec3 uInk;
+uniform float uSnowCap;   // 0..1, how much snow lies on the mountains
 varying vec2 vUv;
 
 ${noiseGLSL}
@@ -56,6 +57,22 @@ void main() {
     float texture = fbm(vec2(xn * 38.0, yn * 5.0 + fi * 4.0));
     vec3 layer = mix(uMountain, uInk, depth);
     layer = mix(layer, uInk, inkAtRidge * (0.35 + 0.25 * fi) * (0.7 + 0.6 * texture));
+    // Snow is left unpainted (留白): the paper shows on the upper slopes,
+    // reaching further down as more falls, its lower edge broken like a
+    // dry brush. A thin line of ink stays at the ridge itself.
+    if (uSnowCap > 0.001) {
+      float reach = (0.012 + 0.11 * uSnowCap) * (0.5 + 0.5 * smoothstep(0.0, 0.18, h)) * (1.0 - 0.15 * fi);
+      float brush = fbm(vec2(xn * 22.0 + fi * 5.0, yn * 7.0));
+      float streak = noise(vec2(xn * 70.0 + fi * 9.0, yn * 3.0));
+      float edge = reach * (0.55 + 0.9 * brush) * (0.75 + 0.5 * streak);
+      float snow = (1.0 - smoothstep(edge * 0.55, edge, below)) * smoothstep(0.0012, 0.0045 + 0.002 * fi, below);
+      // Below the very top, rock and pines show through in patches.
+      float patchy = fbm(vec2(xn * 30.0 + fi * 13.0, yn * 26.0 + fi));
+      snow *= 1.0 - 0.7 * smoothstep(0.5, 0.72, patchy) * smoothstep(0.008, 0.03, below);
+      vec3 white = mix(uSkyLow * 1.6 + vec3(0.30), vec3(0.82, 0.83, 0.84), 0.6);
+      white = mix(white, uSkyLow * 1.25, 0.45 - fi * 0.2);   // far snow fades into the haze
+      layer = mix(layer, white, snow * smoothstep(0.0, 0.6, uSnowCap) * (0.82 + 0.18 * texture));
+    }
     float mist = exp(-max(yn, 0.0) * (14.0 - fi * 3.0));
     layer = mix(layer, uSkyLow * 1.08, mist * (0.85 - fi * 0.2));
     col = mix(col, layer, a);

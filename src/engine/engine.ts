@@ -145,6 +145,8 @@ export class Engine {
   private history: HistoryEntry[] = [];
   private nextHistoryId = 1;
   private waveT = 0;
+  /** How much snow lies on the mountains, 0..1; eased toward the weather. */
+  private snowCap = 0;
   private readonly relations = new Relations();
   /** Engine time of the last pointer down or key creation, for the relations' idle wait. */
   private lastInput = 0;
@@ -213,6 +215,7 @@ export class Engine {
         uSkyLow: { value: p.skyLow },
         uMountain: { value: p.mountain },
         uInk: { value: p.ink },
+        uSnowCap: { value: 0 },
       },
       depthTest: false,
       depthWrite: false,
@@ -236,6 +239,7 @@ export class Engine {
         uWaveT: { value: 0 },
         uWind: { value: this.atmosphere.wind },
         uDusk: { value: 0 },
+        uSnow: { value: 0 },
         uPost: { value: 1 },
         uMoonTex: { value: null as THREE.Texture | null },
         uMoonTexOn: { value: 0 },
@@ -254,6 +258,8 @@ export class Engine {
         uRain: { value: 0 },
         uMist: { value: 0 },
         uFireflies: { value: 0 },
+        uSnow: { value: 0 },
+        uSnowDensity: { value: 0 },
         uWind: { value: 0 },
         uParticles: { value: 1 },
         uCalm: { value: this.calm ? 1 : 0 },
@@ -688,19 +694,29 @@ export class Engine {
     const atmos = this.atmosphere;
     const recolouring = atmos.changing;
     atmos.update(dt);
-    if (recolouring) this.renderLandscape();
+    // Snow settles on the mountains slowly and melts more slowly still.
+    const capTarget = atmos.state.weather === 'snow' ? 0.15 + 0.85 * atmos.state.intensity : 0;
+    this.snowCap += (capTarget - this.snowCap) * Math.min(dt / (capTarget > this.snowCap ? 10 : 30), 1);
+    const capMoved = Math.abs(this.snowCap - this.landscapeMat.uniforms.uSnowCap.value) > 0.004;
+    if (capMoved) this.landscapeMat.uniforms.uSnowCap.value = this.snowCap;
+    if (recolouring || capMoved) this.renderLandscape();
     this.waveT += dt * (0.6 + atmos.wind * 1.6);
     const wu = this.worldMat.uniforms;
     wu.uWaveT.value = this.waveT;
     wu.uWind.value = atmos.wind;
     wu.uDusk.value = atmos.dusk;
+    wu.uSnow.value = atmos.snow;
     const weu = this.weatherMat.uniforms;
     weu.uTime.value = t;
     weu.uRain.value = atmos.rain;
     weu.uMist.value = atmos.mist;
     weu.uFireflies.value = atmos.fireflies;
+    weu.uSnow.value = atmos.snow;
+    // Density follows the words (小雪 to 大雪), eased so a change is a slow thickening.
+    const dens = 0.25 + 0.75 * Math.pow(atmos.state.intensity, 1.3);
+    weu.uSnowDensity.value += (dens - weu.uSnowDensity.value) * Math.min(dt / 4, 1);
     weu.uWind.value = atmos.wind;
-    this.sound?.ambient({ rain: atmos.rain, wind: atmos.wind, fireflies: atmos.fireflies, dusk: atmos.dusk });
+    this.sound?.ambient({ rain: atmos.rain, wind: atmos.wind, fireflies: atmos.fireflies, snow: atmos.snow, dusk: atmos.dusk });
 
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
     this.echo.update(t);
@@ -1209,6 +1225,7 @@ export class Engine {
       moonReflection: moon ? { x: moon.x, y: Math.min(Math.max(2 * this.horizonY - moon.y, this.minDim * 0.08), lakeTop) } : null,
       rain: atmos.rain,
       mist: atmos.mist,
+      snow: atmos.snow,
       lake: { minX: 0, maxX: this.width, minY: 0, maxY: this.horizonY - this.minDim * 0.05 },
       minDim: this.minDim,
       home: this.honmeiHome(swimmers),

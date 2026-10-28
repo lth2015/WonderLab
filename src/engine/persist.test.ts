@@ -76,7 +76,7 @@ describe('parseWorld', () => {
   it('drops malformed entries and repairs enums and ranges', () => {
     const w = parseWorld({
       ...valid,
-      atmosphere: { timeOfDay: 'noon', weather: 'snow', palette: 'neon', wind: 7, intensity: 'x' },
+      atmosphere: { timeOfDay: 'noon', weather: 'hail', palette: 'neon', wind: 7, intensity: 'x' },
       fish: [{ spine: [[0.1, 0.1]], drawSpeed: 1, seed: 1, patch: 0 }, { spine: 'no' }, valid.fish[0]],
       moon: { x: 0.5, y: 0.5, r: -1, phase: 'full', dark: [0, 1] },
       stars: [[0.1, 0.2], [NaN, 0.3], [0.1], [9, 9]],

@@ -39,6 +39,7 @@ uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint ind
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
+uniform float uSnow;                  // 0..1: snow clouds veil the stars; the lake goes dark and still
 uniform float uSkyVeil;               // 0..1, fades all user sky items (restart)
 uniform float uPost;                  // 1 = paper grain (standard tier)
 varying vec2 vUv;
@@ -196,7 +197,7 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   vec3 c = land.rgb;
   float t = clamp((p.y - hpx) / (uRes.y - hpx), 0.0, 1.0);
   float stars = starLayer(p, 46.0, 0.32, 1.6) + 0.6 * starLayer(p + 13.0, 19.0, 0.18, 0.9);
-  stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - 0.75 * uDusk);
+  stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow);
   c += vec3(0.96, 0.93, 0.86) * stars;
   // Slow ink-wash cloud drifting across the upper sky.
   vec2 q = vec2(p.x / S * 1.2 + uTime * 0.006, p.y / S * 3.2);
@@ -263,6 +264,9 @@ void main() {
     rp.y = min(rp.y, uRes.y - 1.0);
     vec3 refl = skyAt(rp, hpx, S).rgb;
     float fresnel = mix(0.82, 0.32, smoothstep(0.0, 0.45, dn));
+    // Snow does not lie on the water: the lake turns dark and still, and
+    // holds the white mountains more clearly.
+    fresnel = mix(fresnel, min(fresnel + 0.12, 0.9), uSnow);
     refl = mix(refl, min(refl, uSkyLow * 0.95), discDim);
     col = mix(uWater, refl * 0.92, fresnel);
     // Thin moonlit glints on the wave crests.
@@ -282,7 +286,7 @@ void main() {
       col += light * glit * moonCol * lit * fade * 0.5 * (1.0 + uMoonPulse);
       col += uAccent * moonCol * lit * fade * 0.035;
     }
-    col *= 1.0 - smoothstep(0.0, 0.6, dn) * 0.35;
+    col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.35 + 0.2 * uSnow);
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;
   }
 
