@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { meteorDive, perimeter, slotPoint, RELATIONS, Relations, RING_MARGIN, ringFor, ringOffset, type Orbit, type RelationEffects, type RelationWorld, type Swimmer } from './relations';
+import { meteorDive, meteorPath, perimeter, slotPoint, RELATIONS, Relations, RING_MARGIN, ringFor, ringOffset, type Orbit, type RelationEffects, type RelationWorld, type Swimmer } from './relations';
 
 class FakeFish implements Swimmer {
   L = 60;
@@ -281,6 +281,19 @@ describe('ringFor', () => {
     expect(ringOffset(o, 200, 0)).toBeCloseTo(0);
     expect(ringOffset(o, 0, 100)).toBeCloseTo(0);
     expect(ringOffset(o, 0, 0)).toBeCloseTo(1);
+  });
+});
+
+describe('meteorPath', () => {
+  it('always falls from the higher end, whichever way the line was drawn', () => {
+    const top = { x: 100, y: 700 };
+    const low = { x: 160, y: 450 };
+    expect(meteorPath(top, low)).toEqual([top, low]);
+    expect(meteorPath(low, top)).toEqual([top, low]);
+  });
+  it('an upward swipe ending near the horizon still dives once turned round', () => {
+    const [a, b] = meteorPath({ y: 430 }, { y: 700 });
+    expect(meteorDive(a, b, 400, 800)).toBe(true);
   });
 });
 
