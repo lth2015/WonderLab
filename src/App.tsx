@@ -126,6 +126,7 @@ function describe(cmd: SceneCommand, fishAnswered = 0): string {
   if (cmd.weather === 'moonlit') parts.push('月光洒了下来');
   if (cmd.weather === 'autumn') parts.push('起了秋风，落叶飘下');
   if (cmd.weather === 'storm') parts.push('打起了雷，下起了大雨');
+  if (cmd.weather === 'shower') parts.push('下起了流星雨');
   if (cmd.weather === 'clear') parts.push('天色放晴');
   if (cmd.timeOfDay === 'dusk') parts.push('天色转为黄昏');
   if (cmd.timeOfDay === 'night') parts.push('夜色深了');

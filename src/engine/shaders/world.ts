@@ -40,6 +40,7 @@ uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint ind
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
+uniform float uShower;                // 流星雨, 0..1
 uniform vec2 uFlash;                  // 雷雨: lightning brightness 0..1, and where along the sky (px)
 uniform vec4 uBoat;                   // 孤舟: x, waterline y, length unit (px), presence
 uniform vec4 uBirds[2];               // 飞鸟: x, y, size (px), wing phase; size 0 = none
@@ -250,6 +251,34 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   // 月明星稀: a moonlit night has fewer stars, fewer still with the moon up.
   stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
   c += vec3(0.96, 0.93, 0.86) * stars;
+  if (uShower > 0.001) {
+    // 流星雨: meteors streaming from one radiant beyond the upper right,
+    // each a short bright streak; a few at a time, in the lake too.
+    vec2 radiant = vec2(uRes.x * 1.2, uRes.y * 1.3);
+    for (int i = 0; i < 11; i++) {
+      float fi = float(i);
+      float period = 1.5 + hash(vec2(fi, 3.1)) * 2.5;
+      float ph = uTime / period + hash(vec2(fi, 7.7)) * 10.0;
+      float id = floor(ph);
+      float u = fract(ph);
+      if (u > 0.4 || hash(vec2(id, fi)) > uShower * 0.85) continue;
+      vec2 a = vec2(hash(vec2(id, fi + 1.3)) * uRes.x * 1.1, hpx + (uRes.y - hpx) * (0.35 + 0.65 * hash(vec2(id, fi + 2.9))));
+      vec2 dir = normalize(a - radiant);
+      float len = S * (0.16 + 0.26 * hash(vec2(id, fi + 5.2)));
+      float k = u / 0.4;
+      float kk = 1.0 - pow(1.0 - k, 2.0);
+      vec2 head = a + dir * len * kk;
+      vec2 tail = a + dir * len * max(kk - 0.45, 0.0);
+      vec2 ab = head - tail;
+      float h = clamp(dot(p - tail, ab) / max(dot(ab, ab), 1e-3), 0.0, 1.0);
+      float dist = length(p - tail - ab * h);
+      float w = 0.6 + 1.1 * h;
+      float fade = 1.0 - smoothstep(0.65, 1.0, k);
+      float trail = exp(-dist * dist / (w * w)) * h * h;
+      float spark = exp(-length(p - head) / 3.0);
+      c += vec3(0.96, 0.93, 0.86) * (trail * 1.0 + spark * 0.7) * fade * land.a * uShower;
+    }
+  }
   // Slow ink-wash cloud drifting across the upper sky.
   vec2 q = vec2(p.x / S * 1.2 + uTime * 0.006, p.y / S * 3.2);
   float cl = fbm(q + fbm(q * 0.7 + uTime * 0.003));
