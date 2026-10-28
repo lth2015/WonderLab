@@ -38,6 +38,7 @@ function score(p: Poem, cmd: SceneCommand, mood: Mood, subjects: string[]): numb
   if (cmd.weather === 'autumn' && p.tags.includes('autumn')) s += 3;
   if (cmd.weather === 'storm' && p.tags.includes('rain')) s += 3;
   if ((cmd.weather === 'shower' || cmd.weather === 'galaxy') && p.tags.includes('star')) s += 3;
+  if (cmd.weather === 'lanterns' && (p.tags.includes('home') || p.tags.includes('love'))) s += 3;
   if (cmd.timeOfDay && p.tags.includes(cmd.timeOfDay)) s += 2;
   if (p.tags.includes(mood)) s += 2;
   for (const t of subjects) if (p.tags.includes(t)) s += 2;

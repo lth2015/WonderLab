@@ -7,8 +7,8 @@
 // to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy';
-export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy'];
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy' | 'lanterns';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy', 'lanterns'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -40,6 +40,8 @@ type Rule = [words: string[], set: SceneCommand];
 const KEYWORDS: Rule[] = [
   // Before rain and snow, or their 雨 / 雪 would take these.
   [['雨停', '雪停', '雨过天晴'], { weather: 'clear' }],
+  // 河灯与孔明灯: lamps set afloat on the lake, lanterns rising into the night.
+  [['放河灯', '河灯', '放灯', '孔明灯', '天灯', '灯笼', '许个心愿'], { weather: 'lanterns', timeOfDay: 'night' }],
   // 星河: the Milky Way rising from behind the hills and across the sky, and in the lake.
   [['银河', '星河', '天河', '满天星', '星空', '繁星'], { weather: 'galaxy', timeOfDay: 'night' }],
   // 流星雨: meteors streaming across the sky from one point; now and then one falls into the lake.
