@@ -265,6 +265,7 @@ export class Engine {
         uMoonlit: { value: 0 },
         uFlash: { value: new THREE.Vector2() },
         uShower: { value: 0 },
+        uGalaxy: { value: 0 },
         uBoat: { value: new THREE.Vector4() },
         uBirds: { value: [new THREE.Vector4(), new THREE.Vector4()] },
         uPost: { value: 1 },
@@ -1301,6 +1302,7 @@ export class Engine {
   private updateShower(): void {
     const level = this.atmosphere.shower;
     this.worldMat.uniforms.uShower.value = level;
+    this.worldMat.uniforms.uGalaxy.value = this.atmosphere.galaxy;
     if (level < 0.5) {
       this.nextDive = -1;
       return;

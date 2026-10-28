@@ -60,6 +60,11 @@ describe('interpret', () => {
     expect(interpret('不要流星').command.weather).toBe('clear');
   });
 
+  it('reads the Milky Way', () => {
+    for (const x of ['银河', '想看星河', '满天星', '星空']) expect(interpret(x).command).toMatchObject({ weather: 'galaxy' });
+    expect(interpret('星星').command.weather).toBe('clear');
+  });
+
   it('stops rain and snow when asked', () => {
     for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
   });
