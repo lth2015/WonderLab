@@ -33,6 +33,8 @@ function score(p: Poem, cmd: SceneCommand, mood: Mood, subjects: string[]): numb
   let s = 0;
   if (cmd.weather && cmd.weather !== 'clear' && p.tags.includes(cmd.weather)) s += 3;
   if (cmd.weather === 'clear' && p.tags.includes('clear')) s += 1;
+  // 月夜 is not a weather in the poems' tags: lines about the moon answer it.
+  if (cmd.weather === 'moonlit' && p.tags.includes('moon')) s += 3;
   if (cmd.timeOfDay && p.tags.includes(cmd.timeOfDay)) s += 2;
   if (p.tags.includes(mood)) s += 2;
   for (const t of subjects) if (p.tags.includes(t)) s += 2;

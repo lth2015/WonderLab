@@ -34,6 +34,8 @@ describe('echo choice', () => {
   it('follows the images named in the sentence', () => {
     expect(subjectsOf('想看月亮和锦鲤')).toEqual(['moon', 'fish']);
     expect(top('月亮好圆').tags).toContain('moon');
+    // 月光 names no moon, but a moonlit night is answered with a moon line.
+    expect(top('月光').tags).toContain('moon');
     expect(top('湖里的鱼').tags).toContain('fish');
   });
   it('reads longing for home as low, not bright', () => {

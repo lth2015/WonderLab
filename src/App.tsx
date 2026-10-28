@@ -35,6 +35,7 @@ const HINT_MS = 6000;
 // A hint not acted on may come back once (docs/03 §6.3), this long after it faded.
 const HINT_RETRY_MS = 30000;
 const FISH_HINT_DELAY_MS = 2500;
+const MOONLIT_HINT_DELAY_MS = 4500;
 const MOON_HINT_TIMEOUT_MS = 60000;
 const WORDS_HINT_TIMEOUT_MS = 90000;
 const UNDO_BUTTON_MS = 4000;
@@ -122,6 +123,7 @@ function describe(cmd: SceneCommand, fishAnswered = 0): string {
   if (cmd.weather === 'mist') parts.push('湖上起了雾');
   if (cmd.weather === 'fireflies') parts.push('萤火飞了起来');
   if (cmd.weather === 'snow') parts.push('下起了雪');
+  if (cmd.weather === 'moonlit') parts.push('月光洒了下来');
   if (cmd.weather === 'clear') parts.push('天色放晴');
   if (cmd.timeOfDay === 'dusk') parts.push('天色转为黄昏');
   if (cmd.timeOfDay === 'night') parts.push('夜色深了');
@@ -148,6 +150,8 @@ export function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<Engine | null>(null);
   const wordsUsedRef = useRef<() => void>(() => {});
+  /** 月夜 with no moon drawn: the light is there, the moon is the visitor's to draw. */
+  const moonlitRef = useRef<() => void>(() => {});
   const frameSinkRef = useRef<((c: HTMLCanvasElement) => void) | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -272,6 +276,15 @@ export function App() {
     };
     const moonHint = () => once('draw_circle', '在天上画一个圆', 'sky', () => !hasMoon);
     const wordsHint = () => once('write_words', '写一句话，世界会听见', 'input', () => !wordsUsed);
+    let moonlitAsked = false;
+    moonlitRef.current = () => {
+      if (moonlitAsked || hasMoon) return;
+      moonlitAsked = true;
+      // After the echo line has had its moment.
+      later(() => {
+        if (!hasMoon) show('draw_circle', '在天上画一个圆', 'sky');
+      }, MOONLIT_HINT_DELAY_MS);
+    };
     wordsUsedRef.current = () => {
       wordsUsed = true;
       setHint((h) => (h?.place === 'input' ? null : h));
@@ -666,6 +679,7 @@ export function App() {
       const wasPrompted = prompted('text_submit');
       const fishAnswered = engine.applyScene(command);
       wordsUsedRef.current();
+      if (command.weather === 'moonlit') moonlitRef.current();
       setAnnounce(describe(command, fishAnswered));
 
       // Echo: the AI picks from a local shortlist within 2.5 s; otherwise the

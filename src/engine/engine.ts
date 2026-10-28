@@ -220,6 +220,7 @@ export class Engine {
         uMountain: { value: p.mountain },
         uInk: { value: p.ink },
         uSnowCap: { value: 0 },
+        uMoonRim: { value: 0 },
       },
       depthTest: false,
       depthWrite: false,
@@ -244,6 +245,7 @@ export class Engine {
         uWind: { value: this.atmosphere.wind },
         uDusk: { value: 0 },
         uSnow: { value: 0 },
+        uMoonlit: { value: 0 },
         uPost: { value: 1 },
         uMoonTex: { value: null as THREE.Texture | null },
         uMoonTexOn: { value: 0 },
@@ -707,13 +709,16 @@ export class Engine {
     this.snowCap += (capTarget - this.snowCap) * Math.min(dt / (capTarget > this.snowCap ? 10 : 30), 1);
     const capMoved = Math.abs(this.snowCap - this.landscapeMat.uniforms.uSnowCap.value) > 0.004;
     if (capMoved) this.landscapeMat.uniforms.uSnowCap.value = this.snowCap;
-    if (recolouring || capMoved) this.renderLandscape();
+    const rimMoved = Math.abs(atmos.moonlit - this.landscapeMat.uniforms.uMoonRim.value) > 0.004;
+    if (rimMoved) this.landscapeMat.uniforms.uMoonRim.value = atmos.moonlit;
+    if (recolouring || capMoved || rimMoved) this.renderLandscape();
     this.waveT += dt * (0.6 + atmos.wind * 1.6);
     const wu = this.worldMat.uniforms;
     wu.uWaveT.value = this.waveT;
     wu.uWind.value = atmos.wind;
     wu.uDusk.value = atmos.dusk;
     wu.uSnow.value = atmos.snow;
+    wu.uMoonlit.value = atmos.moonlit;
     const weu = this.weatherMat.uniforms;
     weu.uTime.value = t;
     weu.uRain.value = atmos.rain;
