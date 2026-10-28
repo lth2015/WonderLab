@@ -11,7 +11,8 @@
 //                insects fall away and only a little wind is left.
 //   interaction  paper under the brush, a water drop when a fish is born,
 //                soft water for a touch, a 磬 when the moon rises, a high
-//                note for a star. Pitched notes come from the pentatonic
+//                note for a star; on a moonlit night, now and then, a far
+//                temple bell (夜半钟声). Pitched notes come from the pentatonic
 //                scale (宫商角徵羽), so any mix of them stays consonant.
 //
 // Sound is ornament, not feedback: it fades in after the first stroke, one
@@ -38,7 +39,7 @@ export function panFor(x: number, width: number): number {
   return Math.max(-0.6, Math.min(0.6, (x / width) * 1.2 - 0.6));
 }
 
-export type SoundKind = 'stroke' | 'drop' | 'ripple' | 'chime' | 'star' | 'meteor';
+export type SoundKind = 'stroke' | 'drop' | 'ripple' | 'chime' | 'star' | 'meteor' | 'bell';
 
 export interface AmbientLevels {
   rain: number;
@@ -269,6 +270,28 @@ export class Voices {
       case 'star':
         this.tone(at, pentatonicHz(15 + Math.floor(Math.random() * 5)), 0.07, 0.9, this.panner(pan));
         return;
+      case 'bell': {
+        // 夜半钟声: a temple bell far across the water. A low hum with a
+        // slow beat (two partials a hair apart), a few inharmonic overtones
+        // that die first, a soft onset, and the highs taken off by the
+        // distance. Quiet: about the level of the night itself.
+        // D3, not lower: a phone's speaker cannot play the octave below.
+        const f = pentatonicHz(0);
+        const far = this.ctx.createBiquadFilter();
+        far.type = 'lowpass';
+        far.frequency.value = 1800;
+        far.connect(this.panner(pan));
+        const partials: [number, number, number][] = [
+          [1, 1, 9],
+          [1.004, 0.7, 9],
+          [2, 0.4, 6],
+          [2.76, 0.25, 4],
+          [3.6, 0.14, 3],
+          [5.4, 0.07, 2],
+        ];
+        for (const [ratio, gain, decay] of partials) this.tone(at, f * ratio, 0.065 * gain * strength, decay, far, 0.03);
+        return;
+      }
       case 'meteor': {
         // A high glissando that falls away, like the light.
         const osc = this.ctx.createOscillator();

@@ -160,6 +160,9 @@ export class Fish {
   /** Snow: slower and a little deeper, heavier in the cold water. */
   private chill = 0;
   private chillTarget = 0;
+  /** 月夜: how much of the moon's light path the fish is in, eased. */
+  private silver = 0;
+  private silverTarget = 0;
   /** Asked to rest (一句成境): slow and near the surface until then. */
   private restUntil = -1;
   private rest = 0;
@@ -251,6 +254,7 @@ export class Fish {
       uGlow: { value: this.glow ? 1 : 0 },
       uMark: { value: this.honmei && !shadow ? 1 : 0 },
       uAge: { value: options.maturity ?? 0 },
+      uSilver: { value: 0 },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
@@ -367,6 +371,11 @@ export class Fish {
     this.chillTarget = chill;
   }
 
+  /** How much moonlight lies where the fish is swimming, 0..1 (月夜). */
+  setMoonlight(level: number): void {
+    this.silverTarget = level;
+  }
+
   setRest(until: number): void {
     this.restUntil = until;
   }
@@ -467,6 +476,8 @@ export class Fish {
     this.rise += (Math.max(this.riseTarget, 0.6 * this.rest) - this.rise) * ease;
     this.mist += (this.mistTarget - this.mist) * ease;
     this.chill += (this.chillTarget - this.chill) * ease * 0.5;
+    this.silver += (this.silverTarget - this.silver) * Math.min(dt * 5, 1);
+    this.material.uniforms.uSilver.value = this.silver;
     const leapH = this.leapT >= 0 ? Math.sin(Math.PI * this.leapT) : 0;
     const swimDepth = this.depth * (1 - 0.7 * this.rise) + 0.2 * this.mist + 0.12 * this.chill;
     const depth = Math.min(Math.max(0, swimDepth + 0.08 * Math.sin(ctx.time * 0.13 + this.seed) - leapH), 1);
