@@ -87,6 +87,27 @@ describe('pickVariety', () => {
     // Only the family is available: always from it.
     expect(pickVariety('round', r, ['ogon'])).toEqual({ variety: 'ogon', inFamily: true });
   });
+
+  it('never gives the same variety three times running, and the slow curvy stroke is not always golden', () => {
+    const r = seededRandom(7);
+    const recent: string[] = [];
+    const counts: Record<string, number> = {};
+    for (let i = 0; i < 2000; i++) {
+      const { variety } = pickVariety('round', r, VARIETIES, recent.slice(-2));
+      if (recent.length >= 2) expect(recent.slice(-2).every((v) => v === variety)).toBe(false);
+      recent.push(variety);
+      counts[variety] = (counts[variety] ?? 0) + 1;
+    }
+    expect(counts.ogon / 2000).toBeLessThan(0.5);
+    expect(counts.tancho / 2000).toBeGreaterThan(0.2);
+    // With only one variety loaded there is nothing else to give.
+    expect(pickVariety('round', r, ['ogon'], ['ogon', 'ogon']).variety).toBe('ogon');
+  });
+
+  it('lists every variety once, in the order gift links encode', () => {
+    expect(VARIETIES).toEqual(['kohaku', 'tancho', 'sanke', 'showa', 'asagi', 'sumi', 'ogon']);
+    for (const f of Object.values(FAMILIES)) for (const v of f) expect(VARIETIES).toContain(v);
+  });
 });
 
 describe('resampleTimed', () => {

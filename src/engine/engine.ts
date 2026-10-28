@@ -145,6 +145,8 @@ export class Engine {
   private history: HistoryEntry[] = [];
   private nextHistoryId = 1;
   private waveT = 0;
+  /** The last two varieties born, so none comes three times running. */
+  private recentVarieties: string[] = [];
   /** How much snow lies on the mountains, 0..1; eased toward the weather. */
   private snowCap = 0;
   private readonly relations = new Relations();
@@ -1014,7 +1016,8 @@ export class Engine {
     }
     // 笔性 (docs/02 §5.1): the stroke as drawn, not the outline's spine, sets the variety's leaning.
     const style = strokeStyle(stroke.points, this.minDim, pointer);
-    const { variety, inFamily } = pickVariety(style.family, Math.random, this.art?.koi.map((k) => k.name) ?? VARIETIES);
+    const { variety, inFamily } = pickVariety(style.family, Math.random, this.art?.koi.map((k) => k.name) ?? VARIETIES, this.recentVarieties);
+    this.recentVarieties = [...this.recentVarieties.slice(-1), variety];
     const honmei = !this.honmeiTaken;
     this.honmeiTaken = true;
     const origin: FishOrigin = {
