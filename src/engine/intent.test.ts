@@ -24,6 +24,24 @@ describe('interpret', () => {
     expect(interpret('我不开心').command.palette).not.toBe('warm');
   });
 
+  it('reads snow in three strengths, quiet unless it is heavy', () => {
+    const light = interpret('下小雪了').command;
+    const medium = interpret('下中雪').command;
+    const heavy = interpret('下大雪吧').command;
+    const plain = interpret('下雪了').command;
+    for (const c of [light, medium, heavy, plain]) expect(c.weather).toBe('snow');
+    expect(light.intensity!).toBeLessThan(medium.intensity!);
+    expect(medium.intensity!).toBeLessThan(heavy.intensity!);
+    expect(heavy.wind!).toBeGreaterThan(light.wind!);
+    expect(plain.wind!).toBeLessThan(0.2);
+    expect(interpret('下雪了，想家').command).toMatchObject({ weather: 'snow', palette: 'melancholy' });
+    expect(interpret('独钓寒江雪').command.weather).toBe('snow');
+  });
+
+  it('stops rain and snow when asked', () => {
+    for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
+  });
+
   it('falls back to sentiment when no keyword hits', () => {
     const r = interpret('明天会更好');
     expect(r.source).toBe('sentiment');

@@ -96,7 +96,7 @@ export interface Swimmer {
   readonly canLeap: boolean;
   leap(): void;
   lure(x: number, y: number, now: number, opts?: { duration?: number; eager?: boolean }): void;
-  setWeather(rise: number, mist: number): void;
+  setWeather(rise: number, mist: number, chill?: number): void;
   setOrbit(o: Orbit | null, slot?: number): void;
   /** Slow down and drift up toward the surface until `until`. */
   setRest(until: number): void;
@@ -114,6 +114,8 @@ export interface RelationWorld {
   moonReflection: { x: number; y: number } | null;
   rain: number;
   mist: number;
+  /** Snow slows the fish; 0 when absent. */
+  snow?: number;
   /** Where fish may swim. */
   lake: { minX: number; maxX: number; minY: number; maxY: number };
   minDim: number;
@@ -258,7 +260,7 @@ export class Relations {
   }
 
   update(w: RelationWorld, fx: RelationEffects): void {
-    for (const f of w.fish) f.setWeather(w.rain, w.mist);
+    for (const f of w.fish) f.setWeather(w.rain, w.mist, w.snow ?? 0);
     this.leaps = this.leaps.filter(({ fish, at }) => {
       if (w.time < at) return true;
       if (fish.canLeap && w.fish.includes(fish)) {

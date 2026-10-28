@@ -209,7 +209,7 @@ PoC 不验证：付费意愿、长期留存、规模化成本。
 ```json
 {
   "timeOfDay": "night | dusk",
-  "weather": "clear | rain | mist | fireflies",
+  "weather": "clear | rain | mist | fireflies | snow",
   "palette": "serene | warm | melancholy",
   "wind": 0.0,
   "intensity": 0.0,
@@ -227,7 +227,7 @@ PoC 不验证：付费意愿、长期留存、规模化成本。
 - 字体闭环：句库的字符集是已知的，可以预先子集化字体（见 03 §4）。
 - 时效：提交后超过时限（见 03 §6.3）才返回的 echo 直接丢弃，避免和用户的句子对不上。
 
-**本地关键词兜底（阶段 A 实现）：** 约 60 个关键词 + 一个小的情感词典。例如：雨/下雨 → rain；雾/朦胧 → mist；萤火/夏夜 → fireflies；黄昏/夕阳 → dusk；孤独/思念 → melancholy；温暖/开心 → warm。
+**本地关键词兜底（阶段 A 实现）：** 约 60 个关键词 + 一个小的情感词典。例如：雨/下雨 → rain；雾/朦胧 → mist；下雪/小雪/中雪/大雪 → snow（小、中、大雪的密度依次增加，只有大雪带风）；萤火/夏夜 → fireflies；黄昏/夕阳 → dusk；孤独/思念 → melancholy；温暖/开心 → warm。
 
 **AI 访问控制与成本（P9）：**
 
@@ -270,6 +270,7 @@ PoC 不验证：付费意愿、长期留存、规模化成本。
 |---|---|---|
 | 月下跃鲤 | 画了鱼，也画了月亮 | 鱼不时游到月亮的倒影处，偶尔跃出水面去「够」月亮，月光一亮 |
 | 雨中浮鱼、雾里鱼影 | 写了下雨或起雾 | 下雨时鱼浮上来接雨，水面点出小涟漪；起雾时鱼沉下去，影子变淡 |
+| 雪夜 | 写了下雪 | 留白的雪花近大远小、慢慢飘；山头渐渐积雪，往下露出松林和岩石；雪不落在水上，湖面更暗更静、倒影更清楚；鱼游得慢、沉得深；水声和虫鸣退去，只留一点风声。参照马远《寒江独钓图》、柳宗元《江雪》：安静、慢，带一点思念，不是暴风雪 |
 | 群鱼成圆 | 画了 4 条以上的鱼，停手看着 | 鱼首尾相接绕成一个圆，游一会儿再散开；有月亮时月光一亮 |
 | 流星入湖 | 在天上向下画一道流星，落到地平线附近 | 流星落进湖里，溅起水花，游出一条小小的黄金锦鲤（湖里最小的鱼），身下的水面微微发亮 |
 
@@ -360,7 +361,7 @@ interface WorldState {
   seed: number;
   atmosphere: {
     timeOfDay: 'night' | 'dusk';
-    weather: 'clear' | 'rain' | 'mist' | 'fireflies';
+    weather: 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow';
     palette: 'serene' | 'warm' | 'melancholy';
     wind: number;        // 0–1，同时决定水面波动
     intensity: number;   // 0–1
