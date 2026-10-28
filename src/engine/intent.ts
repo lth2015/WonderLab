@@ -7,8 +7,8 @@
 // to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit';
-export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit'];
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -50,6 +50,8 @@ const KEYWORDS: Rule[] = [
   [['下雪', '飘雪', '落雪', '雪夜', '雪花', '雪景', '寒江', '冬夜', '冬天', '雪'], { weather: 'snow', wind: 0.08 }],
   // Moonlight: words cannot make a moon (画是主角), they bring out its light.
   [['月夜', '月光', '月色', '明月', '皓月', '月明', '月下', '月华', '赏月', '月亮出来'], { weather: 'moonlit', timeOfDay: 'night' }],
+  // 秋风落叶: wind, and leaves blown across the night onto the lake.
+  [['秋风', '落叶', '枫叶', '红叶', '叶落', '秋叶', '萧萧', '秋天'], { weather: 'autumn', wind: 0.55, palette: 'melancholy' }],
   [['雾', '朦胧', '迷蒙', '烟波', '云雾', '模糊', '看不清'], { weather: 'mist' }],
   [['萤火', '流萤', '萤', '夏夜', '夏天', '盛夏', '蝉'], { weather: 'fireflies' }],
   [['晴', '星空', '星星', '满天星', '天亮了', '放晴'], { weather: 'clear' }],

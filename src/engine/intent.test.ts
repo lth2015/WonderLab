@@ -44,6 +44,11 @@ describe('interpret', () => {
     expect(interpret('深夜').command.weather).toBeUndefined();
   });
 
+  it('reads autumn wind and falling leaves', () => {
+    for (const t of ['秋风', '落叶纷纷', '秋天到了']) expect(interpret(t).command).toMatchObject({ weather: 'autumn' });
+    expect(interpret('不要落叶').command.weather).toBe('clear');
+  });
+
   it('stops rain and snow when asked', () => {
     for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
   });
