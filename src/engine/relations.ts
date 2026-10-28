@@ -2,7 +2,9 @@
 // user has made does not just sit side by side, it notices the rest.
 //
 //  - 月下跃鲤  a fish that swims over to the moon's reflection now and then
-//              leaps toward the moon, which brightens for a moment;
+//              leaps toward the moon, which brightens for a moment. On a
+//              moonlit night (月夜) they come more often and leap more, to
+//              the path of a moon beyond the frame if none is drawn;
 //  - 雨与雾    in rain the fish rise and kiss the surface; in mist they sink
 //              a little and their shadows fade;
 //  - 群鱼成圆  with four or more fish and the hand at rest, they sometimes
@@ -116,6 +118,8 @@ export interface RelationWorld {
   mist: number;
   /** Snow slows the fish; 0 when absent. */
   snow?: number;
+  /** 月夜, 0..1: the fish seek the light path more, and leap more. */
+  moonlit?: number;
   /** Where fish may swim. */
   lake: { minX: number; maxX: number; minY: number; maxY: number };
   minDim: number;
@@ -131,7 +135,7 @@ export interface RelationEffects {
   emerged(what: 'moon_leap' | 'ring' | 'home'): void;
 }
 
-const between = (r: () => number, [a, b]: [number, number]) => a + (b - a) * r();
+export const between = (r: () => number, [a, b]: [number, number]) => a + (b - a) * r();
 
 /** Where an orbiting head may come, from the lake's edge, in fish lengths (fish.ts keeps to it). */
 export const RING_MARGIN = 0.5;
@@ -294,6 +298,7 @@ export class Relations {
 
   private moon(w: RelationWorld, fx: RelationEffects): void {
     const m = w.moonReflection;
+    const ml = w.moonlit ?? 0;
     if (!m) {
       this.visitor = null;
       return;
@@ -304,10 +309,11 @@ export class Relations {
       if (!w.fish.includes(v.fish) || w.time > v.until) this.visitor = null;
       else if (arrived) {
         this.visitor = null;
-        if (v.leap && !w.calm && v.fish.canLeap && w.time - this.lastLeap >= RELATIONS.moonLeapGap) {
+        if (v.leap && !w.calm && v.fish.canLeap && w.time - this.lastLeap >= RELATIONS.moonLeapGap * (1 - 0.45 * ml)) {
           v.fish.leap();
           this.lastLeap = w.time;
-          fx.ripple(v.fish.headX, v.fish.headY, 1.1);
+          // The splash breaks the light path; it closes again as the rings fade.
+          fx.ripple(v.fish.headX, v.fish.headY, 1.1 + 0.5 * ml);
           fx.pulseMoon();
           fx.sound('chime', v.fish.headX, 0.35);
           fx.emerged('moon_leap');
@@ -315,11 +321,11 @@ export class Relations {
       }
     }
     if (w.time < this.nextVisit || this.ring) return;
-    this.nextVisit = w.time + between(this.random, RELATIONS.moonVisitEvery);
+    this.nextVisit = w.time + between(this.random, RELATIONS.moonVisitEvery) * (1 - 0.5 * ml);
     if (!w.fish.length) return;
     const fish = w.fish[Math.floor(this.random() * w.fish.length)];
     fish.lure(m.x, m.y, w.time);
-    if (!this.visitor) this.visitor = { fish, x: m.x, y: m.y, leap: this.random() < RELATIONS.moonLeapChance, until: w.time + 2.5 };
+    if (!this.visitor) this.visitor = { fish, x: m.x, y: m.y, leap: this.random() < RELATIONS.moonLeapChance + 0.35 * ml, until: w.time + 2.5 };
   }
 
   private rain(w: RelationWorld, fx: RelationEffects): void {

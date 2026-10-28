@@ -7,6 +7,7 @@ import { Atmosphere } from './atmosphere';
 import type { SceneCommand } from './intent';
 import { weatherFrag } from './shaders/weather';
 import { Snow } from './snow';
+import { BELL, moonPathAt, offFramePathPoint } from './moonlight';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { FORM_TIME, Fish, type FishOrigin } from './fish';
@@ -21,7 +22,7 @@ import { logEvent, prompted } from '../telemetry';
 import { AWAY_MAX, SAVE_VERSION, type SavedFish, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
-import { meteorDive, meteorPath, Relations, type RelationEffects, type RelationWorld } from './relations';
+import { between, meteorDive, meteorPath, Relations, type RelationEffects, type RelationWorld } from './relations';
 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
@@ -151,6 +152,8 @@ export class Engine {
   private recentVarieties: string[] = [];
   /** How much snow lies on the mountains, 0..1; eased toward the weather. */
   private snowCap = 0;
+  /** Engine time of the next far bell on a moonlit night; -1 until the night is moonlit. */
+  private nextBell = -1;
   private readonly relations = new Relations();
   /** Engine time of the last pointer down or key creation, for the relations' idle wait. */
   private lastInput = 0;
@@ -735,6 +738,7 @@ export class Engine {
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
     this.echo.update(t);
     this.updateRelations();
+    this.updateMoonlight();
 
     this.fading = this.fading.filter((f) => {
       const k = (t - f.fadeFrom) / f.duration;
@@ -1237,14 +1241,40 @@ export class Engine {
       calm: this.calm,
       idle: this.input ? 0 : this.time - this.lastInput,
       fish: swimmers,
-      moonReflection: moon ? { x: moon.x, y: Math.min(Math.max(2 * this.horizonY - moon.y, this.minDim * 0.08), lakeTop) } : null,
+      moonReflection: moon
+        ? { x: moon.x, y: Math.min(Math.max(2 * this.horizonY - moon.y, this.minDim * 0.08), lakeTop) }
+        : atmos.moonlit > 0.3
+          ? offFramePathPoint(this.lakeView())
+          : null,
       rain: atmos.rain,
       mist: atmos.mist,
       snow: atmos.snow,
+      moonlit: atmos.moonlit,
       lake: { minX: 0, maxX: this.width, minY: 0, maxY: this.horizonY - this.minDim * 0.05 },
       minDim: this.minDim,
       home: this.honmeiHome(swimmers),
     };
+  }
+
+  private lakeView(): { width: number; horizonY: number; S: number } {
+    return { width: this.width, horizonY: this.horizonY, S: this.minDim };
+  }
+
+  /** 月夜: each fish catches as much moonlight as lies where it swims; now and then a far bell. */
+  private updateMoonlight(): void {
+    const ml = this.atmosphere.moonlit;
+    const moon = this.sky.moonPos;
+    const view = this.lakeView();
+    for (const f of this.fishes) f.setMoonlight(ml > 0.01 ? ml * moonPathAt(f.headX, f.headY, view, moon, ml) : 0);
+    if (ml < BELL.threshold) {
+      this.nextBell = -1;
+      return;
+    }
+    if (this.nextBell < 0) this.nextBell = this.time + between(Math.random, BELL.first);
+    else if (this.time >= this.nextBell) {
+      this.nextBell = this.time + between(Math.random, BELL.every);
+      this.sfx('bell', this.width * 0.3, 1);
+    }
   }
 
   private readonly relationFx: RelationEffects = {
