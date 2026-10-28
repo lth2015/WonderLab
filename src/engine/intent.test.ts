@@ -65,6 +65,11 @@ describe('interpret', () => {
     expect(interpret('星星').command.weather).toBe('clear');
   });
 
+  it('reads lamps on the lake and lanterns in the sky', () => {
+    for (const x of ['放河灯', '放孔明灯吧', '灯笼']) expect(interpret(x).command).toMatchObject({ weather: 'lanterns' });
+    expect(interpret('我想念夏天').command.weather).toBe('fireflies');
+  });
+
   it('stops rain and snow when asked', () => {
     for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
   });

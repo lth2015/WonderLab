@@ -32,6 +32,8 @@ export class Atmosphere {
   autumn = 0;
   /** 流星雨, 0..1. */
   shower = 0;
+  /** 河灯与孔明灯, 0..1. */
+  lanterns = 0;
   /** 星河, 0..1: rises slowly from behind the hills. */
   galaxy = 0;
   /** 雷雨: 1 while lightning may strike. */
@@ -77,6 +79,7 @@ export class Atmosphere {
     this.rain += ((wet ? amount : 0) - this.rain) * k;
     this.storm += ((s.weather === 'storm' ? 1 : 0) - this.storm) * k;
     this.shower += ((s.weather === 'shower' ? 1 : 0) - this.shower) * k;
+    this.lanterns += ((s.weather === 'lanterns' ? 1 : 0) - this.lanterns) * k;
     this.galaxy += ((s.weather === 'galaxy' ? 1 : 0) - this.galaxy) * k * 0.45;
     this.mist += ((s.weather === 'mist' ? amount : 0) - this.mist) * k;
     this.fireflies += ((s.weather === 'fireflies' ? amount : 0) - this.fireflies) * k;

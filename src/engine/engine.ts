@@ -8,6 +8,7 @@ import type { SceneCommand } from './intent';
 import { weatherFrag } from './shaders/weather';
 import { Snow } from './snow';
 import { Leaves } from './leaves';
+import { Lanterns } from './lanterns';
 import { BELL, moonPathAt, offFramePathPoint } from './moonlight';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
@@ -146,6 +147,7 @@ export class Engine {
   private readonly weatherMat: THREE.ShaderMaterial;
   private readonly snow = new Snow();
   private leaves!: Leaves;
+  private lanterns!: Lanterns;
   private readonly sky = new Sky();
   private history: HistoryEntry[] = [];
   private nextHistoryId = 1;
@@ -309,6 +311,8 @@ export class Engine {
     this.scene.add(this.snow.points);
     this.leaves = new Leaves(p.ink);
     this.scene.add(this.leaves.points);
+    this.lanterns = new Lanterns(p.ink);
+    this.scene.add(this.lanterns.points);
     this.scene.add(this.echo.mesh);
     const bg = new THREE.Mesh(quad, this.worldMat);
     bg.renderOrder = 0;
@@ -671,6 +675,7 @@ export class Engine {
     this.weatherMat.dispose();
     this.snow.dispose();
     this.leaves.dispose();
+    this.lanterns.dispose();
     this.echo.dispose();
     this.renderer.dispose();
   }
@@ -759,6 +764,7 @@ export class Engine {
     const dens = 0.25 + 0.75 * Math.pow(atmos.state.intensity, 1.3);
     weu.uSnowDensity.value += (dens - weu.uSnowDensity.value) * Math.min(dt / 4, 1);
     this.snow.update(dt, t, atmos.snow, atmos.state.intensity, atmos.wind);
+    this.lanterns.update(dt, t, atmos.lanterns, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, this.calm);
     this.leaves.update(dt, t, atmos.autumn, atmos.wind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );
@@ -1746,6 +1752,7 @@ export class Engine {
     this.weatherMat.uniforms.uHorizon.value = this.horizon;
     this.snow.resize(w, h, dpr);
     this.leaves?.setPixelRatio(dpr);
+    this.lanterns?.setPixelRatio(dpr);
   }
 
   /** The static sky and mountains; redrawn only while the palette changes. */
