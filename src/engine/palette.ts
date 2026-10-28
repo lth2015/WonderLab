@@ -4,7 +4,8 @@ import type { PaletteName } from './intent';
 // Colours are passed to shaders as raw sRGB values (no colour management).
 // The sky, mountain and water values started from docs/03-ux-ui-design.md
 // §3.2 and were darkened during the visual spike; warm and melancholy take
-// the same adjustment. Pending art review.
+// the same adjustment. 2026-10-29: lifted a step again, the owner found
+// the night too deep.
 function rgb(hex: string): THREE.Vector3 {
   const n = parseInt(hex.slice(1), 16);
   return new THREE.Vector3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
@@ -26,10 +27,10 @@ export type PaletteKey = keyof Palette;
 export const PALETTE_KEYS: PaletteKey[] = ['zenith', 'skyLow', 'mountain', 'water', 'accent', 'ink', 'paper', 'cinnabar', 'brush'];
 
 export const serene: Palette = {
-  zenith: rgb('#0B111D'),
-  skyLow: rgb('#22314A'),
-  mountain: rgb('#1E2836'),
-  water: rgb('#0A111A'),
+  zenith: rgb('#141C2C'),
+  skyLow: rgb('#2E405E'),
+  mountain: rgb('#283446'),
+  water: rgb('#111A26'),
   accent: rgb('#E9D9A6'),
   ink: rgb('#0A0D13'),
   paper: rgb('#EFE8D8'),
@@ -38,10 +39,10 @@ export const serene: Palette = {
 };
 
 export const melancholy: Palette = {
-  zenith: rgb('#101218'),
-  skyLow: rgb('#2E3440'),
-  mountain: rgb('#292C34'),
-  water: rgb('#0E1116'),
+  zenith: rgb('#181B23'),
+  skyLow: rgb('#3B4252'),
+  mountain: rgb('#343843'),
+  water: rgb('#151920'),
   accent: rgb('#9FB3C8'),
   ink: rgb('#0C0D10'),
   paper: rgb('#E4E2DC'),
@@ -50,10 +51,10 @@ export const melancholy: Palette = {
 };
 
 export const warm: Palette = {
-  zenith: rgb('#221519'),
-  skyLow: rgb('#7A4A3A'),
-  mountain: rgb('#342422'),
-  water: rgb('#1A1214'),
+  zenith: rgb('#2C1C21'),
+  skyLow: rgb('#84523F'),
+  mountain: rgb('#3E2D2A'),
+  water: rgb('#21181A'),
   accent: rgb('#F0B46A'),
   ink: rgb('#140D0B'),
   paper: rgb('#F2E4CF'),
