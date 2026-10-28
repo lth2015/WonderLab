@@ -39,6 +39,7 @@ uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint ind
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
+uniform float uMoonlit;               // 0..1: 月夜, the light of the moon (or of one beyond the frame)
 uniform float uSnow;                  // 0..1: snow clouds veil the stars; the lake goes dark and still
 uniform float uSkyVeil;               // 0..1, fades all user sky items (restart)
 uniform float uPost;                  // 1 = paper grain (standard tier)
@@ -56,6 +57,8 @@ float starLayer(vec2 p, float cellSize, float density, float size) {
   return step(1.0 - density, r) * smoothstep(size, 0.0, d) * tw * (0.35 + 0.65 * hash(cell + 1.7));
 }
 
+const vec3 MOONLIGHT = vec3(0.78, 0.83, 0.92);
+
 vec3 moonLayer(vec2 p, vec3 c, float open) {
   if (uMoon.w <= 0.0) return c;
   float r = uMoon.z;
@@ -69,7 +72,10 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   float shade = 1.0 - smoothstep(r * 0.9, r * 1.06, length(p - sc));
   // The glow comes from the lit limb, not from the dark part of the disc.
   float halo = (exp(-max(dist - r, 0.0) / (r * 0.8)) * 0.2 + exp(-max(dist - r, 0.0) / (r * 4.0)) * 0.07) * (1.0 + 1.8 * uMoonPulse);
-  c += uAccent * halo * lit * uMoon.w * mix(0.5, 1.0, open) * (1.0 - disc * shade * 0.6);
+  halo *= 1.0 + 1.6 * uMoonlit;
+  // 月晕: a faint wide ring on a moonlit night.
+  halo += exp(-pow((dist - r * 2.8) / (r * 0.7), 2.0)) * 0.09 * uMoonlit;
+  c += mix(uAccent, MOONLIGHT, 0.5 * uMoonlit) * halo * lit * uMoon.w * mix(0.5, 1.0, open) * (1.0 - disc * shade * 0.6);
   vec2 q = d / r;
   float z = sqrt(max(1.0 - dot(q, q), 0.0));
   vec3 tone = mix(uPaper, uAccent, 0.5);
@@ -153,7 +159,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
     vec2 q = (p - cl.xy) / vec2(cl.z, cl.z * 0.24);
     float n = fbm(q * vec2(1.4, 0.9) + vec2(uTime * 0.03 + float(i) * 7.0, float(i) * 3.0));
     float m = smoothstep(1.0, 0.25, length(q) + (n - 0.5) * 0.9) * cl.w;
-    c = mix(c, uSkyLow * 1.55 + uAccent * 0.06 * uMoonLight, m * 0.5);
+    c = mix(c, uSkyLow * 1.55 + uAccent * 0.06 * uMoonLight + MOONLIGHT * 0.1 * uMoonlit, m * 0.5);
   }
   c = planetLayer(p, c, open);
   c = moonLayer(p, c, open);
@@ -197,12 +203,21 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   vec3 c = land.rgb;
   float t = clamp((p.y - hpx) / (uRes.y - hpx), 0.0, 1.0);
   float stars = starLayer(p, 46.0, 0.32, 1.6) + 0.6 * starLayer(p + 13.0, 19.0, 0.18, 0.9);
-  stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow);
+  // 月明星稀: a moonlit night has fewer stars, fewer still with the moon up.
+  stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
   c += vec3(0.96, 0.93, 0.86) * stars;
   // Slow ink-wash cloud drifting across the upper sky.
   vec2 q = vec2(p.x / S * 1.2 + uTime * 0.006, p.y / S * 3.2);
   float cl = fbm(q + fbm(q * 0.7 + uTime * 0.003));
-  c = mix(c, uSkyLow * 1.35, smoothstep(0.55, 0.82, cl) * 0.22 * smoothstep(0.1, 0.5, t));
+  float cloud = smoothstep(0.55, 0.82, cl) * 0.22 * smoothstep(0.1, 0.5, t);
+  c = mix(c, uSkyLow * 1.35 + MOONLIGHT * 0.12 * uMoonlit, cloud);
+  if (uMoonlit > 0.001) {
+    // The whole night turns silver-blue; with no moon drawn yet, the light
+    // comes from beyond the upper left of the frame.
+    c += MOONLIGHT * 0.05 * uMoonlit * (0.5 + 0.5 * t);
+    float beyond = exp(-length(p - vec2(-0.15 * uRes.x, uRes.y * 1.02)) / (S * 1.1));
+    c += MOONLIGHT * 0.38 * beyond * uMoonlit * (1.0 - uMoon.w) * land.a;
+  }
   c *= 1.0 + 0.08 * uMoonLight * uSkyVeil;
   c = userSky(p, c, land.a);
   return vec4(c, land.a);
@@ -252,7 +267,7 @@ void main() {
     float discDim = 0.0;
     if (uMoon.w > 0.0) {
       float dxm = p.x - uMoon.x;
-      float cw = uMoon.z * (0.75 + dn * 5.0);
+      float cw = uMoon.z * (0.75 + dn * 5.0) * (1.0 + 0.9 * uMoonlit);
       moonCol = exp(-dxm * dxm / (cw * cw)) * uMoon.w * uSkyVeil;
       disp += vec2(wave2 * cw * 1.4, wave * S * 0.08) * moonCol;
       // Fade the mirrored disc itself, leaving the mountains' reflection alone.
@@ -283,8 +298,15 @@ void main() {
       float glit = smoothstep(0.66, 0.95, crest * 0.6 + crest2 * 0.5);
       float fade = smoothstep(0.0, 0.015, dn) * (1.0 - 0.8 * smoothstep(0.12, 0.55, dn));
       vec3 light = mix(uAccent, uPaper, 0.35);
-      col += light * glit * moonCol * lit * fade * 0.5 * (1.0 + uMoonPulse);
+      col += light * glit * moonCol * lit * fade * (0.5 + 0.7 * uMoonlit) * (1.0 + uMoonPulse);
       col += uAccent * moonCol * lit * fade * 0.035;
+    }
+    if (uMoonlit > 0.001) {
+      // 庭下如积水空明: a broad, faint silver on the far water, broken by the waves.
+      float sheen = smoothstep(0.62, 0.95, noise(vec2(p.x / S * 22.0 * z * 0.25, z * 9.0 - uWaveT * 0.8)));
+      float far = 1.0 - smoothstep(0.0, 0.55, dn);
+      float side = mix(1.0, 1.0 - 0.6 * smoothstep(0.0, 1.0, p.x / uRes.x), 1.0 - uMoon.w);
+      col += MOONLIGHT * (0.05 + 0.22 * sheen) * far * side * uMoonlit;
     }
     col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.35 + 0.2 * uSnow);
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;

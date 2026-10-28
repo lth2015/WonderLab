@@ -7,8 +7,8 @@
 // to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow';
-export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow'];
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -48,11 +48,13 @@ const KEYWORDS: Rule[] = [
   [['中雪'], { weather: 'snow', intensity: 0.6, wind: 0.12 }],
   [['小雪', '细雪', '微雪', '初雪'], { weather: 'snow', intensity: 0.25, wind: 0.06 }],
   [['下雪', '飘雪', '落雪', '雪夜', '雪花', '雪景', '寒江', '冬夜', '冬天', '雪'], { weather: 'snow', wind: 0.08 }],
+  // Moonlight: words cannot make a moon (画是主角), they bring out its light.
+  [['月夜', '月光', '月色', '明月', '皓月', '月明', '月下', '月华', '赏月', '月亮出来'], { weather: 'moonlit', timeOfDay: 'night' }],
   [['雾', '朦胧', '迷蒙', '烟波', '云雾', '模糊', '看不清'], { weather: 'mist' }],
   [['萤火', '流萤', '萤', '夏夜', '夏天', '盛夏', '蝉'], { weather: 'fireflies' }],
   [['晴', '星空', '星星', '满天星', '天亮了', '放晴'], { weather: 'clear' }],
   [['黄昏', '夕阳', '日落', '傍晚', '晚霞', '落日', '暮色', '余晖'], { timeOfDay: 'dusk' }],
-  [['深夜', '午夜', '半夜', '夜深', '月夜', '夜晚'], { timeOfDay: 'night' }],
+  [['深夜', '午夜', '半夜', '夜深', '夜晚'], { timeOfDay: 'night' }],
   [['孤独', '寂寞', '思念', '想念', '怀念', '离别', '悲伤', '难过', '伤心', '失落', '想家', '秋'], { palette: 'melancholy' }],
   [['温暖', '开心', '快乐', '幸福', '喜欢', '爱', '甜', '暖', '热闹', '欢喜', '团圆', '春'], { palette: 'warm' }],
   [['安静', '宁静', '平静', '静', '睡', '休息', '放松', '清凉'], { palette: 'serene', wind: 0.05 }],

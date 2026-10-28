@@ -38,6 +38,12 @@ describe('interpret', () => {
     expect(interpret('独钓寒江雪').command.weather).toBe('snow');
   });
 
+  it('brings out the moonlight for 月夜, never a moon', () => {
+    for (const s of ['今晚月色真美', '月夜', '月光洒在湖上', '明月几时有']) expect(interpret(s).command).toMatchObject({ weather: 'moonlit', timeOfDay: 'night' });
+    expect(interpret('不要月光').command.weather).toBe('clear');
+    expect(interpret('深夜').command.weather).toBeUndefined();
+  });
+
   it('stops rain and snow when asked', () => {
     for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
   });
