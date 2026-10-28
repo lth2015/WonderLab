@@ -72,7 +72,7 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   float shade = 1.0 - smoothstep(r * 0.9, r * 1.06, length(p - sc));
   // The glow comes from the lit limb, not from the dark part of the disc.
   float halo = (exp(-max(dist - r, 0.0) / (r * 0.8)) * 0.2 + exp(-max(dist - r, 0.0) / (r * 4.0)) * 0.07) * (1.0 + 1.8 * uMoonPulse);
-  halo *= 1.0 + 1.6 * uMoonlit;
+  halo *= 1.0 + 1.0 * uMoonlit;
   // 月晕: a faint wide ring on a moonlit night.
   halo += exp(-pow((dist - r * 2.8) / (r * 0.7), 2.0)) * 0.09 * uMoonlit;
   c += mix(uAccent, MOONLIGHT, 0.5 * uMoonlit) * halo * lit * uMoon.w * mix(0.5, 1.0, open) * (1.0 - disc * shade * 0.6);
@@ -214,9 +214,10 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   if (uMoonlit > 0.001) {
     // The whole night turns silver-blue; with no moon drawn yet, the light
     // comes from beyond the upper left of the frame.
-    c += MOONLIGHT * 0.05 * uMoonlit * (0.5 + 0.5 * t);
-    float beyond = exp(-length(p - vec2(-0.15 * uRes.x, uRes.y * 1.02)) / (S * 1.1));
-    c += MOONLIGHT * 0.38 * beyond * uMoonlit * (1.0 - uMoon.w) * land.a;
+    c += MOONLIGHT * 0.09 * uMoonlit * (0.5 + 0.5 * t);
+    float far = length(p - vec2(-0.12 * uRes.x, uRes.y * 1.02)) / S;
+    float beyond = exp(-far / 0.55) * 0.75 + exp(-far / 1.4) * 0.3;
+    c += MOONLIGHT * beyond * uMoonlit * (1.0 - uMoon.w) * land.a;
   }
   c *= 1.0 + 0.08 * uMoonLight * uSkyVeil;
   c = userSky(p, c, land.a);
@@ -303,10 +304,17 @@ void main() {
     }
     if (uMoonlit > 0.001) {
       // 庭下如积水空明: a broad, faint silver on the far water, broken by the waves.
-      float sheen = smoothstep(0.62, 0.95, noise(vec2(p.x / S * 22.0 * z * 0.25, z * 9.0 - uWaveT * 0.8)));
-      float far = 1.0 - smoothstep(0.0, 0.55, dn);
+      float sheen = smoothstep(0.62, 0.95, noise(vec2(p.x / (S * 0.03 * (1.0 + dn * 2.0)), p.y / (S * 0.004 * (1.0 + dn * 3.0)) - uWaveT * 0.8)));
+      float far = 1.0 - smoothstep(0.0, 0.35, dn);
       float side = mix(1.0, 1.0 - 0.6 * smoothstep(0.0, 1.0, p.x / uRes.x), 1.0 - uMoon.w);
-      col += MOONLIGHT * (0.05 + 0.22 * sheen) * far * side * uMoonlit;
+      col += MOONLIGHT * (0.07 + 0.28 * sheen) * far * side * uMoonlit;
+      // With the moon beyond the frame, its path comes in from the left,
+      // widening toward the viewer, broken into glints by the waves.
+      float px = 0.04 * uRes.x + dn * S * 0.8;
+      float pw = S * (0.1 + dn * 0.45);
+      float path = exp(-pow((p.x - px) / pw, 2.0)) * smoothstep(0.0, 0.02, dn) * (1.0 - 0.7 * smoothstep(0.15, 0.7, dn));
+      float glints = smoothstep(0.6, 0.95, noise(vec2(p.x / (S * 0.022 * (1.0 + dn * 1.5)), p.y / (S * 0.004 * (1.0 + dn * 3.0)) - uWaveT * 1.2)));
+      col += MOONLIGHT * path * (0.05 + 0.45 * glints) * uMoonlit * (1.0 - uMoon.w);
     }
     col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.35 + 0.2 * uSnow);
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;

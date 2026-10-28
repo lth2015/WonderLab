@@ -70,8 +70,8 @@ export class Atmosphere {
     this.fireflies += ((s.weather === 'fireflies' ? amount : 0) - this.fireflies) * k;
     // Snow comes and goes more slowly than rain.
     this.snow += ((s.weather === 'snow' ? amount : 0) - this.snow) * k * 0.6;
-    // Moonlight comes slowly, as eyes get used to the dark.
-    this.moonlit += ((s.weather === 'moonlit' ? amount : 0) - this.moonlit) * k * 0.5;
+    // Moonlight answers at once: clearly there within two seconds.
+    this.moonlit += ((s.weather === 'moonlit' ? amount : 0) - this.moonlit) * Math.min(k * 1.6, 1);
     this.wind += (s.wind - this.wind) * k;
     this.dusk += ((s.timeOfDay === 'dusk' ? 1 : 0) - this.dusk) * k;
 

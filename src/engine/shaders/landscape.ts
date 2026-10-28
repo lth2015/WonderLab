@@ -77,7 +77,7 @@ void main() {
     if (uMoonRim > 0.001) {
       // A thin pale edge where the moonlight catches the ridge, strongest on the near hills.
       float rim = exp(-below * (240.0 - fi * 50.0)) * smoothstep(0.0, 0.001, below);
-      layer = mix(layer, vec3(0.72, 0.77, 0.86), rim * uMoonRim * (0.55 + 0.2 * fi) * (0.6 + 0.6 * texture));
+      layer = mix(layer, vec3(0.72, 0.77, 0.86), rim * uMoonRim * (0.75 + 0.15 * fi) * (0.6 + 0.6 * texture));
     }
     float mist = exp(-max(yn, 0.0) * (14.0 - fi * 3.0));
     layer = mix(layer, uSkyLow * 1.08, mist * (0.85 - fi * 0.2));
