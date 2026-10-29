@@ -27,6 +27,7 @@
   "include": [
     "src",
     "vite.config.ts",
-    "build-info.ts"
+    "build-info.ts",
+    "share-meta.ts"
   ]
 }
