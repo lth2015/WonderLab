@@ -184,6 +184,13 @@ export class Leaves {
     }
   }
 
+  /** 近岸: one petal let fall from (x, y), to settle at `landY` (on the water, or on the bank). */
+  drop(x: number, y: number, landY: number, view: { horizonY: number; S: number }): void {
+    if (this.leaves.length >= MAX) return;
+    this.spawn(x, y, 0, view);
+    this.leaves[this.leaves.length - 1].landY = landY;
+  }
+
   private spawn(x: number, y: number, vx: number, view: { horizonY: number; S: number }): void {
     const { horizonY, S } = view;
     // Nearer leaves land lower on the screen and look larger.

@@ -108,6 +108,7 @@ const ANNOUNCE: Record<Exclude<CreationKind, 'atmosphere'>, string> = {
   star: '天上多了一颗星',
   meteor: '一颗流星划过',
   cloud: '一缕流云飘过',
+  branch: '岸边长出一根花枝',
 };
 
 const FISH_ANSWER: Record<NonNullable<SceneCommand['fish']>, string> = {
@@ -388,6 +389,7 @@ export function App() {
       {
         tier: forcedTier === 'light' || forcedTier === 'standard' ? forcedTier : undefined,
         reducedMotion: reducedQuery.matches,
+        shore: params.has('shore'),
       },
     );
     engineRef.current = engine;

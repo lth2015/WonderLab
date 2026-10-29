@@ -88,10 +88,17 @@ const LOTUS = [
   { name: 'lotus-bud', prompt: 'A single closed lotus bud seen from the SIDE: a pointed teardrop of pink petals, greener at its base, on a straight slender green stem running down to the BOTTOM EDGE of the image, centred.' },
 ];
 
+// 近岸花枝 (2026-10-29): made by Codex with its own image tools (hand-off
+// docs/handoff/codex-shore-branch-art.md on the collab branch), not
+// generated here: save them as art-raw/shore-<name>.png and run with
+// --process-only --only shore-…. Packed into one 3x2 atlas like the lotus.
+const SHORE = ['blossom-open', 'blossom-side', 'blossom-bud', 'petal', 'butterfly-open', 'butterfly-closed'].map((n) => `shore-${n}`);
+
 const JOBS = [
   ...KOI.map((k) => ({ kind: 'koi', name: k.name, size: '1536x1024', background: 'transparent', prompt: `${KOI_STYLE} ${k.look}` })),
   { kind: 'moon', name: MOON.name, size: '1024x1024', background: 'opaque', prompt: MOON.prompt },
   ...LOTUS.map((l) => ({ kind: 'lotus', name: l.name, size: '1024x1024', background: 'transparent', prompt: `${LOTUS_STYLE} ${l.prompt}` })),
+  ...SHORE.map((name) => ({ kind: 'shore', name, size: '1024x1024', background: 'transparent', prompt: 'Made by Codex; see docs/handoff/codex-shore-branch-art.md on the collab branch.' })),
 ];
 
 const args = process.argv.slice(2);
@@ -134,7 +141,7 @@ for (const job of jobs) {
     const entry = await processKoi(raw, job.name);
     manifest.koi = [...manifest.koi.filter((k) => k.name !== job.name), entry];
     console.log(`ok (half width ${entry.halfWidth})`);
-  } else if (job.kind === 'lotus') {
+  } else if (job.kind === 'lotus' || job.kind === 'shore') {
     console.log('ok');
   } else {
     manifest.moon = await processMoon(raw);
@@ -147,6 +154,11 @@ if (LOTUS.every((l) => existsSync(`${RAW}/${l.name}.png`)) && jobs.some((j) => j
   manifest.lotus = await packLotus();
   await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(`lotus: packed into ${OUT}/${manifest.lotus.file}`);
+}
+if (SHORE.every((n) => existsSync(`${RAW}/${n}.png`)) && jobs.some((j) => j.kind === 'shore')) {
+  manifest.shore = await packShore();
+  await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log(`shore: packed into ${OUT}/${manifest.shore.file}`);
 }
 console.log(`\nWrote ${MANIFEST}. Check each texture faces right (head on the right); set "flip": true in the manifest for any that do not.`);
 
@@ -186,6 +198,24 @@ async function packLotus() {
     .toBuffer();
   await writeFile(`${OUT}/lotus.webp`, data);
   return { file: 'lotus.webp' };
+}
+
+/** The six shore pictures in one 768x512 atlas, three across, two down, each centred in its cell. */
+async function packShore() {
+  const CELL = 256;
+  const layers = [];
+  for (const [i, n] of SHORE.entries()) {
+    const cut = await sharp(await keyOutBackground(await readFile(`${RAW}/${n}.png`))).ensureAlpha().trim({ threshold: 8 }).png().toBuffer();
+    const fit = await sharp(cut).resize(CELL - 8, CELL - 8, { fit: 'inside' }).png().toBuffer();
+    const m = await sharp(fit).metadata();
+    layers.push({ input: fit, left: (i % 3) * CELL + Math.round((CELL - m.width) / 2), top: Math.floor(i / 3) * CELL + Math.round((CELL - m.height) / 2) });
+  }
+  const data = await sharp({ create: { width: CELL * 3, height: CELL * 2, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite(layers)
+    .webp({ quality: 88, alphaQuality: 90 })
+    .toBuffer();
+  await writeFile(`${OUT}/shore.webp`, data);
+  return { file: 'shore.webp' };
 }
 
 /** Square crop on the disc, with everything outside the circle transparent. */

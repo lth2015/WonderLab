@@ -10,6 +10,7 @@ import { Snow } from './snow';
 import { Leaves } from './leaves';
 import { Lanterns } from './lanterns';
 import { Lotus } from './lotus';
+import { Shore, bankTop } from './shore';
 import { BELL, moonPathAt, offFramePathPoint, sunPathAt } from './moonlight';
 import { flashLevel, MAX_BOLT, packSegment, strike, strikeAlong, type Segment } from './storm';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
@@ -38,7 +39,7 @@ const RESTART_UNDO_MS = 5000;
 export const RELEASE_GRACE_S = 4;
 const DOUBLE_TAP_S = 1.5;
 
-export type CreationKind = 'fish' | 'moon' | 'planet' | 'star' | 'meteor' | 'cloud' | 'atmosphere';
+export type CreationKind = 'fish' | 'moon' | 'planet' | 'star' | 'meteor' | 'cloud' | 'branch' | 'atmosphere';
 
 export interface Creation {
   id: number;
@@ -52,6 +53,8 @@ export interface EngineOptions {
   /** Pin a tier (e.g. from ?tier=light) instead of choosing by frame time. */
   tier?: Tier;
   reducedMotion?: boolean;
+  /** 近岸 prototype (?shore): a bank along the bottom where a stroke becomes a flowering branch. */
+  shore?: boolean;
 }
 
 export interface EngineEvents {
@@ -153,6 +156,8 @@ export class Engine {
   private leaves!: Leaves;
   /** 落花: spring petals, the leaves' gentler cousin. */
   private petals!: Leaves;
+  /** 近岸 (prototype, ?shore). */
+  private shore: Shore | null = null;
   /** 荷塘: lotus pads and flowers on the near water. */
   private lotus!: Lotus;
   /** Engine time of the next frog among the lotus. */
@@ -161,6 +166,8 @@ export class Engine {
   private shadeRest = new WeakMap<Fish, number>();
   /** 同行: a fish from the sky keeping company with one the visitor drew, for a while. */
   private companions: { sky: Fish; drawn: Fish; until: number; side: number }[] = [];
+  /** How long a fish from the sky keeps company, once it swims (seconds). */
+  private static readonly COMPANY_S: [number, number] = [10, 14];
   private lanterns!: Lanterns;
   private readonly sky = new Sky();
   private history: HistoryEntry[] = [];
@@ -241,6 +248,7 @@ export class Engine {
     this.pinnedTier = !!options.tier;
     this.calm = !!options.reducedMotion;
     this.sky.calm = this.calm;
+    const withShore = !!options.shore;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: false });
     this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace; // colours are already sRGB values
     this.renderer.setClearColor(0x121826, 1);
@@ -340,6 +348,10 @@ export class Engine {
     this.scene.add(this.leaves.points);
     this.petals = new Leaves(p.ink, true);
     this.scene.add(this.petals.points);
+    if (withShore) {
+      this.shore = new Shore(p);
+      this.scene.add(this.shore.group);
+    }
     this.lotus = new Lotus(p.ink);
     this.scene.add(this.lotus.points);
     this.lanterns = new Lanterns(p.ink);
@@ -375,6 +387,7 @@ export class Engine {
     this.worldMat.uniforms.uMoonTex.value = art.moon;
     this.worldMat.uniforms.uMoonTexOn.value = art.moon ? 1 : 0;
     if (art.lotus) this.lotus.setTexture(art.lotus);
+    if (art.shore) this.shore?.setTexture(art.shore);
   }
 
   /**
@@ -719,6 +732,7 @@ export class Engine {
     this.snow.dispose();
     this.leaves.dispose();
     this.petals.dispose();
+    this.shore?.dispose();
     this.lotus.dispose();
     this.lanterns.dispose();
     this.echo.dispose();
@@ -767,7 +781,7 @@ export class Engine {
     const bounds = {
       minX: 0,
       maxX: this.width,
-      minY: 0,
+      minY: this.shore ? this.shore.bankHigh : 0,
       maxY: this.horizonY - this.minDim * 0.05,
     };
     const ctx = { time: t, bounds, others: this.fishes, ripple: (x: number, y: number, s: number) => this.addRipple(x, y, s) };
@@ -824,7 +838,8 @@ export class Engine {
       this.sfx('frog', this.width * (Math.random() < 0.5 ? 0.15 : 0.85), 0.7);
     }
     const gustWind = atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8;
-    this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.addRipple(x, y, 0.15));
+    this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.petalLands(x, y));
+    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk }, this.calm, (x, y) => this.dropPetal(x, y));
     this.leaves.update(dt, t, atmos.autumn, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );
@@ -1328,7 +1343,8 @@ export class Engine {
         near = f;
       }
     }
-    if (near) this.companions.push({ sky: fish, drawn: near, until: this.time + 10 + Math.random() * 4, side: Math.random() < 0.5 ? -1 : 1 });
+    // The time starts once it swims: it is still taking shape now (Codex's review of #93).
+    if (near) this.companions.push({ sky: fish, drawn: near, until: 0, side: Math.random() < 0.5 ? -1 : 1 });
     return fish;
   }
 
@@ -1350,8 +1366,11 @@ export class Engine {
       // 灯下鱼影 (09 §十一).
       if (this.atmosphere.lanterns > 0.3 && this.lanterns.stirAt(f.headX, f.headY, S * 0.05)) this.addRipple(f.headX, f.headY, 0.25);
     }
-    this.companions = this.companions.filter((c) => t < c.until && this.fishes.includes(c.sky) && this.fishes.includes(c.drawn) && c.sky.state === 'swimming' && c.drawn.state === 'swimming');
+    const alive = (f: Fish) => this.fishes.includes(f) && (f.state === 'swimming' || f.state === 'forming');
+    this.companions = this.companions.filter((c) => (c.until === 0 || t < c.until) && alive(c.sky) && alive(c.drawn));
     for (const c of this.companions) {
+      if (c.sky.state !== 'swimming' || c.drawn.state !== 'swimming') continue;
+      if (c.until === 0) c.until = t + between(Math.random, Engine.COMPANY_S);
       // Alongside, a little to one side and behind.
       const d = c.drawn;
       c.sky.lure(d.headX + c.side * S * 0.06, d.headY + S * 0.02, t, { duration: 0.6 });
@@ -1396,7 +1415,7 @@ export class Engine {
       mist: atmos.mist,
       snow: atmos.snow,
       moonlit: atmos.moonlit,
-      lake: { minX: 0, maxX: this.width, minY: 0, maxY: this.horizonY - this.minDim * 0.05 },
+      lake: { minX: 0, maxX: this.width, minY: this.shore ? this.shore.bankHigh : 0, maxY: this.horizonY - this.minDim * 0.05 },
       minDim: this.minDim,
       home: this.honmeiHome(swimmers),
     };
@@ -1684,6 +1703,14 @@ export class Engine {
       aspect: round(f.aspect),
       residual: round(Math.min(f.fit.residual, 9)),
     });
+    // 近岸: a stroke begun on the bank is a branch; a short one there lets a petal fall.
+    if (this.shore && this.shore.onBank(stroke.points[0].x, stroke.points[0].y)) {
+      if (c.kind === 'short') {
+        this.fadeStroke(stroke, 0.1, 0.6);
+        this.bankTap(centroid.x, centroid.y);
+      } else this.placeBranch(stroke, pointer);
+      return;
+    }
     switch (c.kind) {
       case 'short':
         this.fadeStroke(stroke, 0.1, 0.6);
@@ -1773,6 +1800,52 @@ export class Engine {
     u.uBoltBox.value.set(Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad);
   }
 
+  /** 近岸: the stroke stays as the bough and blossoms open along it. */
+  private placeBranch(stroke: Stroke, pointer: string): void {
+    const shore = this.shore!;
+    const style = strokeStyle(stroke.points, this.minDim, pointer);
+    const id = shore.addBranch(stroke, this.time, this.livelyFrom(style.speed, pointer));
+    const end = stroke.points[stroke.points.length - 1];
+    this.sfx('chime', end.x, 0.3);
+    this.record('branch', end.x, end.y, () => {
+      const s = shore.removeBranch(id);
+      if (s) this.fadeStroke(s, 0, 0.8);
+    });
+  }
+
+  /** 近岸: a touch on the bank: a petal from the nearest open blossom, if there is one near. */
+  private bankTap(x: number, y: number): void {
+    const b = this.shore?.nearestBlossom(x, y, this.minDim * 0.45, this.time);
+    if (b) this.dropPetal(b.x, b.y);
+  }
+
+  /** A petal let fall from a blossom: onto the water just below, or onto the bank if the blossom is over it. */
+  private dropPetal(x: number, y: number): void {
+    const S = this.minDim;
+    const view = { width: this.width, height: this.height, horizonY: this.horizonY, S };
+    const ground = bankTop(x, view);
+    const landY = y > ground + S * 0.04 ? THREE.MathUtils.clamp(y - S * (0.05 + 0.08 * Math.random()), ground + S * 0.02, this.horizonY - S * 0.03) : y - S * 0.03;
+    this.petals.drop(x, y, landY, view);
+  }
+
+  /** A petal touching the water: a small ring, and a fish nearby may come to it (花影). */
+  private petalLands(x: number, y: number): void {
+    if (this.shore?.onBank(x, y)) return;
+    this.addRipple(x, y, 0.15);
+    if (!this.shore || Math.random() > 0.6) return;
+    let near: Fish | null = null;
+    let best = this.minDim * 0.4;
+    for (const f of this.fishes) {
+      if (f.ghost || f.hidden || f.state !== 'swimming') continue;
+      const d = Math.hypot(f.headX - x, f.headY - y);
+      if (d < best) {
+        best = d;
+        near = f;
+      }
+    }
+    near?.lure(x, y, this.time, { duration: 3 });
+  }
+
   /** Start now if nothing leads, otherwise wait for the turn (docs/03 §7). */
   private lead(stroke: Stroke, start: () => number): void {
     if (!this.leadQueue.length && this.time >= this.leadUntil) this.leadUntil = this.time + start();
@@ -1821,6 +1894,11 @@ export class Engine {
         this.sky.flash(x, y);
         this.sfx('star', x);
       }
+      return;
+    }
+    // 近岸: a touch on the bank lets a petal fall from the nearest blossom.
+    if (this.shore && !fish && this.shore.onBank(x, y)) {
+      this.bankTap(x, y);
       return;
     }
     // 荷塘: a touched pad or flower bobs, and a frog answers.
@@ -1957,6 +2035,8 @@ export class Engine {
     this.snow.resize(w, h, dpr);
     this.leaves?.setPixelRatio(dpr);
     this.petals?.setPixelRatio(dpr);
+    this.shore?.setPixelRatio(dpr);
+    this.shore?.resize({ width: w, height: h, horizonY: h * this.horizon, S: Math.min(w, h) });
     this.lotus?.setPixelRatio(dpr);
     this.lanterns?.setPixelRatio(dpr);
   }

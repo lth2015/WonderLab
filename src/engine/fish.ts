@@ -390,7 +390,8 @@ export class Fish {
   }
 
   setRest(until: number): void {
-    this.restUntil = until;
+    // A short rest (a leaf's shade) never cuts short a longer one the visitor asked for (Codex's review of #93).
+    this.restUntil = Math.max(this.restUntil, until);
   }
 
   /** Put the fish, body and all, with its head at a point (it was found there on return). */

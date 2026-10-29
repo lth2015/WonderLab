@@ -17,6 +17,8 @@ export interface Art {
   moon: THREE.Texture | null;
   /** 荷塘: leaves, flowers and a bud in one 3x2 atlas (see scripts/gen-art.mjs packLotus). */
   lotus: THREE.Texture | null;
+  /** 近岸: begonia blossoms, bud, petal and a butterfly open and closed, one 3x2 atlas (packShore). */
+  shore: THREE.Texture | null;
 }
 
 interface Manifest {
@@ -24,6 +26,7 @@ interface Manifest {
   koi?: { name: string; file: string; halfWidth: number; flip?: boolean }[];
   moon?: { file: string } | null;
   lotus?: { file: string } | null;
+  shore?: { file: string } | null;
 }
 
 export async function loadArt(base = `${import.meta.env.BASE_URL}art/`): Promise<Art | null> {
@@ -59,5 +62,7 @@ export async function loadArt(base = `${import.meta.env.BASE_URL}art/`): Promise
   if (manifest.moon) moon = await load(manifest.moon.file).catch(() => null);
   let lotus: THREE.Texture | null = null;
   if (manifest.lotus) lotus = await load(manifest.lotus.file).catch(() => null);
-  return { koi: koi.filter((k): k is KoiSkin => !!k), moon, lotus };
+  let shore: THREE.Texture | null = null;
+  if (manifest.shore) shore = await load(manifest.shore.file).catch(() => null);
+  return { koi: koi.filter((k): k is KoiSkin => !!k), moon, lotus, shore };
 }
