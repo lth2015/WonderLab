@@ -1587,7 +1587,9 @@ export class Engine {
       const silver = ml > 0.01 ? ml * moonPathAt(f.headX, f.headY, view, moon, ml) : 0;
       // 落日: the same fish, seen again in the evening's gold (世界观 09 §三).
       const gold = dusk > 0.01 ? sunPathAt(f.headX, f.headY, view, dusk) * 2.2 : 0;
-      f.setMoonlight(Math.max(silver, gold), gold > silver);
+      // 雷雨: the lightning shows the pattern on a fish's back for a moment (value/09 §七).
+      const flash = this.calm ? 0 : this.worldMat.uniforms.uFlash.value.x * 1.6;
+      f.setMoonlight(Math.max(silver, gold, flash), gold > Math.max(silver, flash));
     }
     if (ml < BELL.threshold) {
       this.nextBell = -1;
