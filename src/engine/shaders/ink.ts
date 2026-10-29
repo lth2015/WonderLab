@@ -124,6 +124,10 @@ void main() {
       // A soft shadow on the lake bed: the texture's alpha from a coarse mip
       // level, so it is blurred, and fainter the deeper the water above it.
       float sa = texture2D(uSkin, uv, 4.5).a * reveal * loose;
+      // The blurred alpha reaches the ribbon's edges: let it die away before
+      // them, or on bright water (白天) the shadow shows as a box.
+      float across = abs(2.0 * tv - 1.0);
+      sa *= (1.0 - smoothstep(0.55, 0.95, across)) * smoothstep(0.0, 0.06, s) * (1.0 - smoothstep(0.9, 1.0, s));
       gl_FragColor = vec4(0.0, 0.01, 0.03, sa * 0.2 * (1.0 - 0.4 * uDepth) * uOpacity);
       return;
     }
