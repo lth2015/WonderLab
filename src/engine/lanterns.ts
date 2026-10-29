@@ -49,23 +49,50 @@ void main() {
     col = warm * streak * 0.55;
     a = streak * 0.45;
   } else if (kind > 0.5) {
-    // 孔明灯: a rounded paper lantern lit from inside, a soft halo round it.
-    vec2 b = vec2(q.x / 0.32, (q.y - 0.02) / 0.42);
-    float body = smoothstep(1.05, 0.9, length(b * vec2(1.0, 0.95 + 0.1 * b.y)));
-    float halo = exp(-dot(q, q) * 3.0) * 0.5;
-    vec3 paper = mix(warm, vec3(1.0, 0.9, 0.65), smoothstep(0.6, -0.2, b.y));
-    col = paper * body * (0.85 + 0.15 * fl) + warm * halo * 0.6;
-    a = max(body, halo * 0.7);
+    // 孔明灯: a paper lantern, wider at the shoulder, round on top, open
+    // below where the flame burns. Brightest low down by the flame, deeper
+    // orange toward the top; thin bamboo ribs show through the paper.
+    float t = (q.y + 0.42) / 0.84;                 // 0 at the mouth, 1 at the top
+    float w = mix(0.19, 0.29, smoothstep(0.0, 0.75, t));
+    w *= t > 0.82 ? sqrt(max(1.0 - pow((t - 0.82) / 0.18, 2.0), 0.0)) : 1.0;
+    float body = smoothstep(w + 0.025, w - 0.015, abs(q.x)) * smoothstep(-0.02, 0.02, t) * step(t, 1.0);
+    float rib = 0.0;
+    for (int i = -1; i <= 1; i++) rib = max(rib, smoothstep(0.016, 0.004, abs(q.x - float(i) * w * 0.55)));
+    float rim = smoothstep(0.07, 0.0, t) * body;
+    vec3 paper = mix(vec3(1.0, 0.88, 0.62), vec3(0.93, 0.5, 0.22), smoothstep(0.0, 1.0, t));
+    float glow = exp(-(pow(q.x / 0.16, 2.0) + pow((t - 0.15) / 0.3, 2.0)));
+    paper *= (0.75 + 0.35 * glow) * (0.88 + 0.12 * fl);
+    paper *= 1.0 - 0.3 * rib - 0.35 * rim;
+    vec2 f = vec2(q.x / 0.045, (q.y + 0.36) / 0.06);
+    float flame = exp(-dot(f, f));
+    vec2 hq = q - vec2(0.0, -0.15);
+    float halo = exp(-dot(hq, hq) * 5.0) * 0.35;
+    col = paper * body + vec3(1.0, 0.95, 0.75) * flame + warm * halo * 0.6 * (1.0 - body);
+    a = max(max(body, flame), halo * 0.6);
   } else {
-    // 河灯: a small lotus cup with a flame, a glow round it.
-    vec2 b = vec2(q.x / 0.42, (q.y + 0.18) / 0.16);
-    float cup = smoothstep(1.05, 0.85, length(b)) * step(q.y, -0.12);
-    float petals = smoothstep(0.06, 0.0, abs(abs(q.x) - 0.24 - 0.1 * (q.y + 0.12) / 0.2)) * step(-0.12, q.y) * step(q.y, 0.06);
-    vec2 f = vec2(q.x / 0.07, (q.y - 0.02) / 0.14);
+    // 河灯: a paper lotus, five petals fanning up from a shallow cup, lit
+    // from the candle inside; the outer petals a little dimmer.
+    vec2 base = vec2(0.0, -0.22);
+    float petals = 0.0;
+    vec3 pcol = vec3(0.0);
+    for (int i = 0; i < 5; i++) {
+      float ang = radians(-64.0 + 32.0 * float(i));
+      vec2 d = q - base;
+      float u = d.x * sin(ang) + d.y * cos(ang);
+      float v = d.x * cos(ang) - d.y * sin(ang);
+      float L = 0.34 - 0.05 * abs(float(i) - 2.0);
+      float shape = smoothstep(0.012, -0.012, abs(v) - 0.1 * pow(max(sin(3.1416 * clamp(u / L, 0.0, 1.0)), 0.0), 0.8)) * step(0.0, u) * step(u, L);
+      float lit = (1.0 - 0.18 * abs(float(i) - 2.0)) * (0.7 + 0.3 * u / L);
+      pcol = mix(pcol, mix(vec3(0.95, 0.72, 0.58), vec3(1.0, 0.9, 0.74), u / L) * lit, shape);
+      petals = max(petals, shape);
+    }
+    vec2 c = vec2(q.x / 0.36, (q.y + 0.24) / 0.09);
+    float cup = smoothstep(1.05, 0.85, length(c)) * step(q.y, -0.2);
+    vec2 f = vec2(q.x / 0.05, (q.y + 0.06) / 0.12);
     float flame = exp(-dot(f, f) * 1.5);
-    float halo = exp(-dot(q, q) * 4.0) * 0.55;
-    col = mix(uInk * 1.4, vec3(0.9, 0.7, 0.55), 0.35) * max(cup, petals * 0.8) + vec3(1.0, 0.85, 0.55) * flame * (0.8 + 0.2 * fl) + warm * halo * 0.7;
-    a = max(max(cup, petals * 0.8), max(flame, halo * 0.75));
+    float halo = exp(-dot(q - vec2(0.0, -0.1), q - vec2(0.0, -0.1)) * 4.5) * 0.5;
+    col = pcol * (0.8 + 0.2 * fl) + vec3(0.85, 0.6, 0.45) * cup * (1.0 - petals) + vec3(1.0, 0.9, 0.62) * flame * (0.8 + 0.2 * fl) + warm * halo * 0.6 * (1.0 - petals);
+    a = max(max(petals, cup), max(flame, halo * 0.7));
   }
   a *= vLamp.w;
   if (a < 0.004) discard;
@@ -116,7 +143,7 @@ export class Lanterns {
     }
     if (on && !calm && time >= this.nextLantern && count(1) < 6) {
       this.nextLantern = time + 3 + Math.random() * 3;
-      this.lamps.push({ kind: 1, x: width * (0.15 + 0.7 * Math.random()), y: horizonY * (0.25 + 0.3 * Math.random()), size: S * (0.13 + 0.03 * Math.random()), phase: Math.random() * 6.28, age: 0, life: 26 + Math.random() * 8 });
+      this.lamps.push({ kind: 1, x: width * (0.15 + 0.7 * Math.random()), y: horizonY * (0.25 + 0.3 * Math.random()), size: S * (0.075 + 0.02 * Math.random()), phase: Math.random() * 6.28, age: 0, life: 26 + Math.random() * 8 });
     }
     for (const l of this.lamps) {
       l.age += dt;

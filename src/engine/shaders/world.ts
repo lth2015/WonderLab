@@ -1,5 +1,6 @@
 import { noiseGLSL } from './common';
 import { MAX_CLOUDS, MAX_METEORS, MAX_STARS, PLANET_SLOTS } from '../sky';
+import { MAX_BOLT } from '../storm';
 
 export const MAX_RIPPLES = 16;
 
@@ -11,6 +12,7 @@ precision highp float;
 #define MAX_RIPPLES ${MAX_RIPPLES}
 #define MAX_STARS ${MAX_STARS}
 #define MAX_METEORS ${MAX_METEORS}
+#define MAX_BOLT ${MAX_BOLT}
 #define MAX_CLOUDS ${MAX_CLOUDS}
 #define PLANET_SLOTS ${PLANET_SLOTS}
 uniform sampler2D uLandscape;
@@ -42,6 +44,8 @@ uniform float uWind;
 uniform float uDusk;
 uniform float uGalaxy;                // 星河, 0..1 (also how far it has risen)
 uniform float uShower;                // 流星雨, 0..1
+uniform vec4 uBolt[MAX_BOLT];         // 雷雨: the bolt's segments (a, b), px
+uniform int uBoltCount;               // 0 for a far strike: only the clouds light
 uniform vec2 uFlash;                  // 雷雨: lightning brightness 0..1, and where along the sky (px)
 uniform vec4 uBoat;                   // 孤舟: x, waterline y, length unit (px), presence
 uniform vec4 uBirds[2];               // 飞鸟: x, y, size (px), wing phase; size 0 = none
@@ -318,9 +322,21 @@ vec4 skyAt(vec2 p, float hpx, float S) {
     // Lightning behind the far hills: the sky and the clouds light up, most
     // near where it struck; the mountains stay dark against it.
     vec2 d = (p - vec2(uFlash.y, uRes.y * 0.95)) / S;
-    float near = exp(-length(d) * 1.4);
-    float lit = uFlash.x * (0.1 + 0.55 * near + 0.5 * cloud * 4.0 * near);
-    c += vec3(0.8, 0.84, 0.95) * lit * mix(0.25, 1.0, land.a);
+    float near = exp(-length(d) * 1.2);
+    float lit = uFlash.x * (0.3 + 0.9 * near + 0.6 * cloud * 4.0 * near);
+    // The hills go black against it.
+    c += vec3(0.8, 0.84, 0.95) * lit * mix(0.06, 1.0, land.a);
+    if (uBoltCount > 0) {
+      // The bolt itself: a white-hot core and a blue-white glow, hidden where it passes behind the hills.
+      float dist = 1e5;
+      for (int i = 0; i < MAX_BOLT; i++) {
+        if (i >= uBoltCount) break;
+        dist = min(dist, segDist(p, uBolt[i].xy, uBolt[i].zw));
+      }
+      float core = exp(-dist * dist / 1.6);
+      float glow = exp(-dist / (S * 0.012)) * 0.45 + exp(-dist / (S * 0.06)) * 0.2;
+      c += vec3(0.9, 0.93, 1.0) * uFlash.x * (core * 1.4 * land.a + glow * mix(0.3, 1.0, land.a));
+    }
   }
   c = userSky(p, c, land.a);
   return vec4(c, land.a);
@@ -422,7 +438,7 @@ void main() {
       // Rings crossing the path catch its light: a splash breaks it into bright arcs.
       col += MOONLIGHT * sheen * path * 0.6 * uMoonlit * (1.0 - uMoon.w);
     }
-    col += vec3(0.8, 0.84, 0.95) * uFlash.x * 0.05;
+    col += vec3(0.8, 0.84, 0.95) * uFlash.x * 0.12;
     if (uBoat.w > 0.001) {
       vec2 q = (p - uBoat.xy) / uBoat.z;
       float ink = boatShape(q);
