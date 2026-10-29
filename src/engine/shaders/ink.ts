@@ -97,6 +97,7 @@ uniform float uGlow;       // > 0: a meteor's fish, pale gold and lit from withi
 uniform float uMark;       // 1: the first fish (本命鱼), a small cinnabar mark at a pectoral fin's root
 uniform float uAge;        // 0..1, grown up: colours settle a shade deeper
 uniform float uSilver;     // 0..1: swimming through the moon's light path (月夜), the back catches it
+uniform vec3 uSheen;       // the colour of that light: moon silver, or the setting sun's gold (落日)
 varying vec2 vSV;                 // (s, side offset in maxW units scaled by growth)
 varying vec2 vPos;
 
@@ -152,7 +153,7 @@ void main() {
     float caustic = pow(1.0 - abs(n1 - n2), 10.0);
     c += vec3(0.85, 0.9, 1.0) * caustic * 0.1 * (1.0 - 0.7 * depth) * (1.0 - fin * 0.5);
     // Moonlight on the back: a silver sheen, brightest along the spine, glinting with the ripples.
-    c += vec3(0.78, 0.83, 0.92) * uSilver * (0.06 + 0.5 * caustic) * (1.0 - 0.6 * depth) * (1.0 - smoothstep(0.2, 0.9, side)) * (1.0 - fin * 0.6);
+    c += uSheen * uSilver * (0.06 + 0.5 * caustic) * (1.0 - 0.6 * depth) * (1.0 - smoothstep(0.2, 0.9, side)) * (1.0 - fin * 0.6);
     c = mix(c, uCinnabar * 0.9, mark * 0.85);
     gl_FragColor = vec4(c, max(ta, mark * 0.8 * reveal * loose) * uOpacity);
     return;
@@ -217,7 +218,7 @@ void main() {
   // Seen through a little water.
   col = mix(col, uWater, 0.12);
   // Moonlight on the back (月夜), as for the painted koi.
-  col += vec3(0.78, 0.83, 0.92) * uSilver * 0.14 * (1.0 - smoothstep(0.1, 0.8, abs(v))) * (1.0 - 0.6 * uDepth);
+  col += uSheen * uSilver * 0.14 * (1.0 - smoothstep(0.1, 0.8, abs(v))) * (1.0 - 0.6 * uDepth);
   // Warmed toward pale gold, lightly, so the painted koi still shows through.
   if (uGlow > 0.0) col = mix(col, vec3(1.0, 0.86, 0.56), 0.25 * uGlow) * (1.0 + 0.25 * uGlow);
   col *= 1.0 - 0.08 * uAge;

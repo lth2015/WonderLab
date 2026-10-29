@@ -102,6 +102,8 @@ export interface Swimmer {
   setOrbit(o: Orbit | null, slot?: number): void;
   /** Slow down and drift up toward the surface until `until`. */
   setRest(until: number): void;
+  /** 各自的偏爱: where in a light path it likes to be, -1..1 (0 the middle). */
+  readonly lightPref?: number;
 }
 
 export interface RelationWorld {
@@ -324,8 +326,12 @@ export class Relations {
     this.nextVisit = w.time + between(this.random, RELATIONS.moonVisitEvery) * (1 - 0.5 * ml);
     if (!w.fish.length) return;
     const fish = w.fish[Math.floor(this.random() * w.fish.length)];
-    fish.lure(m.x, m.y, w.time);
-    if (!this.visitor) this.visitor = { fish, x: m.x, y: m.y, leap: this.random() < RELATIONS.moonLeapChance + 0.35 * ml, until: w.time + 2.5 };
+    // 各自的偏爱 (世界观 09 §四): each fish to its own place in the light,
+    // one to the middle of the path, another along its edge, so in time
+    // the visitor knows them by where they swim.
+    const x = m.x + (fish.lightPref ?? 0) * w.minDim * 0.1;
+    fish.lure(x, m.y, w.time);
+    if (!this.visitor) this.visitor = { fish, x, y: m.y, leap: this.random() < RELATIONS.moonLeapChance + 0.35 * ml, until: w.time + 2.5 };
   }
 
   private rain(w: RelationWorld, fx: RelationEffects): void {

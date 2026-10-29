@@ -86,6 +86,16 @@ describe('relations', () => {
     expect(log.emerged).toEqual(['moon_leap']);
   });
 
+  it('sends each fish to its own place in the light path (各自的偏爱)', () => {
+    const moonReflection = { x: 600, y: 200 };
+    const edge = Object.assign(new FakeFish(100, 100), { lightPref: 1 });
+    const r = new Relations(low);
+    const { fx } = effects();
+    r.update(world({ time: RELATIONS.moonVisitEvery[0], fish: [edge], moonReflection }), fx);
+    expect(edge.lured!.y).toBe(200);
+    expect(edge.lured!.x).toBeGreaterThan(600);
+  });
+
   it('does not leap under reduced motion, nor without a moon', () => {
     const f = new FakeFish(590, 205);
     const r = new Relations(low);
