@@ -17,6 +17,8 @@ interface Lamp {
   phase: number;
   age: number;
   life: number;
+  /** Seconds to fade in: slow for the world's own, quick for the visitor's. */
+  rise: number;
 }
 
 const vert = /* glsl */ `
@@ -133,17 +135,36 @@ export class Lanterns {
     this.material.uniforms.uPR.value = pr;
   }
 
+  /** The visitor touched the water: a lamp set afloat right there. */
+  release(x: number, y: number, S: number, time: number): void {
+    this.add({ kind: 0, x, y, size: S * (0.11 + 0.03 * Math.random()), phase: time * 3.1, age: 0, life: 34 + Math.random() * 8, rise: 0.35 });
+  }
+
+  /** The visitor drew a line up into the sky: a lantern lifting from where it began. */
+  launch(x: number, y: number, S: number, time: number): void {
+    this.add({ kind: 1, x, y, size: S * (0.08 + 0.015 * Math.random()), phase: time * 2.3, age: 0, life: 30 + Math.random() * 6, rise: 0.5 });
+  }
+
+  /** Room for the visitor's lamp: the oldest of the world's goes first. */
+  private add(l: Lamp): void {
+    if (this.lamps.length >= MAX) {
+      const i = this.lamps.findIndex((o) => o.rise > 1);
+      this.lamps.splice(Math.max(i, 0), 1);
+    }
+    this.lamps.push(l);
+  }
+
   update(dt: number, time: number, amount: number, view: { width: number; height: number; horizonY: number; S: number }, calm: boolean): void {
     const { width, height, horizonY, S } = view;
     const on = amount > 0.4;
     const count = (k: 0 | 1) => this.lamps.filter((l) => l.kind === k).length;
     if (on && time >= this.nextLamp && count(0) < 14) {
       this.nextLamp = time + 1.1 + Math.random() * 1.4;
-      this.lamps.push({ kind: 0, x: width * (0.1 + 0.8 * Math.random()), y: horizonY * (0.2 + 0.3 * Math.random()), size: S * (0.11 + 0.03 * Math.random()), phase: Math.random() * 6.28, age: 0, life: 30 + Math.random() * 12 });
+      this.lamps.push({ kind: 0, x: width * (0.1 + 0.8 * Math.random()), y: horizonY * (0.2 + 0.3 * Math.random()), size: S * (0.11 + 0.03 * Math.random()), phase: Math.random() * 6.28, age: 0, life: 30 + Math.random() * 12, rise: 2 });
     }
     if (on && !calm && time >= this.nextLantern && count(1) < 6) {
       this.nextLantern = time + 3 + Math.random() * 3;
-      this.lamps.push({ kind: 1, x: width * (0.15 + 0.7 * Math.random()), y: horizonY * (0.25 + 0.3 * Math.random()), size: S * (0.075 + 0.02 * Math.random()), phase: Math.random() * 6.28, age: 0, life: 26 + Math.random() * 8 });
+      this.lamps.push({ kind: 1, x: width * (0.15 + 0.7 * Math.random()), y: horizonY * (0.25 + 0.3 * Math.random()), size: S * (0.075 + 0.02 * Math.random()), phase: Math.random() * 6.28, age: 0, life: 26 + Math.random() * 8, rise: 2 });
     }
     for (const l of this.lamps) {
       l.age += dt;
@@ -161,7 +182,7 @@ export class Lanterns {
     this.attr.fill(0);
     let n = 0;
     for (const l of this.lamps) {
-      const fadeIn = Math.min(l.age / 2, 1);
+      const fadeIn = Math.min(l.age / l.rise, 1);
       const fadeOut = Math.min((l.life - l.age) / 4, 1);
       const flicker = 0.5 + 0.5 * Math.sin(time * 9 + l.phase) * Math.sin(time * 5.3 + l.phase * 2);
       let size = l.size;

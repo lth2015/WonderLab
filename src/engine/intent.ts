@@ -7,8 +7,8 @@
 // to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy' | 'lanterns';
-export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy', 'lanterns'];
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy' | 'lanterns' | 'moonsnow';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy', 'lanterns', 'moonsnow'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -99,6 +99,9 @@ export function interpret(input: string): Interpretation {
   const command: SceneCommand = {};
   let hit = false;
   let consumed = text;
+  // 月夜下雪: the snow rule comes first and takes the weather; moonlight in
+  // the same words then joins it rather than being dropped.
+  let moonHit = false;
 
   for (const [words, set] of KEYWORDS) {
     for (const w of words) {
@@ -113,6 +116,7 @@ export function interpret(input: string): Interpretation {
         }
         break;
       }
+      if (set.weather === 'moonlit') moonHit = true;
       for (const [k, v] of Object.entries(set) as [keyof SceneCommand, never][]) {
         if (command[k] === undefined) command[k] = v;
       }
@@ -120,6 +124,8 @@ export function interpret(input: string): Interpretation {
       break;
     }
   }
+
+  if (command.weather === 'snow' && moonHit) command.weather = 'moonsnow';
 
   for (const [words, intent] of FISH_RULES) {
     const w = words.find((x) => text.includes(x) && !negated(text, text.indexOf(x)));
