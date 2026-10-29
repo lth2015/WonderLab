@@ -218,6 +218,17 @@ export class Lotus {
     return { x: it.u * width, y, size };
   }
 
+  /** 叶下: whether (x, y) on the lake lies under a flat leaf, in its shade. */
+  shadeAt(x: number, y: number): boolean {
+    if (this.presence < 0.6) return false;
+    for (const it of this.items) {
+      if (it.kind !== 0) continue;
+      const p = this.place(it);
+      if (Math.hypot((x - p.x) / (p.size * 0.5), (y - p.y) / (p.size * 0.21)) < 1) return true;
+    }
+    return false;
+  }
+
   /** A touch at (x, y): the pad or flower there bobs. True if one was touched. */
   touch(x: number, y: number): boolean {
     if (this.presence < 0.5) return false;

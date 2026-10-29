@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moonPathAt, offFramePathPoint } from './moonlight';
+import { moonPathAt, offFramePathPoint, sunPathAt } from './moonlight';
 
 const view = { width: 390, horizonY: 464, S: 390 };
 
@@ -22,5 +22,17 @@ describe('moonPathAt', () => {
     expect(moonPathAt(p.x, p.y, view, null, 1)).toBeGreaterThan(0.8);
     expect(moonPathAt(p.x, p.y, view, null, 1)).toBeGreaterThan(moonPathAt(view.width - 10, p.y, view, null, 1));
     expect(moonPathAt(p.x, p.y, view, null, 0)).toBe(0);
+  });
+});
+
+describe('sunPathAt', () => {
+  const view = { width: 400, horizonY: 500, S: 400 };
+  it('lies under the setting sun, fades toward the viewer, and only at dusk', () => {
+    const under = sunPathAt(304, 480, view, 1);
+    expect(under).toBeGreaterThan(0.8);
+    expect(sunPathAt(60, 480, view, 1)).toBeLessThan(0.01);
+    expect(sunPathAt(304, 200, view, 1)).toBeLessThan(under * 0.2);
+    expect(sunPathAt(304, 480, view, 0)).toBe(0);
+    expect(sunPathAt(304, 520, view, 1)).toBe(0);
   });
 });

@@ -255,6 +255,7 @@ export class Fish {
       uMark: { value: this.honmei && !shadow ? 1 : 0 },
       uAge: { value: options.maturity ?? 0 },
       uSilver: { value: 0 },
+      uSheen: { value: new THREE.Vector3(0.78, 0.83, 0.92) },
     });
     const make = (shadow: number) =>
       new THREE.ShaderMaterial({
@@ -371,9 +372,21 @@ export class Fish {
     this.chillTarget = chill;
   }
 
-  /** How much moonlight lies where the fish is swimming, 0..1 (月夜). */
-  setMoonlight(level: number): void {
+  /**
+   * How much light lies on the water where the fish is swimming, 0..1: the
+   * moon's path (月夜), or with `gold` the setting sun's (落日), which the
+   * back catches as gold.
+   */
+  setMoonlight(level: number, gold = false): void {
     this.silverTarget = level;
+    const c = this.material.uniforms.uSheen.value as THREE.Vector3;
+    const t = gold ? [1.0, 0.72, 0.38] : [0.78, 0.83, 0.92];
+    if (level > 0.02) c.lerp(new THREE.Vector3(t[0], t[1], t[2]), 0.1);
+  }
+
+  /** 各自的偏爱: where in a light path this fish likes to be, -1..1 (0 the middle, ±1 the edges). Its own, from its seed. */
+  get lightPref(): number {
+    return Math.sin(this.seed * 12.9898);
   }
 
   setRest(until: number): void {

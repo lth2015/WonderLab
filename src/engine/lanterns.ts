@@ -19,6 +19,8 @@ interface Lamp {
   life: number;
   /** Seconds to fade in: slow for the world's own, quick for the visitor's. */
   rise: number;
+  /** 灯下鱼影: how much a fish passing beneath has stirred it, 0..1, fading. */
+  stir?: number;
 }
 
 const vert = /* glsl */ `
@@ -145,6 +147,20 @@ export class Lanterns {
     this.add({ kind: 1, x, y, size: S * (0.08 + 0.015 * Math.random()), phase: time * 2.3, age: 0, life: 30 + Math.random() * 6, rise: 0.5 });
   }
 
+  /**
+   * 灯下鱼影 (世界观 09 §十一): a fish passing under a river lamp rocks it a
+   * little and sets its light trembling on the water. True if one was near.
+   */
+  stirAt(x: number, y: number, r: number): boolean {
+    let any = false;
+    for (const l of this.lamps) {
+      if (l.kind !== 0 || Math.hypot(l.x - x, l.y - y) > r) continue;
+      if ((l.stir ?? 0) < 0.3) any = true;
+      l.stir = 1;
+    }
+    return any;
+  }
+
   /** Room for the visitor's lamp: the oldest of the world's goes first. */
   private add(l: Lamp): void {
     if (this.lamps.length >= MAX) {
@@ -168,6 +184,7 @@ export class Lanterns {
     }
     for (const l of this.lamps) {
       l.age += dt;
+      l.stir = Math.max((l.stir ?? 0) - dt * 0.6, 0);
       if (l.kind === 0) {
         // Out toward the hills, slowing as it goes, wandering a little.
         const dn = (horizonY - l.y) / S;
@@ -184,7 +201,10 @@ export class Lanterns {
     for (const l of this.lamps) {
       const fadeIn = Math.min(l.age / l.rise, 1);
       const fadeOut = Math.min((l.life - l.age) / 4, 1);
-      const flicker = 0.5 + 0.5 * Math.sin(time * 9 + l.phase) * Math.sin(time * 5.3 + l.phase * 2);
+      const st = l.stir ?? 0;
+      const flicker = 0.5 + 0.5 * Math.sin(time * (9 + 10 * st) + l.phase) * Math.sin(time * 5.3 + l.phase * 2);
+      // Rocked by the fish beneath: a small bob that settles.
+      const bob = Math.sin(time * 11 + l.phase) * st * S * 0.006;
       let size = l.size;
       let alpha = fadeIn * fadeOut * (on ? 1 : Math.max(amount / 0.4, 0));
       if (l.kind === 0) {
@@ -192,8 +212,8 @@ export class Lanterns {
         const dn = Math.max((horizonY - l.y) / S, 0);
         size *= 0.25 + 0.75 * Math.min(dn / 0.6, 1);
         alpha *= Math.min(dn / 0.04, 1);
-        this.pos.set([l.x, l.y - size * 0.35, 0], n * 3);
-        this.attr.set([2, size * 1.1, flicker, alpha], n * 4);
+        this.pos.set([l.x + bob * 0.5, l.y - size * 0.35, 0], n * 3);
+        this.attr.set([2, size * (1.1 + 0.25 * st), flicker, alpha], n * 4);
         n++;
       } else {
         // Smaller and fainter as it rises away.
@@ -201,7 +221,7 @@ export class Lanterns {
         size *= 1 - 0.65 * up;
         alpha *= 1 - 0.6 * up;
       }
-      this.pos.set([l.x, l.y, 0], n * 3);
+      this.pos.set([l.x, l.y + bob, 0], n * 3);
       this.attr.set([l.kind, size, flicker, alpha], n * 4);
       n++;
     }

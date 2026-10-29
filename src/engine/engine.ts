@@ -10,7 +10,7 @@ import { Snow } from './snow';
 import { Leaves } from './leaves';
 import { Lanterns } from './lanterns';
 import { Lotus } from './lotus';
-import { BELL, moonPathAt, offFramePathPoint } from './moonlight';
+import { BELL, moonPathAt, offFramePathPoint, sunPathAt } from './moonlight';
 import { flashLevel, MAX_BOLT, packSegment, strike, strikeAlong, type Segment } from './storm';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
@@ -157,6 +157,10 @@ export class Engine {
   private lotus!: Lotus;
   /** Engine time of the next frog among the lotus. */
   private nextFrog = -1;
+  /** 叶下更静: when each fish may next rest in a leaf's shade. */
+  private shadeRest = new WeakMap<Fish, number>();
+  /** 同行: a fish from the sky keeping company with one the visitor drew, for a while. */
+  private companions: { sky: Fish; drawn: Fish; until: number; side: number }[] = [];
   private lanterns!: Lanterns;
   private readonly sky = new Sky();
   private history: HistoryEntry[] = [];
@@ -832,6 +836,7 @@ export class Engine {
     this.echo.update(t);
     this.updateRelations();
     this.updateMoonlight();
+    this.updateCompany();
     this.updateStorm();
     this.updateShower();
     this.updateMoonNight(dt);
@@ -1312,7 +1317,45 @@ export class Engine {
     this.fishes.push(fish);
     this.scene.add(fish.group);
     this.evictOverflow();
+    // 同行 (世界观 09 §十): it keeps company for a while with the nearest fish the visitor drew.
+    let near: Fish | null = null;
+    let best = this.minDim * 0.9;
+    for (const f of this.fishes) {
+      if (f === fish || f.glow || f.ghost || f.guest || f.hidden || f.state !== 'swimming') continue;
+      const d = Math.hypot(f.headX - x, f.headY - y);
+      if (d < best) {
+        best = d;
+        near = f;
+      }
+    }
+    if (near) this.companions.push({ sky: fish, drawn: near, until: this.time + 10 + Math.random() * 4, side: Math.random() < 0.5 ? -1 : 1 });
     return fish;
+  }
+
+  /**
+   * 同一个生命，不同的光阴 (docs/世界观落地.md, first batch): fish rest in a
+   * leaf's shade, rock the river lamps they pass under, and a fish from the
+   * sky swims beside a drawn one for a while.
+   */
+  private updateCompany(): void {
+    const t = this.time;
+    const S = this.minDim;
+    for (const f of this.fishes) {
+      if (f.ghost || f.hidden || f.state !== 'swimming') continue;
+      // 叶下更静 (09 §五): under a leaf it slows and rests a moment, not every time it passes.
+      if (this.atmosphere.lotus > 0.5 && t >= (this.shadeRest.get(f) ?? 0) && this.lotus.shadeAt(f.headX, f.headY)) {
+        this.shadeRest.set(f, t + 18 + Math.random() * 12);
+        f.setRest(t + 2.5 + Math.random() * 2);
+      }
+      // 灯下鱼影 (09 §十一).
+      if (this.atmosphere.lanterns > 0.3 && this.lanterns.stirAt(f.headX, f.headY, S * 0.05)) this.addRipple(f.headX, f.headY, 0.25);
+    }
+    this.companions = this.companions.filter((c) => t < c.until && this.fishes.includes(c.sky) && this.fishes.includes(c.drawn) && c.sky.state === 'swimming' && c.drawn.state === 'swimming');
+    for (const c of this.companions) {
+      // Alongside, a little to one side and behind.
+      const d = c.drawn;
+      c.sky.lure(d.headX + c.side * S * 0.06, d.headY + S * 0.02, t, { duration: 0.6 });
+    }
   }
 
   private placeCloud(c: Classification, stroke: Stroke): void {
@@ -1481,7 +1524,13 @@ export class Engine {
     const ml = this.atmosphere.moonlit;
     const moon = this.sky.moonPos;
     const view = this.lakeView();
-    for (const f of this.fishes) f.setMoonlight(ml > 0.01 ? ml * moonPathAt(f.headX, f.headY, view, moon, ml) : 0);
+    const dusk = this.atmosphere.dusk;
+    for (const f of this.fishes) {
+      const silver = ml > 0.01 ? ml * moonPathAt(f.headX, f.headY, view, moon, ml) : 0;
+      // 落日: the same fish, seen again in the evening's gold (世界观 09 §三).
+      const gold = dusk > 0.01 ? sunPathAt(f.headX, f.headY, view, dusk) * 2.2 : 0;
+      f.setMoonlight(Math.max(silver, gold), gold > silver);
+    }
     if (ml < BELL.threshold) {
       this.nextBell = -1;
       return;

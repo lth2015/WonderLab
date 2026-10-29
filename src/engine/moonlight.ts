@@ -27,6 +27,21 @@ export function moonPathAt(x: number, y: number, view: LakeView, moon: { x: numb
   return Math.exp(-(((x - px) / pw) ** 2)) * smoothstep(0, 0.02, dn) * fade;
 }
 
+/**
+ * 落日: how much of the setting sun's gold lies at (x, y) on the lake, 0..1.
+ * The same column as the glints in shaders/world.ts (the sun at 0.76 of the
+ * width), a little wider so a fish catches it as it passes, fading toward
+ * the viewer.
+ */
+export function sunPathAt(x: number, y: number, view: LakeView, dusk: number): number {
+  if (dusk <= 0) return 0;
+  const dn = (view.horizonY - y) / view.S;
+  if (dn <= 0) return 0;
+  const cw = view.S * 0.07 * (1 + dn * 2.5);
+  const dx = x - view.width * 0.76;
+  return Math.exp(-(dx * dx) / (cw * cw)) * (1 - smoothstep(0.08, 0.5, dn)) * dusk;
+}
+
 /** Where a fish goes to meet the light of a moon beyond the frame: on its path, a little out from the far shore. */
 export function offFramePathPoint(view: LakeView): { x: number; y: number } {
   const dn = 0.16;
