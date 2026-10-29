@@ -839,7 +839,7 @@ export class Engine {
     }
     const gustWind = atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8;
     this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.petalLands(x, y));
-    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk }, this.calm, (x, y) => this.dropPetal(x, y));
+    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain }, this.calm, (x, y) => this.dropPetal(x, y));
     this.leaves.update(dt, t, atmos.autumn, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );
@@ -1843,7 +1843,11 @@ export class Engine {
         near = f;
       }
     }
-    near?.lure(x, y, this.time, { duration: 3 });
+    // It comes to the petal, and slows beside it (value/12 §六).
+    if (near) {
+      near.lure(x, y, this.time, { duration: 3 });
+      near.setRest(this.time + 4);
+    }
   }
 
   /** Start now if nothing leads, otherwise wait for the turn (docs/03 §7). */
