@@ -65,12 +65,14 @@ export const warm: Palette = {
 export const PALETTES: Record<PaletteName, Palette> = { serene, warm, melancholy };
 
 /** Dusk lifts and warms the horizon (docs/03 §3.2): target colour and weight. */
+// 2026-10-29: lifted toward a bright, glowing evening (the owner asked for
+// scenes that are lighter and pleasant), with a setting sun in the sky shader.
 export const DUSK: Partial<Record<PaletteKey, [THREE.Vector3, number]>> = {
-  zenith: [rgb('#2A2236'), 0.35],
-  skyLow: [rgb('#A0603F'), 0.7],
-  mountain: [rgb('#3A2A2C'), 0.2],
-  water: [rgb('#1E1A22'), 0.3],
-  accent: [rgb('#F2B37A'), 0.5],
+  zenith: [rgb('#4E5578'), 0.75],
+  skyLow: [rgb('#E3925E'), 0.9],
+  mountain: [rgb('#4B3A46'), 0.55],
+  water: [rgb('#4A3E4E'), 0.65],
+  accent: [rgb('#FFC680'), 0.7],
 };
 
 /**
