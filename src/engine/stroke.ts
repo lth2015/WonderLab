@@ -105,6 +105,11 @@ export class Stroke {
     return { x: x / n, y: y / n };
   }
 
+  /** Draw in this colour from now on (a branch on the bank: the bough's ink, not the brush's). */
+  useColor(c: THREE.Vector3): void {
+    this.material.uniforms.uColor.value = c;
+  }
+
   setOpacity(o: number): void {
     this.opacity = o;
     this.material.uniforms.uOpacity.value = o;

@@ -47,5 +47,8 @@
   "moon": null,
   "lotus": {
     "file": "lotus.webp"
+  },
+  "shore": {
+    "file": "shore.webp"
   }
 }
