@@ -490,7 +490,8 @@ export class Fish {
     this.rise += (Math.max(this.riseTarget, 0.6 * this.rest) - this.rise) * ease;
     this.mist += (this.mistTarget - this.mist) * ease;
     this.chill += (this.chillTarget - this.chill) * ease * 0.5;
-    this.silver += (this.silverTarget - this.silver) * Math.min(dt * 5, 1);
+    // Quick to catch a light (a lightning flash lasts a fraction of a second), slower to lose it.
+    this.silver += (this.silverTarget - this.silver) * Math.min(dt * (this.silverTarget > this.silver ? 25 : 5), 1);
     this.material.uniforms.uSilver.value = this.silver;
     const leapH = this.leapT >= 0 ? Math.sin(Math.PI * this.leapT) : 0;
     const swimDepth = this.depth * (1 - 0.7 * this.rise) + 0.2 * this.mist + 0.12 * this.chill;
