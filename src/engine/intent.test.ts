@@ -77,6 +77,13 @@ describe('interpret', () => {
     expect(interpret('月夜').command.weather).toBe('moonlit');
   });
 
+  it('reads a bright day, and the lotus pond as a summer day', () => {
+    for (const x of ['白天', '阳光明媚的早晨', '天亮了']) expect(interpret(x).command).toMatchObject({ timeOfDay: 'day', weather: 'clear' });
+    for (const x of ['荷花', '接天莲叶无穷碧', '采莲']) expect(interpret(x).command.weather).toBe('lotus');
+    expect(interpret('荷花').command.timeOfDay).toBe('day');
+    expect(interpret('夏天').command.weather).toBe('fireflies');
+  });
+
   it('reads spring petals, and leaves spring rain as rain', () => {
     for (const x of ['桃花', '樱花飘落', '落花', '春天来了']) expect(interpret(x).command).toMatchObject({ weather: 'blossom' });
     expect(interpret('春雨').command.weather).toBe('rain');

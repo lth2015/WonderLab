@@ -45,6 +45,7 @@ uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint ind
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
+uniform float uDay;                   // 白天 0..1: no stars, a lighter lake
 uniform float uGalaxy;                // 星河, 0..1 (also how far it has risen)
 uniform float uShower;                // 流星雨, 0..1
 uniform vec4 uBolt[MAX_BOLT];         // 雷雨: segments (a, b), px; strength in the fraction of a.x
@@ -230,7 +231,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
       glow += (exp(-abs(d.x) / 1.1 - abs(d.y) / 13.0) + exp(-abs(d.y) / 1.1 - abs(d.x) / 13.0)) * 0.7;
       tw = 1.0;
     }
-    c += starCol * glow * s.z * tw * open * (1.0 - 0.5 * uDusk);
+    c += starCol * glow * s.z * tw * open * (1.0 - 0.5 * uDusk) * (1.0 - 0.8 * uDay);
   }
   for (int i = 0; i < MAX_LINKS; i++) {
     vec2 lk = uLinkLook[i];
@@ -271,7 +272,7 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   float t = clamp((p.y - hpx) / (uRes.y - hpx), 0.0, 1.0);
   float stars = starLayer(p, 46.0, 0.32, 1.6) + 0.6 * starLayer(p + 13.0, 19.0, 0.18, 0.9);
   // 月明星稀: a moonlit night has fewer stars, fewer still with the moon up.
-  stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
+  stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - uDay) * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
   c += vec3(0.96, 0.93, 0.86) * stars;
   if (uGalaxy > 0.001) {
     // 星河: a band of light rising from behind the hills at the lower left
@@ -478,7 +479,7 @@ void main() {
       float streak = exp(-dot(lr, lr)) * step(q.y, 0.0) * (0.65 + 0.35 * sin(uTime * 3.1 + q.y * 9.0));
       col += vec3(1.0, 0.72, 0.38) * (lamp * 0.9 + streak * 0.35) * uBoat.w;
     }
-    col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.25 + 0.2 * uSnow);
+    col *= 1.0 - smoothstep(0.0, 0.6, dn) * (0.25 + 0.2 * uSnow) * (1.0 - 0.6 * uDay);
     col *= 1.0 + 0.05 * uMoonLight * uSkyVeil;
   }
 
@@ -494,7 +495,7 @@ void main() {
     col += grain * 0.028 + fibre * 0.02;
   }
   vec2 vq = (vUv - 0.5) * vec2(uRes.x / uRes.y, 1.0);
-  col *= mix(1.0, 0.8, smoothstep(0.45, 1.15, length(vq)));
+  col *= mix(1.0, mix(0.8, 0.92, uDay), smoothstep(0.45, 1.15, length(vq)));
 
   gl_FragColor = vec4(col, 1.0);
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { fromOklch, mixOklab, mixOklch, toOklch, type Oklch } from './color';
 import type { PaletteName, SceneCommand, TimeOfDay, Weather } from './intent';
-import { DUSK, PALETTE_KEYS, PALETTES, clonePalette, type Palette, type PaletteKey } from './palette';
+import { DAY, DUSK, PALETTE_KEYS, PALETTES, clonePalette, type Palette, type PaletteKey } from './palette';
 
 // The world's mood: palette, time of day, weather, wind. Changes are always
 // interpolated (docs/02 §7), over 3–6 s depending on intensity (docs/03 §6.3).
@@ -41,6 +41,9 @@ export class Atmosphere {
   storm = 0;
   wind = INITIAL.wind;
   dusk = 0;
+  /** 白天, 0..1. */
+  day = 0;
+  lotus = 0;
 
   private from: Colors = this.snapshot();
   private to: Colors = this.snapshot();
@@ -92,6 +95,8 @@ export class Atmosphere {
     this.moonlit += ((s.weather === 'moonlit' || s.weather === 'moonsnow' ? amount : 0) - this.moonlit) * Math.min(k * 1.6, 1);
     this.wind += (s.wind - this.wind) * k;
     this.dusk += ((s.timeOfDay === 'dusk' ? 1 : 0) - this.dusk) * k;
+    this.day += ((s.timeOfDay === 'day' ? 1 : 0) - this.day) * k;
+    this.lotus += ((s.weather === 'lotus' ? 1 : 0) - this.lotus) * k;
 
     if (this.t >= 1) return;
     this.t = Math.min(this.t + dt / this.duration, 1);
@@ -114,6 +119,8 @@ function target(s: AtmosphereState): Colors {
     let c = toOklch(base[k]);
     const d = DUSK[k];
     if (s.timeOfDay === 'dusk' && d) c = mixOklab(c, toOklch(d[0]), d[1]);
+    const dd = DAY[k];
+    if (s.timeOfDay === 'day' && dd) c = mixOklab(c, toOklch(dd[0]), dd[1]);
     out[k] = toOklch(fromOklch(c, tmp));
   }
   return out;

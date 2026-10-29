@@ -73,6 +73,20 @@ export const DUSK: Partial<Record<PaletteKey, [THREE.Vector3, number]>> = {
   accent: [rgb('#F2B37A'), 0.5],
 };
 
+/**
+ * 白天 (2026-10-29): ink on rice paper. A pale sky warming toward the
+ * horizon, blue-grey hills, bright water, and the brush turned to dark ink.
+ * Nearly a full replacement: target colour and weight.
+ */
+export const DAY: Partial<Record<PaletteKey, [THREE.Vector3, number]>> = {
+  zenith: [rgb('#A9BFCF'), 0.95],
+  skyLow: [rgb('#E9E3D3'), 0.95],
+  mountain: [rgb('#748694'), 0.9],
+  water: [rgb('#9FB1BA'), 0.95],
+  accent: [rgb('#FFF6DC'), 0.8],
+  brush: [rgb('#262A31'), 1],
+};
+
 export function clonePalette(p: Palette): Palette {
   const out = {} as Palette;
   for (const k of PALETTE_KEYS) out[k] = p[k].clone();

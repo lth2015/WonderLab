@@ -6,9 +6,9 @@
 // They change the world's mood, and give the fish already there something
 // to do (`fish`): explore, gather, rest or play.
 
-export type TimeOfDay = 'night' | 'dusk';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy' | 'lanterns' | 'moonsnow' | 'blossom';
-export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy', 'lanterns', 'moonsnow', 'blossom'];
+export type TimeOfDay = 'night' | 'dusk' | 'day';
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy' | 'lanterns' | 'moonsnow' | 'blossom' | 'lotus';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy', 'lanterns', 'moonsnow', 'blossom', 'lotus'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -63,8 +63,12 @@ const KEYWORDS: Rule[] = [
   // 落花: spring petals drifting down onto the lake (after rain, so 春雨 stays rain).
   [['桃花', '樱花', '梨花', '杏花', '落花', '花瓣', '飞花', '春风', '春天'], { weather: 'blossom', wind: 0.3 }],
   [['雾', '朦胧', '迷蒙', '烟波', '云雾', '模糊', '看不清'], { weather: 'mist' }],
+  // 荷塘: the summer's day, lotus pads and flowers on the near water (before 夏天's fireflies).
+  [['接天莲叶', '荷塘', '荷花', '荷叶', '莲花', '莲叶', '莲蓬', '采莲', '夏日'], { weather: 'lotus', timeOfDay: 'day' }],
   [['萤火', '流萤', '萤', '夏夜', '夏天', '盛夏', '蝉'], { weather: 'fireflies' }],
-  [['晴', '星星', '天亮了', '放晴'], { weather: 'clear' }],
+  // 白天: a bright day, the lake like ink on rice paper (2026-10-29).
+  [['白天', '白日', '晴天', '阳光', '早晨', '清晨', '早上', '上午', '中午', '午后', '日出', '朝阳', '天亮了', '晴朗'], { timeOfDay: 'day', weather: 'clear' }],
+  [['晴', '星星', '放晴'], { weather: 'clear' }],
   [['黄昏', '夕阳', '日落', '傍晚', '晚霞', '落日', '暮色', '余晖'], { timeOfDay: 'dusk' }],
   [['深夜', '午夜', '半夜', '夜深', '夜晚'], { timeOfDay: 'night' }],
   [['孤独', '寂寞', '思念', '想念', '怀念', '离别', '悲伤', '难过', '伤心', '失落', '想家', '秋'], { palette: 'melancholy' }],
@@ -167,7 +171,7 @@ export function validateCommand(raw: unknown): SceneCommand {
   const out: SceneCommand = {};
   if (typeof raw !== 'object' || raw === null) return out;
   const r = raw as Record<string, unknown>;
-  if (r.timeOfDay === 'night' || r.timeOfDay === 'dusk') out.timeOfDay = r.timeOfDay;
+  if (r.timeOfDay === 'night' || r.timeOfDay === 'dusk' || r.timeOfDay === 'day') out.timeOfDay = r.timeOfDay;
   if (WEATHERS.includes(r.weather as Weather)) out.weather = r.weather as Weather;
   if (r.palette === 'serene' || r.palette === 'warm' || r.palette === 'melancholy') out.palette = r.palette;
   for (const k of ['wind', 'intensity'] as const) {

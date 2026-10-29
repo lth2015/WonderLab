@@ -91,7 +91,7 @@ export function parseWorld(data: unknown): WorldSave | null {
   const a = data.atmosphere;
   if (!isObj(a)) return null;
   const atmosphere: AtmosphereState = {
-    timeOfDay: oneOf(a.timeOfDay, ['night', 'dusk'], 'night'),
+    timeOfDay: oneOf(a.timeOfDay, ['night', 'dusk', 'day'], 'night'),
     weather: oneOf(a.weather, WEATHERS, 'clear'),
     palette: oneOf(a.palette, ['serene', 'warm', 'melancholy'], 'serene'),
     wind: unit(a.wind, 0.25),
