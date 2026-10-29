@@ -23,7 +23,7 @@
 | `X-Content-Type-Options: nosniff` | 基本安全 | ✓ |
 | `Permissions-Policy: camera=(), microphone=(), geolocation=()` | 从浏览器层面禁止摄像头、麦克风、定位（P8） | ✓（2026-10-29 加入） |
 | `/assets/*` 一年缓存 | 带哈希的文件，更新时文件名会变 | ✓ |
-| `X-Robots-Tag: noindex, nofollow` | 请搜索引擎不收录 | **待所有者决定**：原方案只给测试子域名加；现在测试直接用正式域名 `want.world`，加上它，测试期间正式域名也不会被收录 |
+| `X-Robots-Tag` | 搜索引擎收录 | **不加**（2026-10-29 所有者决定：Wonderful World 是开放的，`want.world` 允许收录） |
 
 ## 送鱼实验的站点（`poc-gift-r1`，11/16 前需要）
 
