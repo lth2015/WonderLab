@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { flashLevel, MAX_BOLT, packSegment, strike } from './storm';
+import { flashLevel, MAX_BOLT, packSegment, strike, strikeAlong } from './storm';
 
 function seeded(seed: number) {
   let s = seed >>> 0;
@@ -18,6 +18,19 @@ describe('strike', () => {
     expect(segs.some((s) => s[4] < 1)).toBe(true);
     // Trunks come first, so the finest twigs are what the limit drops.
     expect(segs.findIndex((s) => s[4] < 1)).toBe(trunks.length);
+  });
+
+  it('follows a drawn line from its higher end and carries on down to the hills', () => {
+    // Drawn upward, stopping well above the hills at y 480.
+    const path = Array.from({ length: 20 }, (_, i) => ({ x: 150 + i * 2, y: 620 + i * 10 }));
+    const segs = strikeAlong(path, 480, 390, seeded(5));
+    expect(segs.length).toBeLessThanOrEqual(MAX_BOLT);
+    const trunks = segs.filter((s) => s[4] === 1);
+    expect(trunks[0][1]).toBeCloseTo(810, 0);
+    expect(Math.abs(trunks[0][0] - 188)).toBeLessThan(1);
+    expect(Math.min(...trunks.map((s) => s[3]))).toBeLessThanOrEqual(481);
+    expect(segs.some((s) => s[4] < 1)).toBe(true);
+    expect(segs.every((s) => s[3] >= 480 - 390 * 0.5)).toBe(true);
   });
 
   it('packs strength into the fraction of a.x', () => {

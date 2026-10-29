@@ -70,6 +70,13 @@ describe('interpret', () => {
     expect(interpret('我想念夏天').command.weather).toBe('fireflies');
   });
 
+  it('reads snow under the moon as both', () => {
+    for (const x of ['月夜下雪', '月光下飘雪', '雪夜月明', '月下小雪']) expect(interpret(x).command).toMatchObject({ weather: 'moonsnow', timeOfDay: 'night' });
+    expect(interpret('月下小雪').command.intensity).toBe(0.25);
+    expect(interpret('下雪').command.weather).toBe('snow');
+    expect(interpret('月夜').command.weather).toBe('moonlit');
+  });
+
   it('stops rain and snow when asked', () => {
     for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
   });

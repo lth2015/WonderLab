@@ -30,7 +30,6 @@ interface Walk {
 export function strike(x: number, top: number, bottom: number, width: number, S: number, random: () => number, bolts = 2 + Math.floor(random() * 2)): Segment[] {
   const trunks: Segment[] = [];
   const branches: Segment[] = [];
-  const step = S * 0.045;
   const roots: number[] = [];
   for (let i = 0; i < bolts; i++) roots.push(Math.min(Math.max(x + (i - (bolts - 1) / 2) * S * (0.35 + 0.2 * random()), S * 0.05), width - S * 0.05));
   // The crawler: along the cloud base from one root past the other.
@@ -46,6 +45,55 @@ export function strike(x: number, top: number, bottom: number, width: number, S:
     cy = ny;
   }
   const queue: Walk[] = roots.map((rx) => ({ x: rx, y: top, angle: (random() - 0.5) * 0.4, left: top - bottom, strength: 1, depth: 0 }));
+  grow(queue, trunks, branches, bottom, S, random);
+  return [...trunks, ...branches].slice(0, MAX_BOLT);
+}
+
+/**
+ * A strike the visitor drew (雷雨, docs/02 §5.5): the trunk follows the
+ * stroke from its higher end, made jagged, forking as it goes, and runs
+ * on down to `bottom` if the stroke stopped short of the hills.
+ */
+export function strikeAlong(path: { x: number; y: number }[], bottom: number, S: number, random: () => number): Segment[] {
+  const trunks: Segment[] = [];
+  const branches: Segment[] = [];
+  const queue: Walk[] = [];
+  const pts = path[0].y >= path[path.length - 1].y ? path : [...path].reverse();
+  const step = S * 0.045;
+  // Nodes along the stroke, a step apart, each pushed a little to the side.
+  const nodes: { x: number; y: number }[] = [{ ...pts[0] }];
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    acc += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (acc < step * (0.6 + 0.8 * random()) && i < pts.length - 1) continue;
+    acc = 0;
+    const j = (random() - 0.5) * S * 0.03;
+    const dx = pts[i].x - pts[i - 1].x;
+    const dy = pts[i].y - pts[i - 1].y;
+    const d = Math.hypot(dx, dy) || 1;
+    nodes.push({ x: pts[i].x - (dy / d) * j, y: Math.max(pts[i].y + (dx / d) * j, bottom) });
+  }
+  let angle = 0;
+  for (let i = 1; i < nodes.length; i++) {
+    const a = nodes[i - 1];
+    const b = nodes[i];
+    trunks.push([a.x, a.y, b.x, b.y, 1]);
+    angle = Math.atan2(b.x - a.x, a.y - b.y);
+    if (random() < 0.4) {
+      const side = random() < 0.5 ? -1 : 1;
+      queue.push({ x: b.x, y: b.y, angle: angle + side * (0.4 + 0.6 * random()), left: Math.max(b.y - bottom, S * 0.1) * (0.3 + 0.35 * random()), strength: 0.7, depth: 1 });
+    }
+  }
+  const end = nodes[nodes.length - 1];
+  // Stopped short of the hills: the lightning carries on down by itself.
+  if (end.y > bottom + S * 0.02) queue.unshift({ x: end.x, y: end.y, angle: Math.max(Math.min(angle, 0.6), -0.6), left: end.y - bottom, strength: 1, depth: 0 });
+  grow(queue, trunks, branches, bottom, S, random);
+  return [...trunks, ...branches].slice(0, MAX_BOLT);
+}
+
+/** Walk each bolt in the queue down, jagged, forking into finer and fainter branches. */
+function grow(queue: Walk[], trunks: Segment[], branches: Segment[], bottom: number, S: number, random: () => number): void {
+  const step = S * 0.045;
   while (queue.length) {
     const w = queue.shift()!;
     // A trunk runs until it strikes; a branch until its length is spent.
@@ -67,7 +115,6 @@ export function strike(x: number, top: number, bottom: number, width: number, S:
       }
     }
   }
-  return [...trunks, ...branches].slice(0, MAX_BOLT);
 }
 
 /**

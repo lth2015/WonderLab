@@ -35,6 +35,7 @@ function score(p: Poem, cmd: SceneCommand, mood: Mood, subjects: string[]): numb
   if (cmd.weather === 'clear' && p.tags.includes('clear')) s += 1;
   // 月夜 is not a weather in the poems' tags: lines about the moon answer it.
   if (cmd.weather === 'moonlit' && p.tags.includes('moon')) s += 3;
+  if (cmd.weather === 'moonsnow' && (p.tags.includes('moon') || p.tags.includes('snow'))) s += 3;
   if (cmd.weather === 'autumn' && p.tags.includes('autumn')) s += 3;
   if (cmd.weather === 'storm' && p.tags.includes('rain')) s += 3;
   if ((cmd.weather === 'shower' || cmd.weather === 'galaxy') && p.tags.includes('star')) s += 3;

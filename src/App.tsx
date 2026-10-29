@@ -124,6 +124,7 @@ function describe(cmd: SceneCommand, fishAnswered = 0): string {
   if (cmd.weather === 'fireflies') parts.push('萤火飞了起来');
   if (cmd.weather === 'snow') parts.push('下起了雪');
   if (cmd.weather === 'moonlit') parts.push('月光洒了下来');
+  if (cmd.weather === 'moonsnow') parts.push('月光下飘起了雪');
   if (cmd.weather === 'autumn') parts.push('起了秋风，落叶飘下');
   if (cmd.weather === 'storm') parts.push('打起了雷，下起了大雨');
   if (cmd.weather === 'shower') parts.push('下起了流星雨');
@@ -689,7 +690,7 @@ export function App() {
       const wasPrompted = prompted('text_submit');
       const fishAnswered = engine.applyScene(command);
       wordsUsedRef.current();
-      if (command.weather === 'moonlit') moonlitRef.current();
+      if (command.weather === 'moonlit' || command.weather === 'moonsnow') moonlitRef.current();
       setAnnounce(describe(command, fishAnswered));
 
       // Echo: the AI picks from a local shortlist within 2.5 s; otherwise the

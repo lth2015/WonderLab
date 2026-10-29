@@ -10,7 +10,7 @@ import { Snow } from './snow';
 import { Leaves } from './leaves';
 import { Lanterns } from './lanterns';
 import { BELL, moonPathAt, offFramePathPoint } from './moonlight';
-import { flashLevel, MAX_BOLT, packSegment, strike } from './storm';
+import { flashLevel, MAX_BOLT, packSegment, strike, strikeAlong, type Segment } from './storm';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { FORM_TIME, Fish, type FishOrigin } from './fish';
@@ -745,7 +745,7 @@ export class Engine {
     const recolouring = atmos.changing;
     atmos.update(dt);
     // Snow settles on the mountains slowly and melts more slowly still.
-    const capTarget = atmos.state.weather === 'snow' ? 0.15 + 0.85 * atmos.state.intensity : 0;
+    const capTarget = atmos.state.weather === 'snow' || atmos.state.weather === 'moonsnow' ? 0.15 + 0.85 * atmos.state.intensity : 0;
     this.snowCap += (capTarget - this.snowCap) * Math.min(dt / (capTarget > this.snowCap ? 10 : 30), 1);
     const capMoved = Math.abs(this.snowCap - this.landscapeMat.uniforms.uSnowCap.value) > 0.004;
     if (capMoved) this.landscapeMat.uniforms.uSnowCap.value = this.snowCap;
@@ -1346,22 +1346,15 @@ export class Engine {
     else if (this.nextFlash < 0) this.nextFlash = t + 2 + Math.random() * 2;
     else if (t >= this.nextFlash) {
       this.nextFlash = t + 7 + Math.random() * 10;
-      this.flash = { at: t, x: this.width * (0.15 + 0.7 * Math.random()) };
-      const u = this.worldMat.uniforms;
+      const x = this.width * (0.15 + 0.7 * Math.random());
       // Three strikes in four are near: bolts onto the hills and the thunder almost at once.
       if (Math.random() < 0.75) {
         const S = this.minDim;
-        const segs = strike(this.flash.x, this.height - S * 0.06, this.horizonY + S * (0.02 + 0.04 * Math.random()), this.width, S, Math.random);
-        segs.forEach((s, i) => u.uBolt.value[i].set(...packSegment(s)));
-        u.uBoltCount.value = segs.length;
-        const pad = S * 0.25;
-        const xs = segs.flatMap((s) => [s[0], s[2]]);
-        const ys = segs.flatMap((s) => [s[1], s[3]]);
-        u.uBoltBox.value.set(Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad);
-        this.thunder = { at: t + 0.3 + Math.random() * 0.5, x: this.flash.x, strength: 1.3 };
+        this.boltFlash(strike(x, this.height - S * 0.06, this.horizonY + S * (0.02 + 0.04 * Math.random()), this.width, S, Math.random), x);
+        this.thunder = { at: t + 0.3 + Math.random() * 0.5, x, strength: 1.3 };
       } else {
-        u.uBoltCount.value = 0;
-        this.thunder = { at: t + 2 + Math.random() * 2, x: this.flash.x, strength: 0.6 };
+        this.boltFlash([], x);
+        this.thunder = { at: t + 2 + Math.random() * 2, x, strength: 0.6 };
       }
     }
     if (this.thunder && t >= this.thunder.at) {
@@ -1594,10 +1587,62 @@ export class Engine {
         else this.leadMoon(c, stroke, false);
         return;
       case 'open':
+        if (this.handInScene(stroke)) return;
         if (lake) this.leadFish(stroke, pointer);
         else this.launchMeteor(stroke);
         return;
     }
+  }
+
+  /**
+   * 手进到场景里 (docs/02 §5.5): in some weathers an open stroke is not a
+   * fish or a meteor but a gesture in that scene. 雷雨: a line drawn down
+   * from the sky is a lightning strike along it. 河灯: a line drawn up into
+   * the sky lets a paper lantern rise from where it began.
+   */
+  private handInScene(stroke: Stroke): boolean {
+    const pts = stroke.points;
+    const a = pts[0];
+    const b = pts[pts.length - 1];
+    const top = Math.max(a.y, b.y);
+    const rise = b.y - a.y;
+    if (this.atmosphere.storm > 0.5 && top >= this.horizonY + this.minDim * 0.1 && Math.abs(rise) > Math.abs(b.x - a.x) * 0.5) {
+      this.fadeStroke(stroke, 0, 0.25);
+      this.drawnStrike(pts);
+      return true;
+    }
+    if (this.atmosphere.lanterns > 0.5 && b.y >= this.horizonY && rise > this.minDim * 0.1 && rise > Math.abs(b.x - a.x)) {
+      this.fadeStroke(stroke, 0.05, 0.6);
+      if (a.y < this.horizonY) this.addRipple(a.x, a.y, 0.5);
+      this.lanterns.launch(a.x, Math.max(a.y, this.horizonY * 0.2), this.minDim, this.time);
+      this.sfx('chime', a.x, 0.3);
+      return true;
+    }
+    return false;
+  }
+
+  /** Lightning along a line the visitor drew, onto the hills, and the thunder at once. */
+  private drawnStrike(pts: Pt[]): void {
+    const S = this.minDim;
+    const segs = strikeAlong(pts, this.horizonY + S * 0.03, S, Math.random);
+    const x = segs.length ? segs[0][0] : pts[0].x;
+    this.boltFlash(segs, x);
+    this.thunder = { at: this.time + 0.15 + Math.random() * 0.2, x, strength: 1.3 };
+    // The sky's own lightning waits a little after the visitor's.
+    this.nextFlash = Math.max(this.nextFlash, this.time + 6 + Math.random() * 4);
+  }
+
+  /** Start a flash at `x` drawing these bolts (none: only the clouds light up). */
+  private boltFlash(segs: Segment[], x: number): void {
+    const u = this.worldMat.uniforms;
+    this.flash = { at: this.time, x };
+    segs.forEach((s, i) => u.uBolt.value[i].set(...packSegment(s)));
+    u.uBoltCount.value = segs.length;
+    if (!segs.length) return;
+    const pad = this.minDim * 0.25;
+    const xs = segs.flatMap((s) => [s[0], s[2]]);
+    const ys = segs.flatMap((s) => [s[1], s[3]]);
+    u.uBoltBox.value.set(Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad);
   }
 
   /** Start now if nothing leads, otherwise wait for the turn (docs/03 §7). */
@@ -1667,6 +1712,8 @@ export class Engine {
     }
     this.addRipple(x, y, 1);
     this.sfx('ripple', x, 1);
+    // 河灯: touching the water sets a lamp afloat there.
+    if (this.atmosphere.lanterns > 0.5) this.lanterns.release(x, y, this.minDim, this.time);
     const r = this.minDim * 0.12;
     for (const f of this.fishes) {
       const d = Math.hypot(f.headX - x, f.headY - y);
