@@ -117,6 +117,7 @@ float birdShape(vec2 q, float phase) {
 
 vec3 moonLayer(vec2 p, vec3 c, float open) {
   if (uMoon.w <= 0.0) return c;
+  vec3 before = c;
   float r = uMoon.z;
   vec2 d = p - uMoon.xy;
   float dist = length(d);
@@ -160,7 +161,15 @@ vec3 moonLayer(vec2 p, vec3 c, float open) {
   }
   face *= (0.8 + 0.2 * z) * (1.0 + 0.12 * uMoonPulse);
   c = mix(c, c + uAccent * 0.02, disc * shade * uMoon.w * open);    // faint earthshine
-  return mix(c, face, disc * (1.0 - shade) * uMoon.w * open);
+  vec3 moon = mix(c, face, disc * (1.0 - shade) * uMoon.w * open);
+  if (uDay <= 0.001) return moon;
+  // 白天: the circle drawn in the sky is the sun. A whole, warm white disc
+  // (no phases), bright at the heart, in a wide soft glow.
+  float glow = exp(-max(dist - r, 0.0) / (r * 0.6)) * 0.45 + exp(-max(dist - r, 0.0) / (r * 4.0)) * 0.16;
+  vec3 sun = before + vec3(1.0, 0.92, 0.72) * glow * uMoon.w * mix(0.5, 1.0, open) * (1.0 + uMoonPulse);
+  vec3 disk = mix(vec3(1.0, 0.95, 0.84), vec3(1.0, 1.0, 0.97), smoothstep(1.0, 0.3, length(q)));
+  sun = mix(sun, disk, disc * uMoon.w * open);
+  return mix(moon, sun, uDay);
 }
 
 // Small planets (docs/02 §5.2), painted rather than lit: a pale wash of
@@ -465,6 +474,8 @@ void main() {
       float crest2 = noise(vec2(p.x / (S * 0.007 * (1.0 + dn * 1.2)), zz * 10.0 - uWaveT * 1.4 + 7.0));
       float glit = smoothstep(0.66, 0.95, crest * 0.6 + crest2 * 0.5);
       float fade = smoothstep(0.0, 0.015, dn) * (1.0 - 0.8 * smoothstep(0.12, 0.55, dn));
+      // By day the light water shows the long near glints as streaks: let them go sooner.
+      fade *= 1.0 - uDay * smoothstep(0.06, 0.3, dn);
       vec3 light = mix(uAccent, uPaper, 0.35);
       col += light * glit * moonCol * lit * fade * (0.5 + 0.7 * uMoonlit * (1.0 - smoothstep(0.08, 0.3, dn))) * (1.0 - 0.45 * uMoonlit * smoothstep(0.2, 0.5, dn)) * (1.0 + uMoonPulse);
       col += uAccent * moonCol * lit * fade * 0.035;
