@@ -169,6 +169,8 @@ export class Engine {
   /** 接雪: where a finger is held still in the snow, and how far the flakes have gathered. */
   private catchAt = { x: 0, y: 0 };
   private catchK = 0;
+  /** 秋风: a gust the visitor drew, its direction (-1 left, 1 right) and how much is left of it. */
+  private gust = { dir: 1, k: 0 };
   /** The last star the visitor placed, for 星河's constellation lines. */
   private lastStar: { id: number; x: number; y: number; time: number } | null = null;
   private thunder: { at: number; x: number; strength: number } | null = null;
@@ -759,10 +761,12 @@ export class Engine {
     const rimMoved = Math.abs(atmos.moonlit - this.landscapeMat.uniforms.uMoonRim.value) > 0.004;
     if (rimMoved) this.landscapeMat.uniforms.uMoonRim.value = atmos.moonlit;
     if (recolouring || capMoved || rimMoved) this.renderLandscape();
-    this.waveT += dt * (0.6 + atmos.wind * 1.6);
+    this.gust.k *= Math.exp(-dt / 1.4);
+    const wind = Math.min(atmos.wind + this.gust.k * 0.6, 1);
+    this.waveT += dt * (0.6 + wind * 1.6);
     const wu = this.worldMat.uniforms;
     wu.uWaveT.value = this.waveT;
-    wu.uWind.value = atmos.wind;
+    wu.uWind.value = wind;
     wu.uDusk.value = atmos.dusk;
     wu.uSnow.value = atmos.snow;
     wu.uMoonlit.value = atmos.moonlit;
@@ -778,11 +782,11 @@ export class Engine {
     this.snow.update(dt, t, atmos.snow, atmos.state.intensity, atmos.wind);
     this.updateCatch(dt);
     this.lanterns.update(dt, t, atmos.lanterns, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, this.calm);
-    this.leaves.update(dt, t, atmos.autumn, atmos.wind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
+    this.leaves.update(dt, t, atmos.autumn, atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );
-    weu.uWind.value = atmos.wind;
-    this.sound?.ambient({ rain: atmos.rain, wind: atmos.wind, fireflies: atmos.fireflies, snow: atmos.snow, autumn: atmos.autumn, dusk: atmos.dusk });
+    weu.uWind.value = wind;
+    this.sound?.ambient({ rain: atmos.rain, wind, fireflies: atmos.fireflies, snow: atmos.snow, autumn: atmos.autumn, dusk: atmos.dusk });
 
     this.sky.linkLevel = Math.min(atmos.galaxy * 1.5, 1);
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
@@ -1623,7 +1627,8 @@ export class Engine {
    * 手进到场景里 (docs/02 §5.5): in some weathers an open stroke is not a
    * fish or a meteor but a gesture in that scene. 雷雨: a line drawn down
    * from the sky is a lightning strike along it. 河灯: a line drawn up into
-   * the sky lets a paper lantern rise from where it began.
+   * the sky lets a paper lantern rise from where it began. 秋风: a line
+   * drawn across the sky is a gust that way, carrying the leaves with it.
    */
   private handInScene(stroke: Stroke): boolean {
     const pts = stroke.points;
@@ -1634,6 +1639,13 @@ export class Engine {
     if (this.atmosphere.storm > 0.5 && top >= this.horizonY + this.minDim * 0.1 && Math.abs(rise) > Math.abs(b.x - a.x) * 0.5) {
       this.fadeStroke(stroke, 0, 0.25);
       this.drawnStrike(pts);
+      return true;
+    }
+    const run = b.x - a.x;
+    if (this.atmosphere.autumn > 0.5 && top >= this.horizonY && Math.abs(run) > this.minDim * 0.2 && Math.abs(run) > Math.abs(rise) * 1.5 && stroke.points.every((p) => p.y >= this.horizonY - this.minDim * 0.05)) {
+      this.fadeStroke(stroke, 0, 0.4);
+      this.gust = { dir: Math.sign(run), k: 1 };
+      this.leaves.gust(Math.sign(run), (a.y + b.y) / 2, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim });
       return true;
     }
     if (this.atmosphere.lanterns > 0.5 && b.y >= this.horizonY && rise > this.minDim * 0.1 && rise > Math.abs(b.x - a.x)) {
