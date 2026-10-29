@@ -44,5 +44,8 @@
       "flip": false
     }
   ],
-  "moon": null
+  "moon": null,
+  "lotus": {
+    "file": "lotus.webp"
+  }
 }

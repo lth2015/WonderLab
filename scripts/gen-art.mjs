@@ -70,9 +70,28 @@ const MOON = {
   ].join(' '),
 };
 
+// 荷塘 (2026-10-29): the owner wanted the lotus more real. Photographic like
+// the koi, each alone on a transparent background, packed into one atlas.
+const LOTUS_STYLE = [
+  'Photorealistic photograph of a real sacred lotus (Nelumbo nucifera) in a summer pond,',
+  'natural soft daylight, true colour and fine detail, not an illustration, no outlines.',
+  'Isolated on a fully transparent background: no water, no reflection, no shadow, no other',
+  'plants, no text, no border.',
+].join(' ');
+
+const LOTUS = [
+  { name: 'lotus-leaf-a', prompt: 'A single round lotus leaf lying flat, seen from DIRECTLY ABOVE: a nearly perfect circle filling the image, blue-green and waxy with a soft bloom, fine veins radiating from a pale centre, the rim gently wavy, a few water droplets beading on it.' },
+  { name: 'lotus-leaf-b', prompt: 'A single round lotus leaf lying flat, seen from DIRECTLY ABOVE: a nearly perfect circle filling the image, a fresher, lighter green, fine radiating veins, the rim slightly curled up on one side showing a paler underside.' },
+  { name: 'lotus-leaf-up', prompt: 'A single lotus leaf standing up out of the water on its tall stem, seen from the SIDE at eye level: the leaf cupped and tilted, its rim wavy, blue-green, the straight green stem running down to the BOTTOM EDGE of the image, centred.' },
+  { name: 'lotus-flower-a', prompt: 'A single fully open pink lotus flower seen from the SIDE, slightly above eye level: layered petals white at the base flushing to pink at the tips, a yellow seed pod and stamens at the heart, on a straight green stem running down to the BOTTOM EDGE of the image, centred.' },
+  { name: 'lotus-flower-b', prompt: 'A single half-open pale pink lotus flower seen from the SIDE: cupped petals white at the base, pink at the tips, on a straight green stem running down to the BOTTOM EDGE of the image, centred.' },
+  { name: 'lotus-bud', prompt: 'A single closed lotus bud seen from the SIDE: a pointed teardrop of pink petals, greener at its base, on a straight slender green stem running down to the BOTTOM EDGE of the image, centred.' },
+];
+
 const JOBS = [
   ...KOI.map((k) => ({ kind: 'koi', name: k.name, size: '1536x1024', background: 'transparent', prompt: `${KOI_STYLE} ${k.look}` })),
   { kind: 'moon', name: MOON.name, size: '1024x1024', background: 'opaque', prompt: MOON.prompt },
+  ...LOTUS.map((l) => ({ kind: 'lotus', name: l.name, size: '1024x1024', background: 'transparent', prompt: `${LOTUS_STYLE} ${l.prompt}` })),
 ];
 
 const args = process.argv.slice(2);
@@ -115,11 +134,19 @@ for (const job of jobs) {
     const entry = await processKoi(raw, job.name);
     manifest.koi = [...manifest.koi.filter((k) => k.name !== job.name), entry];
     console.log(`ok (half width ${entry.halfWidth})`);
+  } else if (job.kind === 'lotus') {
+    console.log('ok');
   } else {
     manifest.moon = await processMoon(raw);
     console.log('ok');
   }
   await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+// The lotus are packed together once all six raw images are there.
+if (LOTUS.every((l) => existsSync(`${RAW}/${l.name}.png`)) && jobs.some((j) => j.kind === 'lotus')) {
+  manifest.lotus = await packLotus();
+  await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log(`lotus: packed into ${OUT}/${manifest.lotus.file}`);
 }
 console.log(`\nWrote ${MANIFEST}. Check each texture faces right (head on the right); set "flip": true in the manifest for any that do not.`);
 
@@ -132,6 +159,33 @@ async function processKoi(raw, name) {
   await writeFile(`${OUT}/koi-${name}.webp`, data);
   // Half the image height over its length: how wide the ribbon must be.
   return { name, file: `koi-${name}.webp`, halfWidth: +(info.height / (2 * info.width)).toFixed(3), flip: false };
+}
+
+/**
+ * The six lotus images in one 1536x1024 atlas, three cells across, two
+ * down: leaf a, leaf b, standing leaf; flower a, flower b, bud. The flat
+ * leaves are centred in their cell, the standing ones stand on its bottom
+ * edge (their stem's foot is where they meet the water).
+ */
+async function packLotus() {
+  const CELL = 512;
+  const layers = [];
+  for (const [i, l] of LOTUS.entries()) {
+    const raw = await readFile(`${RAW}/${l.name}.png`);
+    const cut = await sharp(await keyOutBackground(raw)).ensureAlpha().trim({ threshold: 8 }).png().toBuffer();
+    const fit = await sharp(cut).resize(CELL - 8, CELL - 8, { fit: 'inside' }).png().toBuffer();
+    const m = await sharp(fit).metadata();
+    const flat = i < 2;
+    const left = (i % 3) * CELL + Math.round((CELL - m.width) / 2);
+    const top = Math.floor(i / 3) * CELL + (flat ? Math.round((CELL - m.height) / 2) : CELL - m.height - 2);
+    layers.push({ input: fit, left, top });
+  }
+  const data = await sharp({ create: { width: CELL * 3, height: CELL * 2, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite(layers)
+    .webp({ quality: 88, alphaQuality: 90 })
+    .toBuffer();
+  await writeFile(`${OUT}/lotus.webp`, data);
+  return { file: 'lotus.webp' };
 }
 
 /** Square crop on the disc, with everything outside the circle transparent. */
