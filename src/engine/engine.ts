@@ -834,7 +834,7 @@ export class Engine {
     this.snow.update(dt, t, atmos.snow, atmos.state.intensity, atmos.wind);
     this.updateCatch(dt);
     this.lanterns.update(dt, t, atmos.lanterns, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, this.calm);
-    this.lotus.update(dt, t, atmos.lotus, atmos.wind, { width: this.width, horizonY: this.horizonY, S: this.minDim }, this.calm, atmos.day);
+    this.lotus.update(dt, t, atmos.lotus, atmos.wind, { width: this.width, horizonY: this.horizonY, S: this.minDim }, this.calm, atmos.day, atmos.dusk);
     // 蛙声: now and then a frog among the lotus.
     if (atmos.lotus < 0.5) this.nextFrog = -1;
     else if (this.nextFrog < 0) this.nextFrog = t + 5 + Math.random() * 5;
