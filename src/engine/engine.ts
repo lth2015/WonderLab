@@ -10,7 +10,7 @@ import { Snow } from './snow';
 import { Leaves } from './leaves';
 import { Lanterns } from './lanterns';
 import { BELL, moonPathAt, offFramePathPoint } from './moonlight';
-import { boltPath, flashLevel, MAX_BOLT } from './storm';
+import { flashLevel, MAX_BOLT, packSegment, strike } from './storm';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { FORM_TIME, Fish, type FishOrigin } from './fish';
@@ -269,6 +269,7 @@ export class Engine {
         uFlash: { value: new THREE.Vector2() },
         uBolt: { value: Array.from({ length: MAX_BOLT }, () => new THREE.Vector4()) },
         uBoltCount: { value: 0 },
+        uBoltBox: { value: new THREE.Vector4() },
         uShower: { value: 0 },
         uGalaxy: { value: 0 },
         uBoat: { value: new THREE.Vector4() },
@@ -1347,12 +1348,16 @@ export class Engine {
       this.nextFlash = t + 7 + Math.random() * 10;
       this.flash = { at: t, x: this.width * (0.15 + 0.7 * Math.random()) };
       const u = this.worldMat.uniforms;
-      // Six strikes in ten are near: a bolt onto the hills and the thunder almost at once.
-      if (Math.random() < 0.6) {
+      // Three strikes in four are near: bolts onto the hills and the thunder almost at once.
+      if (Math.random() < 0.75) {
         const S = this.minDim;
-        const segs = boltPath(this.flash.x, this.height - S * 0.02, this.horizonY + S * (0.02 + 0.05 * Math.random()), S, Math.random);
-        segs.forEach((s, i) => u.uBolt.value[i].set(...s));
+        const segs = strike(this.flash.x, this.height - S * 0.06, this.horizonY + S * (0.02 + 0.04 * Math.random()), this.width, S, Math.random);
+        segs.forEach((s, i) => u.uBolt.value[i].set(...packSegment(s)));
         u.uBoltCount.value = segs.length;
+        const pad = S * 0.25;
+        const xs = segs.flatMap((s) => [s[0], s[2]]);
+        const ys = segs.flatMap((s) => [s[1], s[3]]);
+        u.uBoltBox.value.set(Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad);
         this.thunder = { at: t + 0.3 + Math.random() * 0.5, x: this.flash.x, strength: 1.3 };
       } else {
         u.uBoltCount.value = 0;

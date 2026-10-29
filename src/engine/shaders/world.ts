@@ -44,7 +44,8 @@ uniform float uWind;
 uniform float uDusk;
 uniform float uGalaxy;                // 星河, 0..1 (also how far it has risen)
 uniform float uShower;                // 流星雨, 0..1
-uniform vec4 uBolt[MAX_BOLT];         // 雷雨: the bolt's segments (a, b), px
+uniform vec4 uBolt[MAX_BOLT];         // 雷雨: segments (a, b), px; strength in the fraction of a.x
+uniform vec4 uBoltBox;                // the strike's bounds, widened by its glow, px
 uniform int uBoltCount;               // 0 for a far strike: only the clouds light
 uniform vec2 uFlash;                  // 雷雨: lightning brightness 0..1, and where along the sky (px)
 uniform vec4 uBoat;                   // 孤舟: x, waterline y, length unit (px), presence
@@ -323,19 +324,27 @@ vec4 skyAt(vec2 p, float hpx, float S) {
     // near where it struck; the mountains stay dark against it.
     vec2 d = (p - vec2(uFlash.y, uRes.y * 0.95)) / S;
     float near = exp(-length(d) * 1.2);
-    float lit = uFlash.x * (0.3 + 0.9 * near + 0.6 * cloud * 4.0 * near);
+    // With bolts in view the sky lights a little less, so the bolts themselves stand out.
+    float lit = uFlash.x * (0.3 + 0.9 * near + 0.6 * cloud * 4.0 * near) * (uBoltCount > 0 ? 0.65 : 1.0);
     // The hills go black against it.
-    c += vec3(0.8, 0.84, 0.95) * lit * mix(0.06, 1.0, land.a);
-    if (uBoltCount > 0) {
-      // The bolt itself: a white-hot core and a blue-white glow, hidden where it passes behind the hills.
-      float dist = 1e5;
+    c += mix(vec3(0.8, 0.84, 0.95), vec3(0.62, 0.6, 0.95), smoothstep(0.3, 0.9, t)) * lit * mix(0.06, 1.0, land.a);
+    if (uBoltCount > 0 && p.x > uBoltBox.x && p.x < uBoltBox.z && p.y > uBoltBox.y && p.y < uBoltBox.w) {
+      // The bolts: white-hot cores, finer and fainter down the branches,
+      // in a blue-violet glow; hidden where they pass behind the hills.
+      float core = 0.0;
+      float glow = 0.0;
       for (int i = 0; i < MAX_BOLT; i++) {
         if (i >= uBoltCount) break;
-        dist = min(dist, segDist(p, uBolt[i].xy, uBolt[i].zw));
+        vec4 sg = uBolt[i];
+        float st = fract(sg.x) / 0.9;
+        float d = segDist(p, vec2(floor(sg.x), sg.y), sg.zw);
+        float wd = 0.6 + 2.4 * st;
+        core = max(core, st * exp(-d * d / (wd * wd)));
+        glow = max(glow, st * (exp(-d / (S * 0.012)) * 0.7 + exp(-d / (S * 0.06)) * 0.3));
       }
-      float core = exp(-dist * dist / 1.6);
-      float glow = exp(-dist / (S * 0.012)) * 0.45 + exp(-dist / (S * 0.06)) * 0.2;
-      c += vec3(0.9, 0.93, 1.0) * uFlash.x * (core * 1.4 * land.a + glow * mix(0.3, 1.0, land.a));
+      vec3 hot = vec3(0.95, 0.97, 1.0);
+      vec3 violet = vec3(0.55, 0.6, 1.0);
+      c += (hot * core * 1.5 * land.a + violet * glow * mix(0.35, 1.0, land.a)) * uFlash.x;
     }
   }
   c = userSky(p, c, land.a);
