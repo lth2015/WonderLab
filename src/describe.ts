@@ -16,7 +16,7 @@ function list(items: string[]): string {
 export function describeWorld(world: Pick<WorldSave, 'atmosphere' | 'fish' | 'moon' | 'planets' | 'stars' | 'clouds'>): string {
   const when = world.atmosphere.timeOfDay === 'dusk' ? '黄昏' : world.atmosphere.timeOfDay === 'day' ? '白天' : '夜晚';
   const things: string[] = [];
-  if (world.moon) things.push('月亮');
+  if (world.moon) things.push(world.atmosphere.timeOfDay === 'day' ? '太阳' : '月亮');
   if (world.planets.length) things.push(`${count(world.planets.length)}颗小星球`);
   if (world.stars.length) things.push(`${count(world.stars.length)}颗星`);
   if (world.clouds.length) things.push(world.clouds.length > 1 ? '几缕流云' : '一缕流云');
