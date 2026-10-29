@@ -77,6 +77,12 @@ describe('interpret', () => {
     expect(interpret('月夜').command.weather).toBe('moonlit');
   });
 
+  it('reads a rainbow after rain as a bright day, and 雨后 is not rain', () => {
+    for (const x of ['彩虹', '雨过天晴', '雨后的彩虹', '雨后']) expect(interpret(x).command).toMatchObject({ weather: 'rainbow', timeOfDay: 'day' });
+    expect(interpret('雨停了').command.weather).toBe('clear');
+    expect(interpret('下雨').command.weather).toBe('rain');
+  });
+
   it('reads a bright day, and the lotus pond as a summer day', () => {
     for (const x of ['白天', '阳光明媚的早晨', '天亮了']) expect(interpret(x).command).toMatchObject({ timeOfDay: 'day', weather: 'clear' });
     for (const x of ['荷花', '接天莲叶无穷碧', '采莲']) expect(interpret(x).command.weather).toBe('lotus');
