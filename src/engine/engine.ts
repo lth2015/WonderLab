@@ -10,6 +10,7 @@ import { Snow } from './snow';
 import { Leaves } from './leaves';
 import { Lanterns } from './lanterns';
 import { BELL, moonPathAt, offFramePathPoint } from './moonlight';
+import { boltPath, flashLevel, MAX_BOLT } from './storm';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
 import { Stroke, type StrokePoint } from './stroke';
 import { FORM_TIME, Fish, type FishOrigin } from './fish';
@@ -266,6 +267,8 @@ export class Engine {
         uSnow: { value: 0 },
         uMoonlit: { value: 0 },
         uFlash: { value: new THREE.Vector2() },
+        uBolt: { value: Array.from({ length: MAX_BOLT }, () => new THREE.Vector4()) },
+        uBoltCount: { value: 0 },
         uShower: { value: 0 },
         uGalaxy: { value: 0 },
         uBoat: { value: new THREE.Vector4() },
@@ -290,6 +293,7 @@ export class Engine {
         uFireflies: { value: 0 },
         uSnow: { value: 0 },
         uSnowDensity: { value: 0 },
+        uFlashLevel: { value: 0 },
         uWind: { value: 0 },
         uParticles: { value: 1 },
         uCalm: { value: this.calm ? 1 : 0 },
@@ -1341,17 +1345,27 @@ export class Engine {
     else if (this.nextFlash < 0) this.nextFlash = t + 2 + Math.random() * 2;
     else if (t >= this.nextFlash) {
       this.nextFlash = t + 7 + Math.random() * 10;
-      const far = Math.random();
       this.flash = { at: t, x: this.width * (0.15 + 0.7 * Math.random()) };
-      this.thunder = { at: t + 1.2 + far * 2.8, x: this.flash.x, strength: 1.2 - 0.6 * far };
+      const u = this.worldMat.uniforms;
+      // Six strikes in ten are near: a bolt onto the hills and the thunder almost at once.
+      if (Math.random() < 0.6) {
+        const S = this.minDim;
+        const segs = boltPath(this.flash.x, this.height - S * 0.02, this.horizonY + S * (0.02 + 0.05 * Math.random()), S, Math.random);
+        segs.forEach((s, i) => u.uBolt.value[i].set(...s));
+        u.uBoltCount.value = segs.length;
+        this.thunder = { at: t + 0.3 + Math.random() * 0.5, x: this.flash.x, strength: 1.3 };
+      } else {
+        u.uBoltCount.value = 0;
+        this.thunder = { at: t + 2 + Math.random() * 2, x: this.flash.x, strength: 0.6 };
+      }
     }
     if (this.thunder && t >= this.thunder.at) {
       this.sfx('thunder', this.thunder.x, this.thunder.strength);
       this.thunder = null;
     }
-    const a = t - this.flash.at;
-    const level = a < 0 || a > 1.2 || this.calm ? 0 : Math.exp(-a * 10) + (a > 0.16 ? 0.75 * Math.exp(-(a - 0.16) * 6) : 0);
-    this.worldMat.uniforms.uFlash.value.set(Math.min(level, 1), this.flash.x);
+    const level = this.calm ? 0 : flashLevel(t - this.flash.at);
+    this.worldMat.uniforms.uFlash.value.set(level, this.flash.x);
+    this.weatherMat.uniforms.uFlashLevel.value = level;
   }
 
   /** 月夜: a boat with its lamp on the far water, and birds crossing the moon. */

@@ -11,6 +11,7 @@ uniform float uRain;
 uniform float uMist;
 uniform float uFireflies;
 uniform float uSnow;
+uniform float uFlashLevel;  // 雷雨: the rain lights up in the flash
 uniform float uSnowDensity;  // 0..1: sparse 小雪 to generous 大雪
 uniform float uWind;
 uniform float uParticles;  // share of particles drawn, by quality tier
@@ -76,7 +77,7 @@ void main() {
     float streaks = rainLayer(p, S, mix(9.0, 16.0, uCalm), 1.4 * speed, 0.0);
     if (uParticles > 0.5 && uCalm < 0.5) streaks += 0.6 * rainLayer(p, S, 5.0, 1.0 * speed, 17.0);
     vec3 rc = mix(uSkyLow * 2.2, vec3(0.8, 0.82, 0.86), 0.4);
-    col += rc * streaks * 0.28 * uRain;
+    col += rc * streaks * 0.28 * uRain * (1.0 + 3.5 * uFlashLevel);
     col += rc * splashes(p, hpx, S) * 0.22 * uRain;
   }
 
