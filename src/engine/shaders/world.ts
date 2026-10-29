@@ -1,5 +1,5 @@
 import { noiseGLSL } from './common';
-import { MAX_CLOUDS, MAX_METEORS, MAX_STARS, PLANET_SLOTS } from '../sky';
+import { MAX_CLOUDS, MAX_LINKS, MAX_METEORS, MAX_STARS, PLANET_SLOTS } from '../sky';
 import { MAX_BOLT } from '../storm';
 
 export const MAX_RIPPLES = 16;
@@ -11,6 +11,7 @@ export const worldFrag = /* glsl */ `
 precision highp float;
 #define MAX_RIPPLES ${MAX_RIPPLES}
 #define MAX_STARS ${MAX_STARS}
+#define MAX_LINKS ${MAX_LINKS}
 #define MAX_METEORS ${MAX_METEORS}
 #define MAX_BOLT ${MAX_BOLT}
 #define MAX_CLOUDS ${MAX_CLOUDS}
@@ -34,6 +35,8 @@ uniform sampler2D uMoonTex;           // generated moon face (public/art), when 
 uniform float uMoonTexOn;
 uniform vec4 uStars[MAX_STARS];       // x, y, brightness, flash
 uniform int uStarCount;
+uniform vec4 uLinks[MAX_LINKS];       // 星河 constellation lines: ax, ay, bx, by
+uniform vec2 uLinkLook[MAX_LINKS];    // drawn 0..1, brightness
 uniform vec4 uMeteors[MAX_METEORS];   // from x, y, to x, y
 uniform float uMeteorT[MAX_METEORS];  // progress 0..1, 0 = inactive
 uniform vec4 uClouds[MAX_CLOUDS];     // x, y, half width, presence
@@ -228,6 +231,19 @@ vec3 userSky(vec2 p, vec3 c, float open) {
       tw = 1.0;
     }
     c += starCol * glow * s.z * tw * open * (1.0 - 0.5 * uDusk);
+  }
+  for (int i = 0; i < MAX_LINKS; i++) {
+    vec2 lk = uLinkLook[i];
+    if (lk.y <= 0.001) continue;
+    // A fine line that stops short of each star, drawn out from the first.
+    vec2 a = uLinks[i].xy;
+    vec2 ab = uLinks[i].zw - a;
+    float len = max(length(ab), 1.0);
+    float t = clamp(dot(p - a, ab) / (len * len), 0.0, 1.0);
+    float gap = 7.0 / len;
+    float d = length(p - a - ab * t);
+    float on = step(gap, t) * step(t, min(1.0 - gap, lk.x));
+    c += starCol * 0.32 * exp(-d * d / 0.7) * on * lk.y * open;
   }
   for (int i = 0; i < MAX_METEORS; i++) {
     float t = uMeteorT[i];
