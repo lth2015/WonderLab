@@ -32,6 +32,9 @@ import { between, meteorDive, meteorPath, Relations, type RelationEffects, type 
 // Thresholds mirror docs/03-ux-ui-design.md §6.2.
 const TAP_MOVE = 8;
 const LONG_PRESS_MS = 500;
+/** 重逢: seconds between turns of a far fish swimming back, and the quiet before one may. */
+const RETURN_EVERY: [number, number] = [70, 130];
+const RETURN_IDLE = 20;
 const EDGE_GUARD = 16;
 const UNDO_DEPTH = 20;
 const RESTART_UNDO_MS = 5000;
@@ -233,6 +236,8 @@ export class Engine {
   private leaving: { fish: Fish; at: number }[] = [];
   /** Fish that swam off when the lake was full (docs/02 §11 decision 12): still this world's, longest away first. */
   private away: SavedFish[] = [];
+  /** 重逢: when the next fish from the distance may swim back in its turn (-1: not yet decided). */
+  private nextReturn = -1;
   private hadFirstStroke = false;
   private tierHeld = false;
   private sound: SoundSink | null = null;
@@ -852,6 +857,7 @@ export class Engine {
     this.updateRelations();
     this.updateMoonlight();
     this.updateCompany();
+    this.updateReturns();
     this.updateStorm();
     this.updateShower();
     this.updateMoonNight(dt);
@@ -1111,6 +1117,39 @@ export class Engine {
   private livelyFrom(speed: number, pointer: string): number {
     const split = STYLE.fastSplit[pointer] ?? STYLE.fastSplit.mouse;
     return THREE.MathUtils.clamp(speed / (2 * split), 0, 1);
+  }
+
+  /**
+   * 重逢 (docs/02 §11 decision 12, second half; Codex's value/09 §十二): with
+   * the lake full and fish in the distance, now and then the one longest away
+   * swims back in from the far water, and the one longest in the lake goes
+   * off in its place (never the first fish). Nothing is lost; the visitor
+   * meets old fish again, and knows them by their stroke.
+   */
+  private updateReturns(): void {
+    const t = this.time;
+    if (!this.away.length || this.restartPending || this.input) {
+      this.nextReturn = -1;
+      return;
+    }
+    if (this.nextReturn < 0) this.nextReturn = t + between(Math.random, RETURN_EVERY);
+    if (t < this.nextReturn || t - this.lastInput < RETURN_IDLE) return;
+    this.nextReturn = t + between(Math.random, RETURN_EVERY);
+    const real = this.fishes.filter((f) => !f.ghost && !f.guest && f.state !== 'leaving' && !f.hidden);
+    if (real.length < TIERS[this.monitor.tier].maxFish) return; // there is room: they come back on their own when the world opens
+    const saved = this.away.shift()!;
+    const before = this.fishes.length;
+    this.bringBack(saved, Date.now(), Date.now());
+    const back = this.fishes.length > before ? this.fishes[this.fishes.length - 1] : null;
+    if (!back) return;
+    // From the far water, a little out from the far shore, swimming in.
+    const S = this.minDim;
+    const x = this.width * (0.2 + 0.6 * Math.random());
+    back.moveHeadTo(x, this.horizonY - S * 0.08);
+    back.lure(x + (Math.random() - 0.5) * S * 0.3, this.horizonY * 0.55, t, { duration: 6 });
+    this.addRipple(x, this.horizonY - S * 0.08, 0.5);
+    logEvent('emerge', { what: 'return' });
+    this.evictOverflow();
   }
 
   /** Over the tier's fish limit, the oldest leave first, but never the first fish (本命鱼). */
