@@ -67,15 +67,21 @@ void main() {
       if (abs(f.y) > 1.0) discard;
       float c = cos(vItem.z), s = sin(vItem.z);
       f = vec2(c * f.x - s * f.y, s * f.x + c * f.y);
-      uv = vec2(f.x, -f.y) * 0.5 + 0.5;
-      if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) discard;
+      // The leaf is round: keep inside its circle, and a hair inside the
+      // cell so the neighbouring picture never bleeds in at the edge.
+      if (dot(f, f) > 1.0) discard;
+      uv = vec2(f.x, -f.y) * 0.485 + 0.5;
+    } else {
+      uv.x = clamp(uv.x, 0.006, 0.994);
     }
     float col3 = mod(vCell, 3.0);
     float row = floor(vCell / 3.0);
     vec4 t = texture2D(uTex, vec2((col3 + uv.x) / 3.0, 1.0 - (row + uv.y) / 2.0));
     a = t.a * vItem.w;
     if (a < 0.004) discard;
-    gl_FragColor = vec4(t.rgb * uLight * a, a);
+    // A flat leaf sits in the water: its rim a little darker, as if wet and shaded.
+    float rimShade = kind < 0.5 ? 1.0 - 0.22 * smoothstep(0.55, 1.0, length(vec2(q.x, q.y / 0.42))) : 1.0;
+    gl_FragColor = vec4(t.rgb * uLight * rimShade * a, a);
     return;
   }
   if (kind > 2.5) discard;
@@ -149,11 +155,11 @@ export function lotusLayout(seed = 11): Item[] {
     // On the nearer pads, where they can be seen.
     const near = items.filter((it) => it.d > 0.06 && it.d < 0.45);
     const pad = near[(i * 3 + 1) % near.length];
-    items.push({ kind: i < FLOWERS ? 1 : 2, cell: i < FLOWERS ? 3 + (i % 2) : 5, u: pad.u + (r() - 0.5) * 0.04, d: pad.d + 0.01, size: i < FLOWERS ? 0.27 + r() * 0.06 : 0.18 + r() * 0.04, angle: 0, delay: 0.45 + r() * 0.4, phase: r() * 6.28, bob: 0 });
+    items.push({ kind: i < FLOWERS ? 1 : 2, cell: i < FLOWERS ? 3 + (i % 2) : 5, u: pad.u + (r() - 0.5) * 0.04, d: pad.d + 0.01, size: i < FLOWERS ? 0.2 + r() * 0.04 : 0.14 + r() * 0.03, angle: 0, delay: 0.45 + r() * 0.4, phase: r() * 6.28, bob: 0 });
   }
   for (let i = 0; i < STANDING; i++) {
     const pad = items[(i * 7 + 2) % PADS];
-    items.push({ kind: 3, cell: 2, u: pad.u + (r() - 0.5) * 0.05, d: pad.d + 0.015, size: 0.24 + r() * 0.06, angle: 0, delay: 0.3 + r() * 0.4, phase: r() * 6.28, bob: 0 });
+    items.push({ kind: 3, cell: 2, u: pad.u + (r() - 0.5) * 0.05, d: pad.d + 0.015, size: 0.19 + r() * 0.05, angle: 0, delay: 0.3 + r() * 0.4, phase: r() * 6.28, bob: 0 });
   }
   return items;
 }
