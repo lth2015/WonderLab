@@ -100,7 +100,8 @@ export class Leaves {
   }
 
   /**
-   * `amount` 0..1 is how much autumn wind there is; `wind` the smoothed wind.
+   * `amount` 0..1 is how much autumn wind there is; `wind` the smoothed wind,
+   * negative while a gust blows to the left.
    * `land` is called when a leaf touches the water (for a ring).
    */
   update(
@@ -115,22 +116,9 @@ export class Leaves {
     if (amount > 0.4 && time >= this.nextSpawn && this.leaves.length < MAX) {
       this.nextSpawn = time + (0.35 + Math.random() * 0.6) / Math.max(amount, 0.5);
       const fromSide = Math.random() < 0.4;
-      // Nearer leaves land lower on the screen and look larger.
-      const near = Math.random();
-      this.leaves.push({
-        x: fromSide ? -S * 0.05 : Math.random() * width * 0.8,
-        y: fromSide ? horizonY + Math.random() * (height - horizonY) : height + S * 0.05,
-        vx: 0,
-        vy: 0,
-        size: S * (0.045 + 0.05 * near),
-        spin: Math.random() * Math.PI * 2,
-        spinRate: (Math.random() - 0.5) * 2.4,
-        flip: Math.random() * Math.PI * 2,
-        flipRate: 1.5 + Math.random() * 2.5,
-        tint: 0.25 + Math.random() * 0.55,
-        landY: horizonY * (0.62 - 0.55 * near),
-        landed: -1,
-      });
+      // With the wind blowing left, leaves come in from the right.
+      const side = wind < 0 ? width + S * 0.05 : -S * 0.05;
+      this.spawn(fromSide ? side : Math.random() * width * 0.8, fromSide ? horizonY + Math.random() * (height - horizonY) : height + S * 0.05, 0, view);
     }
     for (const l of this.leaves) {
       if (l.landed < 0) {
@@ -154,7 +142,7 @@ export class Leaves {
         l.spin += l.spinRate * 0.08 * dt;
       }
     }
-    this.leaves = this.leaves.filter((l) => l.landed < 14 && l.x < width + S * 0.1);
+    this.leaves = this.leaves.filter((l) => l.landed < 14 && l.x < width + S * 0.1 && l.x > -S * 0.1);
     this.alpha.fill(0);
     this.leaves.forEach((l, i) => {
       this.pos.set([l.x, l.y, 0], i * 3);
@@ -168,6 +156,38 @@ export class Leaves {
     (this.geometry.attributes.aLeaf as THREE.BufferAttribute).needsUpdate = true;
     (this.geometry.attributes.aAlpha as THREE.BufferAttribute).needsUpdate = true;
     this.points.visible = this.leaves.length > 0;
+  }
+
+  /**
+   * 秋风: a gust the visitor drew, `dir` -1 left or 1 right, at height `y`:
+   * a handful of leaves blown in from the upwind edge, already flying.
+   */
+  gust(dir: number, y: number, view: { width: number; height: number; horizonY: number; S: number }): void {
+    const { width, horizonY, height, S } = view;
+    for (let i = 0; i < 8 && this.leaves.length < MAX; i++) {
+      const ly = Math.min(Math.max(y + (Math.random() - 0.5) * S * 0.35, horizonY + S * 0.05), height - S * 0.05);
+      this.spawn(dir > 0 ? -S * (0.04 + 0.08 * Math.random()) : width + S * (0.04 + 0.08 * Math.random()), ly, dir * S * (0.3 + 0.2 * Math.random()), view);
+    }
+  }
+
+  private spawn(x: number, y: number, vx: number, view: { horizonY: number; S: number }): void {
+    const { horizonY, S } = view;
+    // Nearer leaves land lower on the screen and look larger.
+    const near = Math.random();
+    this.leaves.push({
+      x,
+      y,
+      vx,
+      vy: 0,
+      size: S * (0.045 + 0.05 * near),
+      spin: Math.random() * Math.PI * 2,
+      spinRate: (Math.random() - 0.5) * 2.4,
+      flip: Math.random() * Math.PI * 2,
+      flipRate: 1.5 + Math.random() * 2.5,
+      tint: 0.25 + Math.random() * 0.55,
+      landY: horizonY * (0.62 - 0.55 * near),
+      landed: -1,
+    });
   }
 
   dispose(): void {
