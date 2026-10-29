@@ -44,6 +44,7 @@ export class Atmosphere {
   /** 白天, 0..1. */
   day = 0;
   lotus = 0;
+  rainbow = 0;
 
   private from: Colors = this.snapshot();
   private to: Colors = this.snapshot();
@@ -97,6 +98,8 @@ export class Atmosphere {
     this.dusk += ((s.timeOfDay === 'dusk' ? 1 : 0) - this.dusk) * k;
     this.day += ((s.timeOfDay === 'day' ? 1 : 0) - this.day) * k;
     this.lotus += ((s.weather === 'lotus' ? 1 : 0) - this.lotus) * k;
+    // The rainbow comes slowly, after the light.
+    this.rainbow += ((s.weather === 'rainbow' ? 1 : 0) - this.rainbow) * k * 0.4;
 
     if (this.t >= 1) return;
     this.t = Math.min(this.t + dt / this.duration, 1);

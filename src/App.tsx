@@ -129,6 +129,7 @@ function describe(cmd: SceneCommand, fishAnswered = 0): string {
   if (cmd.weather === 'autumn') parts.push('起了秋风，落叶飘下');
   if (cmd.weather === 'blossom') parts.push('春风里，花瓣飘落');
   if (cmd.weather === 'lotus') parts.push('近岸开出一片荷花');
+  if (cmd.weather === 'rainbow') parts.push('雨过天晴，一道彩虹挂在远山上');
   if (cmd.weather === 'storm') parts.push('打起了雷，下起了大雨');
   if (cmd.weather === 'shower') parts.push('下起了流星雨');
   if (cmd.weather === 'galaxy') parts.push('星河升了起来');

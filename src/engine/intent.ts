@@ -7,8 +7,8 @@
 // to do (`fish`): explore, gather, rest or play.
 
 export type TimeOfDay = 'night' | 'dusk' | 'day';
-export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy' | 'lanterns' | 'moonsnow' | 'blossom' | 'lotus';
-export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy', 'lanterns', 'moonsnow', 'blossom', 'lotus'];
+export type Weather = 'clear' | 'rain' | 'mist' | 'fireflies' | 'snow' | 'moonlit' | 'autumn' | 'storm' | 'shower' | 'galaxy' | 'lanterns' | 'moonsnow' | 'blossom' | 'lotus' | 'rainbow';
+export const WEATHERS: readonly Weather[] = ['clear', 'rain', 'mist', 'fireflies', 'snow', 'moonlit', 'autumn', 'storm', 'shower', 'galaxy', 'lanterns', 'moonsnow', 'blossom', 'lotus', 'rainbow'];
 export type PaletteName = 'serene' | 'warm' | 'melancholy';
 /** What the words ask of the fish already in the lake. */
 export type FishIntent = 'explore' | 'gather' | 'rest' | 'play';
@@ -39,7 +39,9 @@ type Rule = [words: string[], set: SceneCommand];
 // caught before 雨 (see NEGATIONS).
 const KEYWORDS: Rule[] = [
   // Before rain and snow, or their 雨 / 雪 would take these.
-  [['雨停', '雪停', '雨过天晴'], { weather: 'clear' }],
+  // 雨后彩虹: a bright day after rain, a rainbow over the hills (before 雨, so 雨后 is not rain).
+  [['雨过天晴', '雨后彩虹', '彩虹', '雨后', '虹'], { weather: 'rainbow', timeOfDay: 'day' }],
+  [['雨停', '雪停'], { weather: 'clear' }],
   // 河灯与孔明灯: lamps set afloat on the lake, lanterns rising into the night.
   [['放河灯', '河灯', '放灯', '孔明灯', '天灯', '灯笼', '许个心愿'], { weather: 'lanterns', timeOfDay: 'night' }],
   // 星河: the Milky Way rising from behind the hills and across the sky, and in the lake.

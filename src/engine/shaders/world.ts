@@ -45,7 +45,8 @@ uniform vec4 uPlanetLook[PLANET_SLOTS];  // direction to the dark side, tint ind
 uniform float uWaveT;                 // wave phase, advances faster with wind
 uniform float uWind;
 uniform float uDusk;
-uniform float uDay;                   // 白天 0..1: no stars, a lighter lake
+uniform float uDay;
+uniform float uRainbow;               // 雨后彩虹 0..1                   // 白天 0..1: no stars, a lighter lake
 uniform float uGalaxy;                // 星河, 0..1 (also how far it has risen)
 uniform float uShower;                // 流星雨, 0..1
 uniform vec4 uBolt[MAX_BOLT];         // 雷雨: segments (a, b), px; strength in the fraction of a.x
@@ -281,6 +282,9 @@ vec3 userSky(vec2 p, vec3 c, float open) {
   return mix(base, c, uSkyVeil);
 }
 
+/** Set while the lake samples the sky for its reflection. */
+float gInWater = 0.0;
+
 vec4 skyAt(vec2 p, float hpx, float S) {
   vec4 land = texture2D(uLandscape, p / uRes);
   vec3 c = land.rgb;
@@ -289,6 +293,29 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   // 月明星稀: a moonlit night has fewer stars, fewer still with the moon up.
   stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - uDay) * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
   c += vec3(0.96, 0.93, 0.86) * stars;
+  if (uRainbow > 0.001) {
+    // 雨后彩虹: a soft arc rising from behind the hills on the left and
+    // fading out high on the right, red outside to violet within, the sky
+    // a little lighter inside it, as after rain. Translucent, like a wash.
+    // Sized to the screen's width so both feet come down into the hills.
+    float R = min(uRes.x * 0.52, S * 1.2);
+    vec2 cen = vec2(uRes.x * 0.5, hpx - R * 0.42);
+    float w = R * 0.065;
+    float d = length(p - cen);
+    float k = (d - R) / w;                         // -1 inside edge (violet) .. 1 outside (red)
+    float band = smoothstep(1.0, 0.7, abs(k));
+    float h = clamp(0.5 - 0.5 * k, 0.0, 1.0) * 0.78;
+    vec3 hue = clamp(abs(fract(h + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
+    float ang = atan(p.y - cen.y, p.x - cen.x);
+    // Strongest on the left where it rises; it thins out as it goes over.
+    float along = 0.08 + 0.92 * smoothstep(0.7, 2.3, ang);
+    // It appears from its left foot and spreads over.
+    float rise = clamp((uRainbow * 1.4 - (2.95 - ang) / 2.7) * 4.0, 0.0, 1.0);
+    // Its reflection is fainter: the water only holds a ghost of it.
+    float a = band * along * rise * land.a * uRainbow * (1.0 - 0.6 * gInWater);
+    c = mix(c, c + hue * 0.32, a);
+    c += vec3(0.05) * smoothstep(0.0, -3.0, k) * smoothstep(-8.0, -3.0, k) * along * rise * land.a * uRainbow;
+  }
   if (uDusk > 0.001) {
     // 落日: a low red-gold sun, half behind the far hills, its glow
     // spreading along the horizon (长河落日圆).
@@ -449,7 +476,9 @@ void main() {
 
     vec2 rp = vec2(p.x + disp.x, hpx + d + disp.y);
     rp.y = min(rp.y, uRes.y - 1.0);
+    gInWater = 1.0;
     vec3 refl = skyAt(rp, hpx, S).rgb;
+    gInWater = 0.0;
     float fresnel = mix(0.82, 0.32, smoothstep(0.0, 0.45, dn));
     // Snow does not lie on the water: the lake turns dark and still, and
     // holds the white mountains more clearly.

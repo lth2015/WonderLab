@@ -281,6 +281,7 @@ export class Engine {
         uWind: { value: this.atmosphere.wind },
         uDusk: { value: 0 },
         uDay: { value: 0 },
+        uRainbow: { value: 0 },
         uSnow: { value: 0 },
         uMoonlit: { value: 0 },
         uFlash: { value: new THREE.Vector2() },
@@ -794,6 +795,7 @@ export class Engine {
     wu.uWind.value = wind;
     wu.uDusk.value = atmos.dusk;
     wu.uDay.value = atmos.day;
+    wu.uRainbow.value = atmos.rainbow;
     wu.uSnow.value = atmos.snow;
     wu.uMoonlit.value = atmos.moonlit;
     const weu = this.weatherMat.uniforms;
