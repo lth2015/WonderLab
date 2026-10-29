@@ -153,3 +153,20 @@ describe('parseWorld', () => {
     expect(four?.planets).toHaveLength(3);
   });
 });
+
+describe('branches (近岸)', () => {
+  it('keeps valid branches and drops malformed ones', () => {
+    const base = { version: 1, atmosphere: { timeOfDay: 'day', weather: 'clear', palette: 'serene', wind: 0.2, intensity: 0.5 }, fish: [], moon: null, planets: [], stars: [], clouds: [] };
+    const w = parseWorld({
+      ...base,
+      branches: [
+        { points: [[0.1, 0.1], [0.2, 0.15], [0.3, 0.18]], lively: 0.4, seed: 12345 },
+        { points: [[0.1, 0.1]], lively: 0.4, seed: 1 },
+        { points: [[0.1, 0.1], [9, 9]], lively: 0.4, seed: 2 },
+        'nonsense',
+      ],
+    });
+    expect(w?.branches).toEqual([{ points: [[0.1, 0.1], [0.2, 0.15], [0.3, 0.18]], lively: 0.4, seed: 12345 }]);
+    expect(parseWorld(base)?.branches).toBeUndefined();
+  });
+});

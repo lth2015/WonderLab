@@ -11,7 +11,7 @@ import { WEATHERS } from './intent';
 
 export const SAVE_VERSION = 1;
 const KEY = 'wonderlab.world';
-const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64, origin: 48 };
+const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64, origin: 48, branches: 12, branchPoints: 64 };
 /**
  * Fish kept 「在远处」 (docs/02 §11 decision 12): when the lake is full, the
  * oldest fish swims off but stays in the world. None is ever let go: once
@@ -58,6 +58,14 @@ export interface WorldSave {
   stars: [number, number][];
   /** x, y normalised; w as a share of the short screen edge. */
   clouds: [number, number, number][];
+  /** 近岸 (prototype, ?shore): each branch's stroke (x, y normalised), how lively it was drawn, and the seed its blossoms grow from. Absent in older saves. */
+  branches?: SavedBranch[];
+}
+
+export interface SavedBranch {
+  points: [number, number][];
+  lively: number;
+  seed: number;
 }
 
 export function saveWorld(world: WorldSave): void {
@@ -134,6 +142,17 @@ export function parseWorld(data: unknown): WorldSave | null {
     .slice(0, LIMITS.clouds)
     .filter((c): c is [number, number, number] => Array.isArray(c) && c.length === 3 && isUnitish(c[0]) && isUnitish(c[1]) && isPos(c[2]));
 
+  const branches = arr(data.branches)
+    .slice(0, LIMITS.branches)
+    .map((b): SavedBranch | null => {
+      if (!isObj(b) || !isNum(b.seed)) return null;
+      const points = arr(b.points)
+        .slice(0, LIMITS.branchPoints)
+        .filter((p): p is [number, number] => Array.isArray(p) && p.length === 2 && p.every(isUnitish));
+      return points.length >= 2 ? { points, lively: unit(b.lively, 0.5), seed: b.seed } : null;
+    })
+    .filter((b): b is SavedBranch => b !== null);
+
   return {
     version: SAVE_VERSION,
     ...(isPos(data.savedAt) ? { savedAt: data.savedAt } : {}),
@@ -144,6 +163,7 @@ export function parseWorld(data: unknown): WorldSave | null {
     planets,
     stars,
     clouds,
+    ...(branches.length ? { branches } : {}),
   };
 }
 

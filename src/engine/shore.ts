@@ -45,6 +45,13 @@ interface Branch {
   stroke: Stroke;
   blossoms: Blossom[];
   nextPetal: number;
+  lively: number;
+  seed: number;
+}
+
+function rng(seed: number): () => number {
+  let s = Math.floor(seed) >>> 0;
+  return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
 }
 
 interface Butterfly {
@@ -156,6 +163,7 @@ export class Shore {
   private butterflies: Butterfly[] = [];
   private nextButterfly = -1;
   private nextId = 1;
+  private hidden = false;
   /** When night came (for the fireflies to come up one after another), -1 by day. */
   private nightSince = -1;
   private view: ShoreView = { width: 1, height: 1, horizonY: 1, S: 1 };
@@ -261,7 +269,9 @@ export class Shore {
    * blossoms open along it from the base out. A quick stroke blooms sparse,
    * a slow, winding one blooms thick (the brush's character, as for the koi).
    */
-  addBranch(stroke: Stroke, time: number, lively: number, random = Math.random): number {
+  addBranch(stroke: Stroke, time: number, lively: number, seed = Math.floor(Math.random() * 1e9)): number {
+    // From its own seed, so a saved branch blossoms the same again.
+    const random = rng(seed);
     const S = this.view.S;
     const pts = stroke.points;
     // The base is the end nearer the bottom of the picture.
@@ -297,9 +307,37 @@ export class Shore {
       }
     }
     const id = this.nextId++;
-    this.branches.push({ id, stroke, blossoms, nextPetal: time + 4 + random() * 4 });
+    this.branches.push({ id, stroke, blossoms, nextPetal: time + 4 + random() * 4, lively, seed });
     this.nextButterfly = Math.min(this.nextButterfly < 0 ? Infinity : this.nextButterfly, time + 6);
     return id;
+  }
+
+  /** What to save: each branch's stroke, normalised, with how lively it was and its seed. */
+  snapshot(): { points: [number, number][]; lively: number; seed: number }[] {
+    const { width, height } = this.view;
+    const round = (v: number) => Math.round(v * 1e4) / 1e4;
+    return this.branches.map((b) => {
+      const pts = b.stroke.points;
+      const step = Math.max(1, Math.ceil(pts.length / 64));
+      const kept = pts.filter((_, i) => i % step === 0 || i === pts.length - 1).slice(-64);
+      return { points: kept.map((p): [number, number] => [round(p.x / width), round(p.y / height)]), lively: round(b.lively), seed: b.seed };
+    });
+  }
+
+  /** A new world: hidden while the restart can still be taken back, then gone. */
+  setHidden(hidden: boolean): void {
+    for (const b of this.branches) b.stroke.mesh.visible = !hidden;
+    this.sprites.visible = this.sprites.visible && !hidden;
+    this.hidden = hidden;
+  }
+
+  /** The restart is final: every branch goes. Returns their strokes, for the caller to remove. */
+  clear(): Stroke[] {
+    const strokes = this.branches.map((b) => b.stroke);
+    this.branches = [];
+    this.butterflies = [];
+    this.hidden = false;
+    return strokes;
   }
 
   /** Undo: the branch and its blossoms go. Returns its stroke, for the caller to fade. */
@@ -451,7 +489,7 @@ export class Shore {
     this.spriteGeo.attributes.position.needsUpdate = true;
     (this.spriteGeo.attributes.aSprite as THREE.BufferAttribute).needsUpdate = true;
     (this.spriteGeo.attributes.aFlap as THREE.BufferAttribute).needsUpdate = true;
-    this.sprites.visible = n > 0 && this.ready;
+    this.sprites.visible = n > 0 && this.ready && !this.hidden;
 
     // Fireflies at night: first a glimmer low in the wet grass of the bank,
     // then another, each rising slowly to wander among the blossoms
@@ -482,7 +520,7 @@ export class Shore {
     this.flyGeo.setDrawRange(0, m);
     this.flyGeo.attributes.position.needsUpdate = true;
     (this.flyGeo.attributes.aAlpha as THREE.BufferAttribute).needsUpdate = true;
-    this.flies.visible = m > 0;
+    this.flies.visible = m > 0 && !this.hidden;
   }
 
   dispose(): void {
