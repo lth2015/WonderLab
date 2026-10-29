@@ -166,6 +166,8 @@ export class Engine {
   private shadeRest = new WeakMap<Fish, number>();
   /** 同行: a fish from the sky keeping company with one the visitor drew, for a while. */
   private companions: { sky: Fish; drawn: Fish; until: number; side: number }[] = [];
+  /** How long a fish from the sky keeps company, once it swims (seconds). */
+  private static readonly COMPANY_S: [number, number] = [10, 14];
   private lanterns!: Lanterns;
   private readonly sky = new Sky();
   private history: HistoryEntry[] = [];
@@ -1341,7 +1343,8 @@ export class Engine {
         near = f;
       }
     }
-    if (near) this.companions.push({ sky: fish, drawn: near, until: this.time + 10 + Math.random() * 4, side: Math.random() < 0.5 ? -1 : 1 });
+    // The time starts once it swims: it is still taking shape now (Codex's review of #93).
+    if (near) this.companions.push({ sky: fish, drawn: near, until: 0, side: Math.random() < 0.5 ? -1 : 1 });
     return fish;
   }
 
@@ -1363,8 +1366,11 @@ export class Engine {
       // 灯下鱼影 (09 §十一).
       if (this.atmosphere.lanterns > 0.3 && this.lanterns.stirAt(f.headX, f.headY, S * 0.05)) this.addRipple(f.headX, f.headY, 0.25);
     }
-    this.companions = this.companions.filter((c) => t < c.until && this.fishes.includes(c.sky) && this.fishes.includes(c.drawn) && c.sky.state === 'swimming' && c.drawn.state === 'swimming');
+    const alive = (f: Fish) => this.fishes.includes(f) && (f.state === 'swimming' || f.state === 'forming');
+    this.companions = this.companions.filter((c) => (c.until === 0 || t < c.until) && alive(c.sky) && alive(c.drawn));
     for (const c of this.companions) {
+      if (c.sky.state !== 'swimming' || c.drawn.state !== 'swimming') continue;
+      if (c.until === 0) c.until = t + between(Math.random, Engine.COMPANY_S);
       // Alongside, a little to one side and behind.
       const d = c.drawn;
       c.sky.lure(d.headX + c.side * S * 0.06, d.headY + S * 0.02, t, { duration: 0.6 });
