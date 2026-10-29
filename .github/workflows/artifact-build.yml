@@ -72,6 +72,22 @@ jobs:
             --cache-to type=gha,mode=max,scope=wonderlab-api \
             --push .
 
+      - name: Build and push gift-experiment image
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+          # gift.want.world: the same app built as poc-gift-r1 (docs/deploy-static.md).
+          docker buildx build \
+            --platform linux/amd64 \
+            --file Dockerfile.api \
+            --build-arg WW_EXPERIMENT=poc-gift-r1 \
+            --build-arg WW_BUILD_SHA="${COMMIT_SHA:0:12}" \
+            --tag "$ECR_REGISTRY/shared-wonderlab/api:$IMAGE_TAG-gift" \
+            --cache-from type=gha,scope=wonderlab-api \
+            --push .
+
       - name: Build and push migration image
         env:
           IMAGE_TAG: ${{ steps.image.outputs.tag }}
@@ -94,5 +110,6 @@ jobs:
             echo "### WonderLab artifact build"
             echo "- commit: $SHA"
             echo "- API image: $ECR_REGISTRY/shared-wonderlab/api:$IMAGE_TAG"
+            echo "- gift image: $ECR_REGISTRY/shared-wonderlab/api:$IMAGE_TAG-gift"
             echo "- migration image: $ECR_REGISTRY/shared-wonderlab/migration:$IMAGE_TAG"
           } >> "$GITHUB_STEP_SUMMARY"

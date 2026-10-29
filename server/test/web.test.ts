@@ -29,6 +29,13 @@ describe('serving the web app', () => {
     expect(res.headers['cache-control']).toBe('no-cache');
   });
 
+  it('turns off camera, microphone and location for the page and client-side addresses', async () => {
+    for (const url of ['/', '/pricing']) {
+      const res = await app.inject({ url, headers: html });
+      expect(res.headers['permissions-policy'], url).toBe('camera=(), microphone=(), geolocation=()');
+    }
+  });
+
   it('caches hashed assets for good', async () => {
     const res = await app.inject({ url: '/assets/index-abc123.js' });
     expect(res.statusCode).toBe(200);

@@ -1,5 +1,6 @@
-# Static hosting for the field tests (docs/deploy-static.md). Cloudflare Pages
-# and Netlify read this file from the build output.
+# For static hosts that read _headers from the build output (Netlify and the
+# like). The AWS deployment serves the same headers from server/src/web.ts
+# (docs/deploy-static.md).
 /*
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff

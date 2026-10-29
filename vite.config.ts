@@ -2,9 +2,10 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { buildDefine } from './build-info';
+import { shareMeta } from './share-meta';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), shareMeta()],
   define: buildDefine(),
   resolve: {
     // Shared request/response shapes from the server (types only in the browser).

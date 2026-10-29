@@ -106,6 +106,9 @@ jobs:
           case "$migration_digest" in sha256:*) ;; *) echo "::error::Migration image digest not found"; exit 1 ;; esac
           echo "api_digest=$api_digest" >> "$GITHUB_OUTPUT"
           echo "migration_digest=$migration_digest" >> "$GITHUB_OUTPUT"
+          # Commits built before the gift site existed have no gift image; they deploy without it.
+          gift_digest="$(aws ecr describe-images --repository-name shared-wonderlab/api --image-ids imageTag="$IMAGE_TAG-gift" --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || true)"
+          case "$gift_digest" in sha256:*) echo "gift_digest=$gift_digest" >> "$GITHUB_OUTPUT" ;; *) echo "::warning::No gift image for $IMAGE_TAG; gift.want.world is left as it is." ;; esac
 
       - name: Point kubectl at QA EKS
         run: aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
@@ -223,3 +226,22 @@ jobs:
 
       - name: Verify API rollout
         run: kubectl rollout status deployment/wonderlab-api --namespace "$NAMESPACE" --timeout=5m
+
+      - name: Deploy gift site
+        if: ${{ steps.images.outputs.gift_digest != '' }}
+        env:
+          GIFT_DIGEST: ${{ steps.images.outputs.gift_digest }}
+        run: |
+          set -euo pipefail
+          # After the R1 site is up, so a problem here never holds want.world back.
+          workdir="$RUNNER_TEMP/wonderlab-gift"
+          mkdir -p "$workdir"
+          cp deploy/k8s/qa/gift.yaml "$workdir/"
+          placeholder='sha256:0000000000000000000000000000000000000000000000000000000000000000'
+          sed -i "s#ECR_REGISTRY/shared-wonderlab/api@$placeholder#$ECR_REGISTRY/shared-wonderlab/api@$GIFT_DIGEST#g" "$workdir/gift.yaml"
+          if grep -Fq "$placeholder" "$workdir/gift.yaml"; then
+            echo '::error::A deployment placeholder remains.'
+            exit 1
+          fi
+          kubectl apply --namespace "$NAMESPACE" --filename "$workdir/gift.yaml"
+          kubectl rollout status deployment/wonderlab-gift --namespace "$NAMESPACE" --timeout=5m
