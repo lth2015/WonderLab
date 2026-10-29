@@ -22,7 +22,7 @@ const SYSTEM = [
   '',
   'Schema:',
   '{"timeOfDay": "night" | "dusk",',
-  ' "weather": "clear" | "rain" | "mist" | "fireflies" | "snow" | "moonlit" | "autumn" | "storm" | "shower" | "galaxy" | "lanterns" | "moonsnow",',
+  ' "weather": "clear" | "rain" | "mist" | "fireflies" | "snow" | "moonlit" | "autumn" | "storm" | "shower" | "galaxy" | "lanterns" | "moonsnow" | "blossom",',
   ' "palette": "serene" (calm blue night) | "warm" (warm, happy) | "melancholy" (cool, wistful),',
   ' "wind": 0.0-1.0 (0 still water, 1 strong wind),',
   ' "intensity": 0.0-1.0 (how strongly to change the world),',

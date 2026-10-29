@@ -150,6 +150,8 @@ export class Engine {
   private readonly weatherMat: THREE.ShaderMaterial;
   private readonly snow = new Snow();
   private leaves!: Leaves;
+  /** 落花: spring petals, the leaves' gentler cousin. */
+  private petals!: Leaves;
   private lanterns!: Lanterns;
   private readonly sky = new Sky();
   private history: HistoryEntry[] = [];
@@ -325,6 +327,8 @@ export class Engine {
     this.scene.add(this.snow.points);
     this.leaves = new Leaves(p.ink);
     this.scene.add(this.leaves.points);
+    this.petals = new Leaves(p.ink, true);
+    this.scene.add(this.petals.points);
     this.lanterns = new Lanterns(p.ink);
     this.scene.add(this.lanterns.points);
     this.scene.add(this.echo.mesh);
@@ -694,6 +698,7 @@ export class Engine {
     this.weatherMat.dispose();
     this.snow.dispose();
     this.leaves.dispose();
+    this.petals.dispose();
     this.lanterns.dispose();
     this.echo.dispose();
     this.renderer.dispose();
@@ -787,11 +792,13 @@ export class Engine {
     this.snow.update(dt, t, atmos.snow, atmos.state.intensity, atmos.wind);
     this.updateCatch(dt);
     this.lanterns.update(dt, t, atmos.lanterns, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, this.calm);
-    this.leaves.update(dt, t, atmos.autumn, atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
+    const gustWind = atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8;
+    this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.addRipple(x, y, 0.15));
+    this.leaves.update(dt, t, atmos.autumn, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );
     weu.uWind.value = wind;
-    this.sound?.ambient({ rain: atmos.rain, wind, fireflies: atmos.fireflies, snow: atmos.snow, autumn: atmos.autumn, dusk: atmos.dusk });
+    this.sound?.ambient({ rain: atmos.rain, wind, fireflies: atmos.fireflies, snow: atmos.snow, autumn: Math.max(atmos.autumn, atmos.blossom * 0.5), dusk: atmos.dusk });
 
     this.sky.linkLevel = Math.min(atmos.galaxy * 1.5, 1);
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
@@ -1633,7 +1640,8 @@ export class Engine {
    * fish or a meteor but a gesture in that scene. 雷雨: a line drawn down
    * from the sky is a lightning strike along it. 河灯: a line drawn up into
    * the sky lets a paper lantern rise from where it began. 秋风: a line
-   * drawn across the sky is a gust that way, carrying the leaves with it.
+   * drawn across the sky is a gust that way, carrying the leaves (or 落花's
+   * petals) with it.
    */
   private handInScene(stroke: Stroke): boolean {
     const pts = stroke.points;
@@ -1647,10 +1655,12 @@ export class Engine {
       return true;
     }
     const run = b.x - a.x;
-    if (this.atmosphere.autumn > 0.5 && top >= this.horizonY && Math.abs(run) > this.minDim * 0.2 && Math.abs(run) > Math.abs(rise) * 1.5 && stroke.points.every((p) => p.y >= this.horizonY - this.minDim * 0.05)) {
+    if (Math.max(this.atmosphere.autumn, this.atmosphere.blossom) > 0.5 && top >= this.horizonY && Math.abs(run) > this.minDim * 0.2 && Math.abs(run) > Math.abs(rise) * 1.5 && stroke.points.every((p) => p.y >= this.horizonY - this.minDim * 0.05)) {
       this.fadeStroke(stroke, 0, 0.4);
       this.gust = { dir: Math.sign(run), k: 1 };
-      this.leaves.gust(Math.sign(run), (a.y + b.y) / 2, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim });
+      const view = { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim };
+      if (this.atmosphere.autumn > 0.5) this.leaves.gust(Math.sign(run), (a.y + b.y) / 2, view);
+      else this.petals.gust(Math.sign(run), (a.y + b.y) / 2, view);
       return true;
     }
     if (this.atmosphere.lanterns > 0.5 && b.y >= this.horizonY && rise > this.minDim * 0.1 && rise > Math.abs(b.x - a.x)) {
@@ -1864,6 +1874,7 @@ export class Engine {
     this.weatherMat.uniforms.uHorizon.value = this.horizon;
     this.snow.resize(w, h, dpr);
     this.leaves?.setPixelRatio(dpr);
+    this.petals?.setPixelRatio(dpr);
     this.lanterns?.setPixelRatio(dpr);
   }
 

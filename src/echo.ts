@@ -37,6 +37,7 @@ function score(p: Poem, cmd: SceneCommand, mood: Mood, subjects: string[]): numb
   if (cmd.weather === 'moonlit' && p.tags.includes('moon')) s += 3;
   if (cmd.weather === 'moonsnow' && (p.tags.includes('moon') || p.tags.includes('snow'))) s += 3;
   if (cmd.weather === 'autumn' && p.tags.includes('autumn')) s += 3;
+  if (cmd.weather === 'blossom' && (p.tags.includes('spring') || p.tags.includes('flower'))) s += 3;
   if (cmd.weather === 'storm' && p.tags.includes('rain')) s += 3;
   if ((cmd.weather === 'shower' || cmd.weather === 'galaxy') && p.tags.includes('star')) s += 3;
   if (cmd.weather === 'lanterns' && (p.tags.includes('home') || p.tags.includes('love'))) s += 3;
