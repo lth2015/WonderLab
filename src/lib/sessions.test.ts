@@ -121,7 +121,7 @@ describe('analyzeStudy', () => {
     const r = analyzeStudy([{ id: 's1.json', log: log([ev(0, 'world_ready'), ev(2000, 'first_stroke', { after: 2000 })]), notes: { helpBeforeFirstStroke: false } }]);
     // Small study, no free phase, H3 unknown — and a log that records no build.
     expect(r.warnings).toHaveLength(4);
-    expect(r.warnings.some((w) => w.includes('不是冻结的实验构建') && w.includes('s1.json'))).toBe(true);
+    expect(r.warnings.some((w) => w.includes('不是实验构建') && w.includes('s1.json'))).toBe(true);
     expect(r.h1.verdict).toBe('成立');
     const md = formatReport(r);
     expect(md).toContain('| H1 |');
@@ -222,7 +222,7 @@ describe('builds and invalid samples (docs/验证路线图.md)', () => {
       { id: 'C2', log: old },
     ]);
     expect(r.warnings.some((w) => w.includes('同一份记录里混有多个构建') && w.includes('C1（poc-r1@aaa111、poc-r1@bbb222）'))).toBe(true);
-    expect(r.warnings.some((w) => w.includes('不是冻结的实验构建') && w.includes('C2'))).toBe(true);
+    expect(r.warnings.some((w) => w.includes('不是实验构建') && w.includes('C2'))).toBe(true);
     expect(formatReport(r)).toContain('poc-r1@aaa111 + poc-r1@bbb222');
   });
 
@@ -254,7 +254,7 @@ describe('builds and invalid samples (docs/验证路线图.md)', () => {
     expect(r.testers).toHaveLength(3);
     expect(r.warnings.some((w) => w.includes('无效样本') && w.includes('P3（中途离开）'))).toBe(true);
     expect(r.warnings.some((w) => w.includes('不同的构建'))).toBe(true);
-    expect(r.warnings.some((w) => w.includes('不是冻结的实验构建'))).toBe(false);
+    expect(r.warnings.some((w) => w.includes('不是实验构建'))).toBe(false);
     const report = formatReport(r);
     expect(report).toContain('P3（无效）');
     expect(report).toContain('2 人中需');

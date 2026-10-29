@@ -317,7 +317,7 @@ export function analyzeStudy(sessions: { id: string; log: SessionLog; notes?: Ob
   const unfrozen = testers
     .filter((t) => !t.builds.length || t.builds.some((b) => b.experiment === 'dev' || b.experiment === 'unknown' || b.sha.endsWith('-dirty')))
     .map((t) => t.id);
-  if (unfrozen.length) warnings.push(`不是冻结的实验构建（开发版、有未提交改动或没有版本记录）：${unfrozen.join('、')}。`);
+  if (unfrozen.length) warnings.push(`不是实验构建（开发版、有未提交改动或没有版本记录）：${unfrozen.join('、')}。`);
   if (testers.length < 5) warnings.push(`只有 ${testers.length} 份有效记录；方案是 5–10 名测试者，结论只作方向参考。`);
   const noFree = testers.filter((t) => t.freeMinutes === null).map((t) => t.id);
   if (noFree.length) warnings.push(`没有自由段的记录（主持人没按切换键？）：${noFree.join('、')}。这些人的 H2 记为未知。`);
