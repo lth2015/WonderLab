@@ -30,6 +30,7 @@ export class Atmosphere {
   moonlit = 0;
   /** 秋风落叶, 0..1. */
   autumn = 0;
+  blossom = 0;
   /** 流星雨, 0..1. */
   shower = 0;
   /** 河灯与孔明灯, 0..1. */
@@ -86,6 +87,7 @@ export class Atmosphere {
     // Snow comes and goes more slowly than rain.
     this.snow += ((s.weather === 'snow' || s.weather === 'moonsnow' ? amount : 0) - this.snow) * k * 0.6;
     this.autumn += ((s.weather === 'autumn' ? 1 : 0) - this.autumn) * k;
+    this.blossom += ((s.weather === 'blossom' ? 1 : 0) - this.blossom) * k;
     // Moonlight answers at once: clearly there within two seconds.
     this.moonlit += ((s.weather === 'moonlit' || s.weather === 'moonsnow' ? amount : 0) - this.moonlit) * Math.min(k * 1.6, 1);
     this.wind += (s.wind - this.wind) * k;

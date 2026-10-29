@@ -6,7 +6,7 @@ import * as THREE from 'three';
 // belong to the same picture as the koi. Few at a time, kept on the CPU:
 // each leaf has to know where it lands.
 
-const MAX = 28;
+const MAX = 40;
 
 interface Leaf {
   x: number;
@@ -40,6 +40,7 @@ void main() {
 const frag = /* glsl */ `
 precision mediump float;
 uniform vec3 uInk;
+uniform float uPetal;
 varying vec4 vLeaf;
 varying float vAlpha;
 void main() {
@@ -48,6 +49,17 @@ void main() {
   q = vec2(c * q.x - s * q.y, s * q.x + c * q.y);
   // Tumbling: the leaf turns edge-on and back.
   q.y /= max(vLeaf.z, 0.3);
+  if (uPetal > 0.5) {
+    // 落花: a rounded petal, a small notch at its tip, pale pink to white, faintly lit.
+    float e = length(vec2(q.x * 1.05, q.y / 0.68));
+    float notch = smoothstep(0.1, 0.0, abs(q.y) - (q.x - 0.72) * 0.5) * step(0.72, q.x);
+    float pa = smoothstep(1.0, 0.86, e) * (1.0 - notch) * vAlpha;
+    if (pa < 0.01) discard;
+    vec3 pc = mix(vec3(0.97, 0.9, 0.92), vec3(0.95, 0.66, 0.76), vLeaf.w);
+    pc *= 0.78 + 0.22 * smoothstep(1.0, 0.2, e);
+    gl_FragColor = vec4(pc * pa, pa);
+    return;
+  }
   // A pointed leaf: widest a little toward the stem, tip at +x.
   float x = q.x * 1.1;
   float hw = 0.42 * pow(max(1.0 - x * x, 0.0), 0.75) * (1.0 + 0.15 * (-x));
@@ -75,14 +87,15 @@ export class Leaves {
   private leaves: Leaf[] = [];
   private nextSpawn = 0;
 
-  constructor(ink: THREE.Vector3) {
+  /** Spring petals (落花) rather than autumn leaves: smaller, paler, slower, more of them. */
+  constructor(ink: THREE.Vector3, private readonly petal = false) {
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
     this.geometry.setAttribute('aLeaf', new THREE.BufferAttribute(this.leaf, 4));
     this.geometry.setAttribute('aAlpha', new THREE.BufferAttribute(this.alpha, 1));
     this.material = new THREE.ShaderMaterial({
       vertexShader: vert,
       fragmentShader: frag,
-      uniforms: { uPR: { value: 1 }, uInk: { value: ink } },
+      uniforms: { uPR: { value: 1 }, uInk: { value: ink }, uPetal: { value: petal ? 1 : 0 } },
       transparent: true,
       blending: THREE.CustomBlending,
       blendSrc: THREE.OneFactor,
@@ -113,8 +126,8 @@ export class Leaves {
     land: (x: number, y: number) => void,
   ): void {
     const { width, height, horizonY, S } = view;
-    if (amount > 0.4 && time >= this.nextSpawn && this.leaves.length < MAX) {
-      this.nextSpawn = time + (0.35 + Math.random() * 0.6) / Math.max(amount, 0.5);
+    if (amount > 0.4 && time >= this.nextSpawn && this.leaves.length < (this.petal ? MAX : 28)) {
+      this.nextSpawn = time + ((0.35 + Math.random() * 0.6) * (this.petal ? 0.5 : 1)) / Math.max(amount, 0.5);
       const fromSide = Math.random() < 0.4;
       // With the wind blowing left, leaves come in from the right.
       const side = wind < 0 ? width + S * 0.05 : -S * 0.05;
@@ -125,8 +138,9 @@ export class Leaves {
         // Blown by the wind, sinking slowly, swinging as it tumbles.
         const gust = 0.6 + 0.4 * Math.sin(time * 0.7 + l.tint * 9);
         l.vx += ((0.04 + wind * 0.22) * S * gust - l.vx) * Math.min(dt * 1.5, 1);
-        l.vy += (-(0.17 + 0.06 * Math.sin(l.flip)) * S - l.vy) * Math.min(dt * 2, 1);
-        l.x += (l.vx + Math.sin(l.flip * 0.5) * S * 0.03) * dt;
+        const fall = this.petal ? 0.6 : 1;
+        l.vy += (-(0.17 + 0.06 * Math.sin(l.flip)) * S * fall - l.vy) * Math.min(dt * 2, 1);
+        l.x += (l.vx + Math.sin(l.flip * 0.5) * S * (this.petal ? 0.05 : 0.03)) * dt;
         l.y += l.vy * dt;
         l.spin += l.spinRate * dt;
         l.flip += l.flipRate * dt;
@@ -179,12 +193,12 @@ export class Leaves {
       y,
       vx,
       vy: 0,
-      size: S * (0.045 + 0.05 * near),
+      size: S * (this.petal ? 0.022 + 0.022 * near : 0.045 + 0.05 * near),
       spin: Math.random() * Math.PI * 2,
       spinRate: (Math.random() - 0.5) * 2.4,
       flip: Math.random() * Math.PI * 2,
       flipRate: 1.5 + Math.random() * 2.5,
-      tint: 0.25 + Math.random() * 0.55,
+      tint: this.petal ? Math.random() : 0.25 + Math.random() * 0.55,
       landY: horizonY * (0.62 - 0.55 * near),
       landed: -1,
     });

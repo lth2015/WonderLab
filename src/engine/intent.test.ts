@@ -77,6 +77,11 @@ describe('interpret', () => {
     expect(interpret('月夜').command.weather).toBe('moonlit');
   });
 
+  it('reads spring petals, and leaves spring rain as rain', () => {
+    for (const x of ['桃花', '樱花飘落', '落花', '春天来了']) expect(interpret(x).command).toMatchObject({ weather: 'blossom' });
+    expect(interpret('春雨').command.weather).toBe('rain');
+  });
+
   it('stops rain and snow when asked', () => {
     for (const s of ['雨停了', '雪停了', '不要下雪', '别下雪了']) expect(interpret(s).command.weather).toBe('clear');
   });

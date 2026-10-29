@@ -21,7 +21,7 @@ export function describeWorld(world: Pick<WorldSave, 'atmosphere' | 'fish' | 'mo
   if (world.stars.length) things.push(`${count(world.stars.length)}颗星`);
   if (world.clouds.length) things.push(world.clouds.length > 1 ? '几缕流云' : '一缕流云');
   if (world.fish.length) things.push(`${count(world.fish.length)}条小鱼`);
-  const weather = { rain: '正在下小雨', mist: '起了雾', fireflies: '萤火虫在飞', snow: '正在下雪', moonlit: '月光如水', autumn: '秋风吹落叶', storm: '雷雨交加', shower: '流星如雨', galaxy: '星河横过天空', lanterns: '湖上漂着河灯，天上升起孔明灯', moonsnow: '月光下飘着雪', clear: '' }[world.atmosphere.weather];
+  const weather = { rain: '正在下小雨', mist: '起了雾', fireflies: '萤火虫在飞', snow: '正在下雪', moonlit: '月光如水', autumn: '秋风吹落叶', storm: '雷雨交加', shower: '流星如雨', galaxy: '星河横过天空', lanterns: '湖上漂着河灯，天上升起孔明灯', moonsnow: '月光下飘着雪', blossom: '花瓣飘落在湖上', clear: '' }[world.atmosphere.weather];
   const parts = [`${when}的湖面`, things.length ? `有${list(things)}` : '还空着'];
   if (weather) parts.push(weather);
   return parts.join('，');

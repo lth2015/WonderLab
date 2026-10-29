@@ -14,6 +14,7 @@ export const BECKONS: readonly { text: string; weather: Weather }[] = [
   { text: '月下飘雪', weather: 'moonsnow' },
   { text: '听一场雷雨', weather: 'storm' },
   { text: '秋风起，落叶满湖', weather: 'autumn' },
+  { text: '桃花落满湖', weather: 'blossom' },
   { text: '月色入户', weather: 'moonlit' },
   { text: '夏夜的萤火', weather: 'fireflies' },
 ];
