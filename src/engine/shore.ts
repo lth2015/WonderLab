@@ -56,6 +56,10 @@ interface Butterfly {
   ty: number;
   resting: number; // seconds left resting, < 0 while flying
   leaving: boolean;
+  /** Seconds left of the small circle it makes before settling (value/12 §三、§四). */
+  circling: number;
+  /** Flowers it has rested on this visit: it may look in on one more before leaving. */
+  visits: number;
 }
 
 const vert = /* glsl */ `
@@ -152,6 +156,8 @@ export class Shore {
   private butterflies: Butterfly[] = [];
   private nextButterfly = -1;
   private nextId = 1;
+  /** When night came (for the fireflies to come up one after another), -1 by day. */
+  private nightSince = -1;
   private view: ShoreView = { width: 1, height: 1, horizonY: 1, S: 1 };
   private readonly branchColor = new THREE.Vector3();
 
@@ -326,13 +332,16 @@ export class Shore {
    * it down as a falling petal); `day` and `dusk` say when butterflies come,
    * and night brings the fireflies.
    */
-  update(dt: number, time: number, light: { day: number; dusk: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random): void {
+  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random): void {
     const { S, width } = this.view;
     const night = Math.max(1 - light.day - light.dusk, 0);
-    (this.spriteMat.uniforms.uLight.value as THREE.Vector3).set(0.5 + 0.5 * (1 - night), 0.52 + 0.48 * (1 - night), 0.62 + 0.38 * (1 - night));
+    // Lit by the hour: cool and dim at night, the petals' edges warmed at dusk (value/12 §四).
+    const lit = new THREE.Vector3(0.5 + 0.5 * (1 - night), 0.52 + 0.48 * (1 - night), 0.62 + 0.38 * (1 - night));
+    lit.lerp(new THREE.Vector3(1.06, 0.9, 0.78), light.dusk * 0.7);
+    (this.spriteMat.uniforms.uLight.value as THREE.Vector3).copy(lit);
     this.bankMat.uniforms.uDay.value = light.day;
-    // The bough: dark ink by day, a pale grey-brown at night so it still shows against the dark.
-    this.branchColor.set(0.24, 0.2, 0.18).lerp(new THREE.Vector3(0.36, 0.33, 0.31), night);
+    // The bough: dark ink by day, a paler grey-brown in the evening and at night so it still shows against the dark water.
+    this.branchColor.set(0.24, 0.2, 0.18).lerp(new THREE.Vector3(0.38, 0.34, 0.31), 1 - light.day);
     for (const br of this.branches) br.stroke.useColor(this.branchColor);
 
     // Petals now and then, from a blossom that has opened.
@@ -348,12 +357,16 @@ export class Shore {
 
     // Butterflies by day and in the evening; gone at night.
     const flowers = this.branches.flatMap((br) => br.blossoms.filter((b) => time > b.at && b.cell !== CELL.bud));
-    const welcome = flowers.length > 0 && night < 0.5 && !calm;
+    // Not at night, and not in the rain: then there is only the rain (value/12 §七).
+    const welcome = flowers.length > 0 && night < 0.5 && !calm && (light.rain ?? 0) < 0.3;
+    // The one nearest the water first: the highest on the screen.
+    const byWater = [...flowers].sort((a, b) => b.y - a.y);
+    const pick = () => byWater[Math.min(Math.floor(random() * random() * byWater.length), byWater.length - 1)];
     if (welcome && this.nextButterfly >= 0 && time >= this.nextButterfly && this.butterflies.length < 2) {
       this.nextButterfly = time + 18 + random() * 22;
       const from = random() < 0.5 ? -S * 0.06 : width + S * 0.06;
-      const target = flowers[Math.floor(random() * flowers.length)];
-      this.butterflies.push({ x: from, y: target.y + S * (0.15 + 0.2 * random()), phase: random() * 6.28, tx: target.x, ty: target.y + S * 0.012, resting: -1, leaving: false });
+      const target = pick();
+      this.butterflies.push({ x: from, y: target.y + S * (0.15 + 0.2 * random()), phase: random() * 6.28, tx: target.x, ty: target.y + S * 0.012, resting: -1, leaving: false, circling: -1, visits: 0 });
     }
     if (this.nextButterfly < 0 && welcome) this.nextButterfly = time + 3;
     for (const f of this.butterflies) {
@@ -366,17 +379,39 @@ export class Shore {
       if (f.resting >= 0) {
         f.resting -= dt;
         if (f.resting < 0) {
-          f.leaving = true;
-          f.tx = random() < 0.5 ? -S * 0.2 : width + S * 0.2;
-          f.ty = f.y + S * (0.2 + 0.3 * random());
+          f.visits++;
+          // Sometimes it looks in on another flower before it goes (value/12 §四).
+          if (f.visits < 2 && byWater.length > 1 && random() < 0.5) {
+            const next = pick();
+            f.tx = next.x;
+            f.ty = next.y + S * 0.012;
+          } else {
+            f.leaving = true;
+            f.tx = random() < 0.5 ? -S * 0.2 : width + S * 0.2;
+            f.ty = f.y + S * (0.2 + 0.3 * random());
+          }
+        }
+        continue;
+      }
+      // Near its flower it first goes half round in a small circle, then settles, wings closing.
+      if (f.circling > 0) {
+        f.circling -= dt;
+        const a = f.phase + (1 - f.circling / 1.6) * Math.PI;
+        f.x = f.tx + Math.cos(a) * S * 0.05;
+        f.y = f.ty + S * 0.03 + Math.sin(a) * S * 0.035;
+        if (f.circling <= 0) {
+          f.x = f.tx;
+          f.y = f.ty;
+          f.resting = (light.dusk > 0.5 ? 3 : 6) + random() * 8;
         }
         continue;
       }
       const dx = f.tx - f.x;
       const dy = f.ty - f.y;
       const d = Math.hypot(dx, dy);
-      if (d < S * 0.01 && !f.leaving) {
-        f.resting = 6 + random() * 8;
+      if (d < S * 0.06 && !f.leaving) {
+        f.circling = calm ? 0.01 : 1.6;
+        f.phase = Math.atan2(f.y - f.ty - S * 0.03, f.x - f.tx);
         continue;
       }
       // A butterfly's way: on toward where it is going, wavering up and down.
@@ -418,18 +453,28 @@ export class Shore {
     (this.spriteGeo.attributes.aFlap as THREE.BufferAttribute).needsUpdate = true;
     this.sprites.visible = n > 0 && this.ready;
 
-    // Fireflies among the blossoms at night.
+    // Fireflies at night: first a glimmer low in the wet grass of the bank,
+    // then another, each rising slowly to wander among the blossoms
+    // (value/12 §五).
     let m = 0;
+    if (night > 0.3 && this.nightSince < 0) this.nightSince = time;
+    if (night <= 0.3) this.nightSince = -1;
     if (night > 0.3) {
+      let order = 0;
       for (const br of this.branches) {
         const opened = br.blossoms.filter((b) => time > b.at);
-        for (let k = 0; k < Math.min(6, opened.length) && m < MAX_FLIES; k++) {
+        for (let k = 0; k < Math.min(6, opened.length) && m < MAX_FLIES; k++, order++) {
+          const since = time - this.nightSince - order * 1.8;
+          if (since <= 0) continue;
           const b = opened[(k * 7) % opened.length];
           const ph = k * 1.7 + br.id * 3.1;
-          const x = b.x + Math.sin(time * 0.4 + ph) * S * 0.05;
-          const y = b.y + S * 0.02 + Math.sin(time * 0.31 + ph * 1.3) * S * 0.04 + ((time * 0.02 + k * 0.17) % 1) * S * 0.03;
+          const ground = bankTop(b.x, this.view);
+          const up = Math.min(since / 7, 1);
+          const hy = b.y + S * 0.02 + Math.sin(time * 0.31 + ph * 1.3) * S * 0.04;
+          const x = b.x + Math.sin(time * 0.4 + ph) * S * 0.05 * up;
+          const y = ground + (hy - ground) * (up * up * (3 - 2 * up));
           this.flyPos.set([x, y, 0], m * 3);
-          this.flyAlpha[m] = night * (0.35 + 0.65 * Math.max(Math.sin(time * 1.7 + ph * 2.0), 0));
+          this.flyAlpha[m] = night * Math.min(since / 1.5, 1) * (0.35 + 0.65 * Math.max(Math.sin(time * 1.7 + ph * 2.0), 0));
           m++;
         }
       }
