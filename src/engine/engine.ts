@@ -11,6 +11,7 @@ import { Leaves } from './leaves';
 import { Lanterns } from './lanterns';
 import { Lotus } from './lotus';
 import { Shore, bankTop } from './shore';
+import type { SavedBranch } from './persist';
 import { BELL, moonPathAt, offFramePathPoint, sunPathAt } from './moonlight';
 import { flashLevel, MAX_BOLT, packSegment, strike, strikeAlong, type Segment } from './storm';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
@@ -161,6 +162,8 @@ export class Engine {
   private petals!: Leaves;
   /** 近岸 (prototype, ?shore). */
   private shore: Shore | null = null;
+  /** Saved branches kept as they were when the shore is not shown, so a visit without ?shore does not lose them. */
+  private keptBranches: SavedBranch[] = [];
   /** 荷塘: lotus pads and flowers on the near water. */
   private lotus!: Lotus;
   /** Engine time of the next frog among the lotus. */
@@ -493,7 +496,29 @@ export class Engine {
       planets: sky.planets.map((p): [number, number, number, number] => [p.x / W, p.y / H, p.r / S, p.tint]),
       stars: sky.stars.map((st): [number, number] => [st.x / W, st.y / H]),
       clouds: sky.clouds.map((c): [number, number, number] => [c.x / W, c.y / H, c.w / S]),
+      ...this.branchesToSave(),
     };
+  }
+
+  private branchesToSave(): { branches?: SavedBranch[] } {
+    if (this.restartPending) return {};
+    const branches = this.shore ? this.shore.snapshot() : this.keptBranches;
+    return branches.length ? { branches } : {};
+  }
+
+  /** 近岸: branches back on the bank as they were, already in flower. */
+  private restoreBranches(saved: SavedBranch[]): void {
+    if (!this.shore) {
+      this.keptBranches = saved.map((b) => ({ ...b, points: b.points.map((p): [number, number] => [p[0], p[1]]) }));
+      return;
+    }
+    for (const b of saved) {
+      const stroke = new Stroke(this.palette, this.minDim, false);
+      b.points.forEach(([nx, ny], i) => stroke.add({ x: nx * this.width, y: ny * this.height, t: i * 16, pressure: 0.5 }));
+      stroke.finish();
+      this.scene.add(stroke.mesh);
+      this.shore.addBranch(stroke, this.time - 10, b.lively, b.seed);
+    }
   }
 
   private saveFish(f: Fish): SavedFish {
@@ -534,6 +559,7 @@ export class Engine {
     for (const [x, y, r, tint] of save.planets) this.sky.addPlanet(x * W, y * H, r * S, tint);
     for (const [x, y] of save.stars) this.sky.addStar(x * W, y * H);
     for (const [x, y, w] of save.clouds) this.sky.addCloud(x * W, y * H, w * S);
+    if (save.branches) this.restoreBranches(save.branches);
     // A restored world was already drawn in: its first fish, if any, is still the one.
     this.honmeiTaken = save.fish.length > 0 || (save.away?.length ?? 0) > 0;
     if (save.savedAt) this.whileAway(now - save.savedAt);
@@ -606,6 +632,7 @@ export class Engine {
     const fishes = this.fishes.filter((f) => !f.ghost && !f.undone);
     for (const f of fishes) f.hide();
     this.sky.setVeil(0);
+    this.shore?.setHidden(true);
     const atmosphere = { ...this.atmosphere.state };
     this.atmosphere.set({ ...INITIAL });
     const history = this.history;
@@ -622,6 +649,7 @@ export class Engine {
     clearTimeout(r.timer);
     this.restartPending = null;
     for (const f of r.fishes) f.show();
+    this.shore?.setHidden(false);
     this.away = r.away;
     this.sky.setVeil(1);
     this.atmosphere.set(r.atmosphere);
@@ -636,6 +664,8 @@ export class Engine {
     this.restartPending = null;
     for (const f of r.fishes) f.dead = true;
     this.sky.clear();
+    for (const s of this.shore?.clear() ?? []) this.scene.remove(s.mesh);
+    this.keptBranches = [];
     this.honmeiTaken = false;
     this.births = 0;
     this.events.onRestartSettled?.(false);
@@ -1846,6 +1876,7 @@ export class Engine {
     const shore = this.shore!;
     const style = strokeStyle(stroke.points, this.minDim, pointer);
     const id = shore.addBranch(stroke, this.time, this.livelyFrom(style.speed, pointer));
+    this.keptBranches = [];
     const end = stroke.points[stroke.points.length - 1];
     this.sfx('chime', end.x, 0.3);
     this.record('branch', end.x, end.y, () => {
