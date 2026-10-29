@@ -129,6 +129,8 @@ interface ActiveInput {
   downX: number;
   downY: number;
   downT: number;
+  /** Engine time at pointer down. */
+  downAt: number;
   moved: number;
   fish: Fish | null;
   pointer: string;
@@ -164,6 +166,11 @@ export class Engine {
   /** 流星雨: when the next meteor falls into the lake. */
   private nextDive = -1;
   private flash = { at: -100, x: 0 };
+  /** 接雪: where a finger is held still in the snow, and how far the flakes have gathered. */
+  private catchAt = { x: 0, y: 0 };
+  private catchK = 0;
+  /** The last star the visitor placed, for 星河's constellation lines. */
+  private lastStar: { id: number; x: number; y: number; time: number } | null = null;
   private thunder: { at: number; x: number; strength: number } | null = null;
   /** 孤舟渔火 on a moonlit night: drifting slowly along the far water. */
   private boat = { x: 0, presence: 0, placed: false };
@@ -769,6 +776,7 @@ export class Engine {
     const dens = 0.25 + 0.75 * Math.pow(atmos.state.intensity, 1.3);
     weu.uSnowDensity.value += (dens - weu.uSnowDensity.value) * Math.min(dt / 4, 1);
     this.snow.update(dt, t, atmos.snow, atmos.state.intensity, atmos.wind);
+    this.updateCatch(dt);
     this.lanterns.update(dt, t, atmos.lanterns, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, this.calm);
     this.leaves.update(dt, t, atmos.autumn, atmos.wind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
@@ -776,6 +784,7 @@ export class Engine {
     weu.uWind.value = atmos.wind;
     this.sound?.ambient({ rain: atmos.rain, wind: atmos.wind, fireflies: atmos.fireflies, snow: atmos.snow, autumn: atmos.autumn, dusk: atmos.dusk });
 
+    this.sky.linkLevel = Math.min(atmos.galaxy * 1.5, 1);
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
     this.echo.update(t);
     this.updateRelations();
@@ -1201,6 +1210,13 @@ export class Engine {
   private placeStar(x: number, y: number): void {
     const id = this.sky.addStar(x, y);
     this.sfx('star', x);
+    // 星河: a star placed near the last one joins it, and the visitor's stars become a constellation.
+    const last = this.lastStar;
+    if (this.atmosphere.galaxy > 0.5 && last && this.time - last.time < 20 && Math.hypot(x - last.x, y - last.y) < this.minDim * 0.5) {
+      this.sky.link(last.id, id);
+      this.sfx('chime', x, 0.25);
+    }
+    this.lastStar = { id, x, y, time: this.time };
     this.record('star', x, y, () => this.sky.removeStar(id));
   }
 
@@ -1298,6 +1314,15 @@ export class Engine {
       minDim: this.minDim,
       home: this.honmeiHome(swimmers),
     };
+  }
+
+  /** 接雪 (docs/02 §5.5): a finger held still in the snow gathers the flakes around it. */
+  private updateCatch(dt: number): void {
+    const inp = this.input;
+    const holding = !!inp && inp.moved < TAP_MOVE && this.time - inp.downAt > 0.25 && this.atmosphere.snow > 0.3;
+    if (holding) this.catchAt = { x: inp.downX, y: inp.downY };
+    this.catchK += ((holding ? 1 : 0) - this.catchK) * Math.min(dt * (holding ? 0.8 : 1.6), 1);
+    this.snow.setHold(this.catchAt.x, this.catchAt.y, this.catchK);
   }
 
   private lakeView(): { width: number; horizonY: number; S: number } {
@@ -1508,7 +1533,7 @@ export class Engine {
       this.scene.add(stroke.mesh);
       this.sfx('stroke', x);
     }
-    this.input = { id: e.pointerId, stroke, downX: x, downY: y, downT: e.timeStamp, moved: 0, fish, pointer: e.pointerType || 'mouse' };
+    this.input = { id: e.pointerId, stroke, downX: x, downY: y, downT: e.timeStamp, downAt: this.time, moved: 0, fish, pointer: e.pointerType || 'mouse' };
   };
 
   private onMove = (e: PointerEvent): void => {
@@ -1687,8 +1712,12 @@ export class Engine {
       return;
     }
     if (y >= this.horizonY && !fish) {
-      this.sky.flash(x, y);
-      this.sfx('star', x);
+      // 星河: a touch on the sky leaves a star, to join into a constellation.
+      if (this.atmosphere.galaxy > 0.5) this.placeStar(x, y);
+      else {
+        this.sky.flash(x, y);
+        this.sfx('star', x);
+      }
       return;
     }
     // A sent fish waits at the edge: touching the water takes it in (送一条鱼).

@@ -72,6 +72,7 @@ uniform float uDensity; // share of flakes shown, 0..1
 uniform float uOn;
 uniform float uCalm;
 uniform float uParticles;
+uniform vec3 uHold;     // a finger held still: x, y, how far the flakes have gathered 0..1
 varying float vAlpha;
 varying float vBlur;
 void main() {
@@ -85,6 +86,14 @@ void main() {
   y += 0.18 * sway * sin(2.0 * a1.y * t + a1.z * 2.0);
   float x = a0.x * spanX + speed * uDrift + sway * (sin(a1.y * t + a1.z) + 0.45 * sin(2.3 * a1.y * t + 1.7 * a1.z));
   x = mod(x, spanX) - m;
+  // 接雪: flakes near a finger held still drift in and circle it, and drift off again when it lifts.
+  if (uHold.z > 0.001) {
+    vec2 d = uHold.xy - vec2(x, y);
+    float R = 0.3 * uS;
+    float f = exp(-dot(d, d) / (R * R)) * uHold.z;
+    x += (d.x * 0.68 - d.y * 0.35) * f;
+    y += (d.y * 0.68 + d.x * 0.35) * f;
+  }
   // Snow comes thicker and thinner in slow, drifting patches.
   float g = 0.78 + 0.22 * sin(x / uS * 2.1 + t * 0.12 + 1.3) * sin(y / uS * 1.4 - t * 0.17);
   // Flakes past the density are hidden, fading at the edge so a change thickens slowly.
@@ -158,6 +167,7 @@ export class Snow {
         uOn: { value: 0 },
         uCalm: { value: 0 },
         uParticles: { value: 1 },
+        uHold: { value: new THREE.Vector3() },
         uColor: { value: new THREE.Vector3(0.92, 0.94, 0.97) },
       },
       transparent: true,
@@ -186,6 +196,13 @@ export class Snow {
 
   setParticles(share: number): void {
     this.material.uniforms.uParticles.value = share;
+  }
+
+  /** A finger held still at (x, y): the flakes around it gather by `k` 0..1. */
+  setHold(x: number, y: number, k: number): void {
+    const h = this.material.uniforms.uHold.value as THREE.Vector3;
+    if (k > 0.001) h.set(x, y, k);
+    else h.z = 0;
   }
 
   /**

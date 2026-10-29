@@ -6,6 +6,8 @@ import type { MoonPhase } from './classify';
 // animates the uniforms.
 
 export const MAX_STARS = 24;
+/** 星河: most lines joining the visitor's stars into a constellation. */
+export const MAX_LINKS = 12;
 export const MAX_METEORS = 3;
 export const MAX_CLOUDS = 4;
 /** Circles after the moon become small planets (docs/02 §5.2, P1); the oldest gives way. */
@@ -95,6 +97,8 @@ export class Sky {
     uMoonPulse: { value: 0 },
     uStars: { value: Array.from({ length: MAX_STARS }, () => new THREE.Vector4()) }, // x, y, brightness, flash
     uStarCount: { value: 0 },
+    uLinks: { value: Array.from({ length: MAX_LINKS }, () => new THREE.Vector4()) }, // ax, ay, bx, by
+    uLinkLook: { value: Array.from({ length: MAX_LINKS }, () => new THREE.Vector2()) }, // drawn 0..1, brightness
     uMeteors: { value: Array.from({ length: MAX_METEORS }, () => new THREE.Vector4()) }, // ax, ay, bx, by
     uMeteorT: { value: Array.from({ length: MAX_METEORS }, () => 0) }, // progress 0..1, 0 = inactive
     uClouds: { value: Array.from({ length: MAX_CLOUDS }, () => new THREE.Vector4()) }, // x, y, halfWidth, presence
@@ -108,6 +112,10 @@ export class Sky {
   calm = false;
   private pendingMoon: Moon | null = null;
   private stars: Star[] = [];
+  /** 星河: lines between the visitor's stars, by star id. */
+  private links: { a: number; b: number; born: number }[] = [];
+  /** How much the constellation lines show (the Milky Way's level). */
+  linkLevel = 0;
   private meteors: Meteor[] = [];
   private clouds: Cloud[] = [];
   private planets: Planet[] = [];
@@ -185,6 +193,12 @@ export class Sky {
     const flashes = this.stars.filter((s) => s.flash);
     if (flashes.length >= 4) this.stars.splice(this.stars.indexOf(flashes[0]), 1);
     this.stars.push({ id: this.nextId++, x, y, born: this.time, flash: true, fading: -1 });
+  }
+
+  /** Join two of the visitor's stars with a faint line, drawn out from the first. */
+  link(a: number, b: number): void {
+    if (this.links.length >= MAX_LINKS) this.links.shift();
+    this.links.push({ a, b, born: this.time });
   }
 
   removeStar(id: number): void {
@@ -282,6 +296,20 @@ export class Sky {
       sv[i].set(s.x, s.y, b, s.flash ? 1 : 0);
     });
     this.uniforms.uStarCount.value = Math.min(this.stars.length, MAX_STARS);
+
+    // Constellation lines: gone with either star, fading with it.
+    const byId = new Map(this.stars.map((s) => [s.id, s]));
+    this.links = this.links.filter((l) => byId.has(l.a) && byId.has(l.b));
+    const lv = this.uniforms.uLinks.value;
+    const ll = this.uniforms.uLinkLook.value;
+    for (let i = 0; i < MAX_LINKS; i++) ll[i].set(0, 0);
+    this.links.forEach((l, i) => {
+      const a = byId.get(l.a)!;
+      const b = byId.get(l.b)!;
+      const fade = Math.min(...[a, b].map((s) => (s.fading < 0 ? 1 : Math.max(1 - (time - s.fading) / 0.8, 0))));
+      lv[i].set(a.x, a.y, b.x, b.y);
+      ll[i].set(Math.min((time - l.born) / 0.7, 1), fade * this.linkLevel);
+    });
 
     // Meteors.
     const mv = this.uniforms.uMeteors.value;
