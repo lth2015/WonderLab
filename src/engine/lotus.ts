@@ -247,10 +247,14 @@ export class Lotus {
     return true;
   }
 
-  update(dt: number, time: number, amount: number, wind: number, view: { width: number; horizonY: number; S: number }, calm: boolean, day = 1): void {
+  update(dt: number, time: number, amount: number, wind: number, view: { width: number; horizonY: number; S: number }, calm: boolean, day = 1, dusk = 0): void {
     this.view = view;
-    // The photographs are lit by day; at night they sink into the dark blue.
-    (this.material.uniforms.uLight.value as THREE.Vector3).set(0.42 + 0.58 * day, 0.46 + 0.54 * day, 0.58 + 0.42 * day);
+    // The photographs are lit by day; at night they sink into the dark blue;
+    // in the evening the sunset warms them (Codex's review of #91: the lotus read cold at dusk).
+    const light = this.material.uniforms.uLight.value as THREE.Vector3;
+    const lit = Math.max(day, dusk * 0.85);
+    light.set(0.42 + 0.58 * lit, 0.46 + 0.54 * lit, 0.58 + 0.42 * lit);
+    light.lerp(new THREE.Vector3(1.05, 0.86, 0.72), dusk * 0.6);
     this.presence += ((amount > 0.4 ? 1 : 0) - this.presence) * Math.min(dt / (amount > 0.4 ? 3 : 1.5), 1);
     this.points.visible = this.presence > 0.002;
     if (!this.points.visible) return;
