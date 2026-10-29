@@ -25,16 +25,17 @@
 | `/assets/*` 一年缓存 | 带哈希的文件，更新时文件名会变 | ✓ |
 | `X-Robots-Tag` | 搜索引擎收录 | **不加**（2026-10-29 所有者决定：Wonderful World 是开放的，`want.world` 允许收录） |
 
-## 送鱼实验的站点（`poc-gift-r1`，11/16 前需要）
+## 送鱼实验的站点 `gift.want.world`（11/16 前需要）
 
-送鱼实验要一个单独的构建（`WW_EXPERIMENT=poc-gift-r1`），和 R1 的数据、浏览器存储分开，所以要第二个地址。建议沿用现有流水线，不引入新服务：
+送鱼实验要一个单独的构建（`WW_EXPERIMENT=poc-gift-r1`），和 R1 的数据、浏览器存储分开，所以要第二个地址。沿用现有流水线，和 `want.world` 共用同一个 ALB，不另开负载均衡：
 
-1. **证书**：在 ACM（ap-northeast-1）给 `gift.want.world` 申请证书，或把现有证书换成覆盖 `*.want.world` 的；用 Route 53 的 DNS 验证一键完成。
-2. **构建**：Artifact Build 多打一个镜像标签，`WW_EXPERIMENT=poc-gift-r1`。
-3. **部署**：`resources.yaml` 加第二个 Deployment 和 Service，Ingress 加一条 `host: gift.want.world` 的规则，和 `want.world` 共用同一个 ALB（不额外产生负载均衡费用）。
-4. **域名**：Route 53 里加 `gift.want.world` 的别名记录，指向同一个 ALB。
-
-第 2、3 步是代码，第 1、4 步要在 AWS 账号里操作。纯静态的替代方案（S3 + CloudFront，每月几乎零成本）也可行，但要另外维护一套发布流程，不推荐。
+| 步骤 | 内容 | 状态 |
+|---|---|---|
+| 构建 | Artifact Build 多打一个镜像 `shared-wonderlab/api:<标签>-gift`，以 `poc-gift-r1` 打包 | ✓ |
+| 部署 | Deploy QA 在 R1 站点上线后应用 `deploy/k8s/qa/gift.yaml`（只有网页，不连数据库、不挂密钥、账户关闭）；没有 gift 镜像的旧提交照常部署，只是不动送鱼站点 | ✓ |
+| 域名 | Route 53：`gift.want.world` 别名指向同一个 ALB | ✓（2026-10-29） |
+| 证书 | ACM（ap-northeast-1）给 `gift.want.world`（或 `*.want.world`）申请一张**新**证书。现有证书 `6ab53b30…` 只包含 `want.world`，ACM 证书不能事后加域名 | 待办（所有者） |
+| 入口 | 证书颁发后，`resources.yaml` 的 Ingress：`certificate-arn` 加上新证书（逗号分隔），并加一条 `host: gift.want.world` → `wonderlab-gift` 的规则 | 等证书 |
 
 ## 部署后验收（每个站点各做一遍）
 
