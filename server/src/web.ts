@@ -27,6 +27,9 @@ export async function registerWeb(app: FastifyInstance, dir: string): Promise<vo
     setHeaders(res, path) {
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+      // The page never needs camera, microphone or location (01 P8): refuse
+      // them at the browser level, as deploy/static/_headers does.
+      res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
       res.setHeader(
         'Cache-Control',
         /[\\/]assets[\\/]/.test(path) ? 'public, max-age=31536000, immutable' : 'no-cache',
