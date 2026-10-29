@@ -9,6 +9,7 @@ import { weatherFrag } from './shaders/weather';
 import { Snow } from './snow';
 import { Leaves } from './leaves';
 import { Lanterns } from './lanterns';
+import { Lotus } from './lotus';
 import { BELL, moonPathAt, offFramePathPoint } from './moonlight';
 import { flashLevel, MAX_BOLT, packSegment, strike, strikeAlong, type Segment } from './storm';
 import { panFor, type AmbientLevels, type SoundKind } from '../sound';
@@ -152,6 +153,10 @@ export class Engine {
   private leaves!: Leaves;
   /** 落花: spring petals, the leaves' gentler cousin. */
   private petals!: Leaves;
+  /** 荷塘: lotus pads and flowers on the near water. */
+  private lotus!: Lotus;
+  /** Engine time of the next frog among the lotus. */
+  private nextFrog = -1;
   private lanterns!: Lanterns;
   private readonly sky = new Sky();
   private history: HistoryEntry[] = [];
@@ -275,6 +280,7 @@ export class Engine {
         uWaveT: { value: 0 },
         uWind: { value: this.atmosphere.wind },
         uDusk: { value: 0 },
+        uDay: { value: 0 },
         uSnow: { value: 0 },
         uMoonlit: { value: 0 },
         uFlash: { value: new THREE.Vector2() },
@@ -329,6 +335,8 @@ export class Engine {
     this.scene.add(this.leaves.points);
     this.petals = new Leaves(p.ink, true);
     this.scene.add(this.petals.points);
+    this.lotus = new Lotus(p.ink);
+    this.scene.add(this.lotus.points);
     this.lanterns = new Lanterns(p.ink);
     this.scene.add(this.lanterns.points);
     this.scene.add(this.echo.mesh);
@@ -645,6 +653,11 @@ export class Engine {
   }
 
   /** Whether an echo line is in the sky now (hints in the sky wait for it). */
+  /** 白天: whether it is day, for the page's lettering. */
+  get daylight(): boolean {
+    return this.atmosphere.day > 0.5;
+  }
+
   /** The weather the words last brought. */
   get weather(): Weather {
     return this.atmosphere.state.weather;
@@ -661,6 +674,7 @@ export class Engine {
     const moon = this.sky.moonSpec;
     const avoid = [...(moon ? [{ x: moon.x, y: moon.y, r: moon.r * 1.25 }] : []), ...this.sky.planetDiscs];
     const band = { min: this.horizonY + this.minDim * 0.04, max: this.height - 8 };
+    this.echo.day = this.atmosphere.state.timeOfDay === 'day';
     void this.echo.show(text, author, this.width / 2, y, this.width, this.width < 600, avoid, band);
   }
 
@@ -699,6 +713,7 @@ export class Engine {
     this.snow.dispose();
     this.leaves.dispose();
     this.petals.dispose();
+    this.lotus.dispose();
     this.lanterns.dispose();
     this.echo.dispose();
     this.renderer.dispose();
@@ -778,6 +793,7 @@ export class Engine {
     wu.uWaveT.value = this.waveT;
     wu.uWind.value = wind;
     wu.uDusk.value = atmos.dusk;
+    wu.uDay.value = atmos.day;
     wu.uSnow.value = atmos.snow;
     wu.uMoonlit.value = atmos.moonlit;
     const weu = this.weatherMat.uniforms;
@@ -792,6 +808,14 @@ export class Engine {
     this.snow.update(dt, t, atmos.snow, atmos.state.intensity, atmos.wind);
     this.updateCatch(dt);
     this.lanterns.update(dt, t, atmos.lanterns, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, this.calm);
+    this.lotus.update(dt, t, atmos.lotus, atmos.wind, { width: this.width, horizonY: this.horizonY, S: this.minDim }, this.calm);
+    // 蛙声: now and then a frog among the lotus.
+    if (atmos.lotus < 0.5) this.nextFrog = -1;
+    else if (this.nextFrog < 0) this.nextFrog = t + 5 + Math.random() * 5;
+    else if (t >= this.nextFrog) {
+      this.nextFrog = t + 9 + Math.random() * 14;
+      this.sfx('frog', this.width * (Math.random() < 0.5 ? 0.15 : 0.85), 0.7);
+    }
     const gustWind = atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8;
     this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.addRipple(x, y, 0.15));
     this.leaves.update(dt, t, atmos.autumn, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
@@ -1747,6 +1771,12 @@ export class Engine {
       }
       return;
     }
+    // 荷塘: a touched pad or flower bobs, and a frog answers.
+    if (y < this.horizonY && !fish && this.lotus.touch(x, y)) {
+      this.addRipple(x, y, 0.4);
+      this.sfx('frog', x, 1);
+      return;
+    }
     // A sent fish waits at the edge: touching the water takes it in (送一条鱼).
     if (y < this.horizonY && this.acceptGuest(x, y)) return;
     if (fish) {
@@ -1875,6 +1905,7 @@ export class Engine {
     this.snow.resize(w, h, dpr);
     this.leaves?.setPixelRatio(dpr);
     this.petals?.setPixelRatio(dpr);
+    this.lotus?.setPixelRatio(dpr);
     this.lanterns?.setPixelRatio(dpr);
   }
 

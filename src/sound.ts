@@ -39,7 +39,7 @@ export function panFor(x: number, width: number): number {
   return Math.max(-0.6, Math.min(0.6, (x / width) * 1.2 - 0.6));
 }
 
-export type SoundKind = 'stroke' | 'drop' | 'ripple' | 'chime' | 'star' | 'meteor' | 'bell' | 'thunder';
+export type SoundKind = 'stroke' | 'drop' | 'ripple' | 'chime' | 'star' | 'meteor' | 'bell' | 'thunder' | 'frog';
 
 export interface AmbientLevels {
   rain: number;
@@ -321,6 +321,35 @@ export class Voices {
           [5.4, 0.07, 2],
         ];
         for (const [ratio, gain, decay] of partials) this.tone(at, f * ratio, 0.065 * gain * strength, decay, far, 0.03);
+        return;
+      }
+      case 'frog': {
+        // 蛙声: a frog among the lotus, two or three quick low croaks, each
+        // a short burst of pulses through a low, nasal resonance.
+        const croaks = 2 + Math.floor(Math.random() * 2);
+        const f = 150 + Math.random() * 60;
+        const res = this.ctx.createBiquadFilter();
+        res.type = 'bandpass';
+        res.frequency.value = 520 + Math.random() * 160;
+        res.Q.value = 3;
+        res.connect(this.panner(pan));
+        for (let c = 0; c < croaks; c++) {
+          const t0 = at + c * (0.28 + Math.random() * 0.08);
+          const osc = this.ctx.createOscillator();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(f * 1.1, t0);
+          osc.frequency.linearRampToValueAtTime(f, t0 + 0.14);
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0, t0);
+          for (let k = 0; k < 6; k++) {
+            g.gain.linearRampToValueAtTime(0.09 * strength, t0 + k * 0.025 + 0.006);
+            g.gain.linearRampToValueAtTime(0.01, t0 + k * 0.025 + 0.02);
+          }
+          g.gain.linearRampToValueAtTime(0, t0 + 0.17);
+          osc.connect(g).connect(res);
+          osc.start(t0);
+          osc.stop(t0 + 0.2);
+        }
         return;
       }
       case 'meteor': {

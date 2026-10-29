@@ -128,6 +128,7 @@ function describe(cmd: SceneCommand, fishAnswered = 0): string {
   if (cmd.weather === 'moonsnow') parts.push('月光下飘起了雪');
   if (cmd.weather === 'autumn') parts.push('起了秋风，落叶飘下');
   if (cmd.weather === 'blossom') parts.push('春风里，花瓣飘落');
+  if (cmd.weather === 'lotus') parts.push('近岸开出一片荷花');
   if (cmd.weather === 'storm') parts.push('打起了雷，下起了大雨');
   if (cmd.weather === 'shower') parts.push('下起了流星雨');
   if (cmd.weather === 'galaxy') parts.push('星河升了起来');
@@ -135,6 +136,7 @@ function describe(cmd: SceneCommand, fishAnswered = 0): string {
   if (cmd.weather === 'clear') parts.push('天色放晴');
   if (cmd.timeOfDay === 'dusk') parts.push('天色转为黄昏');
   if (cmd.timeOfDay === 'night') parts.push('夜色深了');
+  if (cmd.timeOfDay === 'day') parts.push('天亮了，湖面明亮起来');
   if (cmd.palette === 'warm') parts.push('世界变得温暖');
   if (cmd.palette === 'melancholy') parts.push('世界变得清冷');
   if (cmd.palette === 'serene') parts.push('世界安静下来');
@@ -784,6 +786,12 @@ export function App() {
   useEffect(() => {
     hintOnRef.current = !!hint;
   }, [hint]);
+  // 白天: the page's lettering turns to ink while the world is light.
+  useEffect(() => {
+    if (!ready) return;
+    const id = window.setInterval(() => document.documentElement.classList.toggle('day', !!engineRef.current?.daylight), 500);
+    return () => clearInterval(id);
+  }, [ready]);
 
   if (failed) {
     return (

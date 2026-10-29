@@ -189,6 +189,13 @@ body {
   }
 }
 
+/* 白天: hints and invitations written in ink on the light sky and water. */
+.day .hint,
+.day .beckon {
+  color: #1c1f26;
+  text-shadow: 0 0 10px rgba(255, 252, 240, 0.8);
+}
+
 /* 墨散: a small ink dot beside the new creation (docs/03 §5.1.1). */
 .undo {
   position: fixed;

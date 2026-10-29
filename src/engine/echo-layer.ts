@@ -11,6 +11,8 @@ const FADE_OUT = 1.2;
 
 export class EchoLayer {
   readonly mesh: THREE.Mesh;
+  /** 白天: write the next line in ink rather than in light. */
+  day = false;
   private readonly canvas = document.createElement('canvas');
   private readonly texture: THREE.CanvasTexture;
   private readonly material: THREE.MeshBasicMaterial;
@@ -75,14 +77,15 @@ export class EchoLayer {
     this.canvas.height = ch;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = 'rgba(239, 234, 223, 0.94)';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    // By day the line is written in ink on the pale sky.
+    ctx.fillStyle = this.day ? 'rgba(28, 31, 38, 0.9)' : 'rgba(239, 234, 223, 0.94)';
+    ctx.shadowColor = this.day ? 'rgba(255, 252, 240, 0.7)' : 'rgba(0, 0, 0, 0.6)';
     ctx.shadowBlur = 12;
     ctx.textBaseline = 'middle';
     ctx.font = `${size}px ${FONT}`;
     lines.forEach((line, i) => drawSpaced(ctx, line, (w - measure(ctx, line, size * 0.15)) / 2, pad + lineH * (i + 0.5), size * 0.15));
     ctx.font = `${authorSize}px ${FONT}`;
-    ctx.fillStyle = 'rgba(201, 195, 182, 0.9)';
+    ctx.fillStyle = this.day ? 'rgba(60, 64, 72, 0.85)' : 'rgba(201, 195, 182, 0.9)';
     const by = `—— ${author}`;
     drawSpaced(ctx, by, w - pad - measure(ctx, by, authorSize * 0.1), pad + lines.length * lineH + authorSize * 1.1, authorSize * 0.1);
     this.texture.needsUpdate = true;
