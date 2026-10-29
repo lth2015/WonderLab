@@ -16,7 +16,7 @@
 | `gift.want.world` | `npm run build:gift` → `poc-gift-r1` | 送鱼实验（送鱼人和收鱼人都用这个） |
 
 - 两个站点地址不同，浏览器存储互不相通：在 `r1` 上画的世界，不会出现在 `gift` 上；送鱼人要在 `gift` 站点上画要送的鱼。
-- 构建前确认工作区干净（`git status` 无改动），否则版本号会带 `-dirty`。冻结后从 `poc-r1` 标签构建。
+- 构建前确认工作区干净（`git status` 无改动），否则版本号会带 `-dirty`。从最新的 `poc-r1.N` 标签构建（[验证路线图 §2](验证路线图.md)）。
 - 用独立的测试子域名，和将来的正式产品分开。两个站点都返回 `X-Robots-Tag: noindex`，要求搜索引擎不收录。这是对守规矩的搜索引擎的请求，**不是保证**：站点地址仍然只发给参与者，不公开发布。
 
 ## 推荐：Cloudflare Pages 直接上传
@@ -24,7 +24,7 @@
 免费、自带 HTTPS、支持自定义子域名，并且会读取构建产物里的 `_headers` 文件（`npm run build:r1` / `build:gift` 已经把 `deploy/static/_headers` 复制进 `dist/`）。
 
 ```bash
-git checkout poc-r1                 # 冻结后；之前用当前 main
+git checkout poc-r1.N               # 最新的发布标签
 npm ci
 npm run build:r1
 npx wrangler pages deploy dist --project-name wonderful-world-r1
