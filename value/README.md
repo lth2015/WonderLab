@@ -10,6 +10,8 @@
 
 **与当前场景创作相接，先读 [10 · 两条创作线，在湖边相接](10-creative-confluence.md)。** 其中标出主线已有的根与本轮的生活想象；[09 · 眼前这片湖](09-the-lake-we-share.md)把它们展开成可直接取意的片段。
 
+**双方的实际交接入口见 [Claude Code × Codex · 交接约定](collaboration/README.md)。** 已沿用 Claude Code 建立的 docs/handoff/ 文件接收荷塘素材任务，并按其最新完成状态回信。
+
 ## 从一湾水走向世界
 
 | 想去哪里 | 读什么 |
