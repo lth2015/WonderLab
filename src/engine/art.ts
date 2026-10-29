@@ -15,12 +15,15 @@ export interface KoiSkin {
 export interface Art {
   koi: KoiSkin[];
   moon: THREE.Texture | null;
+  /** 荷塘: leaves, flowers and a bud in one 3x2 atlas (see scripts/gen-art.mjs packLotus). */
+  lotus: THREE.Texture | null;
 }
 
 interface Manifest {
   version: number;
   koi?: { name: string; file: string; halfWidth: number; flip?: boolean }[];
   moon?: { file: string } | null;
+  lotus?: { file: string } | null;
 }
 
 export async function loadArt(base = `${import.meta.env.BASE_URL}art/`): Promise<Art | null> {
@@ -54,5 +57,7 @@ export async function loadArt(base = `${import.meta.env.BASE_URL}art/`): Promise
   );
   let moon: THREE.Texture | null = null;
   if (manifest.moon) moon = await load(manifest.moon.file).catch(() => null);
-  return { koi: koi.filter((k): k is KoiSkin => !!k), moon };
+  let lotus: THREE.Texture | null = null;
+  if (manifest.lotus) lotus = await load(manifest.lotus.file).catch(() => null);
+  return { koi: koi.filter((k): k is KoiSkin => !!k), moon, lotus };
 }
