@@ -4,7 +4,7 @@ import { landscapeFrag } from './shaders/landscape';
 import { MAX_RIPPLES, worldFrag } from './shaders/world';
 import type { Palette } from './palette';
 import { Atmosphere } from './atmosphere';
-import type { SceneCommand } from './intent';
+import type { SceneCommand, Weather } from './intent';
 import { weatherFrag } from './shaders/weather';
 import { Snow } from './snow';
 import { Leaves } from './leaves';
@@ -641,6 +641,11 @@ export class Engine {
   }
 
   /** Whether an echo line is in the sky now (hints in the sky wait for it). */
+  /** The weather the words last brought. */
+  get weather(): Weather {
+    return this.atmosphere.state.weather;
+  }
+
   get echoShowing(): boolean {
     return this.echo.showing;
   }

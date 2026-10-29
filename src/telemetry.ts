@@ -62,6 +62,7 @@ const HINT_INVITES: Record<string, string> = {
   touch_fish: 'touch_fish',
   draw_circle: 'moon',
   write_words: 'text_submit',
+  scene_invite: 'text_submit',
 };
 
 export function logEvent(type: EventType, fields: Fields = {}): void {

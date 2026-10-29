@@ -39,7 +39,7 @@ export const STUDY_FIELDS: Record<EventType, readonly string[]> = {
   fish_kept: ['received'],
   gift_failed: ['reason'],
   touch: ['object'],
-  text_submit: ['source', 'rule', 'prompted', 'fish', 'fishAnswered'],
+  text_submit: ['source', 'rule', 'prompted', 'fish', 'fishAnswered', 'via'],
   hint_shown: ['hint'],
   hint_followed: ['hint', 'after'],
   undo: ['kind', 'after'],

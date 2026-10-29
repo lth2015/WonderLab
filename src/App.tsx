@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Engine, RELEASE_GRACE_S, type Creation, type CreationKind } from './engine/engine';
-import { interpret, mergeAi, type SceneCommand } from './engine/intent';
+import { interpret, mergeAi, type SceneCommand, type Weather } from './engine/intent';
+import { BECKON, pickBeckon } from './beckon';
 import { askScene, bareFlags, captureInvite } from './ai';
 import { rankPoems } from './echo';
 import { poemById } from './poems';
@@ -194,6 +195,11 @@ export function App() {
     }, []),
   );
   const recentEchoes = useRef<number[]>([]);
+  /** 发现入口: scenes the words have brought this visit, the last touch, key or words, and the line now offered. */
+  const seenRef = useRef(new Set<Weather>());
+  const lastStirRef = useRef(performance.now());
+  const hintOnRef = useRef(false);
+  const [beckon, setBeckon] = useState<{ text: string; key: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -679,16 +685,16 @@ export function App() {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const submit = useCallback(
-    (e: FormEvent) => {
-      e.preventDefault();
-      const value = text.trim();
+  /** Words reach the world: typed by the visitor, or a drifting line they touched (发现入口). */
+  const say = useCallback((value: string, via: 'typed' | 'invite') => {
       const engine = engineRef.current;
       if (!value || !engine) return;
+      lastStirRef.current = performance.now();
       const local = interpret(value);
       const { command, source } = local;
       const wasPrompted = prompted('text_submit');
       const fishAnswered = engine.applyScene(command);
+      if (command.weather) seenRef.current.add(command.weather);
       wordsUsedRef.current();
       if (command.weather === 'moonlit' || command.weather === 'moonsnow') moonlitRef.current();
       setAnnounce(describe(command, fishAnswered));
@@ -718,12 +724,14 @@ export function App() {
           // What the words asked of the fish, and whether any were there to answer (no text is logged).
           fish: fishIntent ?? '',
           fishAnswered: fishAnswered > 0,
+          via,
         });
         recentEchoes.current = [poem.id, ...recentEchoes.current].slice(0, RECENT_ECHOES);
         const wait = Math.max(ECHO_DELAY_MS - (performance.now() - started), 0);
         window.setTimeout(() => engine.showEcho(poem.text, poem.author), wait);
       });
 
+      if (via === 'invite') return;
       // The words rise into the sky as ink dots (docs/03 §5.3).
       const box = inputRef.current!.getBoundingClientRect();
       const chars = [...value].map((ch, i) => ({ ch, dx: (Math.random() - 0.5) * 120, delay: i * 35 }));
@@ -733,9 +741,48 @@ export function App() {
 
       setText('');
       if (coarse()) inputRef.current?.blur();
+  }, []);
+
+  const submit = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault();
+      say(text.trim(), 'typed');
     },
-    [text],
+    [text, say],
   );
+
+  // 发现入口: after words once and a quiet while, a line drifts into the sky; touching it says it.
+  useEffect(() => {
+    if (!ready) return;
+    let shown = 0;
+    let lastShown = -Infinity;
+    const stir = () => (lastStirRef.current = performance.now());
+    window.addEventListener('pointerdown', stir, true);
+    window.addEventListener('keydown', stir, true);
+    const id = window.setInterval(() => {
+      const engine = engineRef.current;
+      const now = performance.now();
+      if (!engine || !seenRef.current.size || shown >= BECKON.max || document.hidden) return;
+      if (now - lastStirRef.current < BECKON.idleMs || now - lastShown < BECKON.everyMs) return;
+      if (hintOnRef.current || engine.echoShowing) return;
+      const line = pickBeckon(seenRef.current, engine.weather);
+      if (!line) return;
+      shown++;
+      lastShown = now;
+      hintShown('scene_invite');
+      const key = now;
+      setBeckon({ text: line.text, key });
+      window.setTimeout(() => setBeckon((b) => (b?.key === key ? null : b)), BECKON.showMs);
+    }, 3000);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('pointerdown', stir, true);
+      window.removeEventListener('keydown', stir, true);
+    };
+  }, [ready]);
+  useEffect(() => {
+    hintOnRef.current = !!hint;
+  }, [hint]);
 
   if (failed) {
     return (
@@ -762,6 +809,20 @@ export function App() {
       <p className={`hint ${hint?.place ?? 'lake'}${hint && !toast ? ' on' : ''}`} aria-live="polite">
         {hint?.text ?? ''}
       </p>
+      {beckon && (
+        <button
+          key={beckon.key}
+          type="button"
+          className="beckon"
+          aria-label={`${beckon.text}（点一下，让世界听见）`}
+          onClick={() => {
+            setBeckon(null);
+            say(beckon.text, 'invite');
+          }}
+        >
+          {beckon.text}
+        </button>
+      )}
       {undoBtn && (
         <button
           key={undoBtn.id}
