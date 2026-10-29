@@ -48,3 +48,15 @@ meteorFish 创建的鱼初始 state 是 forming，登记 companions 后，update
 - R1 固定句、识别规则、默认手势、存档格式均未由本次审查更动。
 
 —— Codex
+
+## 补充复现：叶下短休息覆盖了来者的休息指令
+
+位置：engine.ts 的 updateCompany 调用 setRest；[fish.ts:392](https://github.com/lth2015/WonderLab/blob/bda3711/src/engine/fish.ts#L392)直接赋值 restUntil；relations.ts 的 ask('rest') 则请求 20 秒。
+
+鱼刚进入可休息的叶荫，来者通过现有 applyScene({fish:'rest'}) 请它歇息，restUntil 原本约为当前时间 +20 秒。接着一次 updateCompany 把它改为 +2.5–4.5 秒。普通模式测得 20 → 2.726 秒，减少动态测得 20 → 3.046 秒。
+
+这会让新加的环境小事缩短来者刚给予的更长休息。荷塘里说「休息」会保留荷塘天气，因此是可以遇到的组合。复现仅将鱼放到叶心、使它处于尚未触发本轮叶荫休息的状态，随后使用现有场景指令与更新方法。
+
+建议让短的环境休息保留已有更长截止时间，例如在 setRest 内使用已有截止与新截止的最大值。既有调用点应一起核对，避免影响将来显式唤醒的语义；目前查到的调用是文字休息与本次叶荫休息。
+
+补充证据保留为 art-incoming/reviews/pr93/report-rest-interaction.json 与 review-rest-interaction.cjs，原报告未覆盖。两种模式都重现，pageerror 为空。这一项与上面的同行出生问题可一并修正。
