@@ -73,6 +73,12 @@ float starLayer(vec2 p, float cellSize, float density, float size) {
 }
 
 const vec3 MOONLIGHT = vec3(0.78, 0.83, 0.92);
+const vec3 SUNSET = vec3(1.0, 0.6, 0.32);
+
+/** 落日: where the setting sun stands, a little above the hills right of centre. */
+vec2 sunAt(float hpx, float S) {
+  return vec2(uRes.x * 0.76, hpx + S * 0.075);
+}
 
 // 孤舟蓑笠翁: a small fishing boat in ink, in its own units (length 2,
 // waterline at y = 0): a shallow hull, a rounded mat canopy, a figure in a
@@ -274,6 +280,18 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   // 月明星稀: a moonlit night has fewer stars, fewer still with the moon up.
   stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - uDay) * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
   c += vec3(0.96, 0.93, 0.86) * stars;
+  if (uDusk > 0.001) {
+    // 落日: a low red-gold sun, half behind the far hills, its glow
+    // spreading along the horizon (长河落日圆).
+    vec2 sp = sunAt(hpx, S);
+    float r = S * 0.055;
+    float dd = length(p - sp);
+    float disc = smoothstep(r, r - 1.5, dd) * land.a;
+    float glow = exp(-dd / (S * 0.07)) * 0.55 + exp(-dd / (S * 0.32)) * 0.22;
+    float band = exp(-abs(p.y - hpx) / (S * 0.06)) * exp(-abs(p.x - sp.x) / (S * 0.7)) * 0.28;
+    c += SUNSET * (glow * mix(0.35, 1.0, land.a) + band) * uDusk;
+    c = mix(c, vec3(1.0, 0.8, 0.58), disc * uDusk);
+  }
   if (uGalaxy > 0.001) {
     // 星河: a band of light rising from behind the hills at the lower left
     // and across the sky, clumped, split by dark dust, thick with small
@@ -428,6 +446,11 @@ void main() {
     // holds the white mountains more clearly.
     fresnel = mix(fresnel, min(fresnel + 0.12, 0.9), uSnow);
     refl = mix(refl, min(refl, uSkyLow * 0.95), discDim);
+    // Near the viewer the waves would drag the sunset's glow into long streaks: let its column go quiet there.
+    if (uDusk > 0.001) {
+      float sx = (p.x - sunAt(hpx, S).x) / (S * (0.08 + dn * 0.5));
+      refl = mix(refl, min(refl, uSkyLow * 0.7), exp(-sx * sx) * smoothstep(0.08, 0.35, dn) * uDusk);
+    }
     col = mix(uWater, refl * 0.92, fresnel);
     // Thin moonlit glints on the wave crests.
     float glint = smoothstep(0.78, 1.0, noise(vec2(p.x / S * 26.0 * z * 0.25, p.y / S * 160.0 + uTime * 0.4)));
@@ -463,6 +486,20 @@ void main() {
       col += MOONLIGHT * path * (0.05 + 0.45 * glints) * uMoonlit * (1.0 - uMoon.w);
       // Rings crossing the path catch its light: a splash breaks it into bright arcs.
       col += MOONLIGHT * sheen * path * 0.6 * uMoonlit * (1.0 - uMoon.w);
+    }
+    if (uDusk > 0.001) {
+      // 半江瑟瑟半江红: under the sun a column of gold on the water, broken by the waves into glints.
+      vec2 sp = sunAt(hpx, S);
+      float cw = S * 0.045 * (1.0 + dn * 2.5);
+      float sunCol = exp(-pow((p.x - sp.x) / cw, 2.0));
+      float zz = 1.0 / (dn + 0.04);
+      float crest = noise(vec2(p.x / (S * 0.014 * (1.0 + dn * 1.2)), zz * 5.0 - uWaveT * 0.9));
+      float crest2 = noise(vec2(p.x / (S * 0.006 * (1.0 + dn * 1.2)), zz * 10.0 - uWaveT * 1.4 + 3.0));
+      float glit = smoothstep(0.62, 0.95, crest * 0.6 + crest2 * 0.5);
+      float fade = smoothstep(0.0, 0.01, dn) * (1.0 - smoothstep(0.05, 0.32, dn));
+      col += vec3(1.0, 0.74, 0.45) * glit * sunCol * fade * uDusk * 0.9;
+      col += SUNSET * sunCol * fade * uDusk * 0.1;
+      col += vec3(1.0, 0.74, 0.45) * sheen * sunCol * uDusk * 0.4;
     }
     col += vec3(0.8, 0.84, 0.95) * uFlash.x * 0.12;
     if (uBoat.w > 0.001) {
