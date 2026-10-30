@@ -28,6 +28,8 @@ interface Strand {
   /** 0 far, 1 near. */
   depth: number;
   spray: number;
+  /** One of the two or three long ones that reach toward the water. */
+  long?: boolean;
   /** One random per joint: leaf rhythm, size and turn. */
   leaf: number[];
 }
@@ -45,11 +47,15 @@ const ribbonFrag = /* glsl */ `
 precision mediump float;
 uniform vec3 uLight;
 uniform vec3 uAir;
+uniform float uNight;
 varying vec2 vTD;
 void main() {
   vec3 col = mix(vec3(0.2, 0.25, 0.17), vec3(0.42, 0.5, 0.3), vTD.x);
   col = mix(uAir, col, 0.25 + 0.75 * vTD.y) * uLight;
-  float a = (0.18 + 0.5 * vTD.y) * (1.0 - 0.35 * vTD.x);
+  // The near layer by moonlight: blue-ink outlines (Codex's v3 review).
+  col *= mix(1.0, 0.6, uNight * step(0.8, vTD.y));
+  // Bare stretches of strand read as parallel lines: kept fainter (v3 review).
+  float a = (0.18 + 0.5 * vTD.y) * (1.0 - 0.35 * vTD.x) * 0.65;
   gl_FragColor = vec4(col * a, a);
 }
 `;
@@ -71,6 +77,7 @@ uniform vec3 uLight;
 uniform vec3 uAir;
 uniform sampler2D uTex;
 uniform float uTexOn;
+uniform float uNight;
 varying vec4 vLeaf;
 void main() {
   vec2 q = gl_PointCoord * 2.0 - 1.0;
@@ -93,6 +100,9 @@ void main() {
   }
   // Far leaves sink into the air; near ones keep their ink.
   col = mix(uAir, col, 0.25 + 0.75 * vLeaf.w) * uLight;
+  // The nearest leaves carry the weight: deeper by day, blue-ink by moonlight; the rest keep the air (v3 review).
+  float near = step(0.8, vLeaf.w);
+  col *= mix(1.0, mix(0.82, 0.6, uNight), near);
   a *= 0.4 + 0.6 * vLeaf.w;
   if (a < 0.01) discard;
   gl_FragColor = vec4(col * a, a);
@@ -188,7 +198,7 @@ export class Willow {
     }
     this.ribbonGeo.setIndex(index);
     const blend = { transparent: true, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, depthTest: false, depthWrite: false } as const;
-    const shared = { uLight: { value: this.light }, uAir: { value: this.air } };
+    const shared = { uLight: { value: this.light }, uAir: { value: this.air }, uNight: { value: 0 } };
     this.ribbonMat = new THREE.ShaderMaterial({ vertexShader: ribbonVert, fragmentShader: ribbonFrag, uniforms: shared, side: THREE.DoubleSide, ...blend });
     const ribbons = new THREE.Mesh(this.ribbonGeo, this.ribbonMat);
     ribbons.frustumCulled = false;
@@ -271,12 +281,22 @@ export class Willow {
       for (let i = 0; i < g.n; i++) {
         const depth = g.depth[0] + (g.depth[1] - g.depth[0]) * random();
         let len = S * (g.len[0] + (g.len[1] - g.len[0]) * random());
-        // Two or three of the nearest reach past the far shore, toward the water.
+        // Near strands gather a little closer within their group (v3 review: spacing about 0.75).
+        let x = width * g.x + (random() - 0.5) * S * 0.05 * (depth > 0.8 ? 0.75 : 1);
+        let a0 = g.a0 + (random() - 0.5) * 0.08;
+        let isLong = false;
+        // Two or three of the nearest reach past the far shore toward the water, kept to the right
+        // (tips at about 0.89-0.95 of the width), one of them a little longer still (v3 review).
         if (depth > 0.8 && long < 3 && random() < 0.45) {
-          len = height - horizonY + S * (0.12 + 0.12 * random());
+          len = height - horizonY + S * (0.12 + 0.12 * random()) + (long === 0 ? height * 0.05 : 0);
+          x += width * 0.08;
+          a0 *= 0.45;
+          isLong = true;
           long++;
         }
-        out.push(this.makeStrand(width * g.x + (random() - 0.5) * S * 0.05, depth, len, g.a0 + (random() - 0.5) * 0.08, phase + i * 0.25, random));
+        const st = this.makeStrand(x, depth, len, a0, phase + i * 0.25, random);
+        st.long = isLong;
+        out.push(st);
       }
     }
     return out.sort((a, b) => a.depth - b.depth);
@@ -313,6 +333,8 @@ export class Willow {
   update(time: number, dt: number, wind: number, light: { day: number; dusk: number }, calm: boolean, dip: (x: number, y: number) => void): void {
     const { width, height, horizonY, S } = this.view;
     const night = Math.max(1 - light.day - light.dusk, 0);
+    this.ribbonMat.uniforms.uNight.value = night;
+    this.leafMat.uniforms.uNight.value = night;
     this.light.set(0.45 + 0.55 * (1 - night), 0.48 + 0.52 * (1 - night), 0.62 + 0.38 * (1 - night)).lerp(new THREE.Vector3(1.05, 0.9, 0.76), light.dusk * 0.6);
     const all = [...this.strands, ...this.sprays.flatMap((s) => s.strands)].slice(0, MAX_STRANDS).sort((a, b) => a.depth - b.depth);
     let leafN = 0;
@@ -363,7 +385,11 @@ export class Willow {
         const dy = ys[k] - ys[k - 1];
         const dir = Math.atan2(dx, -dy);
         const u = k / SEGS;
-        const size = S * (0.032 + 0.068 * s.depth) * (0.8 + 0.4 * r) * (1 - 0.25 * u);
+        // A long strand's last quarter keeps only a few small leaves, so the hills and the waterline show through.
+        if (s.long && u > 0.75 && r > keep * 0.62) continue;
+        let size = S * (0.032 + 0.068 * s.depth) * (0.8 + 0.4 * r) * (1 - 0.25 * u);
+        // The nearest leaves in the top quarter, a little larger: the weight sits up on the right.
+        if (s.depth >= 0.8 && ys[k] > height * 0.75) size *= 1.15;
         const side = k % 2 ? 1 : -1;
         const turn = side * (0.12 + 0.22 * r);
         // The leaf's middle sits a little below its stalk, along its own lean.

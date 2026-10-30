@@ -145,8 +145,9 @@ void main() {
   // The edge is the darkest line, like a brush run along the bank.
   col = mix(col, uInk * mix(0.8, 1.6, uDay), smoothstep(uS * 0.012, 0.0, d) * 0.6);
   // In the willow picture only the two corners keep a little wet ink; the middle is the water's (Codex's direction).
-  float corners = max(smoothstep(0.36, 0.08, u), smoothstep(0.64, 0.92, u));
-  a *= mix(1.0, (0.2 + 0.4 * (1.0 - depth)) * corners, uSoft);
+  // v3 review: the middle (0.25-0.75 of the width) fades to nothing; the corners at about 0.6 of before.
+  float corners = max(smoothstep(0.25, 0.05, u), smoothstep(0.75, 0.95, u));
+  a *= mix(1.0, (0.2 + 0.4 * (1.0 - depth)) * corners * 0.6, uSoft);
   gl_FragColor = vec4(col * a, a);
 }
 `;
