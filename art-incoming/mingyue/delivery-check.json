@@ -1,11 +1,23 @@
 [
   {
+    "file": "alpha-and-scale-check.png",
+    "size": [
+      960,
+      420
+    ],
+    "mode": "RGB",
+    "bytes": 80329,
+    "sha256": "1fa9fb2ee6b328bdec5b60d5df322de8ccc067159d8b1a076492d39eca6b16b6"
+  },
+  {
     "file": "magpie-flight-study-source.png",
     "size": [
       1254,
       1254
     ],
     "mode": "RGBA",
+    "bytes": 1100008,
+    "sha256": "96c5196850ebaf7b6427cb606c6056508ef279919269a696c6ed902fbfbee8d4",
     "alpha_range": [
       0,
       255
@@ -15,9 +27,7 @@
       40,
       1244,
       1254
-    ],
-    "bytes": 1100008,
-    "sha256": "96c5196850ebaf7b6427cb606c6056508ef279919269a696c6ed902fbfbee8d4"
+    ]
   },
   {
     "file": "magpie-flight-study.png",
@@ -26,6 +36,8 @@
       512
     ],
     "mode": "RGBA",
+    "bytes": 176988,
+    "sha256": "d13c2440efcd4cbe4cb61ac957826db5df012c59f4681ffebd80cf8ac3c9067c",
     "alpha_range": [
       0,
       255
@@ -35,8 +47,116 @@
       45,
       477,
       471
+    ]
+  },
+  {
+    "file": "magpie-glide-source.png",
+    "size": [
+      1254,
+      1254
     ],
+    "mode": "RGBA",
+    "bytes": 962807,
+    "sha256": "41036d5faa509ad8517990a837ad779c1d0e4c4b53fd506ba4554bc170ce8476",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      0,
+      23,
+      1244,
+      1254
+    ]
+  },
+  {
+    "file": "magpie-glide.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "bytes": 157912,
+    "sha256": "2946011ab9e69eb3b8a3454971c30eb2b4a640db677702600e14a95120acef35",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      37,
+      43,
+      478,
+      473
+    ]
+  },
+  {
+    "file": "magpie-wing-down-source.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "bytes": 1001567,
+    "sha256": "4a99285bb0f79e1b45c0129f4e10afaf87c796e2c47a8b25651f4d0eca00c64b",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      0,
+      17,
+      1242,
+      1254
+    ]
+  },
+  {
+    "file": "magpie-wing-down.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "bytes": 158340,
+    "sha256": "a145ecd68ba91f524ae3be24a1c383744887694b4af6ef78ead0820a63a51a0f",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      32,
+      39,
+      477,
+      468
+    ]
+  },
+  {
+    "file": "magpie-wing-up.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
     "bytes": 176988,
-    "sha256": "d13c2440efcd4cbe4cb61ac957826db5df012c59f4681ffebd80cf8ac3c9067c"
+    "sha256": "d13c2440efcd4cbe4cb61ac957826db5df012c59f4681ffebd80cf8ac3c9067c",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      36,
+      45,
+      477,
+      471
+    ]
+  },
+  {
+    "file": "three-pose-check.png",
+    "size": [
+      960,
+      1010
+    ],
+    "mode": "RGB",
+    "bytes": 205026,
+    "sha256": "908e045c0c95ddf0c8071522cc42ed08177b85369286effcc560b18a5d7a1555"
   }
 ]

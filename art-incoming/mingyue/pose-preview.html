@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Magpie pose candidate check</title>
+<style>
+  body { margin: 0; font: 14px system-ui, sans-serif; color: #24343a; background: #dce6e4; }
+  h1 { font-size: 17px; margin: 18px 20px 8px; font-weight: 500; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); }
+  figure { margin: 0; padding: 14px; text-align: center; }
+  .full { width: 240px; height: 240px; object-fit: contain; display: block; margin: auto; }
+  .small { width: 36px; height: 36px; object-fit: contain; display: block; margin: 12px auto 0; }
+  .night { background: #152334; color: #dce6e4; }
+  .motion { padding: 20px; text-align: center; background: #b7cbd0; }
+  .motion img { width: 48px; height: 48px; display: block; margin: 18px auto; }
+  p { margin: 8px; }
+</style>
+<h1>Matching pose candidates · original sprites unchanged</h1>
+<div class="row">
+  <figure><figcaption>Upstroke / 36 px below</figcaption><img class="full" src="magpie-wing-up.png"><img class="small" src="magpie-wing-up.png"></figure>
+  <figure><figcaption>Glide / 36 px below</figcaption><img class="full" src="magpie-glide.png"><img class="small" src="magpie-glide.png"></figure>
+  <figure><figcaption>Downstroke / 36 px below</figcaption><img class="full" src="magpie-wing-down.png"><img class="small" src="magpie-wing-down.png"></figure>
+</div>
+<div class="row night">
+  <figure><figcaption>Upstroke / night background</figcaption><img class="full" src="magpie-wing-up.png"><img class="small" src="magpie-wing-up.png"></figure>
+  <figure><figcaption>Glide / night background</figcaption><img class="full" src="magpie-glide.png"><img class="small" src="magpie-glide.png"></figure>
+  <figure><figcaption>Downstroke / night background</figcaption><img class="full" src="magpie-wing-down.png"><img class="small" src="magpie-wing-down.png"></figure>
+</div>
+<div class="motion"><p>48 px pose-switch study, 150 ms per frame · no engine lighting or flight path</p><img id="flight" src="magpie-wing-up.png"></div>
+<script>
+  const order = ['magpie-wing-up.png', 'magpie-glide.png', 'magpie-wing-down.png', 'magpie-glide.png'];
+  let i = 0;
+  setInterval(() => document.getElementById('flight').src = order[(++i) % order.length], 150);
+</script>
