@@ -1,30 +1,34 @@
 import * as THREE from 'three';
 
-// 春风拂柳 (sketch for the shore's redesign, ?shore=willow; see
-// docs/handoff/codex-shore-redesign.md on the collab branch). The owner:
-// not the whole tree and never a lone branch, only the image and mood of
-// willow in the spring wind. So the willow stands outside the picture, on
-// the near bank; what we see is its strands hanging in from above, as if
-// we stood under it by the water: near ones dark and full, far ones pale
-// and fine, longer toward the side, the middle of the lake left open. The
-// wind passes along them strand after strand, and a little catkin fluff
-// drifts across. A stroke on the bank lets another spray hang down there.
+// 春风拂柳 (?shore=willow), after Codex's art direction
+// (art-incoming/shore-v2/ART-DIRECTION.md and its two target pictures on
+// the collab branch) and the owner's word: the willow stands outside the
+// picture, never a lone branch; only its strands come in from the upper
+// right, in groups that share a gentle arc, near ones darker with whole
+// leaves, middle ones finer, far ones a few pale lines sinking into the
+// sky. Most tips stop before the far hills; two or three long ones reach
+// past the far shore toward the water. The lake's middle stays open.
+// A breath of wind takes six to ten seconds to pass; the tips follow half
+// a beat late. A stroke on the bank lets one or two new strands come in on
+// that side, with the stroke's own curve.
 
-const SEGS = 18;
-const MAX_STRANDS = 220;
-const MAX_LEAVES = MAX_STRANDS * SEGS;
-const MAX_FLUFF = 18;
+const SEGS = 20;
+const MAX_STRANDS = 120;
+const MAX_LEAVES = MAX_STRANDS * SEGS * 2;
+const MAX_FLUFF = 6;
 
 interface Strand {
   ax: number;
-  /** Anchor above the top edge, so the strands come in from out of the picture. */
   ay: number;
   len: number;
+  /** Lean at the root (radians from straight down; negative leans left): the group's arc. */
+  a0: number;
   phase: number;
   give: number;
-  /** 0 far (pale, fine, slow), 1 near (dark, full). */
+  /** 0 far, 1 near. */
   depth: number;
   spray: number;
+  /** One random per joint: leaf rhythm, size and turn. */
   leaf: number[];
 }
 
@@ -43,10 +47,9 @@ uniform vec3 uLight;
 uniform vec3 uAir;
 varying vec2 vTD;
 void main() {
-  vec3 col = mix(vec3(0.17, 0.22, 0.14), vec3(0.38, 0.47, 0.26), vTD.x);
-  // Far strands sink into the air's colour, like distance in ink painting.
-  col = mix(uAir, col, 0.35 + 0.65 * vTD.y) * uLight;
-  float a = (0.25 + 0.45 * vTD.y) * (1.0 - 0.4 * vTD.x);
+  vec3 col = mix(vec3(0.2, 0.25, 0.17), vec3(0.42, 0.5, 0.3), vTD.x);
+  col = mix(uAir, col, 0.25 + 0.75 * vTD.y) * uLight;
+  float a = (0.18 + 0.5 * vTD.y) * (1.0 - 0.35 * vTD.x);
   gl_FragColor = vec4(col * a, a);
 }
 `;
@@ -66,30 +69,43 @@ const leafFrag = /* glsl */ `
 precision mediump float;
 uniform vec3 uLight;
 uniform vec3 uAir;
+uniform sampler2D uTex;
+uniform float uTexOn;
 varying vec4 vLeaf;
 void main() {
   vec2 q = gl_PointCoord * 2.0 - 1.0;
   q.y = -q.y;
   float c = cos(vLeaf.y), s = sin(vLeaf.y);
   q = vec2(c * q.x - s * q.y, s * q.x + c * q.y);
-  // A willow leaf: long and narrow, a soft wash rather than a cut-out.
-  float w = 0.17 * pow(max(1.0 - q.y * q.y, 0.0), 0.9);
-  float a = smoothstep(w + 0.05, w - 0.04, abs(q.x)) * step(abs(q.y), 1.0);
-  a *= 0.3 + 0.55 * vLeaf.w;
+  vec3 col;
+  float a;
+  if (uTexOn > 0.5) {
+    // Codex's leaf, upright with its stalk at the bottom: turned so it hangs from the strand.
+    vec4 t = texture2D(uTex, q * 0.5 + 0.5);
+    // Near leaves keep a deeper green; farther ones lift toward the air below.
+    col = t.rgb * mix(0.9, 0.68, vLeaf.w);
+    a = t.a;
+  } else {
+    // A long narrow leaf, swelling a little to one side, the tip following the curve.
+    float w = 0.15 * pow(max(1.0 - q.y * q.y, 0.0), 0.85) * (1.0 + 0.25 * q.y);
+    a = smoothstep(w + 0.04, w - 0.03, abs(q.x - 0.05 * q.y * q.y)) * step(abs(q.y), 1.0);
+    col = mix(vec3(0.24, 0.33, 0.2), vec3(0.55, 0.64, 0.34), vLeaf.z * vLeaf.z);
+  }
+  // Far leaves sink into the air; near ones keep their ink.
+  col = mix(uAir, col, 0.25 + 0.75 * vLeaf.w) * uLight;
+  a *= 0.4 + 0.6 * vLeaf.w;
   if (a < 0.01) discard;
-  vec3 col = mix(vec3(0.2, 0.29, 0.15), vec3(0.6, 0.68, 0.3), vLeaf.z * vLeaf.z);
-  col = mix(uAir, col, 0.3 + 0.7 * vLeaf.w) * uLight;
   gl_FragColor = vec4(col * a, a);
 }
 `;
 
 const fluffVert = /* glsl */ `
-attribute float aA;
+attribute vec2 aAK; // alpha, kind (0 catkin, 1 firefly)
 uniform float uPR;
 uniform float uSize;
-varying float vA;
+varying vec2 vAK;
 void main() {
-  vA = aA;
+  vAK = aAK;
   gl_PointSize = uSize * uPR;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
@@ -98,12 +114,13 @@ void main() {
 const fluffFrag = /* glsl */ `
 precision mediump float;
 uniform vec3 uLight;
-varying float vA;
+varying vec2 vAK;
 void main() {
   float r = length(gl_PointCoord - 0.5) * 2.0;
-  float a = (exp(-r * r * 5.0) * 0.7 + exp(-r * r * 30.0) * 0.3) * vA;
+  float a = (exp(-r * r * 5.0) * 0.7 + exp(-r * r * 30.0) * 0.3) * vAK.x;
   if (a < 0.004) discard;
-  gl_FragColor = vec4(vec3(0.97, 0.96, 0.9) * uLight * a, a);
+  vec3 col = vAK.y > 0.5 ? vec3(0.85, 1.0, 0.55) : vec3(0.97, 0.96, 0.9) * uLight;
+  gl_FragColor = vec4(col * a, a);
 }
 `;
 
@@ -111,6 +128,28 @@ function rng(seed: number): () => number {
   let s = Math.floor(seed) >>> 0;
   return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
 }
+
+interface Group {
+  /** Where along the top its roots come in, as a share of the width, and how many strands. */
+  x: number;
+  n: number;
+  depth: [number, number];
+  len: [number, number];
+  a0: number;
+}
+
+/** The composition, right to left: near groups by the edge, middle ones opening out, far ones behind. */
+const GROUPS: Group[] = [
+  { x: 1.04, n: 5, depth: [0.85, 1], len: [0.75, 1.15], a0: -0.62 },
+  { x: 0.92, n: 4, depth: [0.8, 0.95], len: [0.6, 0.95], a0: -0.55 },
+  { x: 0.8, n: 4, depth: [0.7, 0.88], len: [0.45, 0.8], a0: -0.5 },
+  { x: 0.98, n: 4, depth: [0.45, 0.65], len: [0.55, 0.9], a0: -0.5 },
+  { x: 0.7, n: 3, depth: [0.45, 0.62], len: [0.4, 0.7], a0: -0.42 },
+  { x: 0.6, n: 3, depth: [0.35, 0.5], len: [0.3, 0.55], a0: -0.35 },
+  { x: 0.88, n: 3, depth: [0.12, 0.28], len: [0.45, 0.75], a0: -0.45 },
+  { x: 0.66, n: 3, depth: [0.08, 0.22], len: [0.3, 0.55], a0: -0.38 },
+  { x: 0.5, n: 2, depth: [0.05, 0.15], len: [0.2, 0.4], a0: -0.3 },
+];
 
 export class Willow {
   readonly group = new THREE.Group();
@@ -124,7 +163,7 @@ export class Willow {
   private readonly leafMat: THREE.ShaderMaterial;
   private readonly fluffGeo = new THREE.BufferGeometry();
   private readonly fluffPos = new Float32Array(MAX_FLUFF * 3);
-  private readonly fluffA = new Float32Array(MAX_FLUFF);
+  private readonly fluffAK = new Float32Array(MAX_FLUFF * 2);
   private readonly fluffMat: THREE.ShaderMaterial;
   private strands: Strand[] = [];
   private sprays: { id: number; strands: Strand[] }[] = [];
@@ -132,8 +171,9 @@ export class Willow {
   private nextId = 1;
   private readonly light = new THREE.Vector3(1, 1, 1);
   private readonly air = new THREE.Vector3(0.7, 0.75, 0.78);
-  private view = { width: 1, height: 1, S: 1 };
+  private view = { width: 1, height: 1, horizonY: 1, S: 1 };
   private seeded = false;
+  private readonly lastDip = new WeakMap<Strand, number>();
 
   constructor() {
     this.ribbonGeo.setAttribute('position', new THREE.BufferAttribute(this.ribbonPos, 3));
@@ -155,12 +195,17 @@ export class Willow {
     ribbons.renderOrder = 3.05; // the nearest thing in the picture, in front of all but the brush
     this.leafGeo.setAttribute('position', new THREE.BufferAttribute(this.leafPos, 3));
     this.leafGeo.setAttribute('aLeaf', new THREE.BufferAttribute(this.leafAttr, 4));
-    this.leafMat = new THREE.ShaderMaterial({ vertexShader: leafVert, fragmentShader: leafFrag, uniforms: { ...shared, uPR: { value: 1 } }, ...blend });
+    this.leafMat = new THREE.ShaderMaterial({
+      vertexShader: leafVert,
+      fragmentShader: leafFrag,
+      uniforms: { ...shared, uPR: { value: 1 }, uTex: { value: null as THREE.Texture | null }, uTexOn: { value: 0 } },
+      ...blend,
+    });
     const leaves = new THREE.Points(this.leafGeo, this.leafMat);
     leaves.frustumCulled = false;
     leaves.renderOrder = 3.06;
     this.fluffGeo.setAttribute('position', new THREE.BufferAttribute(this.fluffPos, 3));
-    this.fluffGeo.setAttribute('aA', new THREE.BufferAttribute(this.fluffA, 1));
+    this.fluffGeo.setAttribute('aAK', new THREE.BufferAttribute(this.fluffAK, 2));
     this.fluffMat = new THREE.ShaderMaterial({ vertexShader: fluffVert, fragmentShader: fluffFrag, uniforms: { uLight: { value: this.light }, uPR: { value: 1 }, uSize: { value: 8 } }, ...blend });
     const fluff = new THREE.Points(this.fluffGeo, this.fluffMat);
     fluff.frustumCulled = false;
@@ -173,12 +218,17 @@ export class Willow {
     this.fluffMat.uniforms.uPR.value = pr;
   }
 
+  setLeafTexture(tex: THREE.Texture): void {
+    this.leafMat.uniforms.uTex.value = tex;
+    this.leafMat.uniforms.uTexOn.value = 1;
+  }
+
   /** The air's colour (the sky low down), for far strands to fade into. */
   setAir(c: THREE.Vector3): void {
     this.air.copy(c);
   }
 
-  resize(width: number, height: number, S: number): void {
+  resize(width: number, height: number, horizonY: number, S: number): void {
     const sx = width / this.view.width;
     const sy = height / this.view.height;
     if (this.seeded && (sx !== 1 || sy !== 1)) {
@@ -187,50 +237,67 @@ export class Willow {
         s.ay = height + (s.ay - this.view.height) * sy;
       }
     }
-    this.view = { width, height, S };
+    this.view = { width, height, horizonY, S };
     this.fluffMat.uniforms.uSize.value = S * 0.018;
     if (!this.seeded && width > 1) {
       this.seeded = true;
-      this.strands = this.curtain(width * 0.62, width * 1.04, 1, rng(11));
+      this.strands = this.compose(rng(11));
     }
   }
 
-  /**
-   * Strands hanging in from above the frame between x0 and x1, thicker and
-   * longer toward the side where the tree stands (`side` 1: right).
-   */
-  private curtain(x0: number, x1: number, side: number, random: () => number, count = 90): Strand[] {
+  private makeStrand(x: number, depth: number, len: number, a0: number, phase: number, random: () => number, spray = 0): Strand {
     const { height, S } = this.view;
+    return {
+      ax: x,
+      // Rooted well above the top edge, so what comes in is already curving down.
+      ay: height + S * (0.08 + 0.12 * random()),
+      len,
+      a0,
+      phase,
+      give: 0.85 + 0.3 * random(),
+      depth,
+      spray,
+      leaf: Array.from({ length: SEGS }, () => random()),
+    };
+  }
+
+  /** Groups sharing an arc, strands of different lengths within each, gaps between them. */
+  private compose(random: () => number): Strand[] {
+    const { width, horizonY, height, S } = this.view;
     const out: Strand[] = [];
-    for (let i = 0; i < count; i++) {
-      // More of them toward the tree's side, thinning toward the open middle.
-      const u = Math.pow(random(), 0.6);
-      const x = side > 0 ? x0 + (x1 - x0) * u : x1 - (x1 - x0) * u;
-      const depth = random();
-      out.push({
-        ax: x + (random() - 0.5) * S * 0.04,
-        ay: height + S * (0.02 + 0.08 * random()),
-        // A few of the longest reach down past the far shore, toward the water.
-        len: S * (0.35 + (random() < 0.12 ? 1.35 : 0.9) * u * (0.55 + 0.45 * random())) * (0.75 + 0.35 * depth),
-        phase: random() * 6.28,
-        give: 0.75 + 0.5 * random(),
-        depth,
-        spray: 0,
-        leaf: Array.from({ length: SEGS }, () => random()),
-      });
+    let long = 0;
+    for (const g of GROUPS) {
+      const phase = random() * 6.28;
+      for (let i = 0; i < g.n; i++) {
+        const depth = g.depth[0] + (g.depth[1] - g.depth[0]) * random();
+        let len = S * (g.len[0] + (g.len[1] - g.len[0]) * random());
+        // Two or three of the nearest reach past the far shore, toward the water.
+        if (depth > 0.8 && long < 3 && random() < 0.45) {
+          len = height - horizonY + S * (0.12 + 0.12 * random());
+          long++;
+        }
+        out.push(this.makeStrand(width * g.x + (random() - 0.5) * S * 0.05, depth, len, g.a0 + (random() - 0.5) * 0.08, phase + i * 0.25, random));
+      }
     }
-    // Far ones first, so the near ones are drawn over them.
     return out.sort((a, b) => a.depth - b.depth);
   }
 
-  /** A stroke on the bank: another spray of strands hangs down above it. */
-  addSpray(x: number, seed: number): number {
+  /**
+   * A stroke on the bank: one or two new strands come in on that side,
+   * leaning the way the stroke curved.
+   */
+  addSpray(x: number, lean: number, seed: number): number {
     const { width, S } = this.view;
     const id = this.nextId++;
     const random = rng(seed);
-    const side = x > width / 2 ? 1 : -1;
-    const strands = this.curtain(x - S * 0.12, x + S * 0.12, side, random, 26);
-    strands.forEach((s) => (s.spray = id));
+    const right = x > width / 2;
+    const edge = right ? width * (0.9 + 0.12 * random()) : width * (-0.02 + 0.1 * random());
+    const strands: Strand[] = [];
+    const n = 2 + Math.floor(random() * 2);
+    for (let i = 0; i < n; i++) {
+      const a0 = (right ? -1 : 1) * (0.2 + 0.25 * Math.min(Math.abs(lean), 1)) + (random() - 0.5) * 0.08;
+      strands.push(this.makeStrand(edge + (random() - 0.5) * S * 0.05, 0.75 + 0.25 * random(), S * (0.45 + 0.4 * random()), a0, random() * 6.28, random, id));
+    }
     this.sprays.push({ id, strands });
     return id;
   }
@@ -243,34 +310,35 @@ export class Willow {
     this.sprays = [];
   }
 
-  update(time: number, dt: number, wind: number, light: { day: number; dusk: number }, calm: boolean): void {
-    const { width, height, S } = this.view;
+  update(time: number, dt: number, wind: number, light: { day: number; dusk: number }, calm: boolean, dip: (x: number, y: number) => void): void {
+    const { width, height, horizonY, S } = this.view;
     const night = Math.max(1 - light.day - light.dusk, 0);
-    this.light.set(0.45 + 0.55 * (1 - night), 0.48 + 0.52 * (1 - night), 0.6 + 0.4 * (1 - night)).lerp(new THREE.Vector3(1.05, 0.9, 0.76), light.dusk * 0.6);
+    this.light.set(0.45 + 0.55 * (1 - night), 0.48 + 0.52 * (1 - night), 0.62 + 0.38 * (1 - night)).lerp(new THREE.Vector3(1.05, 0.9, 0.76), light.dusk * 0.6);
     const all = [...this.strands, ...this.sprays.flatMap((s) => s.strands)].slice(0, MAX_STRANDS).sort((a, b) => a.depth - b.depth);
     let leafN = 0;
+    // 春风拂柳: a breath that takes six to ten seconds to pass, then a quieter pause.
+    const breath = calm ? 0.25 : 0.55 + 0.45 * Math.sin(time * 0.31) * Math.sin(time * 0.11 + 0.7);
     all.forEach((s, si) => {
       const seg = s.len / SEGS;
-      // 春风拂柳: a breath of wind runs across the willow, each strand lifting a
-      // moment after its neighbour, the near ones swinging wider; the tips trail.
-      const sway = calm ? 0.03 : (0.1 + 0.18 * Math.abs(wind)) * (0.6 + 0.5 * s.depth);
-      const lean = wind * 0.22;
-      const breath = 0.6 + 0.4 * Math.sin(time * 0.23 + 1.3);
+      // Near tips move a few pixels, middle ones less, far ones barely change their pose.
+      const sway = (0.035 + 0.06 * s.depth) * (0.6 + 0.8 * Math.abs(wind)) * breath;
+      const lean = wind * 0.12 * (0.5 + 0.5 * s.depth);
       let x = s.ax;
       let y = s.ay;
       const xs = [x];
       const ys = [y];
       for (let k = 1; k <= SEGS; k++) {
         const u = k / SEGS;
+        // The group's arc at the root, easing to hang straight; the wind from the middle to the tip, half a beat late.
         const a =
-          (Math.sin(time * 0.75 - s.ax / (S * 0.3) - u * 1.6) * sway * breath + Math.sin(time * 1.4 * s.give + s.phase - u * 2.0) * sway * 0.3 + lean) *
-          Math.pow(u, 1.5);
+          s.a0 * Math.pow(1 - u, 1.6) +
+          (Math.sin(time * 0.78 * s.give + s.phase - u * 1.8) * sway + Math.sin(time * 1.9 + s.phase * 1.7 - u * 2.6) * sway * 0.25 + lean) * Math.pow(u, 1.4);
         x += Math.sin(a) * seg;
         y -= Math.cos(a) * seg;
         xs.push(x);
         ys.push(y);
       }
-      const width0 = Math.max(S * (0.0012 + 0.0022 * s.depth), 0.7);
+      const width0 = Math.max(S * (0.001 + 0.0024 * s.depth), 0.6);
       for (let k = 0; k <= SEGS; k++) {
         const k0 = Math.max(k - 1, 0);
         const k1 = Math.min(k + 1, SEGS);
@@ -284,14 +352,33 @@ export class Willow {
         this.ribbonPos.set([xs[k] + nx * w, ys[k] + ny * w, 0, xs[k] - nx * w, ys[k] - ny * w, 0], o * 3);
         this.ribbonTD.set([k / SEGS, s.depth, k / SEGS, s.depth], o * 2);
       }
-      for (let k = 2; k <= SEGS && leafN < MAX_LEAVES; k++) {
+      // Leaves in a rhythm: two or three close together, then a stretch of bare strand; far strands fewer.
+      // Each hangs along the strand, tip down, turned a little to one side or the other in turn.
+      const keep = 0.45 + 0.5 * s.depth;
+      for (let k = 2; k <= SEGS && leafN < MAX_LEAVES - 1; k++) {
         const r = s.leaf[k - 1];
-        // Not every joint has a leaf: the strands stay airy.
-        if (r < 0.25) continue;
-        const dir = Math.atan2(xs[k] - xs[k - 1], ys[k - 1] - ys[k]);
-        this.leafPos.set([xs[k], ys[k], 0], leafN * 3);
-        this.leafAttr.set([S * (0.012 + 0.016 * s.depth) * (0.8 + 0.4 * r), -dir + (k % 2 ? 0.45 : -0.45) + (r - 0.5) * 0.4, r, s.depth], leafN * 4);
+        const cluster = Math.sin(k * 1.1 + s.phase * 3.0) > -0.35;
+        if (!cluster || r > keep) continue;
+        const dx = xs[k] - xs[k - 1];
+        const dy = ys[k] - ys[k - 1];
+        const dir = Math.atan2(dx, -dy);
+        const u = k / SEGS;
+        const size = S * (0.032 + 0.068 * s.depth) * (0.8 + 0.4 * r) * (1 - 0.25 * u);
+        const side = k % 2 ? 1 : -1;
+        const turn = side * (0.12 + 0.22 * r);
+        // The leaf's middle sits a little below its stalk, along its own lean.
+        const lx = xs[k] + Math.sin(dir + turn) * size * 0.32;
+        const ly = ys[k] - Math.cos(dir + turn) * size * 0.32;
+        this.leafPos.set([lx, ly, 0], leafN * 3);
+        this.leafAttr.set([size, -(dir + turn) + Math.PI, r, s.depth], leafN * 4);
         leafN++;
+      }
+      // A long tip near the water dips now and then: a small ring, and a while before it dips again.
+      const tx = xs[SEGS];
+      const ty = ys[SEGS];
+      if (!calm && ty < horizonY - S * 0.02 && time - (this.lastDip.get(s) ?? -99) > 9 && Math.sin(time * 0.78 * s.give + s.phase - 1.8) > 0.97) {
+        this.lastDip.set(s, time);
+        dip(tx, ty);
       }
     });
     this.ribbonGeo.setDrawRange(0, all.length * SEGS * 6);
@@ -301,21 +388,33 @@ export class Willow {
     this.leafGeo.attributes.position.needsUpdate = true;
     (this.leafGeo.attributes.aLeaf as THREE.BufferAttribute).needsUpdate = true;
 
-    // 柳絮: a few wisps of catkin fluff drifting on the wind, by day.
-    if (!calm && night < 0.5 && this.fluff.length < MAX_FLUFF && Math.random() < dt * 0.8) {
-      this.fluff.push({ x: width * (0.55 + 0.45 * Math.random()), y: height * (0.55 + 0.4 * Math.random()), vx: -S * (0.02 + 0.03 * Math.random()), vy: -S * 0.006, age: 0, life: 10 + Math.random() * 8 });
+    // 柳絮 by day, rarely three at once; at night one or two fireflies low by the wet grass at the corners.
+    let n = 0;
+    if (night < 0.5) {
+      if (!calm && this.fluff.length < 3 && Math.random() < dt * 0.25) {
+        this.fluff.push({ x: width * (0.7 + 0.3 * Math.random()), y: height * (0.6 + 0.35 * Math.random()), vx: -S * (0.02 + 0.03 * Math.random()), vy: -S * 0.006, age: 0, life: 12 + Math.random() * 8 });
+      }
+      this.fluff = this.fluff.filter((f) => f.age < f.life && f.x > -S * 0.1);
+      for (const [i, f] of this.fluff.entries()) {
+        f.age += dt;
+        f.x += (f.vx + wind * S * 0.03) * dt + Math.sin(time * 1.1 + i) * S * 0.006 * dt;
+        f.y += f.vy * dt + Math.sin(time * 0.7 + i * 2.1) * S * 0.01 * dt;
+        this.fluffPos.set([f.x, f.y, 0], n * 3);
+        this.fluffAK.set([Math.min(f.age / 2, 1) * Math.min((f.life - f.age) / 3, 1) * 0.8, 0], n * 2);
+        n++;
+      }
+    } else {
+      this.fluff = [];
+      for (let i = 0; i < 2; i++) {
+        const cx = i === 0 ? width * 0.08 : width * 0.9;
+        this.fluffPos.set([cx + Math.sin(time * 0.37 + i * 2) * S * 0.04, S * (0.2 + 0.03 * Math.sin(time * 0.29 + i * 3)), 0], n * 3);
+        this.fluffAK.set([night * (0.3 + 0.7 * Math.max(Math.sin(time * 1.3 + i * 2.4), 0)), 1], n * 2);
+        n++;
+      }
     }
-    this.fluff = this.fluff.filter((f) => f.age < f.life && f.x > -S * 0.1);
-    this.fluff.forEach((f, i) => {
-      f.age += dt;
-      f.x += (f.vx + wind * S * 0.03) * dt + Math.sin(time * 1.1 + i) * S * 0.006 * dt;
-      f.y += f.vy * dt + Math.sin(time * 0.7 + i * 2.1) * S * 0.01 * dt;
-      this.fluffPos.set([f.x, f.y, 0], i * 3);
-      this.fluffA[i] = Math.min(f.age / 2, 1) * Math.min((f.life - f.age) / 3, 1) * 0.8;
-    });
-    this.fluffGeo.setDrawRange(0, this.fluff.length);
+    this.fluffGeo.setDrawRange(0, n);
     this.fluffGeo.attributes.position.needsUpdate = true;
-    (this.fluffGeo.attributes.aA as THREE.BufferAttribute).needsUpdate = true;
+    (this.fluffGeo.attributes.aAK as THREE.BufferAttribute).needsUpdate = true;
     this.group.visible = all.length > 0;
   }
 

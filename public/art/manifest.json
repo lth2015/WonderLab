@@ -50,5 +50,8 @@
   },
   "shore": {
     "file": "shore.webp"
+  },
+  "willowLeaf": {
+    "file": "willow-leaf.webp"
   }
 }

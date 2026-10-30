@@ -396,6 +396,7 @@ export class Engine {
     this.worldMat.uniforms.uMoonTexOn.value = art.moon ? 1 : 0;
     if (art.lotus) this.lotus.setTexture(art.lotus);
     if (art.shore) this.shore?.setTexture(art.shore);
+    if (art.willowLeaf) this.shore?.setLeafTexture(art.willowLeaf);
   }
 
   /**
@@ -874,7 +875,7 @@ export class Engine {
     }
     const gustWind = atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8;
     this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.petalLands(x, y));
-    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain, wind: gustWind }, this.calm, (x, y) => this.dropPetal(x, y));
+    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain, wind: gustWind }, this.calm, (x, y) => this.dropPetal(x, y), Math.random, (x, y) => this.addRipple(x, y, 0.18));
     this.leaves.update(dt, t, atmos.autumn, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );

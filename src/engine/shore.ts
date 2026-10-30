@@ -144,7 +144,9 @@ void main() {
   col *= 0.88 + 0.24 * grain;
   // The edge is the darkest line, like a brush run along the bank.
   col = mix(col, uInk * mix(0.8, 1.6, uDay), smoothstep(uS * 0.012, 0.0, d) * 0.6);
-  a *= mix(1.0, 0.25 + 0.45 * (1.0 - depth), uSoft);
+  // In the willow picture only the two corners keep a little wet ink; the middle is the water's (Codex's direction).
+  float corners = max(smoothstep(0.36, 0.08, u), smoothstep(0.64, 0.92, u));
+  a *= mix(1.0, (0.2 + 0.4 * (1.0 - depth)) * corners, uSoft);
   gl_FragColor = vec4(col * a, a);
 }
 `;
@@ -250,6 +252,10 @@ export class Shore {
     return !!this.spriteMat.uniforms.uTex.value;
   }
 
+  setLeafTexture(tex: THREE.Texture): void {
+    this.willow?.setLeafTexture(tex);
+  }
+
   setTexture(tex: THREE.Texture): void {
     this.spriteMat.uniforms.uTex.value = tex;
   }
@@ -262,7 +268,7 @@ export class Shore {
 
   resize(view: ShoreView): void {
     this.view = view;
-    this.willow?.resize(view.width, view.height, view.S);
+    this.willow?.resize(view.width, view.height, view.horizonY, view.S);
     this.bank.scale.set(view.width, view.height, 1);
     this.bank.position.set(view.width / 2, view.height / 2, 0);
     this.bankMat.uniforms.uRes.value.set(view.width, view.height);
@@ -290,7 +296,9 @@ export class Shore {
       const id = this.nextId++;
       // 春风拂柳: no lone branch; the stroke lets another spray of strands hang down above it.
       stroke.mesh.visible = false;
-      const tree = this.willow.addSpray(stroke.centroid.x, seed);
+      const a = stroke.points[0];
+      const b = stroke.points[stroke.points.length - 1];
+      const tree = this.willow.addSpray(stroke.centroid.x, (b.x - a.x) / Math.max(stroke.length, 1), seed);
       this.branches.push({ id, stroke, blossoms: [], nextPetal: Infinity, lively, seed, tree });
       return id;
     }
@@ -397,11 +405,11 @@ export class Shore {
    * it down as a falling petal); `day` and `dusk` say when butterflies come,
    * and night brings the fireflies.
    */
-  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number; wind?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random): void {
+  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number; wind?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random, dip?: (x: number, y: number) => void): void {
     const { S, width } = this.view;
     if (this.willow && !this.hidden) {
       if (this.skyLow) this.willow.setAir(this.skyLow);
-      this.willow.update(time, dt, light.wind ?? 0.25, light, calm);
+      this.willow.update(time, dt, light.wind ?? 0.25, light, calm, (x, y) => dip?.(x, y));
     }
     const night = Math.max(1 - light.day - light.dusk, 0);
     // Lit by the hour: cool and dim at night, the petals' edges warmed at dusk (value/12 §四).
