@@ -1,0 +1,177 @@
+{
+  "source": "29a6ad1",
+  "rows": [
+    {
+      "id": "willow",
+      "line": "晴光入柳，风过水明",
+      "declaredWeather": "clear",
+      "time": "day",
+      "command": {
+        "weather": "clear",
+        "wind": 0.45,
+        "intensity": 0.7
+      },
+      "pass": true
+    },
+    {
+      "id": "blossom",
+      "line": "落花轻点一湖春",
+      "declaredWeather": "blossom",
+      "time": "day",
+      "command": {
+        "weather": "blossom",
+        "wind": 0.3,
+        "palette": "warm",
+        "intensity": 0.7
+      },
+      "pass": true
+    },
+    {
+      "id": "rainbow",
+      "line": "雨后初晴，一虹过山",
+      "declaredWeather": "rainbow",
+      "time": "day",
+      "command": {
+        "weather": "rainbow",
+        "timeOfDay": "day",
+        "intensity": 0.5
+      },
+      "pass": true
+    },
+    {
+      "id": "lotus",
+      "line": "接天莲叶无穷碧",
+      "declaredWeather": "lotus",
+      "time": "day",
+      "command": {
+        "weather": "lotus",
+        "timeOfDay": "day",
+        "intensity": 0.5
+      },
+      "pass": true
+    },
+    {
+      "id": "storm",
+      "line": "远山雷雨，近水听声",
+      "declaredWeather": "storm",
+      "time": null,
+      "command": {
+        "weather": "storm",
+        "intensity": 0.9,
+        "wind": 0.65
+      },
+      "pass": true
+    },
+    {
+      "id": "magpie",
+      "line": "明月别枝惊鹊",
+      "declaredWeather": "moonlit",
+      "time": "night",
+      "command": {
+        "weather": "moonlit",
+        "timeOfDay": "night",
+        "intensity": 0.7
+      },
+      "pass": true
+    },
+    {
+      "id": "cicada",
+      "line": "清风半夜鸣蝉",
+      "declaredWeather": "fireflies",
+      "time": "night",
+      "command": {
+        "weather": "fireflies",
+        "timeOfDay": "night",
+        "wind": 0.45,
+        "intensity": 0.5
+      },
+      "pass": true
+    },
+    {
+      "id": "fireflies",
+      "line": "夏夜流萤，草间微光",
+      "declaredWeather": "fireflies",
+      "time": "night",
+      "command": {
+        "weather": "fireflies",
+        "intensity": 0.7
+      },
+      "pass": true
+    },
+    {
+      "id": "galaxy",
+      "line": "满船清梦压星河",
+      "declaredWeather": "galaxy",
+      "time": "night",
+      "command": {
+        "weather": "galaxy",
+        "timeOfDay": "night",
+        "fish": "rest",
+        "intensity": 0.5
+      },
+      "pass": true
+    },
+    {
+      "id": "autumn",
+      "line": "秋风过岸，落叶归水",
+      "declaredWeather": "autumn",
+      "time": "dusk",
+      "command": {
+        "weather": "autumn",
+        "wind": 0.55,
+        "palette": "melancholy",
+        "intensity": 0.7
+      },
+      "pass": true
+    },
+    {
+      "id": "moonlit",
+      "line": "月色入水，清辉满湖",
+      "declaredWeather": "moonlit",
+      "time": "night",
+      "command": {
+        "weather": "moonlit",
+        "timeOfDay": "night",
+        "intensity": 0.5
+      },
+      "pass": true
+    },
+    {
+      "id": "lanterns",
+      "line": "一盏河灯，照见晚水",
+      "declaredWeather": "lanterns",
+      "time": "night",
+      "command": {
+        "weather": "lanterns",
+        "timeOfDay": "night",
+        "intensity": 0.5
+      },
+      "pass": true
+    },
+    {
+      "id": "shower",
+      "line": "流星过夜，水接微光",
+      "declaredWeather": "shower",
+      "time": "night",
+      "command": {
+        "weather": "shower",
+        "timeOfDay": "night",
+        "intensity": 0.7
+      },
+      "pass": true
+    },
+    {
+      "id": "moonsnow",
+      "line": "月下飘雪，山水无声",
+      "declaredWeather": "moonsnow",
+      "time": "night",
+      "command": {
+        "weather": "moonsnow",
+        "wind": 0.08,
+        "timeOfDay": "night",
+        "intensity": 0.5
+      },
+      "pass": true
+    }
+  ]
+}

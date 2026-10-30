@@ -1,0 +1,46 @@
+{
+  "target": "480x640, 3:4",
+  "method": "image_gen originals retained; mechanical size normalization and webp encoding only",
+  "images": [
+    {
+      "id": "willow",
+      "file": "willow.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 71484,
+      "sha256": "2ea368edf365b4ed9bcc24c46a295016c1d2b4ca93ea95f5eba152565476d797",
+      "source": "source/willow.png",
+      "sourceSha256": "d2374f7d85c3703041c455a7444805b21e618b476fb81bf7cec2201383ae6afb"
+    },
+    {
+      "id": "blossom",
+      "file": "blossom.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 71380,
+      "sha256": "c84f634ee02cf39afbfb8cae0024fcbbbc40ed784c33c34d3e03f0df1533216d",
+      "source": "source/blossom.png",
+      "sourceSha256": "bee5347b7883ed3e7d2eaebbeb3c3102e59ad8648468d4f1a6af38d39a453235"
+    },
+    {
+      "id": "rainbow",
+      "file": "rainbow.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 93020,
+      "sha256": "66d03eb2d52e6c6b9e6c1c768c5d2768856c642cbcd929b49a42c6f652c3ba16",
+      "source": "source/rainbow.png",
+      "sourceSha256": "bc09fa9efcbaac3973986f4ae62ebde4f442f4f1ad4a64f9c0beb6b200a77ebe"
+    },
+    {
+      "id": "lotus",
+      "file": "lotus.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 78624,
+      "sha256": "b985bf98b6133b3a51b14d1b0ecaf84acd1bcd20c29fbf1d8de38419a475c6a1",
+      "source": "source/lotus.png",
+      "sourceSha256": "1b00a967b1f6807ca74266f06f72a13fe42d30c37fe51f26479395e450705769"
+    }
+  ]
+}
