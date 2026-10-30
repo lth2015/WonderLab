@@ -8,6 +8,8 @@ interface MenuProps {
   onRestart: () => void;
   onAccount: () => void;
   onWallpaper: () => void;
+  /** 四时册页: every scene in the world, by the seasons. */
+  onBook: () => void;
   /** The tester's own study records (Study.tsx); offered only where there is no address bar to type ?study. */
   onStudy?: () => void;
   dim: boolean;
@@ -15,7 +17,7 @@ interface MenuProps {
   children?: ReactNode;
 }
 
-export function Menu({ canUndo, onUndo, onRestart, onAccount, onWallpaper, onStudy, dim, children }: MenuProps) {
+export function Menu({ canUndo, onUndo, onRestart, onAccount, onWallpaper, onBook, onStudy, dim, children }: MenuProps) {
   const [open, setOpen] = useState(false);
   const [about, setAbout] = useState(false);
   const [undoable, setUndoable] = useState(false);
@@ -69,6 +71,9 @@ export function Menu({ canUndo, onUndo, onRestart, onAccount, onWallpaper, onStu
         <>
           <div className="scrim clear" onClick={close} />
           <div className="menu" role="menu" aria-label="更多">
+            <button type="button" role="menuitem" onClick={pick(onBook)}>
+              四时
+            </button>
             <button ref={undoable ? first : undefined} type="button" role="menuitem" disabled={!undoable} onClick={pick(onUndo)}>
               撤销
             </button>
@@ -116,9 +121,10 @@ function About({ onClose }: { onClose: () => void }) {
         <p className="motto">一念起，万象生</p>
         <ul>
           <li>在湖面上画一笔，线会化成游鱼</li>
-          <li>画一个圆，月亮升起</li>
-          <li>在天上随手一点、一划，是星与流星</li>
+          <li>画一个圆，白天是太阳，夜里是月亮</li>
+          <li>夜里在天上随手一点、一划，是星与流星</li>
           <li>写一句话，世界会听见</li>
+          <li>「更多」里的「四时」，是这个世界的每一处景</li>
         </ul>
         <p className="keys">
           画布获得焦点时：<kbd>F</kbd> 画一条鱼，<kbd>M</kbd> 生一轮月，<kbd>Enter</kbd> 点一下湖面。<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd> 撤销。
