@@ -59,7 +59,7 @@ export interface EngineOptions {
   tier?: Tier;
   reducedMotion?: boolean;
   /** 近岸 prototype (?shore): a bank along the bottom where a stroke becomes a flowering branch. */
-  shore?: boolean;
+  shore?: boolean | 'willow';
 }
 
 export interface EngineEvents {
@@ -169,6 +169,14 @@ export class Engine {
   private lotus!: Lotus;
   /** Engine time of the next frog among the lotus. */
   private nextFrog = -1;
+  /** How many lotus frogs have called since the last chorus: every few, a chorus instead (蛙声一片). */
+  private frogsSinceChorus = 0;
+  /** 清风鸣蝉 / 雨后蛙答: sounds on their way, and what they wait for (a gust dying down, the rain easing). */
+  private calls: { at: number; kind: SoundKind; x: number; strength: number }[] = [];
+  private gustHeard = false;
+  private wasRaining = false;
+  /** 长日荷塘: when a cicada next sounds in the trees' shade of itself. */
+  private nextCicada = -1;
   private readonly auditing = import.meta.env.DEV || new URLSearchParams(location.search).has('audit');
   private nextAudit = 0;
   /** 叶下更静: when each fish may next rest in a leaf's shade. */
@@ -360,7 +368,11 @@ export class Engine {
     this.petals = new Leaves(p.ink, true);
     this.scene.add(this.petals.points);
     if (withShore) {
-      this.shore = new Shore(p);
+      this.shore = new Shore(p, options.shore === 'willow' ? 'willow' : 'blossom');
+      this.shore.onMagpie(
+        (x) => this.sfx('wings', x, 0.8),
+        (x) => this.sfx('wings', x, 0.35),
+      );
       this.scene.add(this.shore.group);
     }
     this.lotus = new Lotus(p.ink);
@@ -399,6 +411,8 @@ export class Engine {
     this.worldMat.uniforms.uMoonTexOn.value = art.moon ? 1 : 0;
     if (art.lotus) this.lotus.setTexture(art.lotus);
     if (art.shore) this.shore?.setTexture(art.shore);
+    if (art.willowLeaf) this.shore?.setLeafTexture(art.willowLeaf);
+    if (art.magpie) this.shore?.setMagpieTexture(art.magpie);
   }
 
   /**
@@ -887,11 +901,15 @@ export class Engine {
     else if (this.nextFrog < 0) this.nextFrog = t + 5 + Math.random() * 5;
     else if (t >= this.nextFrog) {
       this.nextFrog = t + 9 + Math.random() * 14;
-      this.sfx('frog', this.width * (Math.random() < 0.5 ? 0.15 : 0.85), 0.7);
+      if (++this.frogsSinceChorus >= 4 && !this.calm) {
+        this.frogsSinceChorus = 0;
+        this.frogChorus(t);
+      } else this.sfx('frog', this.width * (Math.random() < 0.5 ? 0.15 : 0.85), 0.7);
     }
+    this.updateCalls(t, atmos);
     const gustWind = atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8;
     this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.petalLands(x, y));
-    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain }, this.calm, (x, y) => this.dropPetal(x, y));
+    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain, wind: gustWind }, this.calm, (x, y) => this.dropPetal(x, y), Math.random, (x, y) => this.addRipple(x, y, 0.18));
     this.leaves.update(dt, t, atmos.autumn, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );
@@ -1319,6 +1337,8 @@ export class Engine {
     };
     this.sky.setMoon(spec);
     this.sfx('chime', x);
+    // 明月别枝惊鹊: the new light first; a moment later the magpie in the willow's crown takes notice and goes.
+    this.shore?.startle(this.time, 1.8 + Math.random() * 0.8);
     this.fadeStroke(stroke, fromLake ? 0.1 : 0.3, fromLake ? 0.7 : 1.0);
     if (fromLake) this.addRipple(fit.cx, fit.cy, 0.8);
     const anchorY = fromLake ? fit.cy : y;
@@ -1848,12 +1868,14 @@ export class Engine {
       return true;
     }
     const run = b.x - a.x;
-    if (Math.max(this.atmosphere.autumn, this.atmosphere.blossom) > 0.5 && top >= this.horizonY && Math.abs(run) > this.minDim * 0.2 && Math.abs(run) > Math.abs(rise) * 1.5 && stroke.points.every((p) => p.y >= this.horizonY - this.minDim * 0.05)) {
+    if ((Math.max(this.atmosphere.autumn, this.atmosphere.blossom) > 0.5 || this.shore?.isWillow) && top >= this.horizonY && Math.abs(run) > this.minDim * 0.2 && Math.abs(run) > Math.abs(rise) * 1.5 && stroke.points.every((p) => p.y >= this.horizonY - this.minDim * 0.05)) {
       this.fadeStroke(stroke, 0, 0.4);
       this.gust = { dir: Math.sign(run), k: 1 };
       const view = { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim };
       if (this.atmosphere.autumn > 0.5) this.leaves.gust(Math.sign(run), (a.y + b.y) / 2, view);
-      else this.petals.gust(Math.sign(run), (a.y + b.y) / 2, view);
+      else if (this.atmosphere.blossom > 0.5) this.petals.gust(Math.sign(run), (a.y + b.y) / 2, view);
+      // A gust through the willow can set the magpie off too, now and then.
+      if (Math.random() < 0.4) this.shore?.startle(this.time, 0.8 + Math.random() * 0.6);
       return true;
     }
     if (this.atmosphere.lanterns > 0.5 && b.y >= this.horizonY && rise > this.minDim * 0.1 && rise > Math.abs(b.x - a.x)) {
@@ -1877,10 +1899,65 @@ export class Engine {
     this.nextFlash = Math.max(this.nextFlash, this.time + 6 + Math.random() * 4);
   }
 
+  /**
+   * 蛙声一片: one frog tries, another answers a little later from elsewhere
+   * on the shallows, a third farther and softer; then a whole pause.
+   */
+  private frogChorus(t: number): void {
+    const n = 3 + Math.floor(Math.random() * 3);
+    let at = t;
+    for (let i = 0; i < n; i++) {
+      this.calls.push({ at, kind: 'frog', x: this.width * (0.08 + 0.84 * Math.random()), strength: i === 0 ? 0.8 : 0.35 + 0.45 * Math.random() });
+      at += 0.4 + Math.random() * 0.9;
+    }
+  }
+
+  /**
+   * 清风鸣蝉 (Codex, docs/handoff/codex-mingyue-biezhi.md): when a gust has
+   * passed and the leaves quiet down, a cicada deep in the shade is heard,
+   * and a farther one a while after. Warm, settled days; at dusk shorter, at
+   * night one at most and only with a summer sign; never in snow, autumn or
+   * rain. 雨后蛙答: as the rain eases, the frogs answer one another.
+   */
+  private updateCalls(t: number, atmos: Atmosphere): void {
+    const night = Math.max(1 - atmos.day - atmos.dusk, 0);
+    const summer = Math.max(atmos.lotus, atmos.fireflies) > 0.5;
+    const warm = atmos.snow < 0.2 && atmos.autumn < 0.5 && atmos.rain < 0.3 && (night < 0.5 || summer);
+    if (this.gust.k > 0.6) this.gustHeard = true;
+    else if (this.gustHeard && this.gust.k < 0.15) {
+      this.gustHeard = false;
+      if (warm && !this.calm) this.cicadas(t + 0.6 + Math.random() * 1.2, night < 0.5 && atmos.dusk < 0.5 ? 2 : 1);
+    }
+    // 长日荷塘: on a summer day the shade has its own cicadas now and then.
+    if (!(summer && night < 0.5 && warm)) this.nextCicada = -1;
+    else if (this.nextCicada < 0) this.nextCicada = t + 12 + Math.random() * 10;
+    else if (t >= this.nextCicada) {
+      this.nextCicada = t + 30 + Math.random() * 30;
+      if (!this.calm) this.cicadas(t, Math.random() < 0.5 ? 2 : 1);
+    }
+    if (atmos.rain > 0.4) this.wasRaining = true;
+    else if (this.wasRaining && atmos.rain < 0.12) {
+      this.wasRaining = false;
+      if (atmos.snow < 0.2 && !this.calm) this.frogChorus(t + 2 + Math.random() * 2);
+    }
+    if (!this.calls.length) return;
+    const due = this.calls.filter((c) => t >= c.at);
+    this.calls = this.calls.filter((c) => t < c.at);
+    for (const c of due) this.sfx(c.kind, c.x, c.strength);
+  }
+
+  /** One cicada near in the shade, and a farther one later if `n` is 2. */
+  private cicadas(at: number, n: number): void {
+    const side = Math.random() < 0.7 ? 0.88 : 0.12;
+    this.calls.push({ at, kind: 'cicada', x: this.width * side, strength: 0.7 });
+    if (n > 1) this.calls.push({ at: at + 4 + Math.random() * 3, kind: 'cicada', x: this.width * (1 - side), strength: 0.35 });
+  }
+
   /** Start a flash at `x` drawing these bolts (none: only the clouds light up). */
   private boltFlash(segs: Segment[], x: number): void {
     const u = this.worldMat.uniforms;
     this.flash = { at: this.time, x };
+    this.shore?.startle(this.time, 0.4 + Math.random() * 0.4);
     segs.forEach((s, i) => u.uBolt.value[i].set(...packSegment(s)));
     u.uBoltCount.value = segs.length;
     if (!segs.length) return;
@@ -1990,6 +2067,11 @@ export class Engine {
       this.sky.pulseMoon();
       this.addRipple(moon!.x, 2 * this.horizonY - moon!.y, 0.8);
       this.sfx('chime', moon!.x, 0.4);
+      return;
+    }
+    // 春风拂柳: a touch among the strands makes them shiver, and the magpie above may go.
+    if (y >= this.horizonY && !fish && this.atmosphere.galaxy <= 0.5 && this.shore?.touchWillow(x, y)) {
+      this.shore.startle(this.time, 0.5 + Math.random() * 0.5);
       return;
     }
     if (y >= this.horizonY && !fish) {

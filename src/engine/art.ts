@@ -19,6 +19,10 @@ export interface Art {
   lotus: THREE.Texture | null;
   /** 近岸: begonia blossoms, bud, petal and a butterfly open and closed, one 3x2 atlas (packShore). */
   shore: THREE.Texture | null;
+  /** 春风拂柳: one willow leaf (Codex, art-incoming/shore-v2/willow-leaf.png), upright, stalk down. */
+  willowLeaf: THREE.Texture | null;
+  /** 明月别枝惊鹊: Codex's magpie, wings up, wings down and gliding, side by side (art-incoming/mingyue/). */
+  magpie: THREE.Texture | null;
 }
 
 interface Manifest {
@@ -27,6 +31,8 @@ interface Manifest {
   moon?: { file: string } | null;
   lotus?: { file: string } | null;
   shore?: { file: string } | null;
+  willowLeaf?: { file: string } | null;
+  magpie?: { file: string } | null;
 }
 
 export async function loadArt(base = `${import.meta.env.BASE_URL}art/`): Promise<Art | null> {
@@ -64,5 +70,9 @@ export async function loadArt(base = `${import.meta.env.BASE_URL}art/`): Promise
   if (manifest.lotus) lotus = await load(manifest.lotus.file).catch(() => null);
   let shore: THREE.Texture | null = null;
   if (manifest.shore) shore = await load(manifest.shore.file).catch(() => null);
-  return { koi: koi.filter((k): k is KoiSkin => !!k), moon, lotus, shore };
+  let willowLeaf: THREE.Texture | null = null;
+  if (manifest.willowLeaf) willowLeaf = await load(manifest.willowLeaf.file).catch(() => null);
+  let magpie: THREE.Texture | null = null;
+  if (manifest.magpie) magpie = await load(manifest.magpie.file).catch(() => null);
+  return { koi: koi.filter((k): k is KoiSkin => !!k), moon, lotus, shore, willowLeaf, magpie };
 }

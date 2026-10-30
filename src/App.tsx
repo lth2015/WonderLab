@@ -389,7 +389,7 @@ export function App() {
       {
         tier: forcedTier === 'light' || forcedTier === 'standard' ? forcedTier : undefined,
         reducedMotion: reducedQuery.matches,
-        shore: params.has('shore'),
+        shore: params.get('shore') === 'willow' ? 'willow' : params.has('shore'),
       },
     );
     engineRef.current = engine;

@@ -50,5 +50,11 @@
   },
   "shore": {
     "file": "shore.webp"
+  },
+  "willowLeaf": {
+    "file": "willow-leaf.webp"
+  },
+  "magpie": {
+    "file": "magpie.webp"
   }
 }

@@ -39,7 +39,7 @@ export function panFor(x: number, width: number): number {
   return Math.max(-0.6, Math.min(0.6, (x / width) * 1.2 - 0.6));
 }
 
-export type SoundKind = 'stroke' | 'drop' | 'ripple' | 'chime' | 'star' | 'meteor' | 'bell' | 'thunder' | 'frog';
+export type SoundKind = 'stroke' | 'drop' | 'ripple' | 'chime' | 'star' | 'meteor' | 'bell' | 'thunder' | 'frog' | 'wings' | 'cicada';
 
 export interface AmbientLevels {
   rain: number;
@@ -350,6 +350,62 @@ export class Voices {
           osc.start(t0);
           osc.stop(t0 + 0.2);
         }
+        return;
+      }
+      case 'wings': {
+        // 惊鹊: a magpie leaving the willow, four soft beats of air, each a
+        // little fainter, no call (Codex: the wings alone say it has gone).
+        const band = this.ctx.createBiquadFilter();
+        band.type = 'bandpass';
+        band.frequency.value = 620;
+        band.Q.value = 0.7;
+        band.connect(this.panner(pan));
+        for (let i = 0; i < 4; i++) {
+          const t0 = at + i * (0.12 + Math.random() * 0.02);
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0, t0);
+          g.gain.linearRampToValueAtTime(0.07 * strength * (1 - i * 0.18), t0 + 0.018);
+          g.gain.setTargetAtTime(0, t0 + 0.02, 0.03);
+          this.burst(t0, 0.12).connect(g).connect(band);
+        }
+        return;
+      }
+      case 'cicada': {
+        // 鸣蝉: from deep in the trees' shade, a thin, slightly rough long
+        // note: a narrow band of noise, its grain a fast flutter, that comes
+        // up gently, holds two or three seconds, and fades. Kept behind the
+        // picture's other sounds; a far one (low strength) is duller.
+        const hold = 2 + Math.random() * 1.2;
+        const band = this.ctx.createBiquadFilter();
+        band.type = 'bandpass';
+        band.frequency.setValueAtTime(4800 + Math.random() * 500, at);
+        band.frequency.linearRampToValueAtTime(5400 + Math.random() * 400, at + 1 + hold * 0.5);
+        band.frequency.linearRampToValueAtTime(4700, at + hold + 2);
+        band.Q.value = 5;
+        const grain = this.ctx.createGain();
+        grain.gain.value = 0.55;
+        const flutter = this.ctx.createOscillator();
+        flutter.frequency.value = 120 + Math.random() * 40;
+        const depth = this.ctx.createGain();
+        depth.gain.value = 0.45;
+        flutter.connect(depth).connect(grain.gain);
+        const far = this.ctx.createBiquadFilter();
+        far.type = 'lowpass';
+        far.frequency.value = 3000 + 4000 * Math.min(strength, 1);
+        const g = this.ctx.createGain();
+        const peak = 0.05 * strength;
+        g.gain.setValueAtTime(0, at);
+        g.gain.linearRampToValueAtTime(peak, at + 0.9);
+        g.gain.linearRampToValueAtTime(peak * 0.85, at + 0.9 + hold);
+        g.gain.setTargetAtTime(0, at + 0.9 + hold, 0.5);
+        const src = this.ctx.createBufferSource();
+        src.buffer = this.noise;
+        src.loop = true;
+        src.start(at, Math.random() * this.noise.duration);
+        src.stop(at + hold + 3.5);
+        src.connect(band).connect(grain).connect(far).connect(g).connect(this.panner(pan));
+        flutter.start(at);
+        flutter.stop(at + hold + 3.5);
         return;
       }
       case 'meteor': {

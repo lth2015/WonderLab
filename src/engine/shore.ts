@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Stroke } from './stroke';
+import { Willow } from './willow';
 
 // 近岸 (docs/02 §「世界往哪里长」, docs/世界观落地.md second batch; Codex's
 // value/09 §十三): a sloping bank along the bottom of the picture, where the
@@ -47,6 +48,8 @@ interface Branch {
   nextPetal: number;
   lively: number;
   seed: number;
+  /** In the willow sketch: its tree in the Willow. */
+  tree?: number;
 }
 
 function rng(seed: number): () => number {
@@ -113,6 +116,7 @@ uniform vec3 uInk;
 uniform vec3 uMountain;
 uniform vec3 uWater;
 uniform float uDay;
+uniform float uSoft; // 1: a light wash of a bank (the willow sketch), not a heavy slope
 varying vec2 vUv;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -140,6 +144,10 @@ void main() {
   col *= 0.88 + 0.24 * grain;
   // The edge is the darkest line, like a brush run along the bank.
   col = mix(col, uInk * mix(0.8, 1.6, uDay), smoothstep(uS * 0.012, 0.0, d) * 0.6);
+  // In the willow picture only the two corners keep a little wet ink; the middle is the water's (Codex's direction).
+  // v3 review: the middle (0.25-0.75 of the width) fades to nothing; the corners at about 0.6 of before.
+  float corners = max(smoothstep(0.25, 0.05, u), smoothstep(0.75, 0.95, u));
+  a *= mix(1.0, (0.2 + 0.4 * (1.0 - depth)) * corners * 0.6, uSoft);
   gl_FragColor = vec4(col * a, a);
 }
 `;
@@ -169,7 +177,14 @@ export class Shore {
   private view: ShoreView = { width: 1, height: 1, horizonY: 1, S: 1 };
   private readonly branchColor = new THREE.Vector3();
 
-  constructor(palette: { ink: THREE.Vector3; mountain: THREE.Vector3; water: THREE.Vector3 }) {
+  /** 春风垂柳 (?shore=willow): a technical sketch for the redesign, strands instead of blossoms. */
+  private readonly willow: Willow | null;
+
+  private readonly skyLow: THREE.Vector3 | null;
+
+  constructor(palette: { ink: THREE.Vector3; mountain: THREE.Vector3; water: THREE.Vector3; skyLow?: THREE.Vector3 }, style: 'blossom' | 'willow' = 'blossom') {
+    this.willow = style === 'willow' ? new Willow() : null;
+    this.skyLow = palette.skyLow ?? null;
     this.bankMat = new THREE.ShaderMaterial({
       vertexShader: /* glsl */ `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: bankFrag,
@@ -180,6 +195,7 @@ export class Shore {
         uMountain: { value: palette.mountain },
         uWater: { value: palette.water },
         uDay: { value: 0 },
+        uSoft: { value: style === 'willow' ? 1 : 0 },
       },
       transparent: true,
       blending: THREE.CustomBlending,
@@ -230,10 +246,50 @@ export class Shore {
     this.flies.frustumCulled = false;
     this.flies.renderOrder = 3.15;
     this.group.add(this.flies);
+    if (this.willow) this.group.add(this.willow.group);
   }
 
   get ready(): boolean {
     return !!this.spriteMat.uniforms.uTex.value;
+  }
+
+  /** 明月别枝惊鹊: the magpie in the willow (its three poses, side by side). */
+  setMagpieTexture(tex: THREE.Texture): void {
+    this.willow?.setMagpieTexture(tex);
+  }
+
+  /** The willow picture's magpie: what it does is heard (its wings going out and coming back in). */
+  onMagpie(takeoff: (x: number, y: number) => void, land: (x: number, y: number) => void): void {
+    if (!this.willow) return;
+    const m = this.willow.magpie;
+    const shake = m.onTakeoff;
+    const settle = m.onLand;
+    m.onTakeoff = (x, y) => {
+      shake(x, y);
+      takeoff(x, y);
+    };
+    m.onLand = (x, y) => {
+      settle(x, y);
+      land(x, y);
+    };
+  }
+
+  /** Something nearby startles the willow's crown: whether the magpie was there to go. */
+  startle(time: number, delay: number): boolean {
+    return !this.hidden && !!this.willow?.startle(time, delay);
+  }
+
+  /** A touch among the willow's strands: they shiver (and the magpie above may go). */
+  touchWillow(x: number, y: number): boolean {
+    return !this.hidden && !!this.willow?.touch(x, y);
+  }
+
+  get isWillow(): boolean {
+    return !!this.willow;
+  }
+
+  setLeafTexture(tex: THREE.Texture): void {
+    this.willow?.setLeafTexture(tex);
   }
 
   setTexture(tex: THREE.Texture): void {
@@ -241,12 +297,14 @@ export class Shore {
   }
 
   setPixelRatio(pr: number): void {
+    this.willow?.setPixelRatio(pr);
     this.spriteMat.uniforms.uPR.value = pr;
     this.flyMat.uniforms.uPR.value = pr;
   }
 
   resize(view: ShoreView): void {
     this.view = view;
+    this.willow?.resize(view.width, view.height, view.horizonY, view.S);
     this.bank.scale.set(view.width, view.height, 1);
     this.bank.position.set(view.width / 2, view.height / 2, 0);
     this.bankMat.uniforms.uRes.value.set(view.width, view.height);
@@ -270,6 +328,16 @@ export class Shore {
    * a slow, winding one blooms thick (the brush's character, as for the koi).
    */
   addBranch(stroke: Stroke, time: number, lively: number, seed = Math.floor(Math.random() * 1e9)): number {
+    if (this.willow) {
+      const id = this.nextId++;
+      // 春风拂柳: no lone branch; the stroke lets another spray of strands hang down above it.
+      stroke.mesh.visible = false;
+      const a = stroke.points[0];
+      const b = stroke.points[stroke.points.length - 1];
+      const tree = this.willow.addSpray(stroke.centroid.x, (b.x - a.x) / Math.max(stroke.length, 1), seed);
+      this.branches.push({ id, stroke, blossoms: [], nextPetal: Infinity, lively, seed, tree });
+      return id;
+    }
     // From its own seed, so a saved branch blossoms the same again.
     const random = rng(seed);
     const S = this.view.S;
@@ -326,8 +394,9 @@ export class Shore {
 
   /** A new world: hidden while the restart can still be taken back, then gone. */
   setHidden(hidden: boolean): void {
-    for (const b of this.branches) b.stroke.mesh.visible = !hidden;
+    for (const b of this.branches) b.stroke.mesh.visible = !hidden && !this.willow;
     this.sprites.visible = this.sprites.visible && !hidden;
+    if (this.willow) this.willow.group.visible = !hidden;
     this.hidden = hidden;
   }
 
@@ -336,6 +405,7 @@ export class Shore {
     const strokes = this.branches.map((b) => b.stroke);
     this.branches = [];
     this.butterflies = [];
+    this.willow?.clear();
     this.hidden = false;
     return strokes;
   }
@@ -354,6 +424,7 @@ export class Shore {
     const b = this.branches.find((x) => x.id === id);
     if (!b) return null;
     this.branches = this.branches.filter((x) => x !== b);
+    if (b.tree !== undefined) this.willow?.removeSpray(b.tree);
     return b.stroke;
   }
 
@@ -379,8 +450,12 @@ export class Shore {
    * it down as a falling petal); `day` and `dusk` say when butterflies come,
    * and night brings the fireflies.
    */
-  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random): void {
+  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number; wind?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random, dip?: (x: number, y: number) => void): void {
     const { S, width } = this.view;
+    if (this.willow && !this.hidden) {
+      if (this.skyLow) this.willow.setAir(this.skyLow);
+      this.willow.update(time, dt, light.wind ?? 0.25, light, calm, (x, y) => dip?.(x, y));
+    }
     const night = Math.max(1 - light.day - light.dusk, 0);
     // Lit by the hour: cool and dim at night, the petals' edges warmed at dusk (value/12 §四).
     const lit = new THREE.Vector3(0.5 + 0.5 * (1 - night), 0.52 + 0.48 * (1 - night), 0.62 + 0.38 * (1 - night));
@@ -533,6 +608,7 @@ export class Shore {
   }
 
   dispose(): void {
+    this.willow?.dispose();
     this.bank.geometry.dispose();
     this.bankMat.dispose();
     this.spriteGeo.dispose();
