@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWAY_MAX, parseWorld, SAVE_VERSION, type WorldSave } from './persist';
+import { AWAY_MAX, BRANCHES_MAX, parseWorld, SAVE_VERSION, type WorldSave } from './persist';
 
 const valid: WorldSave = {
   version: SAVE_VERSION,
@@ -168,5 +168,12 @@ describe('branches (近岸)', () => {
     });
     expect(w?.branches).toEqual([{ points: [[0.1, 0.1], [0.2, 0.15], [0.3, 0.18]], lively: 0.4, seed: 12345 }]);
     expect(parseWorld(base)?.branches).toBeUndefined();
+  });
+
+  it('keeps the newest branches when a save holds more than the bank does', () => {
+    const base = { version: 1, atmosphere: { timeOfDay: 'day', weather: 'clear', palette: 'serene', wind: 0.2, intensity: 0.5 }, fish: [], moon: null, planets: [], stars: [], clouds: [] };
+    const branches = Array.from({ length: BRANCHES_MAX + 1 }, (_, i) => ({ points: [[0.1, 0.1], [0.2, 0.15]], lively: 0.5, seed: i }));
+    const kept = parseWorld({ ...base, branches })?.branches ?? [];
+    expect(kept.map((b) => b.seed)).toEqual(branches.slice(1).map((b) => b.seed));
   });
 });

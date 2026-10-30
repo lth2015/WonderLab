@@ -410,6 +410,15 @@ export class Shore {
     return strokes;
   }
 
+  /** How many branches are on the bank, and the oldest of them (for the bank's limit). */
+  get branchCount(): number {
+    return this.branches.length;
+  }
+
+  get oldestBranch(): number | null {
+    return this.branches[0]?.id ?? null;
+  }
+
   /** Undo: the branch and its blossoms go. Returns its stroke, for the caller to fade. */
   removeBranch(id: number): Stroke | null {
     const b = this.branches.find((x) => x.id === id);

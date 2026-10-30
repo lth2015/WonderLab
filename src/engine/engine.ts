@@ -25,7 +25,7 @@ import { classify, spineFromOutline, type Classification, type Pt } from './clas
 import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
-import { AWAY_MAX, SAVE_VERSION, type SavedFish, type WorldSave } from './persist';
+import { AWAY_MAX, BRANCHES_MAX, SAVE_VERSION, type SavedFish, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
 import { between, meteorDive, meteorPath, Relations, type RelationEffects, type RelationWorld } from './relations';
@@ -1952,6 +1952,11 @@ export class Engine {
   private placeBranch(stroke: Stroke, pointer: string): void {
     const shore = this.shore!;
     const style = strokeStyle(stroke.points, this.minDim, pointer);
+    // The bank keeps as many as are saved: past that, the oldest fades so the newest is never lost on reload.
+    while (shore.branchCount >= BRANCHES_MAX) {
+      const s = shore.removeBranch(shore.oldestBranch!);
+      if (s) this.fadeStroke(s, 0, 1.6);
+    }
     const id = shore.addBranch(stroke, this.time, this.livelyFrom(style.speed, pointer));
     this.keptBranches = [];
     const end = stroke.points[stroke.points.length - 1];

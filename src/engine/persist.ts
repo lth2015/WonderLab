@@ -11,7 +11,9 @@ import { WEATHERS } from './intent';
 
 export const SAVE_VERSION = 1;
 const KEY = 'wonderlab.world';
-const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64, origin: 48, branches: 12, branchPoints: 64 };
+/** 近岸: at most this many branches on the bank; a new one beyond it lets the oldest go (Engine.placeBranch). */
+export const BRANCHES_MAX = 12;
+const LIMITS = { fish: 12, stars: 24, clouds: 4, planets: 3, spine: 64, origin: 48, branches: BRANCHES_MAX, branchPoints: 64 };
 /**
  * Fish kept 「在远处」 (docs/02 §11 decision 12): when the lake is full, the
  * oldest fish swims off but stays in the world. None is ever let go: once
@@ -142,8 +144,9 @@ export function parseWorld(data: unknown): WorldSave | null {
     .slice(0, LIMITS.clouds)
     .filter((c): c is [number, number, number] => Array.isArray(c) && c.length === 3 && isUnitish(c[0]) && isUnitish(c[1]) && isPos(c[2]));
 
+  // The newest, if an older save holds more than the bank keeps.
   const branches = arr(data.branches)
-    .slice(0, LIMITS.branches)
+    .slice(-LIMITS.branches)
     .map((b): SavedBranch | null => {
       if (!isObj(b) || !isNum(b.seed)) return null;
       const points = arr(b.points)
