@@ -6,7 +6,7 @@ const calm: SeenWorld = { light: 'night', day: 0, bodies: 0, settingSun: false, 
 
 describe('world rules', () => {
   it('names every rule it keeps', () => {
-    expect(Object.keys(RULES)).toEqual(['SKY-1', 'SKY-2', 'SKY-3', 'SKY-4', 'SKY-5', 'SKY-6', 'SKY-7', 'WX-1', 'SEASON-1', 'SEASON-2', 'HAND-1']);
+    expect(Object.keys(RULES)).toEqual(['SKY-1', 'SKY-2', 'SKY-3', 'SKY-4', 'SKY-5', 'SKY-6', 'SKY-7', 'WX-1', 'SEASON-1', 'SEASON-2', 'HAND-1', 'HAND-2', 'WX-2', 'SOUND-1', 'SOUND-3']);
   });
 
   it('reads the light from the atmosphere', () => {

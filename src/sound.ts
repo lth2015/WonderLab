@@ -51,6 +51,8 @@ export interface AmbientLevels {
   autumn?: number;
   /** 0 at night, 1 at dusk. */
   dusk: number;
+  /** 0 at night, 1 by day; optional so older callers stay valid. */
+  day?: number;
 }
 
 function noiseBuffer(ctx: BaseAudioContext, seconds: number): AudioBuffer {
@@ -187,7 +189,8 @@ export class Voices {
     this.waterGain.gain.setTargetAtTime(0.115 * (1 - 0.5 * levels.rain) * (1 - 0.6 * snow) * (0.85 + 0.3 * levels.wind), at, 1.2);
     this.windGain.gain.setTargetAtTime(0.07 * Math.max(snow, 0.9 * (levels.autumn ?? 0)) * (0.5 + levels.wind), at, 2.5);
     // Insects at night and with fireflies, quieter in rain, gone in snow.
-    const insects = (1 - levels.dusk * 0.7) * (1 - levels.rain) * (1 - snow) * (0.6 + 0.4 * levels.fireflies);
+    // SOUND-1: the night's crickets are almost gone by day.
+    const insects = (1 - levels.dusk * 0.7) * (1 - 0.85 * (levels.day ?? 0)) * (1 - levels.rain) * (1 - snow) * (0.6 + 0.4 * levels.fireflies);
     this.insectGain.gain.setTargetAtTime(insects, at, 1.5);
     if (at >= this.insectsAt) {
       this.insectsAt = at + 2 + Math.random() * 5;
