@@ -1,0 +1,76 @@
+{
+  "source": "2938133",
+  "method": "Actual browser engine with synthetic strokes, direct scheduled-return trigger and deterministic stepping; does not validate perceived departure animation or phone performance.",
+  "pageErrors": [],
+  "result": {
+    "initial": {
+      "current": 8,
+      "away": 1,
+      "total": 9
+    },
+    "drawingProtected": true,
+    "idleProtected": true,
+    "firstReturn": {
+      "current": 8,
+      "away": 1,
+      "oldFishCameBack": true,
+      "honmeiStillHere": true,
+      "allSeedsPreserved": true
+    },
+    "departure": {
+      "y": 183.61883544921875,
+      "farWater": 433.00000000000006,
+      "opacity": 1
+    },
+    "rounds": [
+      {
+        "current": 8,
+        "away": 1,
+        "honmeiStillHere": true,
+        "allSeedsPreserved": true
+      },
+      {
+        "current": 8,
+        "away": 1,
+        "honmeiStillHere": true,
+        "allSeedsPreserved": true
+      },
+      {
+        "current": 8,
+        "away": 1,
+        "honmeiStillHere": true,
+        "allSeedsPreserved": true
+      },
+      {
+        "current": 8,
+        "away": 1,
+        "honmeiStillHere": true,
+        "allSeedsPreserved": true
+      },
+      {
+        "current": 8,
+        "away": 1,
+        "honmeiStillHere": true,
+        "allSeedsPreserved": true
+      },
+      {
+        "current": 8,
+        "away": 1,
+        "honmeiStillHere": true,
+        "allSeedsPreserved": true
+      },
+      {
+        "current": 8,
+        "away": 1,
+        "honmeiStillHere": true,
+        "allSeedsPreserved": true
+      },
+      {
+        "current": 8,
+        "away": 1,
+        "honmeiStillHere": true,
+        "allSeedsPreserved": true
+      }
+    ]
+  }
+}
