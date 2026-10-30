@@ -549,12 +549,12 @@ export class Engine {
   }
 
   /** One saved branch back on the bank, already in flower; its id. */
-  private restoreBranch(b: SavedBranch): number {
+  private restoreBranch(b: SavedBranch, keepId?: number): number {
     const stroke = new Stroke(this.palette, this.minDim, false);
     b.points.forEach(([nx, ny], i) => stroke.add({ x: nx * this.width, y: ny * this.height, t: i * 16, pressure: 0.5 }));
     stroke.finish();
     this.scene.add(stroke.mesh);
-    return this.shore!.addBranch(stroke, this.time - 10, b.lively, b.seed);
+    return this.shore!.addBranch(stroke, this.time - 10, b.lively, b.seed, keepId);
   }
 
   private saveFish(f: Fish): SavedFish {
@@ -2010,10 +2010,11 @@ export class Engine {
     const shore = this.shore!;
     const style = strokeStyle(stroke.points, this.minDim, pointer);
     // The bank keeps as many as are saved: past that, the oldest fades so the newest is never lost on reload.
-    const gaveWay: SavedBranch[] = [];
+    const gaveWay: { saved: SavedBranch; id: number }[] = [];
     while (shore.branchCount >= BRANCHES_MAX) {
-      gaveWay.unshift(shore.snapshot()[0]);
-      const s = shore.removeBranch(shore.oldestBranch!);
+      const oldest = shore.oldestBranch!;
+      gaveWay.unshift({ saved: shore.snapshot()[0], id: oldest });
+      const s = shore.removeBranch(oldest);
       if (s) this.fadeStroke(s, 0, 1.6);
     }
     const id = shore.addBranch(stroke, this.time, this.livelyFrom(style.speed, pointer));
@@ -2024,7 +2025,8 @@ export class Engine {
     this.record('branch', end.x, end.y, () => {
       const s = shore.removeBranch(id);
       if (s) this.fadeStroke(s, 0, 0.8);
-      for (const b of [...gaveWay].reverse()) shore.makeOldest(this.restoreBranch(b));
+      // Under their own ids, so undoing further back still finds them.
+      for (const g of [...gaveWay].reverse()) shore.makeOldest(this.restoreBranch(g.saved, g.id));
     });
   }
 

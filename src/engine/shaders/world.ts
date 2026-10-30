@@ -296,8 +296,8 @@ vec4 skyAt(vec2 p, float hpx, float S) {
   vec3 c = land.rgb;
   float t = clamp((p.y - hpx) / (uRes.y - hpx), 0.0, 1.0);
   float stars = starLayer(p, 46.0, 0.32, 1.6) + 0.6 * starLayer(p + 13.0, 19.0, 0.18, 0.9);
-  // 月明星稀: a moonlit night has fewer stars, fewer still with the moon up.
-  stars *= smoothstep(0.04, 0.4, t) * land.a * (1.0 - uDay) * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
+  // 月明星稀: a moonlit night has fewer stars, fewer still with the moon up. SKY-3: none once it counts as day.
+  stars *= smoothstep(0.04, 0.4, t) * land.a * nightSky() * (1.0 - 0.75 * uDusk) * (1.0 - 0.6 * uSnow) * (1.0 - uMoonlit * mix(0.35, 0.6, uMoon.w));
   c += vec3(0.96, 0.93, 0.86) * stars;
   if (uRainbow > 0.001) {
     // 雨后彩虹: a soft arc rising from behind the hills on the left and
