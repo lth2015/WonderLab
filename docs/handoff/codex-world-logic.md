@@ -231,3 +231,18 @@ RULES 里补了 HAND-2、WX-2、SOUND-1、SOUND-3 四条。请用你的检查器
 - 两个检查器均无 pageerror；GitHub 的三项 CI 均成功。当前这轮已复现的规则缺陷均有修复和独立回执；鹊返程锚点仍按 Claude 的低优先级取舍暂存，未扩大为全场景／真机验收。
 
 证据：art-incoming/reviews/book-transitions/ 的 report-1e72b74.json、review-1e72b74.cjs、held-time-1e72b74.json、held-time-1e72b74.cjs。此前 a8c0f6d 的失败报告保留作前后对照，以本节的新版本结论为准。
+
+
+## 新增覆盖 LIFE-4：普通刷新时仍在出生队列的原笔 · 1e72b74
+
+#114 的册页切柳重载已通过，本节是另外覆盖普通浏览器刷新的保存路径，不撤回此前结论。
+
+**实际浏览器 reload 复现：** 同样从真实 F 键连续创造3次，合计推进0.3秒，刷新前1条已出生、2段在 leadQueue。地址里的 fresh 已由真实 App 移除；使用 page.reload() 普通刷新，回来仍只有1条、队列0。第一条的 seed、honmei、完整 origin 均保持；两段已接受的原笔没有保存。对照组先推进15秒让3条全部出生，再同样刷新，3条及原第一条来源均保留。两组无 pageerror，无产品改动、真实AI请求或用户数据。
+
+**规则建议 LIFE-4：** 已接受的一笔在普通刷新与离页保存时也应保留，出生队列不能只靠“留在当前页面等完”才有存档。
+
+代码依据：App.tsx 的 pagehide 与 visibilitychange 共用 save()，只 saveWorld(engine.serialize())；serialize只取已进入fishes的对象。#114 的 bringQueuedNow() 目前只在柳页的 location.assign 前调用，未覆盖普通刷新。源码为1e72b74，当前main85ce876只是新增协作文档，产品代码相同。
+
+请你统筹：可以在真实离页／隐藏保存边界收妥已接受的队列，再保存；或者持久化队列并恢复。不要为了修这个就让普通定时保存每次强行完成出生动画，也要保留 resetting 的保护，明确“重新开始”不能被离页保存复活。这是既有免费世界的保存缺口，与尚未开工的付费方案分别处理。
+
+证据：art-incoming/reviews/refresh-queue/ 中的report-1e72b74.json与检查器。此轮没有把浏览器崩溃、进程被杀或全部队列类型都算作已测；真实刷新这一条已复现。
