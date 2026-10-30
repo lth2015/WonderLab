@@ -11,6 +11,9 @@ import * as THREE from 'three';
 // back the other way and goes in among the strands again. Never more than
 // one, never on a thin strand; by moonlight it is a blue-ink shape.
 
+// Sizes after Codex's scale check (art-incoming/mingyue/scene-scale-check.json): the frame about
+// 0.09 S near (a bird about 30px long on a 390px phone), 0.045 S far.
+
 /** Its three poses side by side in public/art/magpie.webp: wings up, wings down, gliding. Head to the left. */
 const POSE = { up: 0, down: 1, glide: 2 } as const;
 /** Codex's README: the body's middle is at about (0.37, 0.51) of each frame; the frame turns about it. */
@@ -44,7 +47,7 @@ void main() {
   float white = dot(t.rgb, vec3(0.33));
   col = mix(col, vec3(0.5, 0.58, 0.72) * white + vec3(0.06, 0.08, 0.12), uNight * 0.7);
   // Going away it sinks into the air, a stroke of ink rather than a bird.
-  col = mix(col * mix(uLight, vec3(1.0), uNight * 0.6), uAir * 0.55, uFar * 0.6);
+  col = mix(col * mix(uLight, vec3(0.85), uNight * 0.5), uAir * 0.55, uFar * 0.6);
   float a = t.a * uAlpha * (1.0 - 0.35 * uFar);
   if (a < 0.01) discard;
   gl_FragColor = vec4(col * a, a);
@@ -235,7 +238,7 @@ export class Magpie {
           [width * 0.35, height - sky * 0.38],
           [-S * 0.15, height - sky * (0.35 + 0.15 * random())],
         ];
-    this.flight = { start: time, dur: toWood ? 9 + random() * 2 : 7 + random() * 2, p, size: [0.11, toWood ? 0.03 : 0.08], far: [0, toWood ? 1 : 0.3], flapStart: 0.2, flapEnd: 0 };
+    this.flight = { start: time, dur: toWood ? 9 + random() * 2 : 7 + random() * 2, p, size: [0.09, toWood ? 0.045 : 0.07], far: [0, toWood ? 1 : 0.3], flapStart: 0.2, flapEnd: 0 };
     this.phase = 'leaving';
     this.onTakeoff(width - S * 0.04, y0);
   }
@@ -250,7 +253,7 @@ export class Magpie {
       [width * 0.8, height - sky * 0.12],
       [width + S * 0.06, height - sky * (0.22 + 0.08 * random())],
     ];
-    this.flight = { start: time, dur: 9 + random() * 2, p, size: [0.03, 0.11], far: [1, 0], flapStart: 0.08, flapEnd: 0.15 };
+    this.flight = { start: time, dur: 9 + random() * 2, p, size: [0.045, 0.09], far: [1, 0], flapStart: 0.08, flapEnd: 0.15 };
     this.phase = 'returning';
   }
 
