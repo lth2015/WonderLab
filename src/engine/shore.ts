@@ -327,9 +327,10 @@ export class Shore {
    * blossoms open along it from the base out. A quick stroke blooms sparse,
    * a slow, winding one blooms thick (the brush's character, as for the koi).
    */
-  addBranch(stroke: Stroke, time: number, lively: number, seed = Math.floor(Math.random() * 1e9)): number {
+  addBranch(stroke: Stroke, time: number, lively: number, seed = Math.floor(Math.random() * 1e9), keepId?: number): number {
+    // An undo bringing a branch back gives it its old id, so the history that names it still finds it (HAND-2).
+    const id = keepId ?? this.nextId++;
     if (this.willow) {
-      const id = this.nextId++;
       // 春风拂柳: no lone branch; the stroke lets another spray of strands hang down above it.
       stroke.mesh.visible = false;
       const a = stroke.points[0];
@@ -374,7 +375,6 @@ export class Shore {
         });
       }
     }
-    const id = this.nextId++;
     this.branches.push({ id, stroke, blossoms, nextPetal: time + 4 + random() * 4, lively, seed });
     this.nextButterfly = Math.min(this.nextButterfly < 0 ? Infinity : this.nextButterfly, time + 6);
     return id;
