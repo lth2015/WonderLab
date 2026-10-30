@@ -41,6 +41,66 @@
       "sha256": "b985bf98b6133b3a51b14d1b0ecaf84acd1bcd20c29fbf1d8de38419a475c6a1",
       "source": "source/lotus.png",
       "sourceSha256": "1b00a967b1f6807ca74266f06f72a13fe42d30c37fe51f26479395e450705769"
+    },
+    {
+      "id": "storm",
+      "file": "storm.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 94988,
+      "sha256": "22594a62f89b7f82652d39ca1d622fa9549cdcf9b2df19136cc6ad2f4684c4a4",
+      "source": "source/storm.png",
+      "sourceSha256": "3549a10a8cc847607f1cae78d770143fb9a47ddce6eaec16bc62428170016652"
+    },
+    {
+      "id": "fireflies",
+      "file": "fireflies.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 68968,
+      "sha256": "83151313c263c1d8d74ac51b9067bf3a787f36263786459570b48a8b0c2007c7",
+      "source": "source/fireflies.png",
+      "sourceSha256": "7a8126817b78d0cc6f3b1d6db5ed901bc8b6f3041bec3f94c250a13db71b2bb7"
+    },
+    {
+      "id": "cicada",
+      "file": "cicada.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 64424,
+      "sha256": "1e1a175b24a55b1a61e4168e6a15b94b768a39503615f4d8c14367209f33b24a",
+      "source": "source/cicada.png",
+      "sourceSha256": "8182e15b4253de6fa060c5fe2eacb86de4034631c5f5716b618d306164b5bed5"
+    },
+    {
+      "id": "magpie",
+      "file": "magpie.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 102768,
+      "sha256": "49beef9ade6f2437b93f39aeff1eda1255f089ebd1e19e1f99b8b2f9b88f6b06",
+      "source": "source/magpie.png",
+      "sourceSha256": "bd14589ef7551b5afa1e1f23a4120d0447bf601de8c0cdc7cb0ce197c1f562af"
+    },
+    {
+      "id": "autumn",
+      "file": "autumn.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 98460,
+      "sha256": "33899455fa8be57d58ab2623fb26e77e07a17af9b6e7daab35943375dc7d4f35",
+      "source": "source/autumn.png",
+      "sourceSha256": "a5268ede5753fa7051621876a9a62a989cf7b9dbf2e216bdc56bcfaef8c76f47"
+    },
+    {
+      "id": "moonlit",
+      "file": "moonlit.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 63836,
+      "sha256": "e7af13fecc860e12214093cc7d2a450cc79190340d90c13514284f627ead3358",
+      "source": "source/moonlit.png",
+      "sourceSha256": "5413fc1b30ecf87d054635943f4b0f09adfe510529436f2d6fb770577c9d8dee"
     }
   ]
 }
