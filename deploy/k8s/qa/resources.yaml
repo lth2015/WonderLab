@@ -245,7 +245,8 @@ metadata:
   name: wonderlab
   namespace: wonder-lab
   annotations:
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-1:654654578710:certificate/6ab53b30-1417-4df9-82af-a5c799ee157a
+    # want.world, then *.want.world for gift.want.world (docs/deploy-static.md).
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-1:654654578710:certificate/6ab53b30-1417-4df9-82af-a5c799ee157a,arn:aws:acm:ap-northeast-1:654654578710:certificate/65f9abd4-94c6-4bea-b5b4-1376b61897c2
     alb.ingress.kubernetes.io/healthcheck-path: /api/health
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
@@ -262,5 +263,16 @@ spec:
             backend:
               service:
                 name: wonderlab-api
+                port:
+                  number: 80
+    # The gift-experiment site (deploy/k8s/qa/gift.yaml).
+    - host: gift.want.world
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wonderlab-gift
                 port:
                   number: 80

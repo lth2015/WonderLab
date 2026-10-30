@@ -7,7 +7,7 @@
 | 项 | 内容 |
 |---|---|
 | 运行 | EKS 集群 `qa-web3-netx-tokyo-eks`，命名空间 `wonder-lab`，一个容器同时提供网页和 API（[deploy.md](deploy.md)） |
-| 入口 | ALB（`deploy/k8s/qa/resources.yaml` 的 Ingress），HTTPS 证书在 ACM，`want.world` 指向这个 ALB |
+| 入口 | `resources.yaml` 的 Ingress 带上两张证书，并有一条 `host: gift.want.world` → `wonderlab-gift` 的规则 | ✓ |
 | 构建 | GitHub Actions「Artifact Build」：以 `WW_EXPERIMENT=poc-r1` 打包，推送镜像到 ECR |
 | 部署 | GitHub Actions「Deploy QA」：Artifact Build 在 `main` 上成功后自动部署；验收某个分支时，对该分支手动运行 Artifact Build，再用它的提交号手动运行 Deploy QA（路线图 §2） |
 
@@ -34,8 +34,8 @@
 | 构建 | Artifact Build 多打一个镜像 `shared-wonderlab/api:<标签>-gift`，以 `poc-gift-r1` 打包 | ✓ |
 | 部署 | Deploy QA 在 R1 站点上线后应用 `deploy/k8s/qa/gift.yaml`（只有网页，不连数据库、不挂密钥、账户关闭）；没有 gift 镜像的旧提交照常部署，只是不动送鱼站点 | ✓ |
 | 域名 | Route 53：`gift.want.world` 别名指向同一个 ALB | ✓（2026-10-29） |
-| 证书 | ACM（ap-northeast-1）给 `gift.want.world`（或 `*.want.world`）申请一张**新**证书。现有证书 `6ab53b30…` 只包含 `want.world`，ACM 证书不能事后加域名 | 待办（所有者） |
-| 入口 | 证书颁发后，`resources.yaml` 的 Ingress：`certificate-arn` 加上新证书（逗号分隔），并加一条 `host: gift.want.world` → `wonderlab-gift` 的规则 | 等证书 |
+| 证书 | ACM（ap-northeast-1）`*.want.world`：`65f9abd4…`（2026-10-30）。原证书 `6ab53b30…` 只含 `want.world`，仍作为默认证书 | ✓ |
+| 入口 | `resources.yaml` 的 Ingress 带上两张证书，并有一条 `host: gift.want.world` → `wonderlab-gift` 的规则 | ✓ |
 
 ## 部署后验收（每个站点各做一遍）
 
