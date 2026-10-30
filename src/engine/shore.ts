@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Stroke } from './stroke';
+import { Willow } from './willow';
 
 // 近岸 (docs/02 §「世界往哪里长」, docs/世界观落地.md second batch; Codex's
 // value/09 §十三): a sloping bank along the bottom of the picture, where the
@@ -47,6 +48,8 @@ interface Branch {
   nextPetal: number;
   lively: number;
   seed: number;
+  /** In the willow sketch: its tree in the Willow. */
+  tree?: number;
 }
 
 function rng(seed: number): () => number {
@@ -169,7 +172,11 @@ export class Shore {
   private view: ShoreView = { width: 1, height: 1, horizonY: 1, S: 1 };
   private readonly branchColor = new THREE.Vector3();
 
-  constructor(palette: { ink: THREE.Vector3; mountain: THREE.Vector3; water: THREE.Vector3 }) {
+  /** 春风垂柳 (?shore=willow): a technical sketch for the redesign, strands instead of blossoms. */
+  private readonly willow: Willow | null;
+
+  constructor(palette: { ink: THREE.Vector3; mountain: THREE.Vector3; water: THREE.Vector3 }, style: 'blossom' | 'willow' = 'blossom') {
+    this.willow = style === 'willow' ? new Willow() : null;
     this.bankMat = new THREE.ShaderMaterial({
       vertexShader: /* glsl */ `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: bankFrag,
@@ -230,6 +237,7 @@ export class Shore {
     this.flies.frustumCulled = false;
     this.flies.renderOrder = 3.15;
     this.group.add(this.flies);
+    if (this.willow) this.group.add(this.willow.group);
   }
 
   get ready(): boolean {
@@ -241,6 +249,7 @@ export class Shore {
   }
 
   setPixelRatio(pr: number): void {
+    this.willow?.setPixelRatio(pr);
     this.spriteMat.uniforms.uPR.value = pr;
     this.flyMat.uniforms.uPR.value = pr;
   }
@@ -270,6 +279,12 @@ export class Shore {
    * a slow, winding one blooms thick (the brush's character, as for the koi).
    */
   addBranch(stroke: Stroke, time: number, lively: number, seed = Math.floor(Math.random() * 1e9)): number {
+    if (this.willow) {
+      const id = this.nextId++;
+      const tree = this.willow.addTree(stroke, this.view.S, seed, time);
+      this.branches.push({ id, stroke, blossoms: [], nextPetal: Infinity, lively, seed, tree });
+      return id;
+    }
     // From its own seed, so a saved branch blossoms the same again.
     const random = rng(seed);
     const S = this.view.S;
@@ -328,6 +343,7 @@ export class Shore {
   setHidden(hidden: boolean): void {
     for (const b of this.branches) b.stroke.mesh.visible = !hidden;
     this.sprites.visible = this.sprites.visible && !hidden;
+    if (this.willow) this.willow.group.visible = !hidden;
     this.hidden = hidden;
   }
 
@@ -336,6 +352,7 @@ export class Shore {
     const strokes = this.branches.map((b) => b.stroke);
     this.branches = [];
     this.butterflies = [];
+    this.willow?.clear();
     this.hidden = false;
     return strokes;
   }
@@ -345,6 +362,7 @@ export class Shore {
     const b = this.branches.find((x) => x.id === id);
     if (!b) return null;
     this.branches = this.branches.filter((x) => x !== b);
+    if (b.tree !== undefined) this.willow?.removeTree(b.tree);
     return b.stroke;
   }
 
@@ -370,8 +388,9 @@ export class Shore {
    * it down as a falling petal); `day` and `dusk` say when butterflies come,
    * and night brings the fireflies.
    */
-  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random): void {
+  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number; wind?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random, dip?: (x: number, y: number) => void): void {
     const { S, width } = this.view;
+    if (this.willow && !this.hidden) this.willow.update(time, S, light.wind ?? 0.25, light, calm, (x, y) => !this.onBank(x, y) && y < this.view.horizonY, (x, y) => dip?.(x, y));
     const night = Math.max(1 - light.day - light.dusk, 0);
     // Lit by the hour: cool and dim at night, the petals' edges warmed at dusk (value/12 §四).
     const lit = new THREE.Vector3(0.5 + 0.5 * (1 - night), 0.52 + 0.48 * (1 - night), 0.62 + 0.38 * (1 - night));
@@ -524,6 +543,7 @@ export class Shore {
   }
 
   dispose(): void {
+    this.willow?.dispose();
     this.bank.geometry.dispose();
     this.bankMat.dispose();
     this.spriteGeo.dispose();

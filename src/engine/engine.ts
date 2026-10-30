@@ -58,7 +58,7 @@ export interface EngineOptions {
   tier?: Tier;
   reducedMotion?: boolean;
   /** 近岸 prototype (?shore): a bank along the bottom where a stroke becomes a flowering branch. */
-  shore?: boolean;
+  shore?: boolean | 'willow';
 }
 
 export interface EngineEvents {
@@ -357,7 +357,7 @@ export class Engine {
     this.petals = new Leaves(p.ink, true);
     this.scene.add(this.petals.points);
     if (withShore) {
-      this.shore = new Shore(p);
+      this.shore = new Shore(p, options.shore === 'willow' ? 'willow' : 'blossom');
       this.scene.add(this.shore.group);
     }
     this.lotus = new Lotus(p.ink);
@@ -874,7 +874,7 @@ export class Engine {
     }
     const gustWind = atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8;
     this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.petalLands(x, y));
-    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain }, this.calm, (x, y) => this.dropPetal(x, y));
+    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain, wind: gustWind }, this.calm, (x, y) => this.dropPetal(x, y), Math.random, (x, y) => this.addRipple(x, y, 0.2));
     this.leaves.update(dt, t, atmos.autumn, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );
