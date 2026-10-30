@@ -7,6 +7,8 @@
 // The ten fixed R1 sentences are not touched by any rule here (「我想念夏天」
 // stays fireflies); rules decide what the picture shows, not what a sentence means.
 
+import type { TimeOfDay, Weather } from './intent';
+
 export type Light = 'day' | 'dusk' | 'night';
 
 /** The rules, by number. The words are the rule; the functions below keep it. */
@@ -16,6 +18,12 @@ export const RULES = {
   'SKY-3': '白天看不见星星和行星：已有的淡去，点天空也不闪出星星。',
   'SKY-4': '白天不见流星：白天在天上划的线是一缕云。',
   'SKY-5': '黄昏的太阳只有正在落的那一个：黄昏画的第一个圆是月亮。',
+  'SKY-6': '同一笔的圆随光阴承载日光或月光：白天是太阳，黄昏与夜里是月亮；天黑不删来者的作品，也不新添第二个天体。',
+  'SKY-7': '白天不见星河与流星雨：两者只在夜里显出（入水的倒影也一样）。',
+  'WX-1': '萤光只在黄昏与夜里：白天说要萤火、又没说时辰，天渐入黄昏；明说白天则萤光收住。',
+  'SEASON-1': '寒雪里没有蝉、蛙与萤火；早先排下的环境声，出声时再按当时的时景判断。',
+  'SEASON-2': '蝉要有夏的线索（荷塘、萤火）：春柳的白天只有叶声与鸟，没有蝉。',
+  'HAND-1': '人的一笔按它真正落成时的时景回应：排在队里的圆，轮到它时再问一次规则。',
 } as const;
 
 export type RuleId = keyof typeof RULES;
@@ -51,6 +59,32 @@ export function skyLineBecomes(light: Light): 'meteor' | 'cloud' {
 export function nightSkyShows(day: number): number {
   const t = Math.min(Math.max((day - 0.2) / 0.3, 0), 1);
   return 1 - t * t * (3 - 2 * t);
+}
+
+/**
+ * WX-1: the time a scene command should bring. Fireflies asked for by day
+ * with no time named bring dusk; a time named is kept (then SKY-3's curve
+ * keeps the glow out of the daylight).
+ */
+export function timeForScene(cmd: { timeOfDay?: TimeOfDay; weather?: string }, light: Light): TimeOfDay | undefined {
+  if (cmd.timeOfDay) return cmd.timeOfDay;
+  if (cmd.weather === 'fireflies' && light === 'day') return 'dusk';
+  return undefined;
+}
+
+/**
+ * SEASON-1, SEASON-2: whether a cicada fits the world as it is now: a summer
+ * sign (lotus, fireflies) in the weather asked for. By the weather asked for,
+ * not by how far the picture has turned toward it, so a cicada queued just
+ * before snow is asked for stays silent.
+ */
+export function cicadaFits(weather: Weather): boolean {
+  return weather === 'lotus' || weather === 'fireflies';
+}
+
+/** SEASON-1: whether a frog fits: never once snow is asked for. */
+export function frogFits(weather: Weather): boolean {
+  return weather !== 'snow' && weather !== 'moonsnow';
 }
 
 /** What audit() looks at: what is in the picture now. */

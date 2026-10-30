@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { audit, circleBecomes, lightOf, nightSkyShows, RULES, skyDotBecomes, skyLineBecomes, type SeenWorld } from './world-rules';
+import { audit, cicadaFits, circleBecomes, frogFits, lightOf, nightSkyShows, RULES, skyDotBecomes, skyLineBecomes, timeForScene, type SeenWorld } from './world-rules';
+import { interpret } from './intent';
 
 const calm: SeenWorld = { light: 'night', day: 0, bodies: 0, settingSun: false, stars: 0, planets: 0, meteors: 0 };
 
 describe('world rules', () => {
   it('names every rule it keeps', () => {
-    expect(Object.keys(RULES)).toEqual(['SKY-1', 'SKY-2', 'SKY-3', 'SKY-4', 'SKY-5']);
+    expect(Object.keys(RULES)).toEqual(['SKY-1', 'SKY-2', 'SKY-3', 'SKY-4', 'SKY-5', 'SKY-6', 'SKY-7', 'WX-1', 'SEASON-1', 'SEASON-2', 'HAND-1']);
   });
 
   it('reads the light from the atmosphere', () => {
@@ -49,5 +50,24 @@ describe('world rules', () => {
     expect(audit({ ...calm, light: 'day', day: 1, bodies: 2 }).map((b) => b.rule)).toEqual(['SKY-1']);
     expect(audit({ ...calm, bodies: 2 }).map((b) => b.rule)).toEqual(['SKY-2']);
     expect(audit({ ...calm, light: 'dusk', settingSun: true, bodies: 1 })).toEqual([]);
+  });
+
+  it('WX-1: fireflies asked for by day bring dusk; a time named is kept; the fixed sentence still means fireflies', () => {
+    const cmd = interpret('萤火虫飞起来吧').command;
+    expect(cmd.weather).toBe('fireflies');
+    expect(timeForScene(cmd, 'day')).toBe('dusk');
+    expect(timeForScene(cmd, 'night')).toBeUndefined();
+    expect(timeForScene({ weather: 'fireflies', timeOfDay: 'day' }, 'night')).toBe('day');
+    expect(timeForScene({ weather: 'lotus' }, 'day')).toBeUndefined();
+    expect(interpret('我想念夏天').command.weather).toBe('fireflies');
+  });
+
+  it('SEASON-1, SEASON-2: cicadas need a summer sign in the weather asked for; frogs never once snow is asked for', () => {
+    expect(cicadaFits('lotus')).toBe(true);
+    expect(cicadaFits('fireflies')).toBe(true);
+    for (const w of ['clear', 'snow', 'moonsnow', 'autumn', 'rain', 'storm'] as const) expect(cicadaFits(w), w).toBe(false);
+    expect(frogFits('snow')).toBe(false);
+    expect(frogFits('moonsnow')).toBe(false);
+    expect(frogFits('lotus')).toBe(true);
   });
 });

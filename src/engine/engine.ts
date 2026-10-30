@@ -25,7 +25,7 @@ import { classify, spineFromOutline, type Classification, type Pt } from './clas
 import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
-import { audit, circleBecomes, lightOf, skyDotBecomes, skyLineBecomes, type Light } from './world-rules';
+import { audit, cicadaFits, circleBecomes, frogFits, lightOf, nightSkyShows, skyDotBecomes, skyLineBecomes, timeForScene, type Light } from './world-rules';
 import { AWAY_MAX, BRANCHES_MAX, SAVE_VERSION, type SavedFish, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
@@ -747,7 +747,7 @@ export class Engine {
 
   applyScene(cmd: SceneCommand): number {
     this.commitRestart();
-    const prev = this.atmosphere.apply(cmd);
+    const prev = this.atmosphere.apply({ ...cmd, timeOfDay: timeForScene(cmd, this.light) });
     this.record('atmosphere', this.width / 2, this.horizonY, () => this.atmosphere.set(prev));
     return cmd.fish ? this.relations.ask(cmd.fish, this.relationWorld(), this.relationFx) : 0;
   }
@@ -905,7 +905,8 @@ export class Engine {
     weu.uTime.value = t;
     weu.uRain.value = atmos.rain;
     weu.uMist.value = atmos.mist;
-    weu.uFireflies.value = atmos.fireflies;
+    // WX-1: fireflies glow at dusk and by night, never in daylight.
+    weu.uFireflies.value = atmos.fireflies * nightSkyShows(atmos.day);
     weu.uSnow.value = atmos.snow;
     // Density follows the words (小雪 to 大雪), eased so a change is a slow thickening.
     const dens = 0.25 + 0.75 * Math.pow(atmos.state.intensity, 1.3);
@@ -915,7 +916,7 @@ export class Engine {
     this.lanterns.update(dt, t, atmos.lanterns, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, this.calm);
     this.lotus.update(dt, t, atmos.lotus, atmos.wind, { width: this.width, horizonY: this.horizonY, S: this.minDim }, this.calm, atmos.day, atmos.dusk);
     // 蛙声: now and then a frog among the lotus.
-    if (atmos.lotus < 0.5) this.nextFrog = -1;
+    if (atmos.lotus < 0.5 || !frogFits(atmos.state.weather)) this.nextFrog = -1;
     else if (this.nextFrog < 0) this.nextFrog = t + 5 + Math.random() * 5;
     else if (t >= this.nextFrog) {
       this.nextFrog = t + 9 + Math.random() * 14;
@@ -1567,9 +1568,12 @@ export class Engine {
    */
   private updateShower(): void {
     const level = this.atmosphere.shower;
-    this.worldMat.uniforms.uShower.value = level;
-    this.worldMat.uniforms.uGalaxy.value = this.atmosphere.galaxy;
-    if (level < 0.5) {
+    // SKY-7: the galaxy and the shower are the night's (in the lake too, which draws from the same values).
+    const night = nightSkyShows(this.atmosphere.day);
+    this.worldMat.uniforms.uShower.value = level * night;
+    this.worldMat.uniforms.uGalaxy.value = this.atmosphere.galaxy * night;
+    // SKY-4: no meteor falls into the lake out of a daylit sky.
+    if (level < 0.5 || this.light === 'day') {
       this.nextDive = -1;
       return;
     }
@@ -1933,21 +1937,20 @@ export class Engine {
   /**
    * 清风鸣蝉 (Codex, docs/handoff/codex-mingyue-biezhi.md): when a gust has
    * passed and the leaves quiet down, a cicada deep in the shade is heard,
-   * and a farther one a while after. Warm, settled days; at dusk shorter, at
-   * night one at most and only with a summer sign; never in snow, autumn or
-   * rain. 雨后蛙答: as the rain eases, the frogs answer one another.
+   * and a farther one a while after. Only with a summer sign (lotus,
+   * fireflies: SEASON-2); at dusk and night one at most; never in snow,
+   * autumn or rain. 雨后蛙答: as the rain eases, the frogs answer one another.
    */
   private updateCalls(t: number, atmos: Atmosphere): void {
     const night = Math.max(1 - atmos.day - atmos.dusk, 0);
-    const summer = Math.max(atmos.lotus, atmos.fireflies) > 0.5;
-    const warm = atmos.snow < 0.2 && atmos.autumn < 0.5 && atmos.rain < 0.3 && (night < 0.5 || summer);
+    const warm = cicadaFits(atmos.state.weather);
     if (this.gust.k > 0.6) this.gustHeard = true;
     else if (this.gustHeard && this.gust.k < 0.15) {
       this.gustHeard = false;
       if (warm && !this.calm) this.cicadas(t + 0.6 + Math.random() * 1.2, night < 0.5 && atmos.dusk < 0.5 ? 2 : 1);
     }
     // 长日荷塘: on a summer day the shade has its own cicadas now and then.
-    if (!(summer && night < 0.5 && warm)) this.nextCicada = -1;
+    if (!(warm && night < 0.5)) this.nextCicada = -1;
     else if (this.nextCicada < 0) this.nextCicada = t + 12 + Math.random() * 10;
     else if (t >= this.nextCicada) {
       this.nextCicada = t + 30 + Math.random() * 30;
@@ -1956,12 +1959,13 @@ export class Engine {
     if (atmos.rain > 0.4) this.wasRaining = true;
     else if (this.wasRaining && atmos.rain < 0.12) {
       this.wasRaining = false;
-      if (atmos.snow < 0.2 && !this.calm) this.frogChorus(t + 2 + Math.random() * 2);
+      if (frogFits(atmos.state.weather) && !this.calm) this.frogChorus(t + 2 + Math.random() * 2);
     }
     if (!this.calls.length) return;
     const due = this.calls.filter((c) => t >= c.at);
     this.calls = this.calls.filter((c) => t < c.at);
-    for (const c of due) this.sfx(c.kind, c.x, c.strength);
+    // SEASON-1: a sound waiting its turn is heard only if it still fits the world (no cicada in snow).
+    for (const c of due) if (c.kind === 'cicada' ? cicadaFits(atmos.state.weather) : c.kind === 'frog' ? frogFits(atmos.state.weather) : true) this.sfx(c.kind, c.x, c.strength);
   }
 
   /** One cicada near in the shade, and a farther one later if `n` is 2. */
@@ -2061,6 +2065,11 @@ export class Engine {
       return;
     }
     this.lead(stroke, () => {
+      // HAND-1: a circle waiting its turn is answered by the light when it comes (two circles queued by day: a sun, then a cloud).
+      if (circleBecomes(this.light, !!this.sky.moonSpec) === 'cloud') {
+        this.placeCloud(c, stroke);
+        return 0;
+      }
       const planet = !!this.sky.moonSpec;
       this.placeMoon(c, stroke, fromLake);
       return planet ? PLANET_LEAD : MOON_RISE;
