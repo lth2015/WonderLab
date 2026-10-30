@@ -1,0 +1,199 @@
+{
+  "source": "aecb408",
+  "method": "Actual React Book with all delivered paintings; compare HTTP response, decoded size and exact file hashes against delivery manifest. Screenshots are static software-WebGL views.",
+  "errors": [],
+  "layout": {
+    "scrollTop": 0,
+    "clientWidth": 366,
+    "scrollWidth": 366,
+    "pages": 14,
+    "paintedBackgrounds": 14,
+    "cards": [
+      {
+        "label": "柳：晴光入柳，风过水明",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "落花：落花轻点一湖春",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "虹：雨后初晴，一虹过山",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "荷：接天莲叶无穷碧",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "雷雨：远山雷雨，近水听声",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "惊鹊：明月别枝惊鹊",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "鸣蝉：清风半夜鸣蝉",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "萤火：夏夜流萤，草间微光",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "星河：满船清梦压星河",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "秋：秋风过岸，落叶归水",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "月：月色入水，清辉满湖",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "河灯：一盏河灯，照见晚水",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "流星：流星过夜，水接微光",
+        "width": 158,
+        "height": 180
+      },
+      {
+        "label": "雪：月下飘雪，山水无声",
+        "width": 158,
+        "height": 180
+      }
+    ]
+  },
+  "art": [
+    {
+      "id": "willow",
+      "url": "/art/book/willow.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "blossom",
+      "url": "/art/book/blossom.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "rainbow",
+      "url": "/art/book/rainbow.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "lotus",
+      "url": "/art/book/lotus.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "storm",
+      "url": "/art/book/storm.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "magpie",
+      "url": "/art/book/magpie.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "cicada",
+      "url": "/art/book/cicada.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "fireflies",
+      "url": "/art/book/fireflies.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "galaxy",
+      "url": "/art/book/galaxy.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "autumn",
+      "url": "/art/book/autumn.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "moonlit",
+      "url": "/art/book/moonlit.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "lanterns",
+      "url": "/art/book/lanterns.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "shower",
+      "url": "/art/book/shower.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    },
+    {
+      "id": "moonsnow",
+      "url": "/art/book/moonsnow.webp",
+      "status": 200,
+      "width": 480,
+      "height": 640,
+      "hashMatches": true
+    }
+  ],
+  "pass": true
+}
