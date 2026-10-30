@@ -755,6 +755,11 @@ export class Engine {
     else if (cicadaFits(this.atmosphere.state.weather)) this.cicadas(this.time + 3 + Math.random() * 1.5, 2);
   }
 
+  /** LIFE-3: before the page goes (a scene that needs a reload), every stroke still waiting its turn is born now, so it is saved. */
+  bringQueuedNow(): void {
+    while (this.leadQueue.length) this.leadUntil = this.time + this.leadQueue.shift()!.start();
+  }
+
   /** Whether this picture has the willow (四时册页: a willow scene elsewhere needs the page loaded with it). */
   get hasWillow(): boolean {
     return !!this.shore?.isWillow;

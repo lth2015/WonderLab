@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Engine, RELEASE_GRACE_S, type Creation, type CreationKind } from './engine/engine';
-import { interpret, mergeAi, type SceneCommand, type Weather } from './engine/intent';
+import { interpret, mergeAi, type SceneCommand, type TimeOfDay, type Weather } from './engine/intent';
 import { BECKON, pickBeckon } from './beckon';
 import { askScene, bareFlags, captureInvite } from './ai';
 import { rankPoems } from './echo';
@@ -703,12 +703,14 @@ export function App() {
   }, [toast]);
 
   /** Words reach the world: typed by the visitor, or a drifting line they touched (发现入口). */
-  const say = useCallback((value: string, via: 'typed' | 'invite') => {
+  // `time`: a time of day said with the words and held (a page of the book): set in the same step, and not changed by the AI after.
+  const say = useCallback((value: string, via: 'typed' | 'invite', time?: TimeOfDay) => {
       const engine = engineRef.current;
       if (!value || !engine) return;
       lastStirRef.current = performance.now();
       const local = interpret(value);
-      const { command, source } = local;
+      const command = time ? { ...local.command, timeOfDay: time } : local.command;
+      const { source } = local;
       const wasPrompted = prompted('text_submit');
       const fishAnswered = engine.applyScene(command);
       if (command.weather) seenRef.current.add(command.weather);
@@ -726,6 +728,7 @@ export function App() {
         let poem = shortlist[0];
         if (ai.status === 'ok') {
           const extra = mergeAi(local, ai.command);
+          if (time) delete extra.timeOfDay;
           if (Object.keys(extra).length) engine.amendScene(extra);
           fishIntent = extra.fish ?? fishIntent;
           poem = (ai.echoId && poemById(ai.echoId)) || poem;
@@ -766,12 +769,15 @@ export function App() {
       const engine = engineRef.current;
       if (!engine) return;
       if (scene.willow && !engine.hasWillow) {
+        // LIFE-3: the page reloads with the willow; strokes still waiting their turn are born first and saved with the rest.
+        engine.bringQueuedNow();
+        saveWorld(engine.serialize());
         location.assign(`/${encodeURIComponent(scene.name)}`);
         return;
       }
       seenRef.current.add(scene.weather);
-      if (scene.time) engine.applyScene({ timeOfDay: scene.time });
-      say(scene.line, 'invite');
+      // LIGHT-2: the page's time and its line in one step, so the line cannot turn a named night into dusk.
+      say(scene.line, 'invite', scene.time);
       if (scene.moment) engine.sceneMoment(scene.moment);
     },
     [say],
