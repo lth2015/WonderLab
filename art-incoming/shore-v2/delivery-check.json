@@ -1,0 +1,66 @@
+[
+  {
+    "file": "concept-willow-day.png",
+    "format": "PNG",
+    "size": [
+      853,
+      1844
+    ],
+    "mode": "RGB",
+    "bytes": 1728129,
+    "sha256": "998cec4f6706ca94facd194b685d2a5a64e5a9ac16b69edfbd96ac3eda5d7b3b"
+  },
+  {
+    "file": "concept-willow-moon.png",
+    "format": "PNG",
+    "size": [
+      853,
+      1844
+    ],
+    "mode": "RGB",
+    "bytes": 1861658,
+    "sha256": "6fe61de4b1e87278994429fc4797b48e8c5ee1a8aaed25d33769aff3517cddf1"
+  },
+  {
+    "file": "willow-leaf-source.png",
+    "format": "PNG",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "bytes": 336736,
+    "sha256": "e4ee76568810ab22af1ef40aad7fbeadf74ce60b523b6cb0bc51bf51b062d0ee",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      31,
+      19,
+      1218,
+      1236
+    ]
+  },
+  {
+    "file": "willow-leaf.png",
+    "format": "PNG",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "bytes": 54253,
+    "sha256": "c8034791ba4f8bcd584a6b6a64319d709f459c432a000f464acd146001ca6688",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      55,
+      39,
+      467,
+      456
+    ]
+  }
+]
