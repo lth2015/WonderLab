@@ -1,0 +1,89 @@
+{
+  "source": "2938133",
+  "mode": "Isolated actual browser engine, deterministic stepping and synthetic fixture placement; no product code changes or device-performance claim.",
+  "behaviors": [
+    {
+      "reducedMotion": "no-preference",
+      "pageErrors": [],
+      "calm": false,
+      "companion": {
+        "born": {
+          "state": "forming",
+          "count": 1,
+          "until": 0
+        },
+        "firstFrame": {
+          "state": "forming",
+          "count": 1,
+          "until": 0
+        },
+        "swimming": {
+          "state": "swimming",
+          "count": 1,
+          "timeRemaining": 7.94570160687973,
+          "following": true
+        },
+        "afterExpiry": 0
+      },
+      "rest": {
+        "requested": 20.000000000000007,
+        "afterShade": 20.000000000000007
+      },
+      "lightningTarget": 1.6
+    },
+    {
+      "reducedMotion": "reduce",
+      "pageErrors": [],
+      "calm": true,
+      "companion": {
+        "born": {
+          "state": "forming",
+          "count": 1,
+          "until": 0
+        },
+        "firstFrame": {
+          "state": "forming",
+          "count": 1,
+          "until": 0
+        },
+        "swimming": {
+          "state": "swimming",
+          "count": 1,
+          "timeRemaining": 8.91784805952141,
+          "following": true
+        },
+        "afterExpiry": 0
+      },
+      "rest": {
+        "requested": 20,
+        "afterShade": 20
+      },
+      "lightningTarget": 0
+    }
+  ],
+  "persistence": {
+    "roundTrip": {
+      "initialCount": 1,
+      "plainCount": 1,
+      "restoredCount": 1,
+      "seedPreserved": true,
+      "undoRestored": true,
+      "commitCleared": true
+    },
+    "limit": {
+      "runtime": 13,
+      "parsed": 12,
+      "lastRuntimeSeed": 159646738,
+      "lastParsedSeed": 426869183,
+      "afterReload": 12
+    }
+  },
+  "findings": [
+    {
+      "severity": "P2",
+      "title": "Branch 13 and later are discarded on reload",
+      "runtime": 13,
+      "reloaded": 12
+    }
+  ]
+}
