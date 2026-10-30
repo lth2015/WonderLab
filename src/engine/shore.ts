@@ -253,6 +253,41 @@ export class Shore {
     return !!this.spriteMat.uniforms.uTex.value;
   }
 
+  /** 明月别枝惊鹊: the magpie in the willow (its three poses, side by side). */
+  setMagpieTexture(tex: THREE.Texture): void {
+    this.willow?.setMagpieTexture(tex);
+  }
+
+  /** The willow picture's magpie: what it does is heard (its wings going out and coming back in). */
+  onMagpie(takeoff: (x: number, y: number) => void, land: (x: number, y: number) => void): void {
+    if (!this.willow) return;
+    const m = this.willow.magpie;
+    const shake = m.onTakeoff;
+    const settle = m.onLand;
+    m.onTakeoff = (x, y) => {
+      shake(x, y);
+      takeoff(x, y);
+    };
+    m.onLand = (x, y) => {
+      settle(x, y);
+      land(x, y);
+    };
+  }
+
+  /** Something nearby startles the willow's crown: whether the magpie was there to go. */
+  startle(time: number, delay: number): boolean {
+    return !this.hidden && !!this.willow?.startle(time, delay);
+  }
+
+  /** A touch among the willow's strands: they shiver (and the magpie above may go). */
+  touchWillow(x: number, y: number): boolean {
+    return !this.hidden && !!this.willow?.touch(x, y);
+  }
+
+  get isWillow(): boolean {
+    return !!this.willow;
+  }
+
   setLeafTexture(tex: THREE.Texture): void {
     this.willow?.setLeafTexture(tex);
   }

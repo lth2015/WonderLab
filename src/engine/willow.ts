@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Magpie } from './magpie';
 
 // 春风拂柳 (?shore=willow), after Codex's art direction
 // (art-incoming/shore-v2/ART-DIRECTION.md and its two target pictures on
@@ -32,6 +33,22 @@ interface Strand {
   long?: boolean;
   /** One random per joint: leaf rhythm, size and turn. */
   leaf: number[];
+  /** A hand among the strands or a bird leaving them: a shiver that dies away. */
+  kick: number;
+  /** Where its joints were last frame, for a touch to find it. */
+  xs?: number[];
+  ys?: number[];
+}
+
+/** A leaf shaken loose, drifting down to the water. */
+interface Falling {
+  x: number;
+  y: number;
+  vx: number;
+  angle: number;
+  spin: number;
+  size: number;
+  r: number;
 }
 
 const ribbonVert = /* glsl */ `
@@ -176,7 +193,11 @@ export class Willow {
   private readonly fluffAK = new Float32Array(MAX_FLUFF * 2);
   private readonly fluffMat: THREE.ShaderMaterial;
   private strands: Strand[] = [];
-  private sprays: { id: number; strands: Strand[] }[] = [];
+  /** The visitor's sprays, kept as what made them so a new size of window can grow them again. */
+  private sprays: { id: number; x: number; lean: number; seed: number; strands: Strand[] }[] = [];
+  private falling: Falling[] = [];
+  /** 明月别枝惊鹊: the magpie in the crown above the picture. */
+  readonly magpie: Magpie;
   private fluff: { x: number; y: number; vx: number; vy: number; age: number; life: number }[] = [];
   private nextId = 1;
   private readonly light = new THREE.Vector3(1, 1, 1);
@@ -220,7 +241,10 @@ export class Willow {
     const fluff = new THREE.Points(this.fluffGeo, this.fluffMat);
     fluff.frustumCulled = false;
     fluff.renderOrder = 3.07;
-    this.group.add(ribbons, leaves, fluff);
+    this.magpie = new Magpie(this.light, this.air);
+    this.magpie.onTakeoff = (x) => this.shake(x - this.view.S * 0.4, 2);
+    this.magpie.onLand = (x) => this.shake(x - this.view.S * 0.25, 0);
+    this.group.add(ribbons, leaves, fluff, this.magpie.mesh);
   }
 
   setPixelRatio(pr: number): void {
@@ -239,19 +263,60 @@ export class Willow {
   }
 
   resize(width: number, height: number, horizonY: number, S: number): void {
-    const sx = width / this.view.width;
-    const sy = height / this.view.height;
-    if (this.seeded && (sx !== 1 || sy !== 1)) {
-      for (const s of [...this.strands, ...this.sprays.flatMap((p) => p.strands)]) {
-        s.ax *= sx;
-        s.ay = height + (s.ay - this.view.height) * sy;
-      }
-    }
+    const prev = this.view;
     this.view = { width, height, horizonY, S };
     this.fluffMat.uniforms.uSize.value = S * 0.018;
-    if (!this.seeded && width > 1) {
+    this.magpie.resize(width, height, horizonY, S);
+    if (width <= 1) return;
+    // The same composition grown again for this picture (the long strands' reach depends on where the
+    // water is, so scaling the old ones would not keep it); each spray from its own seed, where it was.
+    if (!this.seeded || width !== prev.width || height !== prev.height || horizonY !== prev.horizonY) {
       this.seeded = true;
       this.strands = this.compose(rng(11));
+      for (const p of this.sprays) {
+        p.x *= width / Math.max(prev.width, 1);
+        p.strands = this.sprayStrands(p.x, p.lean, p.seed, p.id);
+      }
+      this.falling = [];
+    }
+  }
+
+  setMagpieTexture(tex: THREE.Texture): void {
+    this.magpie.setTexture(tex);
+  }
+
+  /** 明月别枝惊鹊: something near startled the crown; the magpie, if it is home, goes after `delay`. */
+  startle(time: number, delay: number): boolean {
+    return this.magpie.startle(time, delay);
+  }
+
+  /** A hand among the strands: the ones near it shiver. Whether it was among them at all. */
+  touch(x: number, y: number): boolean {
+    const r = this.view.S * 0.05;
+    let hit = false;
+    for (const s of [...this.strands, ...this.sprays.flatMap((p) => p.strands)]) {
+      if (!s.xs || !s.ys || s.depth < 0.35) continue;
+      for (let k = 2; k <= SEGS; k += 2) {
+        const d = Math.hypot(s.xs[k] - x, s.ys[k] - y);
+        if (d < r * 2.4) s.kick = Math.max(s.kick, 1 - d / (r * 2.4));
+        if (d < r) hit = true;
+      }
+    }
+    if (hit) this.shed(x, y, 1);
+    return hit;
+  }
+
+  /** The strands right of `x` shiver (a bird went through them), and `leaves` come loose. */
+  private shake(x: number, leaves: number): void {
+    const { width, height, S } = this.view;
+    for (const s of [...this.strands, ...this.sprays.flatMap((p) => p.strands)]) if (s.ax > x && s.depth > 0.3) s.kick = Math.max(s.kick, 0.5 + 0.5 * s.depth);
+    for (let i = 0; i < leaves; i++) this.shed(width * (0.8 + 0.18 * Math.random()), height - S * (0.1 + 0.15 * Math.random()), 1);
+  }
+
+  private shed(x: number, y: number, n: number): void {
+    const S = this.view.S;
+    for (let i = 0; i < n && this.falling.length < 6; i++) {
+      this.falling.push({ x, y, vx: -S * (0.01 + 0.02 * Math.random()), angle: Math.random() * 6.28, spin: (Math.random() - 0.5) * 1.6, size: S * (0.05 + 0.02 * Math.random()), r: Math.random() });
     }
   }
 
@@ -268,6 +333,7 @@ export class Willow {
       depth,
       spray,
       leaf: Array.from({ length: SEGS }, () => random()),
+      kick: 0,
     };
   }
 
@@ -307,8 +373,13 @@ export class Willow {
    * leaning the way the stroke curved.
    */
   addSpray(x: number, lean: number, seed: number): number {
-    const { width, S } = this.view;
     const id = this.nextId++;
+    this.sprays.push({ id, x, lean, seed, strands: this.sprayStrands(x, lean, seed, id) });
+    return id;
+  }
+
+  private sprayStrands(x: number, lean: number, seed: number, id: number): Strand[] {
+    const { width, S } = this.view;
     const random = rng(seed);
     const right = x > width / 2;
     const edge = right ? width * (0.9 + 0.12 * random()) : width * (-0.02 + 0.1 * random());
@@ -318,8 +389,7 @@ export class Willow {
       const a0 = (right ? -1 : 1) * (0.2 + 0.25 * Math.min(Math.abs(lean), 1)) + (random() - 0.5) * 0.08;
       strands.push(this.makeStrand(edge + (random() - 0.5) * S * 0.05, 0.75 + 0.25 * random(), S * (0.45 + 0.4 * random()), a0, random() * 6.28, random, id));
     }
-    this.sprays.push({ id, strands });
-    return id;
+    return strands;
   }
 
   removeSpray(id: number): void {
@@ -328,6 +398,7 @@ export class Willow {
 
   clear(): void {
     this.sprays = [];
+    this.falling = [];
   }
 
   update(time: number, dt: number, wind: number, light: { day: number; dusk: number }, calm: boolean, dip: (x: number, y: number) => void): void {
@@ -343,7 +414,10 @@ export class Willow {
     all.forEach((s, si) => {
       const seg = s.len / SEGS;
       // Near tips move a few pixels, middle ones less, far ones barely change their pose.
-      const sway = (0.035 + 0.06 * s.depth) * (0.6 + 0.8 * Math.abs(wind)) * breath;
+      // Still air lets them hang nearly still; a breeze brings the breath out (Codex's runtime review).
+      const sway = (0.035 + 0.06 * s.depth) * (0.3 + 1.0 * Math.min(Math.abs(wind), 1)) * breath;
+      s.kick *= Math.exp(-dt / 1.5);
+      const kick = calm ? 0 : s.kick * 0.16;
       const lean = wind * 0.12 * (0.5 + 0.5 * s.depth);
       let x = s.ax;
       let y = s.ay;
@@ -354,12 +428,15 @@ export class Willow {
         // The group's arc at the root, easing to hang straight; the wind from the middle to the tip, half a beat late.
         const a =
           s.a0 * Math.pow(1 - u, 1.6) +
-          (Math.sin(time * 0.78 * s.give + s.phase - u * 1.8) * sway + Math.sin(time * 1.9 + s.phase * 1.7 - u * 2.6) * sway * 0.25 + lean) * Math.pow(u, 1.4);
+          (Math.sin(time * 0.78 * s.give + s.phase - u * 1.8) * sway + Math.sin(time * 1.9 + s.phase * 1.7 - u * 2.6) * sway * 0.25 + lean) * Math.pow(u, 1.4) +
+          kick * Math.sin(time * 4.2 + s.phase * 2 - u * 3.5) * Math.pow(u, 1.1);
         x += Math.sin(a) * seg;
         y -= Math.cos(a) * seg;
         xs.push(x);
         ys.push(y);
       }
+      s.xs = xs;
+      s.ys = ys;
       const width0 = Math.max(S * (0.001 + 0.0024 * s.depth), 0.6);
       for (let k = 0; k <= SEGS; k++) {
         const k0 = Math.max(k - 1, 0);
@@ -407,6 +484,23 @@ export class Willow {
         dip(tx, ty);
       }
     });
+    // Leaves shaken loose drift down, turning, and touch the water with a small ring.
+    this.falling = this.falling.filter((f) => {
+      f.x += (f.vx + wind * S * 0.02) * dt + Math.sin(time * 1.3 + f.r * 6) * S * 0.03 * dt;
+      f.y -= S * (0.05 + 0.03 * Math.sin(time * 1.7 + f.r * 4)) * dt;
+      f.angle += f.spin * dt;
+      if (f.y < horizonY - S * 0.03) {
+        if (!calm) dip(f.x, f.y);
+        return false;
+      }
+      return f.x > -S * 0.2 && leafN < MAX_LEAVES;
+    });
+    for (const f of this.falling) {
+      this.leafPos.set([f.x, f.y, 0], leafN * 3);
+      this.leafAttr.set([f.size, f.angle, f.r, 0.9], leafN * 4);
+      leafN++;
+    }
+    this.magpie.update(time, night, calm);
     this.ribbonGeo.setDrawRange(0, all.length * SEGS * 6);
     this.leafGeo.setDrawRange(0, leafN);
     this.ribbonGeo.attributes.position.needsUpdate = true;
@@ -445,6 +539,7 @@ export class Willow {
   }
 
   dispose(): void {
+    this.magpie.dispose();
     this.ribbonGeo.dispose();
     this.ribbonMat.dispose();
     this.leafGeo.dispose();
