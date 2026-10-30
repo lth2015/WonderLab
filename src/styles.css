@@ -1061,3 +1061,22 @@ body {
   font-size: 12px;
   cursor: pointer;
 }
+/* A page with Codex's painting: the words on a soft shade at the foot so they read on any picture. */
+.book-pages .page.art {
+  color: var(--paper-100);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+.book-pages .page.art::before {
+  content: '';
+  position: absolute;
+  inset: 40% 0 0 0;
+  background: linear-gradient(180deg, rgba(12, 15, 21, 0) 0%, rgba(12, 15, 21, 0.72) 100%);
+}
+.book-pages .page.art .name,
+.book-pages .page.art .line {
+  position: relative;
+  text-shadow: 0 1px 6px rgba(12, 15, 21, 0.6);
+}

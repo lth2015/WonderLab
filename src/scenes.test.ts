@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { interpret } from './engine/intent';
 import { FIXED_SENTENCES } from './engine/fixed-sentences';
@@ -38,5 +39,10 @@ describe('scenes (四时册页)', () => {
     expect(timeForHour(18)).toBe('dusk');
     expect(timeForHour(22)).toBe('night');
     expect(timeForHour(3)).toBe('night');
+  });
+
+  it('a page with a painting has its file, and the moments belong to the willow', () => {
+    for (const s of SCENES) if (s.art) expect(existsSync(`public/art/book/${s.id}.webp`), s.id).toBe(true);
+    for (const s of SCENES) if (s.moment) expect(s.willow, s.id).toBe(true);
   });
 });

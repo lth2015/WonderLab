@@ -740,6 +740,17 @@ export class Engine {
     this.landscapeStale = true;
   }
 
+  /**
+   * 四时册页: what a page is named for, met soon after entering it: 惊鹊, the
+   * magpie in the willow takes notice and goes; 鸣蝉, a cicada in the shade,
+   * a farther one later. Only as the world's rules allow (SEASON-2; the
+   * magpie only if it is home), and never with reduced motion for the bird.
+   */
+  sceneMoment(moment: 'magpie' | 'cicada'): void {
+    if (moment === 'magpie') this.shore?.startle(this.time, 3.5 + Math.random());
+    else if (cicadaFits(this.atmosphere.state.weather) && !this.calm) this.cicadas(this.time + 3 + Math.random() * 1.5, 2);
+  }
+
   /** Whether this picture has the willow (四时册页: a willow scene elsewhere needs the page loaded with it). */
   get hasWillow(): boolean {
     return !!this.shore?.isWillow;

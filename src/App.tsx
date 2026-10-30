@@ -772,6 +772,7 @@ export function App() {
       seenRef.current.add(scene.weather);
       if (scene.time) engine.applyScene({ timeOfDay: scene.time });
       say(scene.line, 'invite');
+      if (scene.moment) engine.sceneMoment(scene.moment);
     },
     [say],
   );
