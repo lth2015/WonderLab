@@ -545,13 +545,16 @@ export class Engine {
       this.keptBranches = saved.map((b) => ({ ...b, points: b.points.map((p): [number, number] => [p[0], p[1]]) }));
       return;
     }
-    for (const b of saved) {
-      const stroke = new Stroke(this.palette, this.minDim, false);
-      b.points.forEach(([nx, ny], i) => stroke.add({ x: nx * this.width, y: ny * this.height, t: i * 16, pressure: 0.5 }));
-      stroke.finish();
-      this.scene.add(stroke.mesh);
-      this.shore.addBranch(stroke, this.time - 10, b.lively, b.seed);
-    }
+    for (const b of saved) this.restoreBranch(b);
+  }
+
+  /** One saved branch back on the bank, already in flower; its id. */
+  private restoreBranch(b: SavedBranch): number {
+    const stroke = new Stroke(this.palette, this.minDim, false);
+    b.points.forEach(([nx, ny], i) => stroke.add({ x: nx * this.width, y: ny * this.height, t: i * 16, pressure: 0.5 }));
+    stroke.finish();
+    this.scene.add(stroke.mesh);
+    return this.shore!.addBranch(stroke, this.time - 10, b.lively, b.seed);
   }
 
   private saveFish(f: Fish): SavedFish {
@@ -744,11 +747,12 @@ export class Engine {
    * 四时册页: what a page is named for, met soon after entering it: 惊鹊, the
    * magpie in the willow takes notice and goes; 鸣蝉, a cicada in the shade,
    * a farther one later. Only as the world's rules allow (SEASON-2; the
-   * magpie only if it is home), and never with reduced motion for the bird.
+   * magpie only if it is home). Reduced motion keeps the bird still but not
+   * the cicada: it is only a sound (SOUND-3).
    */
   sceneMoment(moment: 'magpie' | 'cicada'): void {
     if (moment === 'magpie') this.shore?.startle(this.time, 3.5 + Math.random());
-    else if (cicadaFits(this.atmosphere.state.weather) && !this.calm) this.cicadas(this.time + 3 + Math.random() * 1.5, 2);
+    else if (cicadaFits(this.atmosphere.state.weather)) this.cicadas(this.time + 3 + Math.random() * 1.5, 2);
   }
 
   /** Whether this picture has the willow (四时册页: a willow scene elsewhere needs the page loaded with it). */
@@ -909,7 +913,8 @@ export class Engine {
     wu.uWind.value = wind;
     wu.uDusk.value = atmos.dusk;
     wu.uDay.value = atmos.day;
-    wu.uRainbow.value = atmos.rainbow;
+    // WX-2: a rainbow wants daylight; none left bright in the night.
+    wu.uRainbow.value = atmos.rainbow * (1 - nightSkyShows(atmos.day));
     wu.uSnow.value = atmos.snow;
     wu.uMoonlit.value = atmos.moonlit;
     const weu = this.weatherMat.uniforms;
@@ -931,7 +936,7 @@ export class Engine {
     else if (this.nextFrog < 0) this.nextFrog = t + 5 + Math.random() * 5;
     else if (t >= this.nextFrog) {
       this.nextFrog = t + 9 + Math.random() * 14;
-      if (++this.frogsSinceChorus >= 4 && !this.calm) {
+      if (++this.frogsSinceChorus >= 4) {
         this.frogsSinceChorus = 0;
         this.frogChorus(t);
       } else this.sfx('frog', this.width * (Math.random() < 0.5 ? 0.15 : 0.85), 0.7);
@@ -944,7 +949,7 @@ export class Engine {
       this.addRipple(x, y, 0.3),
     );
     weu.uWind.value = wind;
-    this.sound?.ambient({ rain: atmos.rain, wind, fireflies: atmos.fireflies, snow: atmos.snow, autumn: Math.max(atmos.autumn, atmos.blossom * 0.5), dusk: atmos.dusk });
+    this.sound?.ambient({ rain: atmos.rain, wind, fireflies: atmos.fireflies, snow: atmos.snow, autumn: Math.max(atmos.autumn, atmos.blossom * 0.5), dusk: atmos.dusk, day: atmos.day });
 
     this.sky.linkLevel = Math.min(atmos.galaxy * 1.5, 1);
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
@@ -1958,19 +1963,19 @@ export class Engine {
     if (this.gust.k > 0.6) this.gustHeard = true;
     else if (this.gustHeard && this.gust.k < 0.15) {
       this.gustHeard = false;
-      if (warm && !this.calm) this.cicadas(t + 0.6 + Math.random() * 1.2, night < 0.5 && atmos.dusk < 0.5 ? 2 : 1);
+      if (warm) this.cicadas(t + 0.6 + Math.random() * 1.2, night < 0.5 && atmos.dusk < 0.5 ? 2 : 1);
     }
     // 长日荷塘: on a summer day the shade has its own cicadas now and then.
     if (!(warm && night < 0.5)) this.nextCicada = -1;
     else if (this.nextCicada < 0) this.nextCicada = t + 12 + Math.random() * 10;
     else if (t >= this.nextCicada) {
       this.nextCicada = t + 30 + Math.random() * 30;
-      if (!this.calm) this.cicadas(t, Math.random() < 0.5 ? 2 : 1);
+      this.cicadas(t, Math.random() < 0.5 ? 2 : 1);
     }
     if (atmos.rain > 0.4) this.wasRaining = true;
     else if (this.wasRaining && atmos.rain < 0.12) {
       this.wasRaining = false;
-      if (frogFits(atmos.state.weather) && !this.calm) this.frogChorus(t + 2 + Math.random() * 2);
+      if (frogFits(atmos.state.weather)) this.frogChorus(t + 2 + Math.random() * 2);
     }
     if (!this.calls.length) return;
     const due = this.calls.filter((c) => t >= c.at);
@@ -2005,7 +2010,9 @@ export class Engine {
     const shore = this.shore!;
     const style = strokeStyle(stroke.points, this.minDim, pointer);
     // The bank keeps as many as are saved: past that, the oldest fades so the newest is never lost on reload.
+    const gaveWay: SavedBranch[] = [];
     while (shore.branchCount >= BRANCHES_MAX) {
+      gaveWay.unshift(shore.snapshot()[0]);
       const s = shore.removeBranch(shore.oldestBranch!);
       if (s) this.fadeStroke(s, 0, 1.6);
     }
@@ -2013,9 +2020,11 @@ export class Engine {
     this.keptBranches = [];
     const end = stroke.points[stroke.points.length - 1];
     this.sfx('chime', end.x, 0.3);
+    // HAND-2: undoing the branch undoes all it did: the ones that gave way for it come back, oldest first.
     this.record('branch', end.x, end.y, () => {
       const s = shore.removeBranch(id);
       if (s) this.fadeStroke(s, 0, 0.8);
+      for (const b of [...gaveWay].reverse()) shore.makeOldest(this.restoreBranch(b));
     });
   }
 

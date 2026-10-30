@@ -419,6 +419,12 @@ export class Shore {
     return this.branches[0]?.id ?? null;
   }
 
+  /** Put a branch back first in line, as the oldest (an undo bringing back the one that gave way). */
+  makeOldest(id: number): void {
+    const i = this.branches.findIndex((b) => b.id === id);
+    if (i > 0) this.branches.unshift(...this.branches.splice(i, 1));
+  }
+
   /** Undo: the branch and its blossoms go. Returns its stroke, for the caller to fade. */
   removeBranch(id: number): Stroke | null {
     const b = this.branches.find((x) => x.id === id);
