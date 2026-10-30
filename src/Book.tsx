@@ -10,7 +10,7 @@ export function Book({ onClose, onEnter }: { onClose: () => void; onEnter: (scen
   const closeBtn = useRef<HTMLButtonElement>(null);
   const [copied, setCopied] = useState<string | null>(null);
   useEffect(() => {
-    closeBtn.current?.focus();
+    closeBtn.current?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -42,7 +42,13 @@ export function Book({ onClose, onEnter }: { onClose: () => void; onEnter: (scen
               <ul>
                 {SCENES.filter((s) => s.season === season).map((scene) => (
                   <li key={scene.id}>
-                    <button type="button" className={`page ${scene.time ?? 'any'}`} onClick={() => onEnter(scene)} aria-label={`${scene.name}：${scene.line}`}>
+                    <button
+                      type="button"
+                      className={`page ${scene.time ?? 'any'}${scene.art ? ' art' : ''}`}
+                      style={scene.art ? { backgroundImage: `url(${import.meta.env.BASE_URL}art/book/${scene.id}.webp)` } : undefined}
+                      onClick={() => onEnter(scene)}
+                      aria-label={`${scene.name}：${scene.line}`}
+                    >
                       <span className="name">{scene.name}</span>
                       <span className="line">{scene.line}</span>
                     </button>
