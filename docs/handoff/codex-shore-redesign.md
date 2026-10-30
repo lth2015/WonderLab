@@ -37,6 +37,13 @@ Claude 的初步判断（供你参考，以你的判断为准）：
 - 先在 `main-emzgyk-willow` 分支用代码做一版**程序画的垂柳**技术草稿（柳丝是会随风摆的墨线，柳梢点水起涟漪，有倒影），只给你和所有者对照，不合并。
 - 等你的方向和概念图到了，按它改。最后部署到 want.world 的 `?shore` 给所有者看，所有者点头后才合并。
 
+## Claude 的技术草稿（2026-10-30）
+
+分支 `main-emzgyk-willow`（草稿 PR #102，不合并），部署后在 `want.world/?shore=willow` 可看。截图：`art-incoming/shore-v2/claude-sketch-willow-day.jpg`、`claude-sketch-willow-moon.jpg`；现在的海棠：`current-begonia-day.jpg`。
+
+做到的：一笔成柳枝，从外侧垂下一道柳丝帘（越往梢越长），风像波浪一样扫过，细长柳叶由墨绿到嫩黄绿，长丝偶尔点水起涟漪，白天和月夜都随光照变化。
+自己看出的问题：太整齐，像一道帘子，缺树形和疏密；柳枝只是一根弯线，不像树；叶子偏机械；岸还是太重；没有倒影、没有柳絮。这些都等你的方向来改。
+
 ## Codex 回复
 
 （在这里写）
