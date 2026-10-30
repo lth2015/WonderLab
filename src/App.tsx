@@ -26,6 +26,8 @@ import { clearStudy } from './lib/study-log';
 import { StudySheet } from './Study';
 import { ModeratorPanel } from './ModeratorPanel';
 import { SoundToggle } from './SoundToggle';
+import { Book } from './Book';
+import { sceneFromPath, timeForHour, type Scene } from './scenes';
 
 // Timings mirror docs/03-ux-ui-design.md §6.3 and docs/02 §3.
 // After H1's 5 s window (docs/02 §1): a stroke within the window is never one the demo taught.
@@ -83,6 +85,10 @@ if (fresh) {
   history.replaceState(null, '', location.pathname + (q ? `?${q}` : '') + location.hash);
 }
 const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+// 场景链接: want.world/柳 opens straight into that scene (scenes.ts).
+const linkScene = sceneFromPath(location.pathname);
+// How long after the world is ready a linked scene is said, so the lake is seen first.
+const LINK_SCENE_MS = 1200;
 
 type HintPlace = 'lake' | 'sky' | 'input';
 type Hint = { text: string; place: HintPlace; key: number } | null;
@@ -202,6 +208,9 @@ export function App() {
   const recentEchoes = useRef<number[]>([]);
   /** 发现入口: scenes the words have brought this visit, the last touch, key or words, and the line now offered. */
   const seenRef = useRef(new Set<Weather>());
+  /** Whether the visitor has drawn anything yet (the scene lines wait for words or a stroke). */
+  const stirredRef = useRef(false);
+  const [book, setBook] = useState(false);
   const lastStirRef = useRef(performance.now());
   const hintOnRef = useRef(false);
   const [beckon, setBeckon] = useState<{ text: string; key: number } | null>(null);
@@ -318,6 +327,7 @@ export function App() {
       if (drawn) return;
       logEvent('first_stroke', { after: Math.round(performance.now() - readyAt), via });
       drawn = true;
+      stirredRef.current = true;
       cancel(demoTimer);
       setHint(null);
     };
@@ -389,7 +399,7 @@ export function App() {
       {
         tier: forcedTier === 'light' || forcedTier === 'standard' ? forcedTier : undefined,
         reducedMotion: reducedQuery.matches,
-        shore: params.get('shore') === 'willow' ? 'willow' : params.has('shore'),
+        shore: params.get('shore') === 'willow' || linkScene?.willow ? 'willow' : params.has('shore'),
       },
     );
     engineRef.current = engine;
@@ -399,7 +409,7 @@ export function App() {
     if (saved) {
       engine.restore(saved);
       hasMoon = !!saved.moon;
-    }
+    } else if (!linkScene) engine.openAt(timeForHour(new Date().getHours())); // 首页随时辰
     let resetting = false;
     const save = () => {
       if (!resetting) saveWorld(engine.serialize());
@@ -473,6 +483,7 @@ export function App() {
     // A restored world with fish in it has already been drawn in: skip the first-stroke invitation.
     if (saved?.fish.length) {
       drawn = true;
+      stirredRef.current = true;
     } else {
       later(() => show('draw_lake', '轻轻画一笔，看看会发生什么', 'lake'), 600);
       scheduleDemo(DEMO_IDLE_MS);
@@ -749,6 +760,28 @@ export function App() {
       if (coarse()) inputRef.current?.blur();
   }, []);
 
+  /** 四时册页 / 场景链接: walk into a scene; one with the willow needs the page loaded with it. */
+  const enterScene = useCallback(
+    (scene: Scene) => {
+      const engine = engineRef.current;
+      if (!engine) return;
+      if (scene.willow && !engine.hasWillow) {
+        location.assign(`/${encodeURIComponent(scene.name)}`);
+        return;
+      }
+      seenRef.current.add(scene.weather);
+      if (scene.time) engine.applyScene({ timeOfDay: scene.time });
+      say(scene.line, 'invite');
+    },
+    [say],
+  );
+  // 场景链接: the lake first, then the scene the link names.
+  useEffect(() => {
+    if (!ready || !linkScene) return;
+    const id = window.setTimeout(() => enterScene(linkScene), LINK_SCENE_MS);
+    return () => clearTimeout(id);
+  }, [ready, enterScene]);
+
   const submit = useCallback(
     (e: FormEvent) => {
       e.preventDefault();
@@ -768,7 +801,7 @@ export function App() {
     const id = window.setInterval(() => {
       const engine = engineRef.current;
       const now = performance.now();
-      if (!engine || !seenRef.current.size || shown >= BECKON.max || document.hidden) return;
+      if (!engine || !(seenRef.current.size || stirredRef.current) || shown >= BECKON.max || document.hidden) return;
       if (now - lastStirRef.current < BECKON.idleMs || now - lastShown < BECKON.everyMs) return;
       if (hintOnRef.current || engine.echoShowing) return;
       const line = pickBeckon(seenRef.current, engine.weather);
@@ -983,6 +1016,7 @@ export function App() {
         onAccount={() => setOverlay({ kind: 'account' })}
         onWallpaper={() => void saveWallpaper()}
         onStudy={studyInMenu(isStandalone()) ? () => setStudy(true) : undefined}
+        onBook={() => setBook(true)}
         dim={dim}
       >
         <SoundToggle />
@@ -991,6 +1025,15 @@ export function App() {
       <RecordOverlays api={recorder} />
       <ModeratorPanel />
       {study && <StudySheet onClose={() => setStudy(false)} />}
+      {book && (
+        <Book
+          onClose={() => setBook(false)}
+          onEnter={(scene) => {
+            setBook(false);
+            enterScene(scene);
+          }}
+        />
+      )}
       {overlay?.kind === 'account' && <AccountSheet onClose={closeOverlay} />}
       {overlay?.kind === 'complete' && <CheckoutComplete orderId={overlay.orderId} onClose={closeOverlay} />}
       {overlay?.kind === 'simulate' && <SimulatedCheckout onClose={closeOverlay} />}

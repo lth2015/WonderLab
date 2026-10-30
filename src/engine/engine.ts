@@ -4,7 +4,7 @@ import { landscapeFrag } from './shaders/landscape';
 import { MAX_RIPPLES, worldFrag } from './shaders/world';
 import type { Palette } from './palette';
 import { Atmosphere } from './atmosphere';
-import type { SceneCommand, Weather } from './intent';
+import type { SceneCommand, TimeOfDay, Weather } from './intent';
 import { weatherFrag } from './shaders/weather';
 import { Snow } from './snow';
 import { Leaves } from './leaves';
@@ -179,6 +179,8 @@ export class Engine {
   private nextCicada = -1;
   private readonly auditing = import.meta.env.DEV || new URLSearchParams(location.search).has('audit');
   private nextAudit = 0;
+  /** The hills need painting again though the light is not changing (openAt). */
+  private landscapeStale = false;
   /** 叶下更静: when each fish may next rest in a leaf's shade. */
   private shadeRest = new WeakMap<Fish, number>();
   /** 同行: a fish from the sky keeping company with one the visitor drew, for a while. */
@@ -730,6 +732,19 @@ export class Engine {
    * may also ask something of the fish already there (docs/02 §5.3); returns
    * how many answer.
    */
+  /** 首页随时辰: a first visit opens at this hour, already there (no fade in from the night). */
+  openAt(timeOfDay: TimeOfDay): void {
+    this.atmosphere.set({ ...this.atmosphere.state, timeOfDay });
+    this.atmosphere.update(1e3);
+    // Nothing is changing now, so the frame would not repaint the hills: paint them in this light.
+    this.landscapeStale = true;
+  }
+
+  /** Whether this picture has the willow (四时册页: a willow scene elsewhere needs the page loaded with it). */
+  get hasWillow(): boolean {
+    return !!this.shore?.isWillow;
+  }
+
   applyScene(cmd: SceneCommand): number {
     this.commitRestart();
     const prev = this.atmosphere.apply(cmd);
@@ -871,7 +886,10 @@ export class Engine {
     if (capMoved) this.landscapeMat.uniforms.uSnowCap.value = this.snowCap;
     const rimMoved = Math.abs(atmos.moonlit - this.landscapeMat.uniforms.uMoonRim.value) > 0.004;
     if (rimMoved) this.landscapeMat.uniforms.uMoonRim.value = atmos.moonlit;
-    if (recolouring || capMoved || rimMoved) this.renderLandscape();
+    if (recolouring || capMoved || rimMoved || this.landscapeStale) {
+      this.landscapeStale = false;
+      this.renderLandscape();
+    }
     this.gust.k *= Math.exp(-dt / 1.4);
     const wind = Math.min(atmos.wind + this.gust.k * 0.6, 1);
     this.waveT += dt * (0.6 + wind * 1.6);
