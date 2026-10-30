@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { SCENES, SEASONS, sceneUrl, type Scene } from './scenes';
+import { SCENES, SEASONS, sceneArt, sceneUrl, type Scene } from './scenes';
 
 // 四时册页: every scene in the world, by the seasons, each a page with its
 // line. Touch a page to walk into it; 链接 copies its address (want.world/柳)
@@ -44,8 +44,8 @@ export function Book({ onClose, onEnter }: { onClose: () => void; onEnter: (scen
                   <li key={scene.id}>
                     <button
                       type="button"
-                      className={`page ${scene.time ?? 'any'}${scene.art ? ' art' : ''}`}
-                      style={scene.art ? { backgroundImage: `url(${import.meta.env.BASE_URL}art/book/${scene.id}.webp)` } : undefined}
+                      className={`page art ${scene.time ?? 'any'}`}
+                      style={{ backgroundImage: `url(${sceneArt(scene, import.meta.env.BASE_URL)})` }}
                       onClick={() => onEnter(scene)}
                       aria-label={`${scene.name}：${scene.line}`}
                     >

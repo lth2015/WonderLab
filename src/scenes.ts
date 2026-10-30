@@ -28,15 +28,13 @@ export interface Scene {
   willow?: boolean;
   /** What the page is named for, brought about soon after entering so it is met, not only implied. */
   moment?: 'magpie' | 'cicada';
-  /** Codex's painting for the page, public/art/book/<id>.webp (until then a wash of its hour). */
-  art?: boolean;
 }
 
 export const SCENES: readonly Scene[] = [
-  { id: 'willow', name: '柳', line: '晴光入柳，风过水明', season: '春', weather: 'clear', time: 'day', willow: true, art: true },
-  { id: 'blossom', name: '落花', line: '落花轻点一湖春', season: '春', weather: 'blossom', time: 'day', art: true },
-  { id: 'rainbow', name: '虹', line: '雨后初晴，一虹过山', season: '春', weather: 'rainbow', time: 'day', art: true },
-  { id: 'lotus', name: '荷', line: '接天莲叶无穷碧', season: '夏', weather: 'lotus', time: 'day', art: true },
+  { id: 'willow', name: '柳', line: '晴光入柳，风过水明', season: '春', weather: 'clear', time: 'day', willow: true },
+  { id: 'blossom', name: '落花', line: '落花轻点一湖春', season: '春', weather: 'blossom', time: 'day' },
+  { id: 'rainbow', name: '虹', line: '雨后初晴，一虹过山', season: '春', weather: 'rainbow', time: 'day' },
+  { id: 'lotus', name: '荷', line: '接天莲叶无穷碧', season: '夏', weather: 'lotus', time: 'day' },
   { id: 'storm', name: '雷雨', line: '远山雷雨，近水听声', season: '夏', weather: 'storm' },
   { id: 'magpie', name: '惊鹊', line: '明月别枝惊鹊', season: '夏', weather: 'moonlit', time: 'night', willow: true, moment: 'magpie' },
   { id: 'cicada', name: '鸣蝉', line: '清风半夜鸣蝉', season: '夏', weather: 'fireflies', time: 'night', willow: true, moment: 'cicada' },
@@ -61,6 +59,11 @@ export function sceneFromPath(pathname: string): Scene | null {
   }
   if (!name || name.includes('/')) return null;
   return SCENES.find((s) => s.id === name.toLowerCase() || s.name === name) ?? null;
+}
+
+/** Codex's painting for the page (public/art/book). */
+export function sceneArt(scene: Scene, base: string): string {
+  return `${base}art/book/${scene.id}.webp`;
 }
 
 /** The address to share for a scene. */
