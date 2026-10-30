@@ -183,7 +183,13 @@ vec3 planetTint(float k) {
   return mix(t, uPaper, 0.55);
 }
 
+// SKY-3, SKY-4 (world-rules.ts nightSkyShows): stars, planets and meteors are gone before it is day.
+float nightSky() {
+  return 1.0 - smoothstep(0.2, 0.5, uDay);
+}
+
 vec3 planetLayer(vec2 p, vec3 c, float open) {
+  open *= nightSky();
   for (int i = 0; i < PLANET_SLOTS; i++) {
     vec4 pl = uPlanets[i];
     if (pl.w <= 0.0 || pl.z <= 0.0) continue;
@@ -247,7 +253,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
       glow += (exp(-abs(d.x) / 1.1 - abs(d.y) / 13.0) + exp(-abs(d.y) / 1.1 - abs(d.x) / 13.0)) * 0.7;
       tw = 1.0;
     }
-    c += starCol * glow * s.z * tw * open * (1.0 - 0.5 * uDusk) * (1.0 - 0.8 * uDay);
+    c += starCol * glow * s.z * tw * open * (1.0 - 0.5 * uDusk) * nightSky();
   }
   for (int i = 0; i < MAX_LINKS; i++) {
     vec2 lk = uLinkLook[i];
@@ -260,7 +266,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
     float gap = 7.0 / len;
     float d = length(p - a - ab * t);
     float on = step(gap, t) * step(t, min(1.0 - gap, lk.x));
-    c += starCol * 0.32 * exp(-d * d / 0.7) * on * lk.y * open;
+    c += starCol * 0.32 * exp(-d * d / 0.7) * on * lk.y * open * nightSky();
   }
   for (int i = 0; i < MAX_METEORS; i++) {
     float t = uMeteorT[i];
@@ -277,7 +283,7 @@ vec3 userSky(vec2 p, vec3 c, float open) {
     float fade = 1.0 - smoothstep(0.7, 1.0, t);
     float trail = exp(-dist * dist / (w * w)) * h * h;
     float spark = exp(-length(p - head) / 4.0);
-    c += starCol * (trail * 0.9 + spark * 0.7) * fade * open;
+    c += starCol * (trail * 0.9 + spark * 0.7) * fade * open * nightSky();
   }
   return mix(base, c, uSkyVeil);
 }

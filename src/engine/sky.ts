@@ -128,6 +128,11 @@ export class Sky {
   }
 
   /** Current on-screen moon centre, if a moon is shown. */
+  /** What is in the sky, for the world's rules (world-rules.ts audit). */
+  seen(): { stars: number; planets: number; meteors: number } {
+    return { stars: this.stars.length, planets: this.planets.filter((p) => p.fading < 0).length, meteors: this.meteors.length };
+  }
+
   /** The moon brightens for a moment (touched, P1). */
   pulseMoon(): void {
     this.uniforms.uMoonPulse.value = 1;
