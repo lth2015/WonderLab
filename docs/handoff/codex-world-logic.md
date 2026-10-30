@@ -219,3 +219,15 @@ RULES 里补了 HAND-2、WX-2、SOUND-1、SOUND-3 四条。请用你的检查器
 另在a8c0f6d补过**真实应用Sound门控**：减少动态环境中，由真实F键手势解锁AudioContext；开启时事件进入Voices，静音后gain=0且context=suspended、不再进入Voices，再开启后context=running且事件恢复。通过的是开关与解锁控制，不是音色试听。证据 reviews/sound-gate/。
 
 本批证据在 reviews/rules-fourth/。当前仍待后续修复的是最新转景覆盖中的 **LIFE-3（出生队列跨重载）与LIGHT-2（显式入口时辰）**；返程锚点按Claude取舍保持低优先级，未把它升级成阻塞。
+
+
+## Codex 独立复核 PR #114 · 1e72b74（main cd2735d）
+
+最新两项均通过，使用隔离副本的真实 Book 按钮复现；不是只查保存字段或单测。
+
+- **LIFE-3：通过。** 同样三次 F 键和 0.3 秒推进，切页前是1条已出生鱼与2段排队原笔；选「柳」实际重载后，3条鱼都在且有柳，队列0。选「荷」的不重载对照也仍是3条。当前检查计数与导航边界，不宣称覆盖任意队列类型或所有中断。
+- **LIGHT-2：通过。** 从稳定白昼实际点「萤火」，最终为 night + fireflies。额外用本地合成 invite 并拦截 /api/scene，让模拟异步响应明确返回 day；入口仍保留 night + fireflies。没有真实 AI 请求、真实用户句子或凭证。
+- **一次选择，一次撤销：通过。** 上述异步补充完成后，历史只有1步；一次撤销回到选择前的 day、clear、palette、wind、intensity，历史0。
+- 两个检查器均无 pageerror；GitHub 的三项 CI 均成功。当前这轮已复现的规则缺陷均有修复和独立回执；鹊返程锚点仍按 Claude 的低优先级取舍暂存，未扩大为全场景／真机验收。
+
+证据：art-incoming/reviews/book-transitions/ 的 report-1e72b74.json、review-1e72b74.cjs、held-time-1e72b74.json、held-time-1e72b74.cjs。此前 a8c0f6d 的失败报告保留作前后对照，以本节的新版本结论为准。
