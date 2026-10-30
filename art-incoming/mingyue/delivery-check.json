@@ -1,0 +1,42 @@
+[
+  {
+    "file": "magpie-flight-study-source.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      17,
+      40,
+      1244,
+      1254
+    ],
+    "bytes": 1100008,
+    "sha256": "96c5196850ebaf7b6427cb606c6056508ef279919269a696c6ed902fbfbee8d4"
+  },
+  {
+    "file": "magpie-flight-study.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "alpha_range": [
+      0,
+      255
+    ],
+    "alpha_bbox": [
+      36,
+      45,
+      477,
+      471
+    ],
+    "bytes": 176988,
+    "sha256": "d13c2440efcd4cbe4cb61ac957826db5df012c59f4681ffebd80cf8ac3c9067c"
+  }
+]
