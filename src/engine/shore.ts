@@ -116,6 +116,7 @@ uniform vec3 uInk;
 uniform vec3 uMountain;
 uniform vec3 uWater;
 uniform float uDay;
+uniform float uSoft; // 1: a light wash of a bank (the willow sketch), not a heavy slope
 varying vec2 vUv;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -143,6 +144,7 @@ void main() {
   col *= 0.88 + 0.24 * grain;
   // The edge is the darkest line, like a brush run along the bank.
   col = mix(col, uInk * mix(0.8, 1.6, uDay), smoothstep(uS * 0.012, 0.0, d) * 0.6);
+  a *= mix(1.0, 0.25 + 0.45 * (1.0 - depth), uSoft);
   gl_FragColor = vec4(col * a, a);
 }
 `;
@@ -175,8 +177,11 @@ export class Shore {
   /** 春风垂柳 (?shore=willow): a technical sketch for the redesign, strands instead of blossoms. */
   private readonly willow: Willow | null;
 
-  constructor(palette: { ink: THREE.Vector3; mountain: THREE.Vector3; water: THREE.Vector3 }, style: 'blossom' | 'willow' = 'blossom') {
+  private readonly skyLow: THREE.Vector3 | null;
+
+  constructor(palette: { ink: THREE.Vector3; mountain: THREE.Vector3; water: THREE.Vector3; skyLow?: THREE.Vector3 }, style: 'blossom' | 'willow' = 'blossom') {
     this.willow = style === 'willow' ? new Willow() : null;
+    this.skyLow = palette.skyLow ?? null;
     this.bankMat = new THREE.ShaderMaterial({
       vertexShader: /* glsl */ `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: bankFrag,
@@ -187,6 +192,7 @@ export class Shore {
         uMountain: { value: palette.mountain },
         uWater: { value: palette.water },
         uDay: { value: 0 },
+        uSoft: { value: style === 'willow' ? 1 : 0 },
       },
       transparent: true,
       blending: THREE.CustomBlending,
@@ -256,6 +262,7 @@ export class Shore {
 
   resize(view: ShoreView): void {
     this.view = view;
+    this.willow?.resize(view.width, view.height, view.S);
     this.bank.scale.set(view.width, view.height, 1);
     this.bank.position.set(view.width / 2, view.height / 2, 0);
     this.bankMat.uniforms.uRes.value.set(view.width, view.height);
@@ -281,7 +288,9 @@ export class Shore {
   addBranch(stroke: Stroke, time: number, lively: number, seed = Math.floor(Math.random() * 1e9)): number {
     if (this.willow) {
       const id = this.nextId++;
-      const tree = this.willow.addTree(stroke, this.view.S, seed, time);
+      // 春风拂柳: no lone branch; the stroke lets another spray of strands hang down above it.
+      stroke.mesh.visible = false;
+      const tree = this.willow.addSpray(stroke.centroid.x, seed);
       this.branches.push({ id, stroke, blossoms: [], nextPetal: Infinity, lively, seed, tree });
       return id;
     }
@@ -341,7 +350,7 @@ export class Shore {
 
   /** A new world: hidden while the restart can still be taken back, then gone. */
   setHidden(hidden: boolean): void {
-    for (const b of this.branches) b.stroke.mesh.visible = !hidden;
+    for (const b of this.branches) b.stroke.mesh.visible = !hidden && !this.willow;
     this.sprites.visible = this.sprites.visible && !hidden;
     if (this.willow) this.willow.group.visible = !hidden;
     this.hidden = hidden;
@@ -362,7 +371,7 @@ export class Shore {
     const b = this.branches.find((x) => x.id === id);
     if (!b) return null;
     this.branches = this.branches.filter((x) => x !== b);
-    if (b.tree !== undefined) this.willow?.removeTree(b.tree);
+    if (b.tree !== undefined) this.willow?.removeSpray(b.tree);
     return b.stroke;
   }
 
@@ -388,9 +397,12 @@ export class Shore {
    * it down as a falling petal); `day` and `dusk` say when butterflies come,
    * and night brings the fireflies.
    */
-  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number; wind?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random, dip?: (x: number, y: number) => void): void {
+  update(dt: number, time: number, light: { day: number; dusk: number; rain?: number; wind?: number }, calm: boolean, drop: (x: number, y: number) => void, random = Math.random): void {
     const { S, width } = this.view;
-    if (this.willow && !this.hidden) this.willow.update(time, S, light.wind ?? 0.25, light, calm, (x, y) => !this.onBank(x, y) && y < this.view.horizonY, (x, y) => dip?.(x, y));
+    if (this.willow && !this.hidden) {
+      if (this.skyLow) this.willow.setAir(this.skyLow);
+      this.willow.update(time, dt, light.wind ?? 0.25, light, calm);
+    }
     const night = Math.max(1 - light.day - light.dusk, 0);
     // Lit by the hour: cool and dim at night, the petals' edges warmed at dusk (value/12 §四).
     const lit = new THREE.Vector3(0.5 + 0.5 * (1 - night), 0.52 + 0.48 * (1 - night), 0.62 + 0.38 * (1 - night));

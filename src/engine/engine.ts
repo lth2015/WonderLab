@@ -874,7 +874,7 @@ export class Engine {
     }
     const gustWind = atmos.wind * (1 - this.gust.k) + this.gust.dir * this.gust.k * 1.8;
     this.petals.update(dt, t, atmos.blossom, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) => this.petalLands(x, y));
-    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain, wind: gustWind }, this.calm, (x, y) => this.dropPetal(x, y), Math.random, (x, y) => this.addRipple(x, y, 0.2));
+    this.shore?.update(dt, t, { day: atmos.day, dusk: atmos.dusk, rain: atmos.rain, wind: gustWind }, this.calm, (x, y) => this.dropPetal(x, y));
     this.leaves.update(dt, t, atmos.autumn, gustWind, { width: this.width, height: this.height, horizonY: this.horizonY, S: this.minDim }, (x, y) =>
       this.addRipple(x, y, 0.3),
     );
