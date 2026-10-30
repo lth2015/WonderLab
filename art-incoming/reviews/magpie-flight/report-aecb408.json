@@ -1,0 +1,311 @@
+{
+  "source": "aecb408",
+  "method": "Actual engine and Magpie state/uniforms, deterministic stepping; source UV anchor is the supplied approximate body anchor. Not a perceptual smoothness or device performance claim.",
+  "errors": [],
+  "sky": {
+    "night": {
+      "moon": true,
+      "planets": 3,
+      "queue": 0,
+      "visibleMoon": 1
+    },
+    "nightStars": 1,
+    "day": {
+      "storedMoon": true,
+      "storedPlanets": 3,
+      "nightVisibility": 0,
+      "starsBefore": 1,
+      "starsAfter": 1,
+      "moonRecordSame": true
+    }
+  },
+  "flight": {
+    "normal": {
+      "phases": [
+        {
+          "at": 0,
+          "phase": "leaving"
+        },
+        {
+          "at": 8,
+          "phase": "away"
+        },
+        {
+          "at": 75.5,
+          "phase": "returning"
+        },
+        {
+          "at": 85.5,
+          "phase": "perched"
+        }
+      ],
+      "takeoffs": 1,
+      "landings": 1,
+      "poses": [
+        0,
+        2,
+        1
+      ],
+      "minFrame": 17.55,
+      "maxFrame": 35.1,
+      "anchors": [
+        {
+          "phase": "leaving",
+          "frameSize": 35.1,
+          "offsetX": -0.24071430327489907,
+          "offsetY": -0.6594392725827447,
+          "distance": 0.7019996652603044
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 34.612499999999606,
+          "offsetX": -0.13348115136597016,
+          "offsetY": -0.6792587045595155,
+          "distance": 0.6922496699095322
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 34.124999999999226,
+          "offsetX": -0.024885008729086167,
+          "offsetY": -0.6820458504479348,
+          "distance": 0.682499674558672
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 33.63749999999883,
+          "offsetX": 0.052140345120790244,
+          "offsetY": -0.6707261104838835,
+          "distance": 0.6727496792077673
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 33.14999999999845,
+          "offsetX": 0.10198644089473419,
+          "offsetY": -0.6551086525669234,
+          "distance": 0.6629996838569571
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 32.66249999999806,
+          "offsetX": 0.13116540587449776,
+          "offsetY": -0.6399459288370508,
+          "distance": 0.6532496885061159
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 32.174999999997674,
+          "offsetX": 0.14529497367507815,
+          "offsetY": -0.6268821465919245,
+          "distance": 0.643499693155281
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 31.687499999997286,
+          "offsetX": 0.14859049286408776,
+          "offsetY": -0.616084040450346,
+          "distance": 0.6337496978044377
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 31.199999999996898,
+          "offsetX": 0.14413915019584067,
+          "offsetY": -0.6071239857252522,
+          "distance": 0.6239997024535311
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 30.71249999999651,
+          "offsetX": 0.13426673219620966,
+          "offsetY": -0.599395651720215,
+          "distance": 0.6142497071026978
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 30.22499999999612,
+          "offsetX": 0.12082023030605171,
+          "offsetY": -0.5923026029462335,
+          "distance": 0.6044997117518675
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 29.737499999995734,
+          "offsetX": 0.1053522157197122,
+          "offsetY": -0.5853444591025436,
+          "distance": 0.5947497164010271
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 29.249999999995346,
+          "offsetX": 0.0892310749326799,
+          "offsetY": -0.5781543815411396,
+          "distance": 0.5849997210502405
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 28.762499999994958,
+          "offsetX": 0.07370729132117404,
+          "offsetY": -0.5705080911988034,
+          "distance": 0.5752497256993754
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 28.27499999999457,
+          "offsetX": 0.05997081094670165,
+          "offsetY": -0.5623108098361627,
+          "distance": 0.5654997303484822
+        },
+        {
+          "phase": "leaving",
+          "frameSize": 27.787499999994186,
+          "offsetX": 0.050957947939089365,
+          "offsetY": -0.553408579163488,
+          "distance": 0.5557497349976098
+        },
+        {
+          "phase": "returning",
+          "frameSize": 17.55,
+          "offsetX": 4.406714683137366,
+          "offsetY": 1.2349230017370587,
+          "distance": 4.576479992177146
+        },
+        {
+          "phase": "returning",
+          "frameSize": 18.4275000000007,
+          "offsetX": 4.627050417294413,
+          "offsetY": 1.2966691518239486,
+          "distance": 4.805303991786184
+        },
+        {
+          "phase": "returning",
+          "frameSize": 19.305000000001396,
+          "offsetX": 4.84738615145146,
+          "offsetY": 1.3584153019108953,
+          "distance": 5.034127991395239
+        },
+        {
+          "phase": "returning",
+          "frameSize": 20.182500000002094,
+          "offsetX": 5.067721885608506,
+          "offsetY": 1.420161451997842,
+          "distance": 5.262951991004293
+        },
+        {
+          "phase": "returning",
+          "frameSize": 21.06000000000279,
+          "offsetX": 5.288057619765539,
+          "offsetY": 1.481907602084675,
+          "distance": 5.491775990613303
+        },
+        {
+          "phase": "returning",
+          "frameSize": 21.937500000003492,
+          "offsetX": 5.5083933539225995,
+          "offsetY": 1.5436537521716218,
+          "distance": 5.720599990222371
+        },
+        {
+          "phase": "returning",
+          "frameSize": 22.815000000004186,
+          "offsetX": 5.728729088079632,
+          "offsetY": 1.6053999022584549,
+          "distance": 5.949423989831381
+        },
+        {
+          "phase": "returning",
+          "frameSize": 23.692500000004888,
+          "offsetX": 5.949064822236664,
+          "offsetY": 1.6671460523454016,
+          "distance": 6.178247989440422
+        },
+        {
+          "phase": "returning",
+          "frameSize": 24.570000000005585,
+          "offsetX": 6.169400556393725,
+          "offsetY": 1.7288922024323483,
+          "distance": 6.40707198904949
+        },
+        {
+          "phase": "returning",
+          "frameSize": 25.447500000006286,
+          "offsetX": 6.389736290550786,
+          "offsetY": 1.7906383525191814,
+          "distance": 6.635895988658527
+        },
+        {
+          "phase": "returning",
+          "frameSize": 26.325000000006984,
+          "offsetX": 6.61007202470779,
+          "offsetY": 1.852384502606128,
+          "distance": 6.864719988267541
+        },
+        {
+          "phase": "returning",
+          "frameSize": 27.202500000007678,
+          "offsetX": 6.890017802643797,
+          "offsetY": 1.6870154081072997,
+          "distance": 7.093543987876575
+        },
+        {
+          "phase": "returning",
+          "frameSize": 28.080000000008383,
+          "offsetX": 7.25945547944923,
+          "offsetY": 0.9577990843852149,
+          "distance": 7.322367987485647
+        },
+        {
+          "phase": "returning",
+          "frameSize": 28.957500000009077,
+          "offsetX": 7.550259001933284,
+          "offsetY": 0.11869890348214085,
+          "distance": 7.551191987094651
+        },
+        {
+          "phase": "returning",
+          "frameSize": 29.835000000009774,
+          "offsetX": 7.738975197467198,
+          "offsetY": -0.7980674447394449,
+          "distance": 7.780015986703717
+        },
+        {
+          "phase": "returning",
+          "frameSize": 30.712500000010472,
+          "offsetX": 7.816711358427256,
+          "offsetY": -1.7437148463543508,
+          "distance": 8.008839986312765
+        },
+        {
+          "phase": "returning",
+          "frameSize": 31.590000000011173,
+          "offsetX": 7.795641917508533,
+          "offsetY": -2.6621560883870643,
+          "distance": 8.237663985921763
+        },
+        {
+          "phase": "returning",
+          "frameSize": 32.467500000011874,
+          "offsetX": 7.708496652553208,
+          "offsetY": -3.5014994169232523,
+          "distance": 8.466487985530831
+        },
+        {
+          "phase": "returning",
+          "frameSize": 33.34500000001256,
+          "offsetX": 7.915401020464742,
+          "offsetY": -3.5992884302514767,
+          "distance": 8.695311985139833
+        },
+        {
+          "phase": "returning",
+          "frameSize": 34.22250000001327,
+          "offsetX": 8.123701047319173,
+          "offsetY": -3.6940065468371586,
+          "distance": 8.924135984748911
+        }
+      ]
+    },
+    "calm": {
+      "phase": "perched",
+      "visible": false
+    }
+  }
+}
