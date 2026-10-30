@@ -7,7 +7,7 @@
 | 项 | 内容 |
 |---|---|
 | 运行 | EKS 集群 `qa-web3-netx-tokyo-eks`，命名空间 `wonder-lab`，一个容器同时提供网页和 API（[deploy.md](deploy.md)） |
-| 入口 | `resources.yaml` 的 Ingress 带上两张证书，并有一条 `host: gift.want.world` → `wonderlab-gift` 的规则 | ✓ |
+| 入口 | ALB（`deploy/k8s/qa/resources.yaml` 的 Ingress），HTTPS 证书在 ACM，`want.world` 指向这个 ALB |
 | 构建 | GitHub Actions「Artifact Build」：以 `WW_EXPERIMENT=poc-r1` 打包，推送镜像到 ECR |
 | 部署 | GitHub Actions「Deploy QA」：Artifact Build 在 `main` 上成功后自动部署；验收某个分支时，对该分支手动运行 Artifact Build，再用它的提交号手动运行 Deploy QA（路线图 §2） |
 

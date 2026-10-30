@@ -1,6 +1,39 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "--port", "5173", "--strictPort"], "port": 5173 }
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "STRIPE_SECRET_KEY=",
+        "STRIPE_PUBLISHABLE_KEY=",
+        "STRIPE_WEBHOOK_SECRET=",
+        "PAYMENTS_ADAPTER=simulated",
+        "GOOGLE_CLIENT_ID=",
+        "GOOGLE_CLIENT_SECRET=",
+        "GOOGLE_REDIRECT_URI=",
+        "GOOGLE_SESSION_SECRET=",
+        "AUTH_ADAPTER=dev",
+        "DATABASE_URL=",
+        "INVITE_TOKENS=demo-c15c88a798c7ebe8",
+        "npm",
+        "run",
+        "server"
+      ],
+      "port": 8787
+    }
   ]
 }
