@@ -25,6 +25,7 @@ import { classify, spineFromOutline, type Classification, type Pt } from './clas
 import { FrameMonitor, TIERS, type Tier } from './quality';
 import { INITIAL, type AtmosphereState } from './atmosphere';
 import { logEvent, prompted } from '../telemetry';
+import { audit, circleBecomes, lightOf, skyDotBecomes, skyLineBecomes, type Light } from './world-rules';
 import { AWAY_MAX, BRANCHES_MAX, SAVE_VERSION, type SavedFish, type WorldSave } from './persist';
 import type { Art } from './art';
 import { EchoLayer } from './echo-layer';
@@ -176,6 +177,8 @@ export class Engine {
   private wasRaining = false;
   /** 长日荷塘: when a cicada next sounds in the trees' shade of itself. */
   private nextCicada = -1;
+  private readonly auditing = import.meta.env.DEV || new URLSearchParams(location.search).has('audit');
+  private nextAudit = 0;
   /** 叶下更静: when each fish may next rest in a leaf's shade. */
   private shadeRest = new WeakMap<Fish, number>();
   /** 同行: a fish from the sky keeping company with one the visitor drew, for a while. */
@@ -437,6 +440,20 @@ export class Engine {
 
   setSound(sink: SoundSink | null): void {
     this.sound = sink;
+  }
+
+  /** What the light is now, for the world's rules (world-rules.ts). */
+  private get light(): Light {
+    return lightOf(this.atmosphere);
+  }
+
+  /** Every few seconds in development (or with ?audit): say if the picture breaks a rule. */
+  private auditWorld(): void {
+    if (!this.auditing || this.time < this.nextAudit) return;
+    this.nextAudit = this.time + 2;
+    const sky = this.sky.seen();
+    const broken = audit({ light: this.light, day: this.atmosphere.day, bodies: this.sky.moonSpec ? 1 : 0, settingSun: this.atmosphere.dusk >= 0.5, ...sky });
+    for (const b of broken) console.warn(`[world-rules] ${b.rule}: ${b.detail}`);
   }
 
   private sfx(kind: SoundKind, x: number, strength = 1): void {
@@ -903,6 +920,7 @@ export class Engine {
     this.sky.update(dt, t, this.horizonY, this.width, atmos.wind);
     this.echo.update(t);
     this.updateRelations();
+    this.auditWorld();
     this.updateMoonlight();
     this.updateCompany();
     this.updateReturns();
@@ -1808,7 +1826,7 @@ export class Engine {
         if (lake) {
           this.addRipple(centroid.x, centroid.y, 0.5);
           this.sfx('ripple', centroid.x, 0.5);
-        } else this.placeStar(centroid.x, centroid.y);
+        } else if (skyDotBecomes(this.light) === 'star') this.placeStar(centroid.x, centroid.y);
         return;
       case 'circle':
         this.leadMoon(c, stroke, lake);
@@ -1824,7 +1842,8 @@ export class Engine {
       case 'open':
         if (this.handInScene(stroke)) return;
         if (lake) this.leadFish(stroke, pointer);
-        else this.launchMeteor(stroke);
+        else if (skyLineBecomes(this.light) === 'meteor') this.launchMeteor(stroke);
+        else this.placeCloud(c, stroke);
         return;
     }
   }
@@ -2018,6 +2037,11 @@ export class Engine {
   }
 
   private leadMoon(c: Classification, stroke: Stroke, fromLake: boolean): void {
+    // SKY-1: by day, once the sun is up, another circle is a round cloud, never a second sun.
+    if (circleBecomes(this.light, !!this.sky.moonSpec) === 'cloud') {
+      this.placeCloud(c, stroke);
+      return;
+    }
     this.lead(stroke, () => {
       const planet = !!this.sky.moonSpec;
       this.placeMoon(c, stroke, fromLake);
@@ -2052,6 +2076,7 @@ export class Engine {
     }
     if (y >= this.horizonY && !fish) {
       // 星河: a touch on the sky leaves a star, to join into a constellation.
+      if (skyDotBecomes(this.light) === 'nothing') return;
       if (this.atmosphere.galaxy > 0.5) this.placeStar(x, y);
       else {
         this.sky.flash(x, y);
