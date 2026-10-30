@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>飞鹊 · 柳景尺度对照</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e5e9e5; color: #263936; font: 14px/1.6 system-ui, sans-serif; }
+  main { max-width: 900px; padding: 20px; margin: auto; }
+  h1 { margin: 0 0 8px; font-size: 21px; font-weight: 500; }
+  p { margin: 8px 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 20px 0; }
+  label { display: grid; gap: 4px; }
+  select, button { padding: 7px 10px; font: inherit; color: inherit; background: #f5f6f1; border: 1px solid #bac7bf; border-radius: 6px; }
+  input { width: 160px; }
+  .stage { position: relative; width: min(100%, 390px); aspect-ratio: 390/844; overflow: hidden; background: #283d49; }
+  .scene { display: block; width: 100%; height: 100%; }
+  .bird { position: absolute; transform: translate(-37%, -51%); pointer-events: none; }
+  output { display: block; margin: 12px 0; }
+  .limit { max-width: 700px; color: #56665e; }
+</style>
+<main>
+  <h1>飞鹊 · 柳景尺度对照</h1>
+  <p>Claude 第四版静帧 + 原始三姿素材。用于看大小、位置和羽色，尚未接入引擎。</p>
+  <div class="controls">
+    <label>时景<select id="light"><option value="day">白天</option><option value="moon">月夜</option></select></label>
+    <label>姿态<select id="pose"><option value="up">上举翅</option><option value="glide">滑行</option><option value="down">下拍</option></select></label>
+    <label>路上的位置<input id="travel" type="range" min="0" max="100" value="0"></label>
+    <label>月夜羽色明度<input id="night" type="range" min="35" max="100" value="58"></label>
+    <button id="near" type="button">近处 30px</button>
+    <button id="far" type="button">远处 16px</button>
+  </div>
+  <output id="readout" aria-live="polite"></output>
+  <div class="stage">
+    <img class="scene" id="scene" alt="Claude 第四版拂柳静帧，原来的鱼仍在湖中" src="../shore-v2/claude-v4-day-still.jpg">
+    <img class="bird" id="bird" alt="飞鹊候选素材" src="magpie-wing-up.png">
+  </div>
+  <p class="limit">以 alpha &gt; 32 的可见宽度计，三姿约占原画布宽度的 85%。这里用统一比例显示，不逐帧拉伸；近远分别约 30px 与 16px（以 390px 画幅计）。胸腹锚点沿用候选值 (0.37, 0.51)。</p>
+  <p class="limit">位置滑块只把静态鸟放到不同地点；没有模拟飞速、遮挡、翼声或柳叶反应。月夜明度只是 CSS 对照参数，不能直接当作引擎光照值。未重绘背景或素材，也不以此代替实际飞行动画验收。</p>
+</main>
+<script>
+  const el = id => document.getElementById(id);
+  const poses = {up: 'magpie-wing-up.png', glide: 'magpie-glide.png', down: 'magpie-wing-down.png'};
+  function update() {
+    const t = Number(el('travel').value) / 100;
+    const moon = el('light').value === 'moon';
+    const visible = 30 - 14*t;
+    const x = 0.65 - 0.48*t;
+    const y = 0.19 + 0.07*t;
+    const brightness = moon ? Number(el('night').value)/100 : 1;
+    el('scene').src = `../shore-v2/claude-v4-${moon ? 'moon' : 'day'}-still.jpg`;
+    el('bird').src = poses[el('pose').value];
+    Object.assign(el('bird').style, {
+      width: `${100 * visible / 390 / (436/512)}%`,
+      left: `${x*100}%`, top: `${y*100}%`, filter: `brightness(${brightness})`
+    });
+    el('readout').textContent = `可见宽度约 ${visible.toFixed(1)}px / 390px 画幅 · 身体位置 (${x.toFixed(2)}W, ${y.toFixed(2)}H) · 羽色明度 ${brightness.toFixed(2)}`;
+  }
+  for (const id of ['light', 'pose', 'travel', 'night']) el(id).addEventListener('input', update);
+  el('near').addEventListener('click', () => { el('travel').value = 0; update(); });
+  el('far').addEventListener('click', () => { el('travel').value = 100; update(); });
+  update();
+</script>
+</html>
