@@ -1,0 +1,81 @@
+{
+  "images": [
+    {
+      "alt": "晴日垂柳与宽湖",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "春花轻落水面",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "雨后远山上有一道淡虹",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "长日荷塘为水留荫",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "远山电光与湖上细雨",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "喜鹊从夜色柳冠间飞出",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "深蓝暖夜里清风过柳",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "夏夜低草间的微弱萤光",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "自然银河斜过远山与湖",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "暮色枫叶随风落水",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "画外月光在湖上留下银路",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "三盏小河灯远近相随",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "清寒夜空里的细小流星",
+      "width": 480,
+      "height": 640
+    },
+    {
+      "alt": "雪在月色与裸枝之间落下",
+      "width": 480,
+      "height": 640
+    }
+  ],
+  "errors": [],
+  "narrow": {
+    "viewport": 390,
+    "scrollWidth": 390,
+    "images": 14
+  },
+  "meaning": "Gallery layout and delivered image checks, not actual engine or Book integration validation"
+}

@@ -53,14 +53,14 @@
       "sourceSha256": "3549a10a8cc847607f1cae78d770143fb9a47ddce6eaec16bc62428170016652"
     },
     {
-      "id": "fireflies",
-      "file": "fireflies.webp",
+      "id": "magpie",
+      "file": "magpie.webp",
       "width": 480,
       "height": 640,
-      "bytes": 68968,
-      "sha256": "83151313c263c1d8d74ac51b9067bf3a787f36263786459570b48a8b0c2007c7",
-      "source": "source/fireflies.png",
-      "sourceSha256": "7a8126817b78d0cc6f3b1d6db5ed901bc8b6f3041bec3f94c250a13db71b2bb7"
+      "bytes": 102768,
+      "sha256": "49beef9ade6f2437b93f39aeff1eda1255f089ebd1e19e1f99b8b2f9b88f6b06",
+      "source": "source/magpie.png",
+      "sourceSha256": "bd14589ef7551b5afa1e1f23a4120d0447bf601de8c0cdc7cb0ce197c1f562af"
     },
     {
       "id": "cicada",
@@ -73,14 +73,24 @@
       "sourceSha256": "8182e15b4253de6fa060c5fe2eacb86de4034631c5f5716b618d306164b5bed5"
     },
     {
-      "id": "magpie",
-      "file": "magpie.webp",
+      "id": "fireflies",
+      "file": "fireflies.webp",
       "width": 480,
       "height": 640,
-      "bytes": 102768,
-      "sha256": "49beef9ade6f2437b93f39aeff1eda1255f089ebd1e19e1f99b8b2f9b88f6b06",
-      "source": "source/magpie.png",
-      "sourceSha256": "bd14589ef7551b5afa1e1f23a4120d0447bf601de8c0cdc7cb0ce197c1f562af"
+      "bytes": 68968,
+      "sha256": "83151313c263c1d8d74ac51b9067bf3a787f36263786459570b48a8b0c2007c7",
+      "source": "source/fireflies.png",
+      "sourceSha256": "7a8126817b78d0cc6f3b1d6db5ed901bc8b6f3041bec3f94c250a13db71b2bb7"
+    },
+    {
+      "id": "galaxy",
+      "file": "galaxy.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 101456,
+      "sha256": "5e273314a75c60eb6376b9e3ae487d8d2ef80cc104ce5cb698b8b5a79efa3724",
+      "source": "source/galaxy.png",
+      "sourceSha256": "f76ba2f38ffbbd58e6977c462303830ec0bf62a3ae1073319c707c04fa221b0f"
     },
     {
       "id": "autumn",
@@ -101,6 +111,36 @@
       "sha256": "e7af13fecc860e12214093cc7d2a450cc79190340d90c13514284f627ead3358",
       "source": "source/moonlit.png",
       "sourceSha256": "5413fc1b30ecf87d054635943f4b0f09adfe510529436f2d6fb770577c9d8dee"
+    },
+    {
+      "id": "lanterns",
+      "file": "lanterns.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 58526,
+      "sha256": "d5ecbb5b267663eed514863d8b54284d58ea289996f1f06a1f6ac7d66b8040d4",
+      "source": "source/lanterns.png",
+      "sourceSha256": "061f4653561611d2f6cb4f3ac68dff04bea4b9ac04bcd2cf0e136edba8ce354c"
+    },
+    {
+      "id": "shower",
+      "file": "shower.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 70062,
+      "sha256": "2d04d2e8daf44ab0497f504f82876dbea6c13d1e5e49a32f0b8eb1f463742de6",
+      "source": "source/shower.png",
+      "sourceSha256": "5ce2100335752223789acf3c7aab887314067cc7114afd0e4acf3329e6e38f4c"
+    },
+    {
+      "id": "moonsnow",
+      "file": "moonsnow.webp",
+      "width": 480,
+      "height": 640,
+      "bytes": 101314,
+      "sha256": "e9379daba76f78c5a25f0f576638927b3fd3db13e100dc0cb4542589e3e364ab",
+      "source": "source/moonsnow.png",
+      "sourceSha256": "b02ff29dac09bf95f6b63a232ac04ec4a6711957176a97935ca985c1a9e3851d"
     }
   ]
 }
