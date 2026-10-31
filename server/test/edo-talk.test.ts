@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../src/app';
 import { loadConfig } from '../src/config';
-import { cleanLine, parseTalk, PERSONAS, TalkBudget, talkMessages } from '../src/edo-talk';
+import { cleanLine, parseTalk, PERSONAS, TalkBudget, talkMessages, visitorKey } from '../src/edo-talk';
 import type { ChatJson, ChatMessage } from '../src/tokenstars';
 
 const chat: ChatJson = async () => ({ status: 'failed', code: 'unused' });
@@ -100,5 +100,22 @@ describe('POST /api/edo/talk', () => {
     for (let i = 0; i < 3; i++) codes.push((await app.inject({ method: 'POST', url: '/api/edo/talk', headers: json, payload: good })).statusCode);
     expect(codes).toEqual([200, 200, 429]);
     await app.close();
+  });
+});
+
+describe('江戸編 talk: review fixes', () => {
+  it('refuses inherited object keys as a person', () => {
+    for (const who of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) expect(parseTalk({ ...good, who })).toBeNull();
+  });
+  it('refuses full-width Latin letters and digits', () => {
+    expect(cleanLine({ line: 'これはＡＩのせりふです、ｗｗｗ．ｘｘ．ｃｏｍへどうぞ、まことに。' })).toBeNull();
+    expect(cleanLine({ line: '２０２６年の春でございますねえ、まことにのどかで。' })).toBeNull();
+  });
+  it('counts a whole IPv6 /64 as one visitor', () => {
+    expect(visitorKey('2001:db8:1:2:aaaa::1')).toBe(visitorKey('2001:db8:1:2:bbbb:cccc:dddd:eeee'));
+    expect(visitorKey('2001:db8:1:2::1')).not.toBe(visitorKey('2001:db8:1:3::1'));
+    expect(visitorKey('::ffff:10.0.0.1')).toBe('10.0.0.1');
+    const b = new TalkBudget(2, 100);
+    expect([b.take('2001:db8::1'), b.take('2001:db8::2'), b.take('2001:db8::3')]).toEqual([true, true, false]);
   });
 });
