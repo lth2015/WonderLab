@@ -131,9 +131,14 @@ export interface JournalEntry {
   madeAt: string;
 }
 
+export type TimeOfDay = 'morning' | 'noon' | 'evening';
+/** 'auto' follows the story; a reached time may be chosen to go back to (spec §11). */
+export type TimeChoice = 'auto' | TimeOfDay;
+
 export interface Settings {
   reduceMotion: boolean;
   textScale: 1 | 1.25 | 1.5;
+  timeChoice?: TimeChoice;
 }
 
 export interface SaveData {

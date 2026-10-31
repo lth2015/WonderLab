@@ -59,6 +59,7 @@ export function migrate(raw: unknown): SaveData | 'newer' {
     settings: {
       reduceMotion: st.reduceMotion === true,
       textScale: st.textScale === 1.25 || st.textScale === 1.5 ? st.textScale : 1,
+      timeChoice: st.timeChoice === 'morning' || st.timeChoice === 'noon' || st.timeChoice === 'evening' ? st.timeChoice : 'auto',
     },
   };
 }

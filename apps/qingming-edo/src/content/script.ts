@@ -7,13 +7,16 @@ import { questById, type Subject } from './world';
 
 export type Speaker = string; // a character id, or 'narration'
 
-export interface Line { by: Speaker; text: string }
+/** `reward`: a line about being paid, left out in 回想 (replays never pay). */
+export interface Line { by: Speaker; text: string; reward?: boolean }
 export interface Choice {
   label: string;
   next?: string;
   effects?: Effect[];
   /** Opens the sketch for this subject (spec §9 一頁目). */
   sketch?: Subject;
+  /** Stays to talk a little (即興のひとこと, ui/Talk.tsx). */
+  talk?: boolean;
   /** Opens a short game; on success the dialogue goes on at `next` (spec §10). */
   game?: 'wrap' | 'tea' | 'tenugui';
 }
@@ -25,6 +28,8 @@ export interface DialogueNode {
   next?: string;
   /** A journal page this node leaves (made once; spec §9). */
   page?: { pageId: string; compositionId: string };
+  /** In 回想, where the scene goes on when the original sends the player walking elsewhere. */
+  recallNext?: string;
 }
 
 const PRESS: Effect[] = [
@@ -97,8 +102,8 @@ export const NODES: Record<string, DialogueNode> = {
   'kaze.reward': {
     effects: questById.get('kaze')!.completionEffects,
     lines: [
-      { by: 'seita', text: 'これ、少ないですが番頭さんからです。紙を守ってくださったお礼に。' },
-      { by: 'narration', text: '十二文を受け取った。絵巻帳に、最初の一頁が残った。' },
+      { by: 'seita', text: 'これ、少ないですが番頭さんからです。紙を守ってくださったお礼に。', reward: true },
+      { by: 'narration', text: '十二文を受け取った。絵巻帳に、最初の一頁が残った。', reward: true },
     ],
   },
   'sokichi.done': {
@@ -167,6 +172,7 @@ export const NODES: Record<string, DialogueNode> = {
   },
   'okon.carry': {
     effects: [{ type: 'setFlag', flag: 'dougu_carry' }],
+    recallNext: 'kinji.receive',
     lines: [
       { by: 'okon', text: '頼んだよ。米屋の前で天秤棒を下ろしてるのが金次さんさ。' },
       { by: 'narration', text: '包みを受け取った。通りを左へ、米屋のほうへ。' },
@@ -181,8 +187,9 @@ export const NODES: Record<string, DialogueNode> = {
     lines: [
       { by: 'narration', text: 'お紺が手を振ると、お春が駆けてきた。包みを大事そうに抱えて、米屋のほうへ走っていく。' },
       { by: 'okon', text: '……あの弁当箱はね、金次さんのお父っつぁんが、うちで最初に買ってくれた品なんだよ。' },
-      { by: 'okon', text: 'お父っつぁんが亡くなってからも、金次さんは毎年、塗り直しに持ってくる。だから、いい加減な包みでは返せなくてね。ありがとう、少しだけど手間賃だよ。' },
-      { by: 'narration', text: '二十四文を受け取った。絵巻帳に、二頁目が残った。' },
+      { by: 'okon', text: 'お父っつぁんが亡くなってからも、金次さんは毎年、塗り直しに持ってくる。だから、いい加減な包みでは返せなくてね。' },
+      { by: 'okon', text: 'ありがとう。少しだけど、手間賃だよ。', reward: true },
+      { by: 'narration', text: '二十四文を受け取った。絵巻帳に、二頁目が残った。', reward: true },
     ],
   },
   'kinji.receive': {
@@ -196,8 +203,9 @@ export const NODES: Record<string, DialogueNode> = {
       { by: 'kinji', text: 'ん？ その包み……お紺さんとこのか！' },
       { by: 'narration', text: '包みをほどくと、塗り直された弁当箱が朝の光をはね返した。' },
       { by: 'kinji', text: '親父の代からの弁当箱だ。剥げてたところが、すっかりきれいになってら。' },
-      { by: 'kinji', text: 'よし、今日の昼はこいつで食うぞ。わざわざありがとよ。これ、取っといてくんな。' },
-      { by: 'narration', text: '二十四文を受け取った。絵巻帳に、二頁目が残った。' },
+      { by: 'kinji', text: 'よし、今日の昼はこいつで食うぞ。わざわざありがとよ。' },
+      { by: 'kinji', text: 'これ、取っといてくんな。', reward: true },
+      { by: 'narration', text: '二十四文を受け取った。絵巻帳に、二頁目が残った。', reward: true },
     ],
   },
   'okon.done': {
@@ -250,6 +258,7 @@ export const NODES: Record<string, DialogueNode> = {
       { by: 'oharu', text: 'ありがとうございます！ 茶店の喜助さんなら、何か知っているかもしれません。' },
       { by: 'narration', text: '茶店「喜の字」へ。喜助に声をかけてみよう。' },
     ],
+    recallNext: 'kisuke.lost',
   },
   'oharu.waiting': {
     lines: [{ by: 'oharu', text: '喜助さんのところ、どうでした？ わたし、もう一度このあたりを見てきます。' }],
@@ -289,6 +298,7 @@ export const NODES: Record<string, DialogueNode> = {
       { by: 'kisuke', text: 'うん、こっちだ。固い結び目、ご隠居の癖だよ。お春ちゃんに届けてやっておくれ。' },
       { by: 'narration', text: '波の柄の手拭いを預かった。' },
     ],
+    recallNext: 'oharu.return',
   },
   'kisuke.waiting3': {
     lines: [{ by: 'kisuke', text: 'お春ちゃんなら、さっきまでそこの通りにいたよ。' }],
@@ -300,7 +310,7 @@ export const NODES: Record<string, DialogueNode> = {
       { by: 'oharu', text: 'これです！ この波の柄……ああ、よかった。' },
       { by: 'oharu', text: 'これ、ご隠居さまの亡くなったおかみさんが、はじめて自分で染めた手拭いなんです。' },
       { by: 'oharu', text: '色はすっかり褪せたけど、毎朝それで汗を拭くのが、おかみさんと散歩してる気分なんだって。……わたし、走って届けてきます。' },
-      { by: 'narration', text: '十八文を受け取った。絵巻帳に、三頁目が残った。' },
+      { by: 'narration', text: '十八文を受け取った。絵巻帳に、三頁目が残った。', reward: true },
     ],
   },
   'oharu.done3': {
@@ -309,6 +319,18 @@ export const NODES: Record<string, DialogueNode> = {
   'kisuke.done3': {
     lines: [{ by: 'kisuke', text: '手拭い、無事に戻ったってね。今度来たら、一杯おごるよ。' }],
   },
+};
+
+// After a story, the person can be talked with a little more (即興のひとこと).
+for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done']) {
+  NODES[id].choices = [{ label: '少し話す', talk: true }];
+}
+
+/** Where each finished story is replayed from in 回想. */
+export const RECALL_START: Record<string, string> = {
+  kaze: 'kaze.pressed',
+  dougu: 'okon.ask',
+  tenugui: 'oharu.ask',
 };
 
 /** Which node a person opens with: the first rule that holds (spec §8 五状態). */
