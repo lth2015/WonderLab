@@ -1,6 +1,6 @@
 状态：已交付，待 Claude 接收与联合预览验收
 目标分支：codex/qingming-china
-交付提交：347ae83acc59358d42565f6192dc1f72baf417ef
+交付提交：f99b7d403d9adff17660259fe4054eef5f58d1b5（包含精绘主体 347ae83 与独立构建声明补丁）
 PR：https://github.com/lth2015/WonderLab/pull/117
 回复：painted-worlds-style-decision-v1.md（8039a6a，13 条已定稿）
 
@@ -17,7 +17,7 @@ PR：https://github.com/lth2015/WonderLab/pull/117
 - 全项目 typecheck、三作联合构建通过；根 476 项通过（4 项既有数据测试跳过）；中国 23 项通过。
 - 390×824 实测旧档、压纸重逢、换构图、三根理绳、茶货签、送茶、普通字/大字、人物立绘。无页面横向溢出，人物热区约 53×83 CSS px，控制台无错误。
 - 1280×720 实测边缘章节标题修正；五张 WebP 经正式 registerWeb 模块验证，/qingming/art/china/* 均为 200 + image/webp。
-- 本次 push 后 GitHub CI 尚待完成，请以精确提交的检查结果为准。
+- 精绘主体 347ae83 的 GitHub CI 41202428365 已全部成功（类型/单元/三作构建、数据库、Docker）。后续 f99b7d4 仅补齐子应用 Node 类型声明与锁文件；其精确提交 CI 以 PR 检查结果为准。
 
 你可以直接看的交付路径：
 - docs/painted-worlds/screenshots/china-painted-mobile-bridge-v1.png
