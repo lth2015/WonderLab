@@ -288,6 +288,74 @@
       "reference": "edo-segment-09-v1.png",
       "prompt": "edo-segment-10-v1.prompt.txt",
       "review": "No people, lettering or animals. Pottery shelves, unused low wheel, cooper's vats and bamboo shelter; canal recedes through left alley. Main dry street and stone curb continue. Native small ceramic shapes and tools visually checked; exact seam and foot anchors pending integration."
+    },
+    {
+      "section": 11,
+      "title": "染坊与晾晒小院",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-11-v1.png",
+        "width": 1862,
+        "height": 845,
+        "bytes": 3520865,
+        "alpha": false,
+        "sha256": "1d923791ef09d2b1edc7598a0f6a14ccc5c01acfb8b85261d4154b8217c17fde"
+      },
+      "webp": {
+        "file": "edo-segment-11-v1.webp",
+        "quality": 94,
+        "bytes": 767256
+      },
+      "world": {
+        "x": 9936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 10000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 250.17142857142858,
+        "y": 0,
+        "width": 1361.6571428571428,
+        "height": 845
+      },
+      "reference": "edo-segment-10-v1.png",
+      "prompt": "edo-segment-11-v1.prompt.txt",
+      "review": "No background people, animals or lettering. Old wooden dye vats, plain indigo cloth, open courtyard gate and residential garden transition. Wider native aspect than requested recorded; recommended crop is optional, verify full original against adjacent segment before cutting."
+    },
+    {
+      "section": 12,
+      "title": "住家巷道与菜圃",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-12-v1.png",
+        "width": 1591,
+        "height": 988,
+        "bytes": 3673298,
+        "alpha": false,
+        "sha256": "a37267536f04d51a2099ebea9d8946f703f123f45cb677179ded97e093be4810"
+      },
+      "webp": {
+        "file": "edo-segment-12-v1.webp",
+        "quality": 94,
+        "bytes": 780686
+      },
+      "world": {
+        "x": 10936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 11000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 0,
+        "y": 0.33865248226948097,
+        "width": 1591,
+        "height": 987.322695035461
+      },
+      "reference": "edo-segment-11-v1.png",
+      "prompt": "edo-segment-12-v1.prompt.txt",
+      "review": "No background people, animals or letters. Two modest Japanese homes, sandals at thresholds, vegetable gardens, sloping side lane and open garden-gate right transition. Main street stays dry; actual continuous foot anchors need game placement review."
     }
   ]
 }
