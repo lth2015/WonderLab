@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
-import { NODES, ON_CLOSE } from './content/script';
-import { AMBIENT, HOTSPOTS, ROLES, characterById, kazeComposition, type Subject } from './content/world';
+import { NODES, ON_CLOSE, RECALL_START } from './content/script';
+import { AMBIENT, AMBIENT_LABEL, HOTSPOTS, ROLES, characterById, kazeComposition, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
-import { addPage, apply, hasFlag, questState } from './engine/state';
+import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
+import { reachedTimes, TIMES, timeOf } from './engine/time';
 import { Street, type StreetApi } from './scene/Street';
 import { Journal } from './ui/Journal';
 import { Settings } from './ui/Settings';
@@ -12,6 +13,8 @@ import { Sketch } from './ui/Sketch';
 import { Wrap } from './ui/Wrap';
 import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
+import { Talk } from './ui/Talk';
+import { TALK_STORIES } from './content/talkStories';
 import { posesFor } from './scene/painted';
 
 type Panel = 'journal' | 'items' | 'nearby' | 'settings' | null;
@@ -29,15 +32,18 @@ const memoryStore = { getItem: () => null, setItem: () => {} };
 export function App() {
   const [boot] = useState<LoadResult>(() => load(storage() ?? memoryStore));
   const [save, setSaveRaw] = useState<SaveData>(boot.save);
+  const saveRef = useRef(save);
   // A save from a newer version is left untouched (engine/save.ts).
   const writable = useRef(boot.kind !== 'newer');
   const setSave = useCallback((next: SaveData) => {
+    // the ref moves at once: two writes in one tick (a "met" flag, then the
+    // dialogue's own effects) must build on each other, not on the last render
+    saveRef.current = next;
     setSaveRaw(next);
     // Recorded as soon as progress is decided (spec §19 保存).
     if (writable.current) persist(storage() ?? memoryStore, next);
   }, []);
-  const saveRef = useRef(save);
-  saveRef.current = save;
+
   const commit = useCallback((effects: Effect[]) => setSave(apply(saveRef.current, effects)), [setSave]);
 
   const [entered, setEntered] = useState(false);
@@ -45,6 +51,9 @@ export function App() {
   const [dialogue, setDialogue] = useState<{ node: string; line: number } | null>(null);
   const [candidates, setCandidates] = useState<HotspotDef[] | null>(null);
   const [sketch, setSketch] = useState<Subject | null>(null);
+  const [talk, setTalk] = useState<string | null>(null);
+  const [zoomed, setZoomed] = useState(false);
+  const [timeMenu, setTimeMenu] = useState(false);
   const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui'; then: string | null } | null>(null);
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
@@ -60,7 +69,7 @@ export function App() {
   const lastActivity = useRef(performance.now());
 
   const reduceMotion = save.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const busy = !!(dialogue || candidates || sketch || game || panel);
+  const busy = !!(dialogue || candidates || sketch || game || panel || talk);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--text-scale', String(save.settings.textScale));
@@ -74,13 +83,40 @@ export function App() {
   }, [toast]);
 
   // ---------------------------------------------------------------- dialogue
+  // 回想: replaying a finished story. Nothing it says changes money, flags or quests.
+  const [recall, setRecallState] = useState<string | null>(null);
+  const recallRef = useRef<string | null>(null);
+  const setRecall = (q: string | null) => {
+    recallRef.current = q;
+    setRecallState(q);
+  };
+
   const openNode = useCallback(
     (id: string) => {
       const n = NODES[id];
       if (!n) return setDialogue(null);
-      let next = n.effects ? apply(saveRef.current, n.effects) : saveRef.current;
+      const inRecall = !!recallRef.current;
+      // a node that is only about being paid is passed over in 回想
+      if (inRecall && linesOf(n, true).length === 0) {
+        if (n.next) return openNode(n.next);
+        recallRef.current = null;
+        setRecallState(null);
+        return setDialogue(null);
+      }
+      let next = n.effects && !inRecall ? apply(saveRef.current, n.effects) : saveRef.current;
       // a node may leave a journal page: made once, kept even if the dialogue is closed early
-      if (n.page) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId, titleStyle: 'plain', madeAt: new Date().toISOString() });
+      if (n.page && !inRecall) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId, titleStyle: 'plain', madeAt: new Date().toISOString() });
+      if (inRecall) {
+        // a memory is not where the player stands: bring the speaker into view
+        const who = linesOf(n, true).find((l) => l.by !== 'narration')?.by;
+        const spot = who && HOTSPOTS.find((h) => h.id === `h-${who}`);
+        if (spot) street.current?.focus(spot.anchor.x);
+      }
+      if (n.page && inRecall) {
+        const before = next;
+        next = addRecallPage(next, n.page.pageId, n.page.compositionId);
+        if (next !== before) setToast('回想のなかで、もう一枚の頁が残った。');
+      }
       if (next !== saveRef.current) setSave(next);
       setDialogue({ node: id, line: 0 });
     },
@@ -116,14 +152,35 @@ export function App() {
   );
 
   const closeDialogue = () => {
+    if (recallRef.current) {
+      const goOn = dialogue && NODES[dialogue.node].recallNext;
+      if (goOn) return openNode(goOn);
+      setRecall(null);
+      setDialogue(null);
+      return;
+    }
     if (dialogue && ON_CLOSE[dialogue.node]) commit(ON_CLOSE[dialogue.node]);
     setDialogue(null);
+  };
+
+  /** Leaves 回想 from anywhere (a choice to walk away, a game closed early). */
+  const endRecall = () => {
+    setRecall(null);
+    setDialogue(null);
+  };
+
+  const startRecall = (quest: string) => {
+    const start = RECALL_START[quest];
+    if (!start) return;
+    setPanel(null);
+    setRecall(quest);
+    openNode(start);
   };
 
   const advance = () => {
     if (!dialogue) return;
     const n = NODES[dialogue.node];
-    if (dialogue.line < n.lines.length - 1) return setDialogue({ ...dialogue, line: dialogue.line + 1 });
+    if (dialogue.line < linesOf(n, !!recall).length - 1) return setDialogue({ ...dialogue, line: dialogue.line + 1 });
     if (n.choices) return;
     if (n.next) return openNode(n.next);
     closeDialogue();
@@ -131,19 +188,40 @@ export function App() {
 
   const choose = (i: number) => {
     const c = NODES[dialogue!.node].choices![i];
-    if (c.effects) commit(c.effects);
+    if (c.effects && !recallRef.current) commit(c.effects);
+    if (c.talk) {
+      const n = NODES[dialogue!.node];
+      if (ON_CLOSE[dialogue!.node]) commit(ON_CLOSE[dialogue!.node]);
+      setDialogue(null);
+      setTalk(n.lines.find((l) => l.by !== 'narration')?.by ?? null);
+      return;
+    }
     if (c.sketch) {
       setDialogue(null);
       setSketch(c.sketch);
     } else if (c.game) {
       setDialogue(null);
       setGame({ id: c.game, then: c.next ?? null });
-    } else if (c.next) openNode(c.next);
-    else closeDialogue();
+    } else if (c.next) {
+      // in 回想, turning the request down simply ends the memory
+      if (recallRef.current && /declined$/.test(c.next)) return endRecall();
+      openNode(c.next);
+    } else closeDialogue();
   };
 
   const finishSketch = (subject: Subject, framing: 'near' | 'wide', titleStyle: string) => {
     const now = new Date();
+    if (recallRef.current) {
+      const before = saveRef.current;
+      const s = addRecallPage(before, 'p01-kaze', kazeComposition(subject, framing), titleStyle, now);
+      if (s !== before) {
+        setSave(s);
+        setToast('回想のなかで、もう一枚の頁が残った。');
+      }
+      setSketch(null);
+      openNode(`kaze.after.${subject}`);
+      return;
+    }
     let s = addPage(saveRef.current, { pageId: 'p01-kaze', compositionId: kazeComposition(subject, framing), titleStyle, madeAt: now.toISOString() });
     s = apply(s, [{ type: 'setFlag', flag: 'kaze_page' }, { type: 'questState', quest: 'kaze', state: 'ready' }], now);
     setSave(s);
@@ -178,22 +256,60 @@ export function App() {
   };
 
   const spots = useMemo(() => visibleSpots(save), [save]);
+  const tod = timeOf(save);
+  const reached = reachedTimes(save);
+  // when a story's end moves the day on, say so once
+  const lastTime = useRef(tod);
+  useEffect(() => {
+    if (lastTime.current !== tod && save.settings.timeChoice === 'auto' && reached.indexOf(tod) > reached.indexOf(lastTime.current)) {
+      const line = TIMES.find((t) => t.id === tod)!.arrive;
+      if (line) setTimeout(() => setToast(line), 600);
+    }
+    lastTime.current = tod;
+  }, [tod]);
   const node = dialogue ? NODES[dialogue.node] : null;
-  const line = node?.lines[dialogue!.line];
-  const atLast = node && dialogue!.line === node.lines.length - 1;
+  const shown = node ? linesOf(node, !!recall) : [];
+  const line = shown[dialogue?.line ?? 0];
+  const atLast = node && dialogue!.line === shown.length - 1;
   const hasProgress = save.progress.flags.length > 0;
 
   return (
     <div className="app">
       <header className="top">
         <span className="place">日本橋北詰</span>
-        <span className="time">朝</span>
+        {reached.length > 1 ? (
+          <button type="button" className="time ghost" aria-expanded={timeMenu} onClick={() => setTimeMenu((m) => !m)}>
+            {TIMES.find((t) => t.id === tod)!.label}
+          </button>
+        ) : (
+          <span className="time">{TIMES.find((t) => t.id === tod)!.label}</span>
+        )}
+        {timeMenu && (
+          <div className="time-menu" role="menu" aria-label="時間帯">
+            {TIMES.filter((t) => reached.includes(t.id)).map((t) => (
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={tod === t.id}
+                key={t.id}
+                onClick={() => {
+                  // the latest reached time means "follow the story" again
+                  const choice = t.id === reached[reached.length - 1] ? 'auto' : t.id;
+                  setSave({ ...save, settings: { ...save.settings, timeChoice: choice }, updatedAt: new Date().toISOString() });
+                  setTimeMenu(false);
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
         <button type="button" className="ghost" onClick={() => setPanel('settings')}>
           設定
         </button>
       </header>
 
-      <main className="stage">
+      <main className={`stage tod-${tod}`}>
         <Street
           apiRef={street}
           spots={spots}
@@ -201,7 +317,8 @@ export function App() {
           reacting={reacting}
           reduceMotion={reduceMotion}
           interactive={entered && !busy}
-          talking={!!(dialogue || candidates)}
+          talking={!!(dialogue || candidates || talk)}
+          zoomed={zoomed}
           onTap={onTap}
           onActivity={activity}
         />
@@ -225,6 +342,12 @@ export function App() {
             </button>
             <p className="note">『熈代勝覧』に着想を得た創作です。人物・店・出来事は創作です。</p>
           </section>
+        )}
+
+        {entered && !busy && (
+          <button type="button" className="zoom-btn" aria-pressed={zoomed} onClick={() => setZoomed((z) => !z)}>
+            {zoomed ? 'もとに戻す' : '近くで見る'}
+          </button>
         )}
 
         {hint && !busy && (
@@ -269,7 +392,8 @@ export function App() {
       )}
 
       {node && line && (
-        <div className="sheet dialogue" role="dialog" aria-live="polite" aria-label="会話">
+        <div className={`sheet dialogue${recall ? ' recall' : ''}`} role="dialog" aria-live="polite" aria-label={recall ? '回想' : '会話'}>
+          {recall && <p className="recall-tag">回想　— 文は増えません</p>}
           {line.by !== 'narration' && (
             <p className="speaker">
               {characterById.get(line.by)?.displayName}
@@ -291,27 +415,33 @@ export function App() {
             </button>
           )}
           {atLast && node.choices && (
-            <button type="button" className="ghost" onClick={closeDialogue}>
-              町に戻る
+            <button type="button" className="ghost" onClick={recall ? endRecall : closeDialogue}>
+              {recall ? '回想を閉じる' : '町に戻る'}
             </button>
           )}
         </div>
       )}
 
+      {talk && (
+        <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} onClose={() => setTalk(null)} />
+      )}
       {game && (() => {
         const done = () => {
           const then = game.then;
           setGame(null);
           if (then) openNode(then);
         };
-        const cancel = () => setGame(null);
+        const cancel = () => {
+          setGame(null);
+          if (recallRef.current) endRecall();
+        };
         if (game.id === 'wrap') return <Wrap onDone={done} onCancel={cancel} />;
         if (game.id === 'tea') return <Tea onDone={done} onCancel={cancel} />;
         return <Tenugui onDone={done} onCancel={cancel} />;
       })()}
-      {sketch && <Sketch subject={sketch} onDone={finishSketch} onCancel={() => setSketch(null)} reduceMotion={reduceMotion} />}
+      {sketch && <Sketch subject={sketch} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}
 
-      {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} />}
+      {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} />}
       {panel === 'items' && (
         <div className="panel" role="dialog" aria-labelledby="items-h">
           <h2 id="items-h">持ち物</h2>
@@ -402,28 +532,9 @@ export function App() {
   );
 }
 
-const AMBIENT_LABEL: Record<string, string> = {
-  'noren-aoba': '青葉屋の暖簾',
-  'noren-kure': 'くれ竹の暖簾',
-  lantern: '辻行灯',
-  brooms: '荒物屋の竹箒',
-  steam: '茶店の湯気',
-  barrel: '路地の天水桶',
-  giboshi: '橋の擬宝珠',
-  willow: '川端の柳',
-  boat: '川の荷舟',
-  ladder: '屋根の梯子',
-  timber: '材木置き場',
-  sake: '酒屋の杉玉',
-  umbrellas: '傘屋の番傘',
-  tower: '火の見櫓',
-  well: '路地の井戸',
-  cooper: '桶屋の箍',
-  medicine: '薬種屋の薬袋',
-  prints: '絵草紙屋の錦絵',
-  kido: '町木戸',
-  ootana: '大店の暖簾',
-  kura: '土蔵',
-  inari: '路地奥の鳥居',
-  ceramics: '瀬戸物屋の棚',
-};
+/** The lines a node shows; in 回想 the ones about being paid are left out. */
+function linesOf(n: (typeof NODES)[string], inRecall: boolean) {
+  return inRecall ? n.lines.filter((l) => !l.reward) : n.lines;
+}
+
+

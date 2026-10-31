@@ -14,7 +14,7 @@ export function newSave(now = new Date()): SaveData {
     progress: { quests: {}, flags: [], familiarity: {} },
     wallet: { currencyId: 'mon', balanceMinor: STARTING_MON, grantedRewardIds: [] },
     journal: { pages: [] },
-    settings: { reduceMotion: false, textScale: 1 },
+    settings: { reduceMotion: false, textScale: 1, timeChoice: 'auto' },
   };
 }
 
@@ -89,4 +89,19 @@ export function addPage(s: SaveData, entry: JournalEntry): SaveData {
   next.journal.pages.push(entry);
   next.updatedAt = entry.madeAt;
   return next;
+}
+
+/**
+ * 回想 (spec §9: 後の回想で別の頁を補える). Replaying a finished story never
+ * changes money, flags or quests. A page it reaches is kept only when it shows
+ * something not yet in the journal: the other ending, or another composition,
+ * saved once as `<pageId>-b`. Seeing the same thing again adds nothing.
+ */
+export function addRecallPage(s: SaveData, pageId: string, compositionId: string, titleStyle = 'plain', now = new Date()): SaveData {
+  const pages = s.journal.pages;
+  const first = pages.find((p) => p.pageId === pageId);
+  if (!first) return s; // recall is only offered after the story is done
+  const alt = `${pageId}-b`;
+  if (first.compositionId === compositionId || pages.some((p) => p.pageId === alt)) return s;
+  return addPage(s, { pageId: alt, compositionId, titleStyle, madeAt: now.toISOString() });
 }

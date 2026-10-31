@@ -2,7 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, u
 import type { HotspotDef } from '../contract';
 import { SCENE, SCENE_H, SCENE_W } from '../content/world';
 import { clampCamera, isDrag, resolveTap } from '../engine/hit';
-import { FAR, PaintedStreet, SECTIONS, type Poses } from './painted';
+import { PaintedStreet, SCENE_X0, SECTIONS, type Poses } from './painted';
 
 export interface StreetApi {
   /** Brings scene x to the middle of the view (≤300 ms, instant when motion is reduced). */
@@ -19,39 +19,61 @@ export interface StreetProps {
   interactive: boolean;
   /** A conversation is open: lift the street so the people stay above the sheet (spec §7 会話). */
   talking: boolean;
+  /** 詳しく見る (spec §7): twice as close; leaving it returns to where the player was. */
+  zoomed: boolean;
   onTap(hits: HotspotDef[]): void;
   onActivity(): void;
 }
 
-const START_X = 8560;
+const START_X = 12505;
 /** The painting's top is empty sky (where the far layer shows); this much is left off-screen. */
-const TOP = 130;
+const TOP = 40;
 const NEAR_H = SCENE_H + 600; // the road goes on below the picture on tall screens
 
-export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, onTap, onActivity }: StreetProps) {
+/** The scene y at the top of the view: the empty sky is cut at zoom 1; close up, the street stays in the middle. */
+function topFor(zoom: number, s: number, h: number): number {
+  if (zoom === 1) return TOP;
+  const viewH = h / s;
+  return Math.max(0, Math.min(SCENE_H - viewH, ZOOM_FOCUS_Y - viewH * 0.55));
+}
+
+/** Close-up: how much nearer, and the height (scene units) kept near the middle of the view. */
+const ZOOM = 2;
+const ZOOM_FOCUS_Y = 470;
+
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity }: StreetProps) {
   const box = useRef<HTMLDivElement>(null);
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const cam = useRef<number | null>(null); // left edge, scene units
   const size = useRef({ w: 0, h: 0, scale: 1 });
   const anim = useRef(0);
+  // the zoom has its own frame loop: a touch or a focus during it must not freeze it half way
+  const zoomAnim = useRef(0);
   const [scale, setScale] = useState(1);
+  const base = useRef(1); // scale at zoom 1
+  const top = useRef(TOP); // scene y at the top of the view
+  const zoomNow = useRef(1);
+  const savedCenter = useRef<number | null>(null);
   // sections drawn: the ones in view and one either side (loaded by section, decision #14)
-  const [sections, setSections] = useState<[number, number]>([7, 8]);
+  const [sections, setSections] = useState<[number, number]>([SECTIONS - 3, SECTIONS - 1]);
 
   const paint = useCallback(() => {
     const s = size.current.scale;
     const x = cam.current ?? 0;
-    if (box.current) box.current.dataset.cam = x.toFixed(1); // read by the browser checks
+    if (box.current) {
+      box.current.dataset.cam = x.toFixed(1); // read by the browser checks
+      box.current.dataset.top = top.current.toFixed(1);
+    }
     SCENE.layers.forEach((l, i) => {
       const el = layers.current[i];
-      if (el) el.style.transform = `translate3d(${-x * l.depth * s}px,${-TOP * s}px,0) scale(${s})`;
+      if (el) el.style.transform = `translate3d(${-x * l.depth * s}px,${-top.current * s}px,0) scale(${s})`;
     });
   }, []);
 
   const setCam = useCallback(
     (x: number) => {
       const viewW = size.current.w / size.current.scale;
-      cam.current = clampCamera(x, viewW, SCENE_W);
+      cam.current = Math.max(SCENE_X0, clampCamera(x, viewW, SCENE_W));
       paint();
       const from = Math.max(0, Math.floor(cam.current / 1000) - 1);
       const to = Math.min(SECTIONS - 1, Math.floor((cam.current + viewW) / 1000) + 1);
@@ -68,8 +90,10 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
       // Fill the height on wide screens; on a phone keep about 560 units of
       // street in view (about 400 units: the painted section rewards a closer look) (the paper shop, its clerk and the master together)
       // and let the road continue below the picture.
-      const s = Math.max(0.5, Math.min(h / (SCENE_H - TOP), w / 340));
+      base.current = Math.max(0.5, Math.min(h / (SCENE_H - TOP), w / 340));
+      const s = base.current * zoomNow.current;
       size.current = { w, h, scale: s };
+      top.current = topFor(zoomNow.current, s, h);
       setScale(s);
       // First view: by the bridge on the right, where the scroll begins,
       // with the paper shop in sight.
@@ -81,12 +105,48 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     return () => ro.disconnect();
   }, [setCam]);
 
+  // 詳しく見る: scale, top and the centre move together over ≤300 ms
+  useEffect(() => {
+    const target = zoomed ? ZOOM : 1;
+    if (target === zoomNow.current) return;
+    cancelAnimationFrame(zoomAnim.current);
+    const { w, h } = size.current;
+    const s0 = size.current.scale;
+    const top0 = top.current;
+    const c0 = (cam.current ?? 0) + w / s0 / 2;
+    if (zoomed) savedCenter.current = c0;
+    const c1 = zoomed ? c0 : (savedCenter.current ?? c0);
+    const s1 = base.current * target;
+    const top1 = topFor(target, s1, h);
+    zoomNow.current = target;
+    const apply = (k: number) => {
+      const e = 1 - (1 - k) ** 3;
+      const s = s0 + (s1 - s0) * e;
+      size.current = { ...size.current, scale: s };
+      top.current = top0 + (top1 - top0) * e;
+      setCam(c0 + (c1 - c0) * e - w / s / 2);
+    };
+    if (reduceMotion) {
+      apply(1);
+      setScale(s1);
+      return;
+    }
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / 300);
+      apply(k);
+      if (k < 1) zoomAnim.current = requestAnimationFrame(step);
+      else setScale(s1);
+    };
+    zoomAnim.current = requestAnimationFrame(step);
+  }, [zoomed, reduceMotion, setCam]);
+
   useImperativeHandle(
     apiRef,
     () => ({
       focus(x: number) {
         cancelAnimationFrame(anim.current);
-        const target = clampCamera(x - size.current.w / size.current.scale / 2, size.current.w / size.current.scale, SCENE_W);
+        const target = Math.max(SCENE_X0, clampCamera(x - size.current.w / size.current.scale / 2, size.current.w / size.current.scale, SCENE_W));
         const from = cam.current ?? 0;
         if (reduceMotion || Math.abs(target - from) < 1) return setCam(target);
         const t0 = performance.now();
@@ -107,7 +167,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   const toScene = (clientX: number, clientY: number) => {
     const r = box.current!.getBoundingClientRect();
     const s = size.current.scale;
-    return { x: (cam.current ?? 0) + (clientX - r.left) / s, y: TOP + (clientY - r.top) / s };
+    return { x: (cam.current ?? 0) + (clientX - r.left) / s, y: top.current + (clientY - r.top) / s };
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -150,7 +210,13 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     }
   };
 
-  useEffect(() => () => cancelAnimationFrame(anim.current), []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(anim.current);
+      cancelAnimationFrame(zoomAnim.current);
+    },
+    [],
+  );
 
   const layerStyle = (w: number): React.CSSProperties => ({ width: w, height: SCENE_H, transformOrigin: '0 0' });
 
@@ -170,13 +236,10 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
       data-scale={scale.toFixed(3)}
     >
       <div className={talking ? 'pan talking' : 'pan'}>
-      {/* far: the painted distant view (its own layer, style decision #6) */}
-      <div className="layer" ref={(el) => void (layers.current[0] = el)} style={layerStyle(FAR.w * 2)}>
-        <svg width={FAR.w * 2} height={SCENE_H} viewBox={`0 0 ${FAR.w * 2} ${SCENE_H}`} aria-hidden="true">
-          <rect width={FAR.w * 2} height={SCENE_H} fill="#e1cfa6" />
-          {/* raised so the distant roofs show just above the street's rooftops */}
-          <image href={FAR.href} x={0} y={-110} width={FAR.w} height={FAR.h} preserveAspectRatio="none" />
-          <image href={FAR.href} x={-2 * FAR.w} y={-110} width={FAR.w} height={FAR.h} preserveAspectRatio="none" transform="scale(-1 1)" />
+      {/* far: the distant town is in the painting itself; this layer is the paper behind it */}
+      <div className="layer" ref={(el) => void (layers.current[0] = el)} style={layerStyle(SCENE_W)}>
+        <svg width={SCENE_W} height={SCENE_H} viewBox={`0 0 ${SCENE_W} ${SCENE_H}`} aria-hidden="true">
+          <rect width={SCENE_W} height={SCENE_H} fill="#e9ddbd" />
         </svg>
       </div>
 
@@ -199,12 +262,12 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
           {/* below the picture on tall screens: the painted road simply goes on */}
           <defs>
             <linearGradient id="road-on" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#bba683" stopOpacity={0} />
-              <stop offset="1" stopColor="#bba683" stopOpacity={1} />
+              <stop offset="0" stopColor="#8f897b" stopOpacity={0} />
+              <stop offset="1" stopColor="#8f897b" stopOpacity={1} />
             </linearGradient>
           </defs>
           <rect x={0} y={SCENE_H - 60} width={SCENE_W + 400} height={60} fill="url(#road-on)" />
-          <rect x={0} y={SCENE_H - 1} width={SCENE_W + 400} height={NEAR_H - SCENE_H + 1} fill="#bba683" />
+          <rect x={0} y={SCENE_H - 1} width={SCENE_W + 400} height={NEAR_H - SCENE_H + 1} fill="#8f897b" />
         </svg>
       </div>
       </div>

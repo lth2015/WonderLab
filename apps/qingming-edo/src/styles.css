@@ -794,3 +794,104 @@ button[aria-pressed='true'] {
   font-size: 0.8125rem;
   text-align: center;
 }
+
+/* ---------------------------------------------------------------- 回想 */
+.sheet.dialogue.recall {
+  background: #ece5d3;
+  border-top: 2px solid #b7a37c;
+}
+.recall-tag {
+  margin: 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
+  color: #7a6a4c;
+}
+.recall-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---------------------------------------------------------------- 即興のひとこと */
+.improv-tag {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: #6b7f5a;
+}
+.improv-tag::before {
+  content: '〜 ';
+}
+
+/* Long content (150% text, small screens) scrolls inside the panel; nothing in it
+   may be squashed to make it fit, or lines overlap. */
+.panel > *,
+.sheet > *,
+.guest > *,
+.wrap-step > * {
+  flex-shrink: 0;
+}
+
+/* 詳しく見る */
+.zoom-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  background: rgba(247, 241, 227, 0.92);
+  box-shadow: 0 2px 8px rgba(51, 41, 31, 0.15);
+}
+.zoom-btn[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper-2);
+}
+
+/* keep the toast clear of the close-up button */
+.toast {
+  bottom: 68px;
+}
+
+/* ---------------------------------------------------------------- 朝・昼・夕
+   Interim tones until the shared colour drafts (style decision: no single tint
+   over everything in the final art). Kept light: faces and goods stay legible. */
+.top {
+  position: relative;
+}
+.top .time.ghost {
+  min-width: 44px;
+  padding: 4px 10px;
+  text-decoration: underline dotted;
+  margin-left: 0;
+}
+.time-menu {
+  position: absolute;
+  top: calc(var(--top) + env(safe-area-inset-top) - 4px);
+  left: 112px;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(51, 41, 31, 0.15);
+  z-index: 6;
+}
+.time-menu button[aria-checked='true'] {
+  background: var(--ink);
+  color: var(--paper-2);
+}
+.stage .layer {
+  transition: filter 900ms var(--ease);
+}
+.tod-morning .layer {
+  filter: brightness(1.03) saturate(0.95);
+}
+.tod-noon .layer {
+  filter: brightness(1.06) saturate(1.05) contrast(1.02);
+}
+.tod-evening .layer {
+  filter: sepia(0.28) saturate(1.1) brightness(0.93) hue-rotate(-8deg);
+}
+.tod-evening .layer:first-child {
+  filter: sepia(0.5) saturate(1.4) brightness(0.92) hue-rotate(-14deg);
+}
