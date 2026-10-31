@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "china-river-style-v1",
+  "date": "2026-10-31",
+  "image": "china-river-style-v1.png",
+  "guide": "style-guide-v1.md",
+  "prompt": "china-river-style-v1.prompt.txt",
+  "tool": "image_gen.imagegen",
+  "mode": "built-in generation",
+  "underlyingModel": "not specified by tool result",
+  "referencedImages": [],
+  "size": {
+    "width": 2172,
+    "height": 724
+  },
+  "bytes": 3792494,
+  "sha256": "cbb8d40daf69bfc3a98adc7cc763f182a7300c0f3b2c86a86f6824183c5991ad",
+  "evidenceType": "fiction",
+  "reviewStatus": "style-reference-only",
+  "runtimeIntegrated": false
+}
