@@ -356,6 +356,74 @@
       "reference": "edo-segment-11-v1.png",
       "prompt": "edo-segment-12-v1.prompt.txt",
       "review": "No background people, animals or letters. Two modest Japanese homes, sandals at thresholds, vegetable gardens, sloping side lane and open garden-gate right transition. Main street stays dry; actual continuous foot anchors need game placement review."
+    },
+    {
+      "section": 13,
+      "title": "临水庭院与树荫",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-13-v1.png",
+        "width": 1858,
+        "height": 846,
+        "bytes": 3723483,
+        "alpha": false,
+        "sha256": "40c7535877be05c55bae59947dc4c56b3c2446014eeeb7b229ab4abaa9094b0f"
+      },
+      "webp": {
+        "file": "edo-segment-13-v1.webp",
+        "quality": 94,
+        "bytes": 795064
+      },
+      "world": {
+        "x": 11936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 12000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 247.36571428571426,
+        "y": 0,
+        "width": 1363.2685714285715,
+        "height": 846
+      },
+      "reference": "edo-segment-12-v1.png",
+      "prompt": "edo-segment-13-v1.prompt.txt",
+      "review": "No people, animals or writing. Open Japanese courtyard gate, modest home, sparse blossoms, tea tray, rooted willow and waterside fence. Garden path connects to foreground road; canal returns behind street. Native aspect wider than requested; exact cut and road-height join require integration."
+    },
+    {
+      "section": 14,
+      "title": "安静河岸与卷尾",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-14-v1.png",
+        "width": 1862,
+        "height": 845,
+        "bytes": 3588844,
+        "alpha": false,
+        "sha256": "eba2929252f963bde4ca41587fcead88a2d9c188d6d9e81f6432d83de2894aa3"
+      },
+      "webp": {
+        "file": "edo-segment-14-v1.webp",
+        "quality": 94,
+        "bytes": 759774
+      },
+      "world": {
+        "x": 12936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 13000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 250.17142857142858,
+        "y": 0,
+        "width": 1361.6571428571428,
+        "height": 845
+      },
+      "reference": "edo-segment-13-v1.png",
+      "prompt": "edo-segment-14-v1.prompt.txt",
+      "review": "No people, animals or writing. Willow-rooted soil pockets, bench and empty basket, canal bend and distant low Japanese roofs; dry main path curves naturally toward village. Same diffuse daylight and material treatment. Final native original reviewed; exact13→14 cut and runtime anchors still pending."
     }
   ]
 }
