@@ -9,6 +9,7 @@
 import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import SIZES from '../assets/art/sizes.json';
+import { parseSketch } from '../content/world';
 
 const URLS = import.meta.glob('../assets/art/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
 const url = (name: string) => {
@@ -168,9 +169,18 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
  * starting at (x0, y0), w units wide, fills the page's picture area
  * (40, 40, 520 × 660 in PageArt), with the people of that moment on it.
  */
+/** 朝 a little pale and cool, 昼 as painted, 夕 warm and lower (like the street's CSS filters). */
+const PAGE_TINT: Record<'morning' | 'noon' | 'evening', string | null> = {
+  morning: '1.02 0 0 0 0.01  0 1.03 0 0 0.01  0 0 1.06 0 0.015  0 0 0 1 0',
+  noon: null,
+  evening: '0.97 0.06 0.01 0 0.015  0.03 0.92 0.02 0 0  0.01 0.03 0.82 0 0  0 0 0 1 0',
+};
+
 export function PaintedPageScene({ composition }: { composition: string }) {
-  const view =
-    composition === 'tenugui-return'
+  const sk = parseSketch(composition);
+  const view = sk
+    ? { ...sk.sketch.view, people: [] as { id: SpriteId; x: number; y: number }[] }
+    : composition === 'tenugui-return'
       ? {
           x0: SPOTS.oharu.x - 60,
           y0: 240,
@@ -193,8 +203,15 @@ export function PaintedPageScene({ composition }: { composition: string }) {
         };
   const k = 520 / view.w;
   const first = Math.floor(view.x0 / 1000);
+  // the time it was drawn, as a colour matrix inside the SVG (so a saved PNG keeps it)
+  const tint = sk ? PAGE_TINT[sk.tod] : null;
   return (
-    <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`}>
+    <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`} filter={tint ? `url(#page-tint-${sk!.tod})` : undefined}>
+      {tint && (
+        <filter id={`page-tint-${sk!.tod}`} colorInterpolationFilters="sRGB">
+          <feColorMatrix type="matrix" values={tint} />
+        </filter>
+      )}
       <rect x={view.x0 - 10} y={view.y0 - 10} width={view.w + 20} height={700} fill="#e1cfa6" />
       {STREET.map((href, i) =>
         !href || i < first || i > first + 1 ? null : <image key={i} href={href!} x={i * 1000} y={0} width={1000} height={700} preserveAspectRatio="none" />,

@@ -294,8 +294,7 @@ class SoundEngine {
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vol, t + Math.min(0.01, dur / 4));
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    const p = ctx.createStereoPanner();
-    p.pan.value = pan;
+    const p = this.pan(pan);
     s.connect(f).connect(g).connect(p).connect(out);
     s.start(t, Math.random() * 1.5, dur + 0.05);
   }
@@ -322,6 +321,15 @@ class SoundEngine {
     this.knock(this.bus!.ambient, t, 300 + Math.random() * 80, vol * 0.6, pan);
   }
 
+  /** Left–right placement; plain pass-through where the browser has no panner (Safari before 14.1). */
+  private pan(v: number): AudioNode {
+    const ctx = this.ctx!;
+    if (typeof ctx.createStereoPanner !== 'function') return ctx.createGain();
+    const p = ctx.createStereoPanner();
+    p.pan.value = v;
+    return p;
+  }
+
   private knock(out: AudioNode, t: number, freq: number, vol: number, pan = 0): void {
     const ctx = this.ctx!;
     const o = ctx.createOscillator();
@@ -331,8 +339,7 @@ class SoundEngine {
     const g = ctx.createGain();
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
-    const p = ctx.createStereoPanner();
-    p.pan.value = pan;
+    const p = this.pan(pan);
     o.connect(g).connect(p).connect(out);
     o.start(t);
     o.stop(t + 0.1);
@@ -366,8 +373,7 @@ class SoundEngine {
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(0.035, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
-    const p = ctx.createStereoPanner();
-    p.pan.value = Math.random() * 1.4 - 0.7;
+    const p = this.pan(Math.random() * 1.4 - 0.7);
     o.connect(g).connect(p).connect(this.bus!.ambient);
     o.start(t);
     o.stop(t + 0.1);

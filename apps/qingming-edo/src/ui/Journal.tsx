@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { JournalEntry, SaveData } from '../contract';
-import { PAGE_SLOTS, PAGE_TITLES, parseKaze, questOfPage } from '../content/world';
+import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage } from '../content/world';
+import { TIMES } from '../engine/time';
 import { replayable } from '../engine/story';
 import { PageArt, pageToPng } from '../scene/PageArt';
 import { PaintedPageScene } from '../scene/painted';
@@ -29,7 +30,8 @@ const COMMENT_BY_COMPOSITION: Record<string, string> = {
 
 function comment(entry: JournalEntry): string | null {
   const k = parseKaze(entry.compositionId);
-  return k ? COMMENT[k.subject] : (COMMENT_BY_COMPOSITION[entry.compositionId] ?? null);
+  const sk = parseSketch(entry.compositionId);
+  return k ? COMMENT[k.subject] : sk ? sk.sketch.comment : (COMMENT_BY_COMPOSITION[entry.compositionId] ?? null);
 }
 const CREDIT = '清明上河図：江戸編';
 
@@ -37,7 +39,9 @@ function Page({ entry, idPrefix }: { entry: JournalEntry; idPrefix: string }) {
   const k = parseKaze(entry.compositionId);
   const common = { titleStyle: entry.titleStyle, title: PAGE_TITLES[entry.pageId], credit: CREDIT, idPrefix };
   if (k) return <PageArt subject={k.subject} framing={k.framing} place={PLACE[entry.pageId]} {...common} />;
-  return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={PLACE[entry.compositionId]} {...common} />;
+  const sk = parseSketch(entry.compositionId);
+  const place = sk ? `日本橋・${TIMES.find((t) => t.id === sk.tod)!.label}　${sk.sketch.place}` : PLACE[entry.compositionId];
+  return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={place} {...common} />;
 }
 
 const RECALL_NOTE: Record<string, string> = {
