@@ -822,3 +822,12 @@ button[aria-pressed='true'] {
 .improv-tag::before {
   content: '〜 ';
 }
+
+/* Long content (150% text, small screens) scrolls inside the panel; nothing in it
+   may be squashed to make it fit, or lines overlap. */
+.panel > *,
+.sheet > *,
+.guest > *,
+.wrap-step > * {
+  flex-shrink: 0;
+}
