@@ -101,7 +101,10 @@ export function PaintedLandscape({ state, feedback, center, viewHalf }: { state:
     {actors.map(p => <g key={p.key} className={p.crowd ? 'painted-passer' : 'story-person'}>
       <PaintedPerson id={p.id} x={p.x} y={p.y} height={p.height} pose={p.pose} flip={p.flip}/>
     </g>)}
-    <image href={artUrl(manifest.river.file)} width={WORLD_WIDTH} height={WORLD_HEIGHT} mask="url(#bridge-front-rails)"/>
+    {/* the bridge's front rails drawn again over the people on the deck; the same pixels as the roll's tiles 9–10 */}
+    <g mask="url(#bridge-front-rails)">
+      {[9, 10].map(k => <image key={k} href={artUrl(`scroll/scroll-${String(k).padStart(2, '0')}.webp`)} x={k * TILE - ORIGIN} y={0} width={TILE + 1} height={WORLD_HEIGHT} preserveAspectRatio="none"/>)}
+    </g>
     <Prop kind={state.progress.quests.paper.step > 0 ? 'paper' : 'flutter'} x={2928} y={790} width={95} className={state.progress.quests.paper.step === 0 ? 'paper-breeze' : undefined}/>
     <g fill="#eee4c9" stroke="#94866b" strokeWidth="1">
       <path d="M2685 482v85m-17-74h35v70h-35Z"/>
