@@ -1,0 +1,242 @@
+{
+  "river": {
+    "file": "river-v1.webp",
+    "width": 2172,
+    "height": 724,
+    "hasAlpha": false,
+    "bytes": 619458,
+    "sha256": "aecb8191b8f1cb1759d35fb922b99f8a36c0a53fd5de0f140d6033146cd23515"
+  },
+  "characters": {
+    "file": "characters-v1.webp",
+    "width": 1448,
+    "height": 1086,
+    "hasAlpha": true,
+    "frames": [
+      {
+        "row": 0,
+        "col": 0,
+        "x": 98,
+        "y": 11,
+        "width": 136,
+        "height": 360,
+        "anchorX": 62,
+        "anchorY": 356,
+        "bodyHeight": 354
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "x": 339,
+        "y": 8,
+        "width": 137,
+        "height": 363,
+        "anchorX": 60,
+        "anchorY": 359,
+        "bodyHeight": 357
+      },
+      {
+        "row": 0,
+        "col": 2,
+        "x": 551,
+        "y": 14,
+        "width": 143,
+        "height": 357,
+        "anchorX": 65,
+        "anchorY": 353,
+        "bodyHeight": 351
+      },
+      {
+        "row": 0,
+        "col": 3,
+        "x": 785,
+        "y": 11,
+        "width": 121,
+        "height": 357,
+        "anchorX": 64,
+        "anchorY": 353,
+        "bodyHeight": 351
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "x": 1008,
+        "y": 8,
+        "width": 137,
+        "height": 361,
+        "anchorX": 75,
+        "anchorY": 357,
+        "bodyHeight": 355
+      },
+      {
+        "row": 0,
+        "col": 5,
+        "x": 1239,
+        "y": 6,
+        "width": 136,
+        "height": 363,
+        "anchorX": 62,
+        "anchorY": 359,
+        "bodyHeight": 357
+      },
+      {
+        "row": 1,
+        "col": 0,
+        "x": 51,
+        "y": 388,
+        "width": 219,
+        "height": 334,
+        "anchorX": 73,
+        "anchorY": 330,
+        "bodyHeight": 328
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "x": 318,
+        "y": 383,
+        "width": 168,
+        "height": 338,
+        "anchorX": 77,
+        "anchorY": 334,
+        "bodyHeight": 332
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "x": 533,
+        "y": 388,
+        "width": 211,
+        "height": 333,
+        "anchorX": 85,
+        "anchorY": 329,
+        "bodyHeight": 327
+      },
+      {
+        "row": 1,
+        "col": 3,
+        "x": 772,
+        "y": 391,
+        "width": 197,
+        "height": 329,
+        "anchorX": 75,
+        "anchorY": 325,
+        "bodyHeight": 323
+      },
+      {
+        "row": 1,
+        "col": 4,
+        "x": 999,
+        "y": 387,
+        "width": 219,
+        "height": 334,
+        "anchorX": 78,
+        "anchorY": 330,
+        "bodyHeight": 328
+      },
+      {
+        "row": 1,
+        "col": 5,
+        "x": 1241,
+        "y": 378,
+        "width": 193,
+        "height": 343,
+        "anchorX": 73,
+        "anchorY": 339,
+        "bodyHeight": 338
+      },
+      {
+        "row": 2,
+        "col": 0,
+        "x": 81,
+        "y": 726,
+        "width": 138,
+        "height": 335,
+        "anchorX": 68,
+        "anchorY": 331,
+        "bodyHeight": 329
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "x": 326,
+        "y": 734,
+        "width": 141,
+        "height": 328,
+        "anchorX": 75,
+        "anchorY": 324,
+        "bodyHeight": 322
+      },
+      {
+        "row": 2,
+        "col": 2,
+        "x": 548,
+        "y": 742,
+        "width": 146,
+        "height": 320,
+        "anchorX": 71,
+        "anchorY": 316,
+        "bodyHeight": 314
+      },
+      {
+        "row": 2,
+        "col": 3,
+        "x": 771,
+        "y": 737,
+        "width": 130,
+        "height": 324,
+        "anchorX": 73,
+        "anchorY": 320,
+        "bodyHeight": 318
+      },
+      {
+        "row": 2,
+        "col": 4,
+        "x": 1013,
+        "y": 733,
+        "width": 132,
+        "height": 329,
+        "anchorX": 72,
+        "anchorY": 325,
+        "bodyHeight": 323
+      },
+      {
+        "row": 2,
+        "col": 5,
+        "x": 1238,
+        "y": 733,
+        "width": 139,
+        "height": 328,
+        "anchorX": 76,
+        "anchorY": 324,
+        "bodyHeight": 322
+      }
+    ],
+    "bytes": 501694,
+    "sha256": "b2ade05c95f5556121ab7fa828cc2459bbd2f6daf59e801bd233826127793c01"
+  },
+  "boats": {
+    "file": "boats-v1.webp",
+    "width": 1536,
+    "height": 1024,
+    "hasAlpha": true,
+    "bytes": 431154,
+    "sha256": "e2464b609d531639e7280dda638d973e875a57b1e7eb38de7068ec25d79ba93f"
+  },
+  "willow": {
+    "file": "willow-v1.webp",
+    "width": 1774,
+    "height": 887,
+    "hasAlpha": true,
+    "bytes": 846620,
+    "sha256": "f506647fab8132c7de22f6a0ac46b92710606ca4bbf5e95ecce90943b357c65a"
+  },
+  "props": {
+    "file": "props-v1.webp",
+    "width": 1774,
+    "height": 887,
+    "hasAlpha": true,
+    "bytes": 465930,
+    "sha256": "8faf4a549fe9e70f44e466fde17dd59b3aab593e7ec487b9b83c359c9662557d"
+  }
+}
