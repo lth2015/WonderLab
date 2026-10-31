@@ -38,7 +38,7 @@ const CREDIT = '清明上河図：江戸編';
 function Page({ entry, idPrefix }: { entry: JournalEntry; idPrefix: string }) {
   const k = parseKaze(entry.compositionId);
   const common = { titleStyle: entry.titleStyle, title: PAGE_TITLES[entry.pageId], credit: CREDIT, idPrefix };
-  if (k) return <PageArt subject={k.subject} framing={k.framing} place={PLACE[entry.pageId]} {...common} />;
+  if (k) return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={PLACE[entry.pageId]} {...common} />;
   const sk = parseSketch(entry.compositionId);
   const place = sk ? `日本橋・${TIMES.find((t) => t.id === sk.tod)!.label}　${sk.sketch.place}` : PLACE[entry.compositionId];
   return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={place} {...common} />;
