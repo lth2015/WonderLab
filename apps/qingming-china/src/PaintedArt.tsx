@@ -2,10 +2,12 @@ import { CHARACTERS, type CharacterId } from './content';
 import type { GameState } from './game';
 import manifest from './art-manifest.json';
 import { PERSON_HEIGHT, WORLD_HEIGHT, WORLD_WIDTH, personPosition, personPose } from './layout';
+import { WALKERS } from './walkers';
 
 const artUrl = (file: string) => `${import.meta.env.BASE_URL}art/china/${file}`;
 const people = Object.keys(CHARACTERS) as CharacterId[];
 type Frame = { x: number; y: number; width: number; height: number };
+const deckLine = '0,305 100,276 200,246 300,218 400,201 480,197 560,203 640,222 720,250 800,283 880,316';
 
 // Nested SVG viewports crop an atlas without stretching or copying the source bitmap.
 function Atlas({ asset, frame, x, y, width, height }: {
@@ -58,25 +60,21 @@ function Prop({ kind, x, y, width, className }: { kind: keyof typeof propFrames;
   return <g className={className} transform={`translate(${x} ${y})`}><Atlas asset={manifest.props} frame={frame} x={-width / 2} y={-height} width={width} height={height}/></g>;
 }
 
-// Feet follow the bridge deck and the stone quays, rather than a rectangular grid.
-const passers: { id: CharacterId; x: number; y: number; height: number; flip?: boolean }[] = [
-  { id: 'cheng', x: 135, y: 470, height: 106 }, { id: 'chen', x: 340, y: 391, height: 104, flip: true },
-  { id: 'he', x: 510, y: 347, height: 101 }, { id: 'zhou', x: 710, y: 358, height: 99 },
-  { id: 'shen', x: 904, y: 420, height: 106, flip: true }, { id: 'liu', x: 1100, y: 510, height: 107 },
-  { id: 'chen', x: 1310, y: 566, height: 105 }, { id: 'he', x: 1715, y: 570, height: 100 },
-  { id: 'shen', x: 1980, y: 642, height: 106, flip: true }, { id: 'cheng', x: 2110, y: 628, height: 101 },
-  { id: 'liu', x: 2460, y: 655, height: 102 }, { id: 'zhou', x: 2650, y: 745, height: 113, flip: true },
-  { id: 'he', x: 3090, y: 852, height: 112 }, { id: 'cheng', x: 3500, y: 901, height: 112 },
-];
-
 export function PaintedLandscape({ state, feedback }: { state: GameState; feedback: string }) {
   const boatDone = state.progress.quests.boat.step === 3;
   const delivered = state.progress.route === 'deliver';
   const actors = [
-    ...passers.map((p, i) => ({ ...p, key: `passer-${i}`, pose: 0 as const, crowd: true })),
+    ...WALKERS.map((p, i) => ({ ...p, key: `passer-${i}`, pose: 0 as const, crowd: true })),
     ...people.map(id => ({ ...personPosition(id, state), id, key: id, height: PERSON_HEIGHT, flip: false, pose: personPose(id, state), crowd: false })),
   ].sort((a, b) => a.y - b.y);
   return <svg id="world-art" viewBox={`0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`} xmlns="http://www.w3.org/2000/svg" className="landscape painted-landscape" aria-hidden="true">
+    <defs><mask id="bridge-front-rails" maskUnits="userSpaceOnUse" x="0" y="225" width="1470" height="330">
+      <g transform={`scale(${WORLD_WIDTH / manifest.river.width})`} fill="none" stroke="white" strokeLinejoin="round">
+        <polyline points={deckLine} transform="translate(0 -42)" strokeWidth="4"/>
+        <polyline points={deckLine} transform="translate(0 -26)" strokeWidth="3"/>
+        <polyline points={deckLine} transform="translate(0 -10)" strokeWidth="5"/>
+      </g>
+    </mask></defs>
     <image href={artUrl(manifest.river.file)} width={WORLD_WIDTH} height={WORLD_HEIGHT}/>
     <g className="river-traffic">
       <PaintedBoat kind="small" x={610} y={784} width={270}/>
@@ -91,9 +89,10 @@ export function PaintedLandscape({ state, feedback }: { state: GameState; feedba
     <Prop kind={feedback === 'cat' ? 'catStretch' : 'catSleep'} x={2525} y={775} width={feedback === 'cat' ? 85 : 65}/>
     {delivered && <Prop kind="cargo" x={2378} y={809} width={76}/>}
     {state.progress.tea && <Prop kind="guests" x={2080} y={796} width={190}/>}
-    {actors.map(p => <g key={p.key} className={p.crowd ? `painted-passer passer-${passers.findIndex(a => a.x === p.x) % 8}` : 'story-person'}>
+    {actors.map(p => <g key={p.key} className={p.crowd ? 'painted-passer' : 'story-person'}>
       <PaintedPerson id={p.id} x={p.x} y={p.y} height={p.height} pose={p.pose} flip={p.flip}/>
     </g>)}
+    <image href={artUrl(manifest.river.file)} width={WORLD_WIDTH} height={WORLD_HEIGHT} mask="url(#bridge-front-rails)"/>
     <Prop kind={state.progress.quests.paper.step > 0 ? 'paper' : 'flutter'} x={2928} y={790} width={95} className={state.progress.quests.paper.step === 0 ? 'paper-breeze' : undefined}/>
     <g fill="#eee4c9" stroke="#94866b" strokeWidth="1">
       <path d="M2685 482v85m-17-74h35v70h-35Z"/>

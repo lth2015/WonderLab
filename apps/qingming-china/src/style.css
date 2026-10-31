@@ -13,8 +13,7 @@
 
 /* Painted assets keep their natural palette and one shared feet coordinate system. */
 .painted-landscape{filter:none}.person-hotspot .person-label{bottom:calc(100% + 10px)}
-.painted-passer{animation:painted-stroll 35s ease-in-out infinite;transform-box:fill-box}.painted-passer.passer-1{animation-duration:42s;animation-direction:reverse}.painted-passer.passer-2{animation-duration:48s}.painted-passer.passer-3{animation-duration:31s;animation-direction:reverse}.painted-passer.passer-4{animation-duration:39s}.painted-passer.passer-5{animation-duration:44s;animation-direction:reverse}.painted-passer.passer-6{animation-duration:52s}.painted-passer.passer-7{animation-duration:37s;animation-direction:reverse}
-@keyframes painted-stroll{0%,100%{transform:translateX(-5px)}50%{transform:translateX(8px)}}
+/* Standing sprites stay planted; movement needs a gait and a ground-following path. */
 .painted-willow{animation:painted-willow 12s ease-in-out infinite;transform-origin:3600px 0}.painted-willow.active{animation-duration:2s}@keyframes painted-willow{0%,100%{transform:rotate(-.4deg)}50%{transform:rotate(.7deg)}}
 .paper-breeze{animation:paper-breeze 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}@keyframes paper-breeze{0%,100%{rotate:0deg}45%{rotate:-2deg}}
 .water-rings{animation:water-rings 3s ease-out both;transform-origin:1900px 1010px}@keyframes water-rings{from{opacity:.9;scale:.6}to{opacity:0;scale:1.8}}
