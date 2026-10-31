@@ -5,6 +5,7 @@ import { AMBIENT, HOTSPOTS, ROLES, characterById, kazeComposition, type Subject 
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
+import { reachedTimes, TIMES, timeOf } from './engine/time';
 import { Street, type StreetApi } from './scene/Street';
 import { Journal } from './ui/Journal';
 import { Settings } from './ui/Settings';
@@ -31,15 +32,18 @@ const memoryStore = { getItem: () => null, setItem: () => {} };
 export function App() {
   const [boot] = useState<LoadResult>(() => load(storage() ?? memoryStore));
   const [save, setSaveRaw] = useState<SaveData>(boot.save);
+  const saveRef = useRef(save);
   // A save from a newer version is left untouched (engine/save.ts).
   const writable = useRef(boot.kind !== 'newer');
   const setSave = useCallback((next: SaveData) => {
+    // the ref moves at once: two writes in one tick (a "met" flag, then the
+    // dialogue's own effects) must build on each other, not on the last render
+    saveRef.current = next;
     setSaveRaw(next);
     // Recorded as soon as progress is decided (spec §19 保存).
     if (writable.current) persist(storage() ?? memoryStore, next);
   }, []);
-  const saveRef = useRef(save);
-  saveRef.current = save;
+
   const commit = useCallback((effects: Effect[]) => setSave(apply(saveRef.current, effects)), [setSave]);
 
   const [entered, setEntered] = useState(false);
@@ -49,6 +53,7 @@ export function App() {
   const [sketch, setSketch] = useState<Subject | null>(null);
   const [talk, setTalk] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState(false);
+  const [timeMenu, setTimeMenu] = useState(false);
   const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui'; then: string | null } | null>(null);
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
@@ -251,6 +256,17 @@ export function App() {
   };
 
   const spots = useMemo(() => visibleSpots(save), [save]);
+  const tod = timeOf(save);
+  const reached = reachedTimes(save);
+  // when a story's end moves the day on, say so once
+  const lastTime = useRef(tod);
+  useEffect(() => {
+    if (lastTime.current !== tod && save.settings.timeChoice === 'auto' && reached.indexOf(tod) > reached.indexOf(lastTime.current)) {
+      const line = TIMES.find((t) => t.id === tod)!.arrive;
+      if (line) setTimeout(() => setToast(line), 600);
+    }
+    lastTime.current = tod;
+  }, [tod]);
   const node = dialogue ? NODES[dialogue.node] : null;
   const shown = node ? linesOf(node, !!recall) : [];
   const line = shown[dialogue?.line ?? 0];
@@ -261,13 +277,39 @@ export function App() {
     <div className="app">
       <header className="top">
         <span className="place">日本橋北詰</span>
-        <span className="time">朝</span>
+        {reached.length > 1 ? (
+          <button type="button" className="time ghost" aria-expanded={timeMenu} onClick={() => setTimeMenu((m) => !m)}>
+            {TIMES.find((t) => t.id === tod)!.label}
+          </button>
+        ) : (
+          <span className="time">{TIMES.find((t) => t.id === tod)!.label}</span>
+        )}
+        {timeMenu && (
+          <div className="time-menu" role="menu" aria-label="時間帯">
+            {TIMES.filter((t) => reached.includes(t.id)).map((t) => (
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={tod === t.id}
+                key={t.id}
+                onClick={() => {
+                  // the latest reached time means "follow the story" again
+                  const choice = t.id === reached[reached.length - 1] ? 'auto' : t.id;
+                  setSave({ ...save, settings: { ...save.settings, timeChoice: choice }, updatedAt: new Date().toISOString() });
+                  setTimeMenu(false);
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
         <button type="button" className="ghost" onClick={() => setPanel('settings')}>
           設定
         </button>
       </header>
 
-      <main className="stage">
+      <main className={`stage tod-${tod}`}>
         <Street
           apiRef={street}
           spots={spots}
