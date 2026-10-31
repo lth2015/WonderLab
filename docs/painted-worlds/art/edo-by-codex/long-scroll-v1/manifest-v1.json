@@ -84,6 +84,74 @@
       "reference": "edo-segment-03-v1.png",
       "prompt": "edo-segment-04-v1.prompt.txt",
       "review": "No people, animals or writing. Japanese courtyard, well, plum tree, bamboo fence and open side lane visible. Road remains connected; independently check the crop and curb transition against segment03 before runtime."
+    },
+    {
+      "section": 5,
+      "title": "布店与晒布小院",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-05-v1.png",
+        "width": 1862,
+        "height": 845,
+        "bytes": 3479013,
+        "alpha": false,
+        "sha256": "dd4af16797fda8c8a7270dbe18af18e4869096be45515573005a30b31e57aeb6"
+      },
+      "webp": {
+        "file": "edo-segment-05-v1.webp",
+        "quality": 94,
+        "bytes": 727604
+      },
+      "world": {
+        "x": 3936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 4000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 250.17142857142858,
+        "y": 0,
+        "width": 1361.6571428571428,
+        "height": 845
+      },
+      "reference": "edo-segment-04-v1.png",
+      "prompt": "edo-segment-05-v1.prompt.txt",
+      "review": "No background people, animals or text. Indigo textile shop, russet/indigo cloth yard, dry road, side lane and bamboo transition visible. Cultural forms and restrained palette match accepted master; exact boundary geometry needs integration review."
+    },
+    {
+      "section": 6,
+      "title": "竹木作坊与街边空地",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-06-v1.png",
+        "width": 1591,
+        "height": 988,
+        "bytes": 3396472,
+        "alpha": false,
+        "sha256": "2b7efecb5ee4ab1e661df34df4b5cc8402170564757bb3fd38317011474cf670"
+      },
+      "webp": {
+        "file": "edo-segment-06-v1.webp",
+        "quality": 94,
+        "bytes": 717628
+      },
+      "world": {
+        "x": 4936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 5000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 0,
+        "y": 0.33865248226948097,
+        "width": 1591,
+        "height": 987.322695035461
+      },
+      "reference": "edo-segment-05-v1.png",
+      "prompt": "edo-segment-06-v1.prompt.txt",
+      "review": "No people or lettering. Bamboo/wood workshop, hand tools, low benches, cloth-yard left continuation and rice-bale right transition. Native aspect now matches1128:700 closely; door height and connected pavement visually compatible. Exact seams still need pair review."
     }
   ]
 }
