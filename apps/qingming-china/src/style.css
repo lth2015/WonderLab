@@ -27,3 +27,10 @@
 
 /* Direct camera movement avoids crossing roll tiles outside the loaded view. */
 .world-strip { transition: none; }
+
+.scroll-tour { border-top: 1px solid #d4cdb4; margin-top: 10px; padding-top: 10px; }
+.scroll-tour summary { cursor: pointer; padding: 14px 0; font-size: var(--body-size); color: var(--ink); }
+.scroll-tour p { font-size: var(--body-size); color: #727b64; margin-bottom: 16px; }
+.scroll-tour nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.scroll-tour button { min-height: 48px; min-width: 0; padding: 12px 10px; border: 1px solid #c6c1a8; font-size: var(--body-size); line-height: 1.5; overflow-wrap: anywhere; }
+.scroll-tour button[aria-current="location"] { background: #dce2c9; border-color: #869573; }
