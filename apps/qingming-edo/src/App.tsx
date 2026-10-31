@@ -48,6 +48,7 @@ export function App() {
   const [candidates, setCandidates] = useState<HotspotDef[] | null>(null);
   const [sketch, setSketch] = useState<Subject | null>(null);
   const [talk, setTalk] = useState<string | null>(null);
+  const [zoomed, setZoomed] = useState(false);
   const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui'; then: string | null } | null>(null);
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
@@ -275,6 +276,7 @@ export function App() {
           reduceMotion={reduceMotion}
           interactive={entered && !busy}
           talking={!!(dialogue || candidates || talk)}
+          zoomed={zoomed}
           onTap={onTap}
           onActivity={activity}
         />
@@ -298,6 +300,12 @@ export function App() {
             </button>
             <p className="note">『熈代勝覧』に着想を得た創作です。人物・店・出来事は創作です。</p>
           </section>
+        )}
+
+        {entered && !busy && (
+          <button type="button" className="zoom-btn" aria-pressed={zoomed} onClick={() => setZoomed((z) => !z)}>
+            {zoomed ? 'もとに戻す' : '近くで見る'}
+          </button>
         )}
 
         {hint && !busy && (
