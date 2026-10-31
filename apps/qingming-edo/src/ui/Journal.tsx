@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { JournalEntry, SaveData } from '../contract';
-import { PAGE_SLOTS, PAGE_TITLES, parseKaze } from '../content/world';
+import { PAGE_SLOTS, PAGE_TITLES, parseKaze, questOfPage } from '../content/world';
+import { replayable } from '../engine/story';
 import { PageArt, pageToPng } from '../scene/PageArt';
 import { PaintedPageScene } from '../scene/painted';
 
@@ -14,6 +15,7 @@ const COMMENT: Record<string, string> = {
 };
 const PLACE: Record<string, string> = {
   'p01-kaze': '日本橋北詰・朝　青葉屋の店先',
+  'p01-kaze-b': '日本橋北詰・朝　青葉屋の店先',
   'dougu-deliver': '日本橋・朝　米屋の前',
   'dougu-entrust': '日本橋・朝　くれ竹の店先',
   'tenugui-return': '日本橋・朝　茶店「喜の字」の前',
@@ -38,7 +40,13 @@ function Page({ entry, idPrefix }: { entry: JournalEntry; idPrefix: string }) {
   return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={PLACE[entry.compositionId]} {...common} />;
 }
 
-export function Journal({ save, onClose, onToast }: { save: SaveData; onClose(): void; onToast(t: string): void }) {
+const RECALL_NOTE: Record<string, string> = {
+  kaze: '別のものを描けば、もう一枚の頁が残ります。',
+  dougu: 'もう一つの届け方を選べば、別の朝の頁が残ります。',
+  tenugui: 'あの朝のことを、もう一度たどります。',
+};
+
+export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void }) {
   const [open, setOpen] = useState<JournalEntry | null>(null);
   const big = useRef<HTMLDivElement>(null);
   const pages = save.journal.pages;
@@ -94,6 +102,18 @@ export function Journal({ save, onClose, onToast }: { save: SaveData; onClose():
             作品のリンクをコピー
           </button>
         </div>
+        {(() => {
+          const q = questOfPage(open.pageId);
+          if (!q || !replayable(q, save)) return null;
+          return (
+            <div className="recall-box">
+              <button type="button" onClick={() => onRecall(q)}>
+                この場面を回想する
+              </button>
+              <p className="small">{RECALL_NOTE[q]}回想では文は増えず、町の様子も変わりません。</p>
+            </div>
+          );
+        })()}
         <button type="button" className="ghost" onClick={() => setOpen(null)}>
           絵巻帳に戻る
         </button>
