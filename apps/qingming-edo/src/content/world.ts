@@ -38,24 +38,24 @@ const notPressed = { not: { flag: 'paper_pressed' } };
 
 export const HOTSPOTS: HotspotDef[] = [
   // people
-  { id: 'h-sokichi', targetId: 'sokichi', kind: 'character', anchor: { x: 2604, y: 470 }, hitArea: { x: 2574, y: 394, w: 64, h: 146 }, priority: 5 },
-  { id: 'h-seita', targetId: 'seita', kind: 'character', anchor: { x: 2440, y: 460 }, hitArea: { x: 2406, y: 380, w: 70, h: 160 }, priority: 5 },
-  { id: 'h-okon', targetId: 'okon', kind: 'character', anchor: { x: 1960, y: 460 }, hitArea: { x: 1928, y: 384, w: 64, h: 156 }, priority: 5 },
+  { id: 'h-sokichi', targetId: 'sokichi', kind: 'character', anchor: { x: 2640, y: 440 }, hitArea: { x: 2614, y: 392, w: 54, h: 144 }, priority: 5 },
+  { id: 'h-seita', targetId: 'seita', kind: 'character', anchor: { x: 2560, y: 400 }, hitArea: { x: 2512, y: 376, w: 84, h: 146 }, priority: 5 },
+  { id: 'h-okon', targetId: 'okon', kind: 'character', anchor: { x: 2215, y: 420 }, hitArea: { x: 2190, y: 350, w: 52, h: 146 }, priority: 5 },
   { id: 'h-kisuke', targetId: 'kisuke', kind: 'character', anchor: { x: 1360, y: 460 }, hitArea: { x: 1328, y: 384, w: 64, h: 156 }, priority: 5 },
   { id: 'h-oharu', targetId: 'oharu', kind: 'character', anchor: { x: 1130, y: 460 }, hitArea: { x: 1100, y: 392, w: 60, h: 148 }, priority: 5 },
   { id: 'h-kinji', targetId: 'kinji', kind: 'character', anchor: { x: 760, y: 460 }, hitArea: { x: 700, y: 380, w: 120, h: 160 }, priority: 5 },
   // the first help: one tap on the blowing papers (spec §9 一頁目)
-  { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 2300, y: 440 }, hitArea: { x: 2230, y: 410, w: 150, h: 60 }, priority: 8, visibleWhen: notPressed },
+  { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 2530, y: 452 }, hitArea: { x: 2468, y: 430, w: 80, h: 46 }, priority: 8, visibleWhen: notPressed },
   // ambient reactions (spec §5: 8 or more)
-  { id: 'a-noren-aoba', targetId: 'noren-aoba', kind: 'ambient', anchor: { x: 2330, y: 300 }, hitArea: { x: 2190, y: 262, w: 300, h: 70 }, priority: 1 },
-  { id: 'a-noren-kure', targetId: 'noren-kure', kind: 'ambient', anchor: { x: 1880, y: 300 }, hitArea: { x: 1740, y: 262, w: 300, h: 70 }, priority: 1 },
-  { id: 'a-sparrows', targetId: 'sparrows', kind: 'ambient', anchor: { x: 2076, y: 168 }, hitArea: { x: 2030, y: 148, w: 92, h: 40 }, priority: 2 },
+  { id: 'a-noren-aoba', targetId: 'noren-aoba', kind: 'ambient', anchor: { x: 2497, y: 356 }, hitArea: { x: 2343, y: 325, w: 308, h: 60 }, priority: 1 },
+  { id: 'a-noren-kure', targetId: 'noren-kure', kind: 'ambient', anchor: { x: 2203, y: 338 }, hitArea: { x: 2107, y: 314, w: 192, h: 46 }, priority: 1 },
+  { id: 'a-sparrows', targetId: 'sparrows', kind: 'ambient', anchor: { x: 2330, y: 98 }, hitArea: { x: 2285, y: 82, w: 90, h: 34 }, priority: 2 },
   { id: 'a-dog', targetId: 'dog', kind: 'ambient', anchor: { x: 1590, y: 520 }, hitArea: { x: 1550, y: 490, w: 80, h: 50 }, priority: 2 },
   { id: 'a-steam', targetId: 'steam', kind: 'ambient', anchor: { x: 1250, y: 380 }, hitArea: { x: 1210, y: 330, w: 80, h: 110 }, priority: 2 },
-  { id: 'a-barrel', targetId: 'barrel', kind: 'ambient', anchor: { x: 2120, y: 500 }, hitArea: { x: 2090, y: 460, w: 60, h: 80 }, priority: 2 },
-  { id: 'a-giboshi', targetId: 'giboshi', kind: 'ambient', anchor: { x: 2790, y: 410 }, hitArea: { x: 2770, y: 380, w: 40, h: 50 }, priority: 2 },
-  { id: 'a-willow', targetId: 'willow', kind: 'ambient', anchor: { x: 2550, y: 260 }, hitArea: { x: 2500, y: 160, w: 60, h: 200 }, priority: 1 },
-  { id: 'a-boat', targetId: 'boat', kind: 'ambient', anchor: { x: 2880, y: 600 }, hitArea: { x: 2820, y: 570, w: 140, h: 60 }, priority: 2 },
+  { id: 'a-barrel', targetId: 'barrel', kind: 'ambient', anchor: { x: 1950, y: 500 }, hitArea: { x: 1926, y: 462, w: 50, h: 80 }, priority: 2 },
+  { id: 'a-giboshi', targetId: 'giboshi', kind: 'ambient', anchor: { x: 2735, y: 336 }, hitArea: { x: 2722, y: 318, w: 28, h: 40 }, priority: 2 },
+  { id: 'a-willow', targetId: 'willow', kind: 'ambient', anchor: { x: 2830, y: 220 }, hitArea: { x: 2772, y: 96, w: 118, h: 220 }, priority: 1 },
+  { id: 'a-boat', targetId: 'boat', kind: 'ambient', anchor: { x: 2860, y: 630 }, hitArea: { x: 2709, y: 562, w: 291, h: 138 }, priority: 2 },
 ];
 
 export const SCENE: SceneDef = {
