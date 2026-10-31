@@ -19,6 +19,11 @@ import sokichiPoint from '../assets/art/sokichi-point.webp';
 import sokichiNod from '../assets/art/sokichi-nod.webp';
 import okonHold from '../assets/art/okon-hold.webp';
 import okonWipe from '../assets/art/okon-wipe.webp';
+import okonBow from '../assets/art/okon-bow.webp';
+import kinjiNod from '../assets/art/kinji-nod.webp';
+import oharuAsk from '../assets/art/oharu-ask.webp';
+import type { SaveData } from '../contract';
+import { hasFlag, questState } from '../engine/state';
 import kisukeTeapot from '../assets/art/kisuke-teapot.webp';
 import oharuSearch from '../assets/art/oharu-search.webp';
 import kinjiRest from '../assets/art/kinji-rest.webp';
@@ -37,9 +42,12 @@ const SPRITES = {
   sokichiNod: { href: sokichiNod, w: 28.7, h: 89.6 },
   okonHold: { href: okonHold, w: 28.7, h: 89.9 },
   okonWipe: { href: okonWipe, w: 28.7, h: 89.6 },
+  okonBow: { href: okonBow, w: 26.7, h: 86.8 },
   kisukeTeapot: { href: kisukeTeapot, w: 41.7, h: 89.9 },
   oharuSearch: { href: oharuSearch, w: 41, h: 89.9 },
+  oharuAsk: { href: oharuAsk, w: 32.1, h: 84.4 },
   kinjiRest: { href: kinjiRest, w: 55.7, h: 85.4 },
+  kinjiNod: { href: kinjiNod, w: 46.1, h: 89.9 },
 } as const;
 type SpriteId = keyof typeof SPRITES;
 
@@ -76,15 +84,38 @@ function LooseSheets() {
   );
 }
 
+/** Each person's pose follows the story (spec §8 五状態); null = not on the street. */
+export interface Poses {
+  seita: 'press' | 'bow' | 'stand';
+  sokichi: SpriteId;
+  okon: SpriteId;
+  kisuke: SpriteId;
+  oharu: SpriteId;
+  kinji: SpriteId;
+}
+
+export function posesFor(s: SaveData): Poses {
+  const pressed = hasFlag(s, 'paper_pressed');
+  const kazeDone = questState(s, 'kaze') === 'complete';
+  const dougu = questState(s, 'dougu');
+  return {
+    seita: kazeDone ? 'stand' : pressed ? 'bow' : 'press',
+    sokichi: kazeDone ? 'sokichiNod' : pressed ? 'sokichiPoint' : 'sokichiHold',
+    // wiping lacquer until the errand; holding the bundle while it waits; a bow once it is home
+    okon: dougu === 'complete' ? 'okonBow' : hasFlag(s, 'dougu_wrapped') && !hasFlag(s, 'dougu_carry') ? 'okonHold' : 'okonWipe',
+    kisuke: 'kisukeTeapot',
+    oharu: hasFlag(s, 'dougu_entrusted') ? 'oharuAsk' : 'oharuSearch',
+    kinji: hasFlag(s, 'dougu_by_hand') ? 'kinjiNod' : 'kinjiRest',
+  };
+}
+
 export interface PaintedProps {
-  pressed: boolean;
-  kazeDone: boolean;
-  metOkon: boolean;
+  poses: Poses;
   /** Ambient reactions on the painting: a soft glint where it was touched. */
   glints: { id: string; x: number; y: number; w: number; h: number }[];
 }
 
-export function PaintedStreet({ pressed, kazeDone, metOkon, glints }: PaintedProps) {
+export function PaintedStreet({ poses, glints }: PaintedProps) {
   return (
     <g>
       {STREET.map((href, k) => (
@@ -96,15 +127,49 @@ export function PaintedStreet({ pressed, kazeDone, metOkon, glints }: PaintedPro
         <ellipse key={g.id} className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 4} ry={g.h / 2 + 4} fill="#fff8e0" />
       ))}
 
-      <Sprite id="kinjiRest" {...SPOTS.kinji} />
-      <Sprite id="kisukeTeapot" {...SPOTS.kisuke} />
-      <Sprite id="oharuSearch" {...SPOTS.oharu} />
-      <Sprite id={metOkon ? 'okonHold' : 'okonWipe'} {...SPOTS.okon} />
-      {!pressed && <Sprite id="seitaPress" {...SPOTS.seitaKneel} className="fret" />}
-      {!pressed && <LooseSheets />}
-      {pressed && !kazeDone && <Sprite id="seitaBow" {...SPOTS.seitaKneel} />}
-      {kazeDone && <Sprite id="seitaStand" {...SPOTS.seitaStand} />}
-      <Sprite id={kazeDone ? 'sokichiNod' : pressed ? 'sokichiPoint' : 'sokichiHold'} {...SPOTS.sokichi} />
+      <Sprite id={poses.kinji} {...SPOTS.kinji} />
+      <Sprite id={poses.kisuke} {...SPOTS.kisuke} />
+      <Sprite id={poses.oharu} {...SPOTS.oharu} />
+      <Sprite id={poses.okon} {...SPOTS.okon} />
+      {poses.seita === 'press' && <Sprite id="seitaPress" {...SPOTS.seitaKneel} className="fret" />}
+      {poses.seita === 'press' && <LooseSheets />}
+      {poses.seita === 'bow' && <Sprite id="seitaBow" {...SPOTS.seitaKneel} />}
+      {poses.seita === 'stand' && <Sprite id="seitaStand" {...SPOTS.seitaStand} />}
+      <Sprite id={poses.sokichi} {...SPOTS.sokichi} />
+    </g>
+  );
+}
+
+// ---------------------------------------------------------------- journal pages
+
+/**
+ * A page cut from the painted street (二頁目 onwards): the world rectangle
+ * starting at (x0, y0), w units wide, fills the page's picture area
+ * (40, 40, 520 × 660 in PageArt), with the people of that moment on it.
+ */
+export function PaintedPageScene({ composition }: { composition: string }) {
+  const view =
+    composition === 'dougu-deliver'
+      ? { x0: 520, y0: 230, w: 330, people: [{ id: 'kinjiNod' as SpriteId, ...SPOTS.kinji }] }
+      : {
+          x0: 2050,
+          y0: 230,
+          w: 330,
+          people: [
+            { id: 'okonBow' as SpriteId, ...SPOTS.okon },
+            { id: 'oharuAsk' as SpriteId, x: SPOTS.okon.x + 52, y: SPOTS.okon.y + 14 },
+          ],
+        };
+  const k = 520 / view.w;
+  return (
+    <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`}>
+      <rect x={view.x0 - 10} y={view.y0 - 10} width={view.w + 20} height={700} fill="#e1cfa6" />
+      {STREET.map((href, i) => (
+        <image key={i} href={href} x={i * 1000} y={0} width={1000} height={700} preserveAspectRatio="none" />
+      ))}
+      {view.people.map((p) => (
+        <Sprite key={p.id} id={p.id} x={p.x} y={p.y} />
+      ))}
     </g>
   );
 }

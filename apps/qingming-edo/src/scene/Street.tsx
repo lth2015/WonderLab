@@ -2,7 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, u
 import type { HotspotDef } from '../contract';
 import { SCENE, SCENE_H, SCENE_W } from '../content/world';
 import { clampCamera, isDrag, resolveTap } from '../engine/hit';
-import { FAR, PaintedStreet } from './painted';
+import { FAR, PaintedStreet, type Poses } from './painted';
 
 export interface StreetApi {
   /** Brings scene x to the middle of the view (≤300 ms, instant when motion is reduced). */
@@ -12,9 +12,7 @@ export interface StreetApi {
 export interface StreetProps {
   apiRef: Ref<StreetApi>;
   spots: HotspotDef[];
-  pressed: boolean;
-  kazeDone: boolean;
-  metOkon: boolean;
+  poses: Poses;
   reacting: ReadonlySet<string>;
   reduceMotion: boolean;
   /** False while a dialogue, game or panel holds the screen (spec §7 遊びの途中). */
@@ -30,7 +28,7 @@ const START_X = 2560;
 const TOP = 130;
 const NEAR_H = SCENE_H + 600; // the road goes on below the picture on tall screens
 
-export function Street({ apiRef, spots, pressed, kazeDone, metOkon, reacting, reduceMotion, interactive, talking, onTap, onActivity }: StreetProps) {
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, onTap, onActivity }: StreetProps) {
   const box = useRef<HTMLDivElement>(null);
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const cam = useRef<number | null>(null); // left edge, scene units
@@ -180,9 +178,7 @@ export function Street({ apiRef, spots, pressed, kazeDone, metOkon, reacting, re
       <div className="layer" ref={(el) => void (layers.current[1] = el)} style={layerStyle(SCENE_W)}>
         <svg width={SCENE_W} height={SCENE_H} viewBox={`0 0 ${SCENE_W} ${SCENE_H}`} aria-hidden="true">
           <PaintedStreet
-            pressed={pressed}
-            kazeDone={kazeDone}
-            metOkon={metOkon}
+            poses={poses}
             glints={spots
               .filter((h) => h.kind === 'ambient' && reacting.has(h.targetId))
               .map((h) => ({ id: h.id, ...h.hitArea }))}

@@ -630,3 +630,91 @@ button[aria-pressed='true'] {
 .pan.talking {
   transform: translateY(-22vh);
 }
+
+/* ---------------------------------------------------------------- 包みを整える */
+.wrap-note {
+  min-height: 3.2em;
+}
+.goods,
+.cloths {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.good,
+.cloth {
+  width: 100%;
+  min-height: 112px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 4px;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  touch-action: none;
+}
+.good small {
+  color: var(--ink-soft);
+}
+.mark-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.8125rem;
+  color: #3d5677;
+}
+.cloth {
+  background: repeating-linear-gradient(45deg, #ede1c6 0 6px, #e6d8b9 6px 12px);
+  border-style: dashed;
+}
+.cloth:disabled {
+  opacity: 1;
+  border-style: solid;
+}
+.cloth.hinted {
+  outline: 3px solid var(--vermilion);
+  outline-offset: 2px;
+}
+.shake {
+  animation: shake 0.35s;
+}
+@keyframes shake {
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+.drag-ghost {
+  position: fixed;
+  transform: translate(-50%, -60%);
+  pointer-events: none;
+  z-index: 9;
+  opacity: 0.9;
+}
+.wrap-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+.bundle {
+  width: 140px;
+  height: 140px;
+  background: repeating-linear-gradient(45deg, #4d6282 0 8px, #46597a 8px 16px);
+  border: 1px solid var(--line);
+  transition: transform 400ms var(--ease), border-radius 400ms var(--ease);
+  transform: rotate(45deg) scale(0.9);
+}
+.bundle.folded {
+  border-radius: 18px;
+  transform: rotate(45deg) scale(0.72);
+}
+.bundle.tied {
+  border-radius: 40% 40% 28px 28px;
+  transform: scale(0.7);
+}
