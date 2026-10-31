@@ -2,7 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, u
 import type { HotspotDef } from '../contract';
 import { SCENE, SCENE_H, SCENE_W } from '../content/world';
 import { clampCamera, isDrag, resolveTap } from '../engine/hit';
-import { FAR, PaintedStreet } from './painted';
+import { FAR, PaintedStreet, SECTIONS, type Poses } from './painted';
 
 export interface StreetApi {
   /** Brings scene x to the middle of the view (≤300 ms, instant when motion is reduced). */
@@ -12,9 +12,7 @@ export interface StreetApi {
 export interface StreetProps {
   apiRef: Ref<StreetApi>;
   spots: HotspotDef[];
-  pressed: boolean;
-  kazeDone: boolean;
-  metOkon: boolean;
+  poses: Poses;
   reacting: ReadonlySet<string>;
   reduceMotion: boolean;
   /** False while a dialogue, game or panel holds the screen (spec §7 遊びの途中). */
@@ -25,18 +23,20 @@ export interface StreetProps {
   onActivity(): void;
 }
 
-const START_X = 2560;
+const START_X = 8560;
 /** The painting's top is empty sky (where the far layer shows); this much is left off-screen. */
 const TOP = 130;
 const NEAR_H = SCENE_H + 600; // the road goes on below the picture on tall screens
 
-export function Street({ apiRef, spots, pressed, kazeDone, metOkon, reacting, reduceMotion, interactive, talking, onTap, onActivity }: StreetProps) {
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, onTap, onActivity }: StreetProps) {
   const box = useRef<HTMLDivElement>(null);
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const cam = useRef<number | null>(null); // left edge, scene units
   const size = useRef({ w: 0, h: 0, scale: 1 });
   const anim = useRef(0);
   const [scale, setScale] = useState(1);
+  // sections drawn: the ones in view and one either side (loaded by section, decision #14)
+  const [sections, setSections] = useState<[number, number]>([7, 8]);
 
   const paint = useCallback(() => {
     const s = size.current.scale;
@@ -50,8 +50,12 @@ export function Street({ apiRef, spots, pressed, kazeDone, metOkon, reacting, re
 
   const setCam = useCallback(
     (x: number) => {
-      cam.current = clampCamera(x, size.current.w / size.current.scale, SCENE_W);
+      const viewW = size.current.w / size.current.scale;
+      cam.current = clampCamera(x, viewW, SCENE_W);
       paint();
+      const from = Math.max(0, Math.floor(cam.current / 1000) - 1);
+      const to = Math.min(SECTIONS - 1, Math.floor((cam.current + viewW) / 1000) + 1);
+      setSections((r) => (r[0] === from && r[1] === to ? r : [from, to]));
     },
     [paint],
   );
@@ -172,7 +176,7 @@ export function Street({ apiRef, spots, pressed, kazeDone, metOkon, reacting, re
           <rect width={FAR.w * 2} height={SCENE_H} fill="#e1cfa6" />
           {/* raised so the distant roofs show just above the street's rooftops */}
           <image href={FAR.href} x={0} y={-110} width={FAR.w} height={FAR.h} preserveAspectRatio="none" />
-          <image href={FAR.href} x={-FAR.w} y={-110} width={FAR.w} height={FAR.h} preserveAspectRatio="none" transform="scale(-1 1)" />
+          <image href={FAR.href} x={-2 * FAR.w} y={-110} width={FAR.w} height={FAR.h} preserveAspectRatio="none" transform="scale(-1 1)" />
         </svg>
       </div>
 
@@ -180,9 +184,8 @@ export function Street({ apiRef, spots, pressed, kazeDone, metOkon, reacting, re
       <div className="layer" ref={(el) => void (layers.current[1] = el)} style={layerStyle(SCENE_W)}>
         <svg width={SCENE_W} height={SCENE_H} viewBox={`0 0 ${SCENE_W} ${SCENE_H}`} aria-hidden="true">
           <PaintedStreet
-            pressed={pressed}
-            kazeDone={kazeDone}
-            metOkon={metOkon}
+            poses={poses}
+            sections={sections}
             glints={spots
               .filter((h) => h.kind === 'ambient' && reacting.has(h.targetId))
               .map((h) => ({ id: h.id, ...h.hitArea }))}

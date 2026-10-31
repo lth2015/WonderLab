@@ -5,7 +5,9 @@
 // 2. Joins run along the least-difference vertical cut inside the 512 px overlap
 //    (a cross-fade leaves ghosts, since outpainting redraws the kept strip).
 const sharp = require('/home/user/wonderlab/node_modules/sharp');
-const [dir, prefix, ...names] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const ALIGN = args.includes('--align-band');
+const [dir, prefix, ...names] = args.filter((a) => !a.startsWith('--'));
 const W = 1536, H = 1024, KEEP = 512, FEATHER = 6, SKY = [8, 140];
 
 async function load(n) {
@@ -54,6 +56,33 @@ function seam(newer, older) {
 
 (async () => {
   const secs = await Promise.all(names.map(load));
+  if (ALIGN) {
+    // far layer: line every section's distant band up with the first one's
+    // (outpainting sometimes draws the horizon higher or lower)
+    const bandRow = (buf) => {
+      const lum = [];
+      for (let y = 0; y < H; y++) {
+        let t = 0;
+        for (let x = 0; x < W; x += 4) { const i = (y * W + x) * 3; t += buf[i] + buf[i + 1] + buf[i + 2]; }
+        lum.push(t);
+      }
+      let best = 300, bv = Infinity;
+      for (let y = 300; y < 760; y++) { const v = lum[y - 3] + lum[y] + lum[y + 3]; if (v < bv) (bv = v), (best = y); }
+      return best;
+    };
+    const ref0 = bandRow(secs[0].buf);
+    for (const s of secs) {
+      const d = ref0 - bandRow(s.buf);
+      if (!d) continue;
+      const out = Buffer.alloc(s.buf.length);
+      for (let y = 0; y < H; y++) {
+        const sy = Math.min(H - 1, Math.max(0, y - d));
+        s.buf.copy(out, y * W * 3, sy * W * 3, (sy + 1) * W * 3);
+      }
+      s.buf = out;
+      console.log(s.n, 'band shifted', d, 'px');
+    }
+  }
   const ref = secs[0].sky;
   for (const s of secs) {
     const g = ref.map((v, c) => v / s.sky[c]);
