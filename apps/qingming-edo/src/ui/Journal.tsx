@@ -16,11 +16,13 @@ const PLACE: Record<string, string> = {
   'p01-kaze': '日本橋北詰・朝　青葉屋の店先',
   'dougu-deliver': '日本橋・朝　米屋の前',
   'dougu-entrust': '日本橋・朝　くれ竹の店先',
+  'tenugui-return': '日本橋・朝　茶店「喜の字」の前',
 };
 /** 宗吉's word on a page, by its composition (or, for 一頁目, its subject). */
 const COMMENT_BY_COMPOSITION: Record<string, string> = {
   'dougu-deliver': '渡した手と、受け取った手。その間にあるものが描けている。',
   'dougu-entrust': '届けた者は描かれていない。だが、託した人の思いは残っている。',
+  'tenugui-return': '探していたのは布ではなかったな。布にしみた、人の朝だ。',
 };
 
 function comment(entry: JournalEntry): string | null {

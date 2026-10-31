@@ -10,6 +10,8 @@ import { Journal } from './ui/Journal';
 import { Settings } from './ui/Settings';
 import { Sketch } from './ui/Sketch';
 import { Wrap } from './ui/Wrap';
+import { Tea } from './ui/Tea';
+import { Tenugui } from './ui/Tenugui';
 import { posesFor } from './scene/painted';
 
 type Panel = 'journal' | 'items' | 'nearby' | 'settings' | null;
@@ -43,7 +45,7 @@ export function App() {
   const [dialogue, setDialogue] = useState<{ node: string; line: number } | null>(null);
   const [candidates, setCandidates] = useState<HotspotDef[] | null>(null);
   const [sketch, setSketch] = useState<Subject | null>(null);
-  const [game, setGame] = useState<{ id: 'wrap'; then: string | null } | null>(null);
+  const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui'; then: string | null } | null>(null);
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
       ? '記録が読めなかったため、元の記録を退避して最初から始めます。'
@@ -296,16 +298,17 @@ export function App() {
         </div>
       )}
 
-      {game?.id === 'wrap' && (
-        <Wrap
-          onDone={() => {
-            const then = game.then;
-            setGame(null);
-            if (then) openNode(then);
-          }}
-          onCancel={() => setGame(null)}
-        />
-      )}
+      {game && (() => {
+        const done = () => {
+          const then = game.then;
+          setGame(null);
+          if (then) openNode(then);
+        };
+        const cancel = () => setGame(null);
+        if (game.id === 'wrap') return <Wrap onDone={done} onCancel={cancel} />;
+        if (game.id === 'tea') return <Tea onDone={done} onCancel={cancel} />;
+        return <Tenugui onDone={done} onCancel={cancel} />;
+      })()}
       {sketch && <Sketch subject={sketch} onDone={finishSketch} onCancel={() => setSketch(null)} reduceMotion={reduceMotion} />}
 
       {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} />}

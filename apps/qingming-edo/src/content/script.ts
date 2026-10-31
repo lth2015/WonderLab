@@ -15,7 +15,7 @@ export interface Choice {
   /** Opens the sketch for this subject (spec §9 一頁目). */
   sketch?: Subject;
   /** Opens a short game; on success the dialogue goes on at `next` (spec §10). */
-  game?: 'wrap';
+  game?: 'wrap' | 'tea' | 'tenugui';
 }
 export interface DialogueNode {
   lines: Line[];
@@ -213,7 +213,101 @@ export const NODES: Record<string, DialogueNode> = {
     lines: [{ by: 'kinji', text: 'お春ちゃんが道具を届けてくれたよ。お紺さんにも、あんたにも、よろしくな。' }],
   },
   'oharu.after': {
+    effects: [{ type: 'setFlag', flag: 'oharu_after_seen' }],
     lines: [{ by: 'oharu', text: '金次さんに、ちゃんとお届けしました。……手拭いのほうは、まだ見つからなくて。' }],
+    next: 'oharu.ask',
+  },
+
+  // ---------------------------------------------------------------- 三頁目：あの人の手拭い
+  'oharu.ask': {
+    effects: [{ type: 'questState', quest: 'tenugui', state: 'discovered' }],
+    lines: [
+      { by: 'oharu', text: 'あの……絵師のお弟子さん、ですよね。少しだけ、聞いてもらえますか。' },
+      { by: 'oharu', text: 'お使い先のご隠居さまが、大事にしている藍の手拭いをなくされて。今朝、喜の字さんで一休みされて、それきりなんです。' },
+    ],
+    choices: [
+      { label: '一緒に探す', next: 'oharu.accepted' },
+      { label: '今は手が離せない', next: 'oharu.declined' },
+    ],
+  },
+  'oharu.declined': {
+    effects: [{ type: 'setFlag', flag: 'tenugui_declined' }],
+    lines: [{ by: 'oharu', text: 'いえ、いいんです。もう少し自分で探してみます。' }],
+  },
+  'oharu.ask.again': {
+    lines: [{ by: 'oharu', text: 'まだ見つからなくて……。やっぱり、手伝ってもらえませんか。' }],
+    choices: [
+      { label: '一緒に探す', next: 'oharu.accepted' },
+      { label: 'もう少し後で', next: 'oharu.declined' },
+    ],
+  },
+  'oharu.accepted': {
+    effects: [
+      { type: 'setFlag', flag: 'tenugui_asked' },
+      { type: 'questState', quest: 'tenugui', state: 'active' },
+    ],
+    lines: [
+      { by: 'oharu', text: 'ありがとうございます！ 茶店の喜助さんなら、何か知っているかもしれません。' },
+      { by: 'narration', text: '茶店「喜の字」へ。喜助に声をかけてみよう。' },
+    ],
+  },
+  'oharu.waiting': {
+    lines: [{ by: 'oharu', text: '喜助さんのところ、どうでした？ わたし、もう一度このあたりを見てきます。' }],
+  },
+  'kisuke.lost': {
+    lines: [
+      { by: 'kisuke', text: '手拭いの忘れ物かい。それがね、今朝は二本あるんだよ。どっちも藍でね。' },
+      { by: 'kisuke', text: 'どっちがご隠居のか……朝の常連さんなら見てたかもしれない。ちょうど来たところだ、茶を運ぶのを手伝ってくれるかい。' },
+    ],
+    choices: [
+      { label: 'お茶を運ぶ', game: 'tea', next: 'kisuke.served' },
+      { label: 'あとにする', next: 'kisuke.later' },
+    ],
+  },
+  'kisuke.later': {
+    lines: [{ by: 'kisuke', text: 'あいよ。手拭いは逃げやしないから、気が向いたらおいで。' }],
+  },
+  'kisuke.served': {
+    effects: [{ type: 'setFlag', flag: 'tenugui_clue' }],
+    lines: [
+      { by: 'narration', text: '大工は団子を頬ばり、女師匠は煎餅をゆっくり割った。' },
+      { by: 'narration', text: '女師匠「そういえば、今朝ここにいたご隠居さん。汗を拭いた手拭いを、いつもみたいに固く結んで腰に下げてたわね。波の柄だったかしら。」' },
+      { by: 'kisuke', text: 'ありがてえ、いい話が聞けた。さあ、二本の手拭い、見比べてみな。' },
+    ],
+    choices: [{ label: '手拭いを見比べる', game: 'tenugui', next: 'kisuke.picked' }],
+  },
+  'kisuke.compare': {
+    lines: [{ by: 'kisuke', text: '二本とも、ここに置いてあるよ。もう一度見比べてみるかい。' }],
+    choices: [
+      { label: '手拭いを見比べる', game: 'tenugui', next: 'kisuke.picked' },
+      { label: 'あとにする', next: 'kisuke.later' },
+    ],
+  },
+  'kisuke.picked': {
+    effects: [{ type: 'setFlag', flag: 'tenugui_found' }],
+    lines: [
+      { by: 'kisuke', text: 'うん、こっちだ。固い結び目、ご隠居の癖だよ。お春ちゃんに届けてやっておくれ。' },
+      { by: 'narration', text: '波の柄の手拭いを預かった。' },
+    ],
+  },
+  'kisuke.waiting3': {
+    lines: [{ by: 'kisuke', text: 'お春ちゃんなら、さっきまでそこの通りにいたよ。' }],
+  },
+  'oharu.return': {
+    effects: questById.get('tenugui')!.completionEffects,
+    page: { pageId: 'p03-tenugui', compositionId: 'tenugui-return' },
+    lines: [
+      { by: 'oharu', text: 'これです！ この波の柄……ああ、よかった。' },
+      { by: 'oharu', text: 'これ、ご隠居さまの亡くなったおかみさんが、はじめて自分で染めた手拭いなんです。' },
+      { by: 'oharu', text: '色はすっかり褪せたけど、毎朝それで汗を拭くのが、おかみさんと散歩してる気分なんだって。……わたし、走って届けてきます。' },
+      { by: 'narration', text: '十八文を受け取った。絵巻帳に、三頁目が残った。' },
+    ],
+  },
+  'oharu.done3': {
+    lines: [{ by: 'oharu', text: 'ご隠居さま、手拭いを握ったまま、しばらく黙ってらっしゃいました。……ありがとうございました。' }],
+  },
+  'kisuke.done3': {
+    lines: [{ by: 'kisuke', text: '手拭い、無事に戻ったってね。今度来たら、一杯おごるよ。' }],
   },
 };
 
@@ -242,7 +336,13 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { quest: 'kaze', is: 'complete' }, node: 'okon.ask' },
     { node: 'okon.first' },
   ],
-  kisuke: [{ node: 'kisuke.first' }],
+  kisuke: [
+    { when: { quest: 'tenugui', is: 'complete' }, node: 'kisuke.done3' },
+    { when: { flag: 'tenugui_found' }, node: 'kisuke.waiting3' },
+    { when: { flag: 'tenugui_clue' }, node: 'kisuke.compare' },
+    { when: { flag: 'tenugui_asked' }, node: 'kisuke.lost' },
+    { node: 'kisuke.first' },
+  ],
   kinji: [
     { when: { flag: 'dougu_by_hand' }, node: 'kinji.done' },
     { when: { flag: 'dougu_entrusted' }, node: 'kinji.done.entrust' },
@@ -250,7 +350,13 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { node: 'kinji.first' },
   ],
   oharu: [
-    { when: { flag: 'dougu_entrusted' }, node: 'oharu.after' },
+    { when: { quest: 'tenugui', is: 'complete' }, node: 'oharu.done3' },
+    { when: { flag: 'tenugui_found' }, node: 'oharu.return' },
+    { when: { flag: 'tenugui_asked' }, node: 'oharu.waiting' },
+    // after carrying the bundle for お紺, she reports that first, then asks
+    { when: { all: [{ flag: 'dougu_entrusted' }, { not: { flag: 'oharu_after_seen' } }] }, node: 'oharu.after' },
+    { when: { all: [{ quest: 'kaze', is: 'complete' }, { flag: 'tenugui_declined' }] }, node: 'oharu.ask.again' },
+    { when: { quest: 'kaze', is: 'complete' }, node: 'oharu.ask' },
     { node: 'oharu.first' },
   ],
   // the papers themselves: one tap helps (spec §6 10〜30秒)
