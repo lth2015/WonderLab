@@ -28,6 +28,11 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # 清明上河図：江戸編 (apps/qingming-edo): its own typecheck, tests and
+      # build, under /edo/ and at a domain's root (spec §16).
+      - run: npm run edo:test
+      - run: npm run edo:build
+      - run: EDO_BASE=/ npm run edo:build
 
   db:
     name: Database tests

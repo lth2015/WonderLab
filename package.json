@@ -21,7 +21,11 @@
     "server:start": "tsx --tsconfig server/tsconfig.json server/src/index.ts",
     "test:db": "vitest run --config vitest.db.config.ts",
     "db:up": "docker compose up -d mysql mysql-test",
-    "db:migrate": "tsx --tsconfig server/tsconfig.json server/packages/db/src/cli.ts migrate"
+    "db:migrate": "tsx --tsconfig server/tsconfig.json server/packages/db/src/cli.ts migrate",
+    "edo:dev": "vite --config apps/qingming-edo/vite.config.ts",
+    "edo:build": "tsc -p apps/qingming-edo/tsconfig.json && vite build --config apps/qingming-edo/vite.config.ts",
+    "edo:preview": "vite preview --config apps/qingming-edo/vite.config.ts",
+    "edo:test": "vitest run --config apps/qingming-edo/vitest.config.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",
