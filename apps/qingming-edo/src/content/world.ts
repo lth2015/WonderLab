@@ -75,6 +75,10 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'a-dye-cloth', targetId: 'dye-cloth', kind: 'ambient', anchor: { x: 3225, y: 320 }, hitArea: { x: 3050, y: 240, w: 350, h: 160 }, priority: 1 },
   { id: 'a-garden', targetId: 'garden', kind: 'ambient', anchor: { x: 2775, y: 470 }, hitArea: { x: 2650, y: 420, w: 250, h: 100 }, priority: 2 },
   { id: 'a-flowers', targetId: 'flowers', kind: 'ambient', anchor: { x: 2400, y: 450 }, hitArea: { x: 2350, y: 390, w: 100, h: 120 }, priority: 2 },
+  { id: 'a-willow-end', targetId: 'willow-end', kind: 'ambient', anchor: { x: 475, y: 260 }, hitArea: { x: 300, y: 40, w: 350, h: 440 }, priority: 1 },
+  { id: 'a-bench', targetId: 'bench', kind: 'ambient', anchor: { x: 452, y: 510 }, hitArea: { x: 370, y: 488, w: 165, h: 45 }, priority: 2 },
+  { id: 'a-plum2', targetId: 'plum2', kind: 'ambient', anchor: { x: 1910, y: 350 }, hitArea: { x: 1830, y: 280, w: 160, h: 140 }, priority: 2 },
+  { id: 'a-pond', targetId: 'pond', kind: 'ambient', anchor: { x: 1125, y: 375 }, hitArea: { x: 1000, y: 300, w: 250, h: 150 }, priority: 1 },
 ];
 
 export const SCENE: SceneDef = {
@@ -127,6 +131,10 @@ export const AMBIENT_LABEL: Record<string, string> = {
   'dye-cloth': '干された藍染',
   'garden': '小さな菜園',
   'flowers': '垣根の花',
+  'willow-end': '卷尾の柳',
+  'bench': '川端の縁台',
+  'plum2': '庭の梅',
+  'pond': '庭の池',
 };
 export const AMBIENT: Record<string, string> = {
   'willow': '川風に、柳の枝がそよいだ。',
@@ -155,6 +163,10 @@ export const AMBIENT: Record<string, string> = {
   'dye-cloth': '藍に染めた布が、高い竿に干してある。',
   'garden': '小さな菜園に、青菜が並んでいる。',
   'flowers': '垣根の花に、朝の光がさしている。',
+  'willow-end': '大きな柳の下、川風だけが通っていく。',
+  'bench': '川端の縁台。ひと休みするには、ちょうどいい。',
+  'plum2': '庭先の梅が、ほころびはじめている。',
+  'pond': '池の水面に、雲がゆっくり映っていく。',
 };
 
 export const QUESTS: QuestDef[] = [
