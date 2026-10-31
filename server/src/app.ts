@@ -14,6 +14,7 @@ import billingRoutes from './routes/billing.js';
 import publicRoutes from './routes/public.js';
 import stablecoinRoutes from './routes/stablecoin.js';
 import { buildMessages, parseReply, resolveShortlist, SceneCache } from './scene.js';
+import { cleanLine, parseTalk, TalkBudget, talkMessages } from './edo-talk.js';
 import type { ChatJson } from './tokenstars.js';
 import { Usage } from './usage.js';
 import { keepsRawBody } from './webhook-paths.js';
@@ -24,12 +25,14 @@ export interface Deps {
   chat: ChatJson;
   /** False when no TokenStars key or model is set: the scene route answers 503 and charges nothing. */
   aiReady?: boolean;
+  /** 江戸編の即興のひとこと (edo-talk.ts); absent or null: the route answers 503 and the app uses its script. */
+  edoChat?: ChatJson | null;
   usage?: Usage;
   /** Accounts and payments (needs the database); null keeps only the scene proxy and public routes. */
   ctx?: AppContext | null;
 }
 
-export async function buildServer({ config, chat, usage: givenUsage, aiReady = true, ctx = null }: Deps): Promise<FastifyInstance> {
+export async function buildServer({ config, chat, usage: givenUsage, aiReady = true, ctx = null, edoChat = null }: Deps): Promise<FastifyInstance> {
   const app = Fastify({
     logger:
       config.LOG_LEVEL === 'silent'
@@ -168,6 +171,28 @@ export async function buildServer({ config, chat, usage: givenUsage, aiReady = t
       const out = parseReply(res.value, ids);
       cache.set(key, out);
       return out;
+    },
+  );
+
+  // ---------------------------------------------------------------- 江戸編：即興のひとこと
+  const talkBudget = new TalkBudget(config.EDO_TALK_PER_VISITOR, config.EDO_TALK_DAILY);
+  app.post(
+    '/api/edo/talk',
+    { config: { rateLimit: { max: 12, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      if (!originAllowed(req.headers.origin)) return reply.code(403).send({ error: 'origin' });
+      if (!edoChat) return reply.code(503).send({ error: 'off' });
+      const t = parseTalk(req.body);
+      if (!t) return reply.code(400).send({ error: 'input' });
+      if (!talkBudget.take(req.ip)) return reply.code(429).send({ error: 'limited' });
+      const res = await edoChat(talkMessages(t.who, t.topic, t.done, t.turn), { maxTokens: 900, temperature: null, timeoutMs: config.EDO_TALK_TIMEOUT_MS });
+      if (res.status !== 'ok') {
+        req.log.warn({ code: res.code, status: res.status }, 'edo talk did not answer');
+        return reply.code(502).send({ error: res.status });
+      }
+      const line = cleanLine(res.value);
+      if (!line) return reply.code(502).send({ error: 'unfit' });
+      return { line };
     },
   );
 

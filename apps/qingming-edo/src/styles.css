@@ -811,3 +811,14 @@ button[aria-pressed='true'] {
   flex-direction: column;
   gap: 4px;
 }
+
+/* ---------------------------------------------------------------- 即興のひとこと */
+.improv-tag {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: #6b7f5a;
+}
+.improv-tag::before {
+  content: '〜 ';
+}
