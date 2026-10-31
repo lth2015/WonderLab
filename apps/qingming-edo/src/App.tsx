@@ -379,11 +379,12 @@ export function App() {
 const AMBIENT_LABEL: Record<string, string> = {
   'noren-aoba': '青葉屋の暖簾',
   'noren-kure': 'くれ竹の暖簾',
-  sparrows: '屋根の雀',
-  dog: '通りの犬',
+  lantern: '辻行灯',
+  brooms: '荒物屋の竹箒',
   steam: '茶店の湯気',
-  barrel: '天水桶',
+  barrel: '路地の天水桶',
   giboshi: '橋の擬宝珠',
   willow: '川端の柳',
   boat: '川の荷舟',
+  ladder: '屋根の梯子',
 };

@@ -1,11 +1,16 @@
-// 精絵（AI 生成、仮）— the first section of the street drawn as a painting
-// (docs/painted-worlds/art/edo/README.md). Scene units: the section image is
-// 1000 × 700 at x 2000–3000; characters stand on their feet at (x, y).
+// 精絵（AI 生成、参考素材）— the whole street drawn as a painting, at the scale
+// agreed with the China edition (docs/handoff/painted-worlds-style-decision-v1.md:
+// main people 90 of 700 units, no passers-by baked in, a separate far layer).
+// Scene units: three sections of 1000 × 700 at x 0–3000; the sky in them is
+// transparent so the far layer shows. Art and scripts: docs/painted-worlds/art/edo/.
 //
-// Characters are separate transparent images, so a pose can change with the
-// story without repainting the street (style decision draft #7, #8).
+// Characters are separate transparent images: a pose changes with the story
+// without repainting the street.
 
-import section from '../assets/art/section-hashizume.webp';
+import far from '../assets/art/far.webp';
+import street0 from '../assets/art/street-0.webp';
+import street1 from '../assets/art/street-1.webp';
+import street2 from '../assets/art/street-2.webp';
 import seitaPress from '../assets/art/seita-press.webp';
 import seitaBow from '../assets/art/seita-bow.webp';
 import seitaStand from '../assets/art/seita-stand.webp';
@@ -14,20 +19,27 @@ import sokichiPoint from '../assets/art/sokichi-point.webp';
 import sokichiNod from '../assets/art/sokichi-nod.webp';
 import okonHold from '../assets/art/okon-hold.webp';
 import okonWipe from '../assets/art/okon-wipe.webp';
+import kisukeTeapot from '../assets/art/kisuke-teapot.webp';
+import oharuSearch from '../assets/art/oharu-search.webp';
+import kinjiRest from '../assets/art/kinji-rest.webp';
 
-export const PAINTED_X0 = 2000;
-export const PAINTED_W = 1000;
+export const STREET = [street0, street1, street2];
+/** The far layer: 3584 × 1024 px → 2450 × 700 units. */
+export const FAR = { href: far, w: 2450, h: 700 };
 
 /** Sprite sizes in scene units (from the cut-out script; width × height). */
 const SPRITES = {
-  seitaPress: { href: seitaPress, w: 72.1, h: 78.6 },
-  seitaBow: { href: seitaBow, w: 52.3, h: 83.1 },
-  seitaStand: { href: seitaStand, w: 45.5, h: 143.6 },
-  sokichiHold: { href: sokichiHold, w: 48.5, h: 143.6 },
-  sokichiPoint: { href: sokichiPoint, w: 65.3, h: 140.8 },
-  sokichiNod: { href: sokichiNod, w: 45.8, h: 142.9 },
-  okonHold: { href: okonHold, w: 45.8, h: 143.6 },
-  okonWipe: { href: okonWipe, w: 45.8, h: 142.5 },
+  seitaPress: { href: seitaPress, w: 45.1, h: 49.2 },
+  seitaBow: { href: seitaBow, w: 32.8, h: 52 },
+  seitaStand: { href: seitaStand, w: 28.7, h: 89.9 },
+  sokichiHold: { href: sokichiHold, w: 30.4, h: 89.9 },
+  sokichiPoint: { href: sokichiPoint, w: 41, h: 88.5 },
+  sokichiNod: { href: sokichiNod, w: 28.7, h: 89.6 },
+  okonHold: { href: okonHold, w: 28.7, h: 89.9 },
+  okonWipe: { href: okonWipe, w: 28.7, h: 89.6 },
+  kisukeTeapot: { href: kisukeTeapot, w: 41.7, h: 89.9 },
+  oharuSearch: { href: oharuSearch, w: 41, h: 89.9 },
+  kinjiRest: { href: kinjiRest, w: 55.7, h: 85.4 },
 } as const;
 type SpriteId = keyof typeof SPRITES;
 
@@ -35,28 +47,31 @@ function Sprite({ id, x, y, className }: { id: SpriteId; x: number; y: number; c
   const s = SPRITES[id];
   return (
     <g className={className}>
-      <ellipse cx={x} cy={y - 1} rx={s.w * 0.4} ry={3.5} fill="#3c2d1e" opacity={0.16} />
+      <ellipse cx={x} cy={y - 1} rx={s.w * 0.38} ry={2.4} fill="#3c2d1e" opacity={0.16} />
       <image href={s.href} x={x - s.w / 2} y={y - s.h} width={s.w} height={s.h} />
     </g>
   );
 }
 
-/** Where people stand in the painting (their feet). */
+/** Where people stand in the painting (their feet), read off the gridded art. */
 export const SPOTS = {
-  seitaKneel: { x: 2552, y: 472 }, // on the paper shop's raised floor
-  seitaStand: { x: 2560, y: 522 }, // in the street before the shop
-  sokichi: { x: 2640, y: 535 }, // at the bridge foot
-  okon: { x: 2215, y: 494 }, // before the tools shop
+  seitaKneel: { x: 2500, y: 528 }, // on the paper shop's raised floor
+  seitaStand: { x: 2520, y: 576 }, // in the street before the shop
+  sokichi: { x: 2645, y: 562 }, // at the bridge foot
+  okon: { x: 2205, y: 548 }, // before the tools shop
+  kisuke: { x: 1660, y: 546 }, // at the tea house front
+  oharu: { x: 1520, y: 572 }, // in the street before the tea house
+  kinji: { x: 680, y: 578 }, // resting before the rice shop
 };
 
 /** Loose sheets lifting in the wind beside 清太, until the weight is on them. */
 function LooseSheets() {
-  const l = { fill: '#f6efdf', stroke: '#514d3e', strokeWidth: 0.8, strokeLinejoin: 'round' as const };
+  const l = { fill: '#f6efdf', stroke: '#514d3e', strokeWidth: 0.5, strokeLinejoin: 'round' as const };
   return (
     <g className="flap">
-      <path d="M 2506 466 q 6 -22 26 -26 l 3 10 q -14 4 -20 18 Z" {...l} />
-      <path d="M 2584 462 q 10 -24 30 -22 l -2 10 q -14 0 -22 14 Z" {...l} />
-      <path d="M 2526 452 q 4 -18 18 -24 l 4 8 q -10 5 -14 16 Z" {...l} />
+      <path d="M 2470 526 q 4 -13 16 -16 l 2 6 q -8 3 -12 11 Z" {...l} />
+      <path d="M 2520 524 q 6 -15 18 -14 l -1 6 q -9 0 -13 9 Z" {...l} />
+      <path d="M 2482 516 q 3 -11 11 -14 l 2 5 q -6 3 -8 10 Z" {...l} />
     </g>
   );
 }
@@ -69,25 +84,21 @@ export interface PaintedProps {
   glints: { id: string; x: number; y: number; w: number; h: number }[];
 }
 
-export function PaintedSection({ pressed, kazeDone, metOkon, glints }: PaintedProps) {
+export function PaintedStreet({ pressed, kazeDone, metOkon, glints }: PaintedProps) {
   return (
     <g>
-      <defs>
-        {/* the painting's left edge fades into the street still drawn in line */}
-        <linearGradient id="painted-fade" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#fff" stopOpacity={0} />
-          <stop offset="0.07" stopColor="#fff" stopOpacity={1} />
-        </linearGradient>
-        <mask id="painted-mask" maskUnits="userSpaceOnUse" x={PAINTED_X0} y={0} width={PAINTED_W} height={700}>
-          <rect x={PAINTED_X0} y={0} width={PAINTED_W} height={700} fill="url(#painted-fade)" />
-        </mask>
-      </defs>
-      <image href={section} x={PAINTED_X0} y={0} width={PAINTED_W} height={700} preserveAspectRatio="none" mask="url(#painted-mask)" />
-
-      {glints.map((g) => (
-        <ellipse key={g.id} className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 6} ry={g.h / 2 + 6} fill="#fff8e0" />
+      {STREET.map((href, k) => (
+        // a hair of overlap hides the seam that sub-pixel rounding would show
+        <image key={k} href={href} x={k * 1000 - (k ? 0.5 : 0)} y={0} width={1000 + (k < 2 ? 0.5 : 0)} height={700} preserveAspectRatio="none" />
       ))}
 
+      {glints.map((g) => (
+        <ellipse key={g.id} className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 4} ry={g.h / 2 + 4} fill="#fff8e0" />
+      ))}
+
+      <Sprite id="kinjiRest" {...SPOTS.kinji} />
+      <Sprite id="kisukeTeapot" {...SPOTS.kisuke} />
+      <Sprite id="oharuSearch" {...SPOTS.oharu} />
       <Sprite id={metOkon ? 'okonHold' : 'okonWipe'} {...SPOTS.okon} />
       {!pressed && <Sprite id="seitaPress" {...SPOTS.seitaKneel} className="fret" />}
       {!pressed && <LooseSheets />}
