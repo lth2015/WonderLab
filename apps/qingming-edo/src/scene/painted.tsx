@@ -73,6 +73,14 @@ export const CROWD = (() => {
   return out;
 })();
 
+/**
+ * Roadside things in front of the painting. Some stand over a join where the
+ * two paintings' curbs do not meet (docs/painted-worlds/art/edo/seams-v1).
+ */
+export const PROPS: { id: SpriteId; x: number; y: number; flip?: boolean }[] = [
+  { id: 'props-cart', x: 3010, y: 640 }, // over the 11|12 join (unmirrored), curbs at two heights
+];
+
 /** Each person's pose follows the story (spec §8 五状態). */
 export interface Poses {
   seita: 'press' | 'bow' | 'stand';
@@ -134,6 +142,9 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
         <ellipse key={g.id} className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 4} ry={g.h / 2 + 4} fill="#fff8e0" />
       ))}
 
+      {PROPS.filter((c) => near(c.x, sections)).map((c) => (
+        <Sprite key={`${c.id}-${c.x}`} {...c} />
+      ))}
       {CROWD.filter((c) => near(c.x, sections)).map((c) => (
         <Sprite key={`${c.id}-${c.x}`} {...c} />
       ))}
