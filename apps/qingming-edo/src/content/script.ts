@@ -1,5 +1,5 @@
 import type { Condition, Effect } from '../contract';
-import { questById, type Subject } from './world';
+import { AMBIENT, questById, SKETCHES, sketchPageId, type Subject } from './world';
 
 // 台本 (spec §8, §12). Readable modern Japanese with a light Edo touch; each
 // person has their own voice rather than one loud Edo dialect for everyone.
@@ -107,7 +107,10 @@ export const NODES: Record<string, DialogueNode> = {
     ],
   },
   'sokichi.done': {
-    lines: [{ by: 'sokichi', text: '一頁目だな。絵巻帳を開いて、ときどき見返せ。描いた時には見えなかったものが見える。' }],
+    lines: [
+      { by: 'sokichi', text: '一頁目だな。絵巻帳を開いて、ときどき見返せ。描いた時には見えなかったものが見える。' },
+      { by: 'sokichi', text: '町には、まだ描かれていないものがいくらでもある。気になる景色があれば、足を止めて写してみろ。' },
+    ],
   },
 
   // ---------------------------------------------------------------- まだ物語の前の人たち
@@ -320,6 +323,21 @@ export const NODES: Record<string, DialogueNode> = {
     lines: [{ by: 'kisuke', text: '手拭い、無事に戻ったってね。今度来たら、一杯おごるよ。' }],
   },
 };
+
+// 町の写生: tapping one of the places offers to draw it, until its page is made
+for (const k of SKETCHES) {
+  NODES[`sk.${k.id}`] = {
+    lines: [
+      { by: 'narration', text: AMBIENT[k.spots[0]] },
+      { by: 'narration', text: `${k.title}。足を止めて、この景色を写しておこうか。` },
+    ],
+    choices: [{ label: 'この景色を写す', next: `sk.${k.id}.made` }, { label: '眺めるだけにする' }],
+  };
+  NODES[`sk.${k.id}.made`] = {
+    page: { pageId: sketchPageId(k.id), compositionId: `sketch-${k.id}-{tod}` }, // drawn in the time shown
+    lines: [{ by: 'narration', text: `しばらく筆を走らせた。絵巻帳に「${k.title}」の頁が残った。` }],
+  };
+}
 
 // After a story, the person can be talked with a little more (即興のひとこと).
 for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done']) {
