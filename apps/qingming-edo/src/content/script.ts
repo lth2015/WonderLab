@@ -1,5 +1,5 @@
 import type { Condition, Effect } from '../contract';
-import { questById, type Subject } from './world';
+import { AMBIENT, PAGE_SLOTS, questById, SKETCHES, sketchPageId, type Subject } from './world';
 
 // 台本 (spec §8, §12). Readable modern Japanese with a light Edo touch; each
 // person has their own voice rather than one loud Edo dialect for everyone.
@@ -106,8 +106,24 @@ export const NODES: Record<string, DialogueNode> = {
       { by: 'narration', text: '十二文を受け取った。絵巻帳に、最初の一頁が残った。', reward: true },
     ],
   },
+  // 絵巻帳が一冊に (all twelve pages): the free experience comes to rest, the town goes on
+  'sokichi.full': {
+    effects: [{ type: 'setFlag', flag: 'book_full' }],
+    lines: [
+      { by: 'sokichi', text: 'ほう……。白い頁が、もう一枚も残っておらんな。' },
+      { by: 'sokichi', text: '紙屋の店先から、町はずれの川端まで。お前の目で歩いた日本橋が、一冊になった。' },
+      { by: 'sokichi', text: '絵巻は、描き終えたところで終わりではない。明日になれば、町はまた違う顔を見せる。……また歩け。' },
+      { by: 'narration', text: '絵巻帳が、一冊になった。' },
+    ],
+  },
+  'sokichi.full.again': {
+    lines: [{ by: 'sokichi', text: 'また来たか。町は変わらんようで、毎朝少しずつ違う。見返すたびに、頁も違って見えるはずだ。' }],
+  },
   'sokichi.done': {
-    lines: [{ by: 'sokichi', text: '一頁目だな。絵巻帳を開いて、ときどき見返せ。描いた時には見えなかったものが見える。' }],
+    lines: [
+      { by: 'sokichi', text: '一頁目だな。絵巻帳を開いて、ときどき見返せ。描いた時には見えなかったものが見える。' },
+      { by: 'sokichi', text: '町には、まだ描かれていないものがいくらでもある。気になる景色があれば、足を止めて写してみろ。' },
+    ],
   },
 
   // ---------------------------------------------------------------- まだ物語の前の人たち
@@ -321,8 +337,23 @@ export const NODES: Record<string, DialogueNode> = {
   },
 };
 
+// 町の写生: tapping one of the places offers to draw it, until its page is made
+for (const k of SKETCHES) {
+  NODES[`sk.${k.id}`] = {
+    lines: [
+      { by: 'narration', text: AMBIENT[k.spots[0]] },
+      { by: 'narration', text: `${k.title}。足を止めて、この景色を写しておこうか。` },
+    ],
+    choices: [{ label: 'この景色を写す', next: `sk.${k.id}.made` }, { label: '眺めるだけにする' }],
+  };
+  NODES[`sk.${k.id}.made`] = {
+    page: { pageId: sketchPageId(k.id), compositionId: `sketch-${k.id}-{tod}` }, // drawn in the time shown
+    lines: [{ by: 'narration', text: `しばらく筆を走らせた。絵巻帳に「${k.title}」の頁が残った。` }],
+  };
+}
+
 // After a story, the person can be talked with a little more (即興のひとこと).
-for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done']) {
+for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again']) {
   NODES[id].choices = [{ label: '少し話す', talk: true }];
 }
 
@@ -344,6 +375,8 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { node: 'seita.first' },
   ],
   sokichi: [
+    { when: { flag: 'book_full' }, node: 'sokichi.full.again' },
+    { when: { pagesAtLeast: PAGE_SLOTS }, node: 'sokichi.full' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'sokichi.done' },
     { when: { flag: 'kaze_page' }, node: 'kaze.reward' },
     { when: { flag: 'paper_pressed' }, node: 'sokichi.ask' },

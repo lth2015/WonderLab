@@ -131,7 +131,7 @@ export const AMBIENT_LABEL: Record<string, string> = {
   'dye-cloth': '干された藍染',
   'garden': '小さな菜園',
   'flowers': '垣根の花',
-  'willow-end': '卷尾の柳',
+  'willow-end': '川端の大柳',
   'bench': '川端の縁台',
   'plum2': '庭の梅',
   'pond': '庭の池',
@@ -262,6 +262,37 @@ export const PAGE_TITLES: Record<string, string> = {
   'p01-kaze-b': '風のいたずら（もう一枚）',
   'p02-dougu-b': 'いつもの道具（もう一つの朝）',
 };
+
+/**
+ * 町の写生 (spec §5 絵巻帳12頁): after the first page, 宗吉 sends the player to
+ * draw what they notice. Seven places along the roll, each its own page cut
+ * from the painting. No money: rewards come only from the three stories.
+ * Ordered from the bridge (right) to the quiet end (left).
+ */
+export const SKETCHES = [
+  { id: 'boat', spots: ['boat', 'willow'], title: '柳と荷舟', place: '橋のたもと', view: { x0: 13020, y0: 150, w: 420 }, comment: '石垣の重さと、舟の軽さ。並べると、川の流れが見えてくる。' },
+  { id: 'well', spots: ['well', 'plum'], title: '井戸と梅', place: '小路の井戸', view: { x0: 10300, y0: 150, w: 420 }, comment: '井戸は町の台所だ。人がいなくても、人の朝が描ける。' },
+  { id: 'cooper', spots: ['cooper', 'pottery'], title: '桶屋の店先', place: '桶屋と瀬戸物屋', view: { x0: 4110, y0: 150, w: 420 }, comment: '桶の箍を一本ずつ数えたな。その根気が線に出ている。' },
+  { id: 'jetty', spots: ['jetty', 'willow2'], title: '河岸の小舟', place: '堀の河岸', view: { x0: 5160, y0: 130, w: 420 }, comment: '水は描かずに、杭と舟で見せる。よく分かっている。' },
+  { id: 'dye', spots: ['dye-vats', 'dye-cloth'], title: '紺屋の干し場', place: '紺屋の裏', view: { x0: 3050, y0: 150, w: 420 }, comment: '藍は一度では染まらん。何度も浸けた色だ。紙の上でも急ぐな。' },
+  { id: 'pond', spots: ['pond', 'plum2'], title: '庭の池', place: '水辺の庭', view: { x0: 910, y0: 150, w: 420 }, comment: '静かな所ほど、描く者の息が出る。落ち着いた線だ。' },
+  { id: 'bench', spots: ['willow-end', 'bench'], title: '川端の縁台', place: '町はずれの川端', view: { x0: 260, y0: 130, w: 420 }, comment: '町の終わりまで歩いたか。賑わいの後の静けさも、町のうちだ。' },
+] as const;
+export type SketchId = (typeof SKETCHES)[number]['id'];
+export const sketchPageId = (id: string) => `p-sk-${id}`;
+/** `sketch-<id>-<time>`: the place and the time of day it was drawn. */
+export function parseSketch(composition: string): { sketch: (typeof SKETCHES)[number]; tod: 'morning' | 'noon' | 'evening' } | null {
+  const m = /^sketch-([a-z]+)-(morning|noon|evening)$/.exec(composition);
+  const sketch = m && SKETCHES.find((k) => k.id === m[1]);
+  return sketch ? { sketch, tod: m![2] as 'morning' | 'noon' | 'evening' } : null;
+}
+export function sketchOfSpot(targetId: string) {
+  return SKETCHES.find((k) => (k.spots as readonly string[]).includes(targetId)) ?? null;
+}
+for (const k of SKETCHES) {
+  PAGES.push({ id: sketchPageId(k.id), triggerId: 'sketch', compositionId: `sketch-${k.id}-{tod}`, captionId: `sketch-${k.id}`, sourceRefs: [] });
+  PAGE_TITLES[sketchPageId(k.id)] = k.title;
+}
 
 /** The story a page belongs to, for 回想. */
 export function questOfPage(pageId: string): string | null {

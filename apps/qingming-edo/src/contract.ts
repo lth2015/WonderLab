@@ -32,7 +32,9 @@ export type Condition =
   | { any: Condition[] }
   | { not: Condition }
   | { flag: string }
-  | { quest: string; is: QuestState | QuestState[] };
+  | { quest: string; is: QuestState | QuestState[] }
+  /** The journal holds at least this many pages. */
+  | { pagesAtLeast: number };
 
 /** Spec §9: 未発見、発見済み、進行中、提出待ち、完了、回想可能. */
 export type QuestState = 'undiscovered' | 'discovered' | 'active' | 'ready' | 'complete';

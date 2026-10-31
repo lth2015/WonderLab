@@ -1,6 +1,6 @@
 import type { HotspotDef, SaveData } from '../contract';
 import { ENTRIES } from '../content/script';
-import { HOTSPOTS, questById } from '../content/world';
+import { HOTSPOTS, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from '../content/world';
 import { hasFlag, questState, test } from './state';
 
 /** The node a person (or prop) opens with now. */
@@ -30,8 +30,11 @@ export interface Nearby {
  * 「近くのこと」 (spec §7): at most three things that can be done now. It
  * only points; choosing one shows the place, it never does the task.
  */
+const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
+
 export function nearby(s: SaveData): Nearby[] {
   const out: Nearby[] = [];
+  if (s.journal.pages.length >= PAGE_SLOTS && !hasFlag(s, 'book_full')) out.push({ id: 'book', text: '一冊になった絵巻帳を、宗吉に見せる', spotId: 'h-sokichi' });
   if (!hasFlag(s, 'paper_pressed')) {
     out.push({ id: 'papers', text: '青葉屋の店先で、紙が風にあおられている', spotId: 'h-papers' });
   } else if (questState(s, 'kaze') !== 'complete') {
@@ -53,5 +56,12 @@ export function nearby(s: SaveData): Nearby[] {
     if (!hasFlag(s, 'met_oharu')) out.push({ id: 'oharu', text: '茶店の前で、お春が何かを探している', spotId: 'h-oharu' });
   }
   if (!hasFlag(s, 'met_kinji')) out.push({ id: 'kinji', text: '天秤棒の振売りが、商いから戻ってきた', spotId: 'h-kinji' });
-  return out.slice(0, 3);
+  // 町の写生: the next place not yet drawn, walking from the bridge
+  if (questState(s, 'kaze') === 'complete') {
+    const left = SKETCHES.filter((k) => !s.journal.pages.some((p) => p.pageId === sketchPageId(k.id)));
+    if (left.length) out.push({ id: 'sketches', text: `町の景色を写す（あと${left.length}か所）。${left[0].title}`, spotId: `a-${left[0].spots[0]}` });
+  }
+  // stories under way first, then the sketches, then people not yet greeted
+  const greeting = (n: Nearby) => GREETINGS.has(n.id);
+  return [...out.filter((n) => !greeting(n)), ...out.filter(greeting)].slice(0, 3);
 }
