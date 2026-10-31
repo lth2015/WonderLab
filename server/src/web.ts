@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -13,11 +13,22 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
  * page and everything else is revalidated, so a new deployment is picked up
  * on the next load.
  */
+/**
+ * Works built into a folder of their own under the web root, each with its
+ * own index.html: dist/edo/ is 清明上河図：江戸編 at /edo/ (apps/qingming-edo,
+ * docs/painted-worlds/qingming-edo). A page address inside one gets that
+ * work's page, never the main app's.
+ */
+let subApps: string[] = [];
+
 export async function registerWeb(app: FastifyInstance, dir: string): Promise<void> {
   const root = resolve(dir);
   if (!existsSync(join(root, 'index.html'))) {
     throw new Error(`WEB_DIST_DIR has no index.html: ${root} (run npm run build first)`);
   }
+  subApps = readdirSync(root, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && d.name !== 'assets' && existsSync(join(root, d.name, 'index.html')))
+    .map((d) => d.name);
   await app.register(fastifyStatic, {
     root,
     wildcard: false,
@@ -52,6 +63,16 @@ export function wantsPage(req: FastifyRequest): boolean {
   return (req.headers.accept ?? '').includes('text/html');
 }
 
-export function sendPage(reply: FastifyReply): FastifyReply {
-  return reply.header('Cache-Control', 'no-cache').sendFile('index.html');
+/** The work a page address belongs to: a sub-app folder name, or null for the main app. */
+export function subAppOf(path: string): string | null {
+  const first = path.split('?')[0].split('/')[1] ?? '';
+  return subApps.includes(first) ? first : null;
+}
+
+export function sendPage(reply: FastifyReply, req?: FastifyRequest): FastifyReply {
+  const path = req ? req.url.split('?')[0] : '/';
+  const sub = subAppOf(path);
+  // /edo → /edo/, so the work's relative asset paths resolve under it.
+  if (sub && path === `/${sub}`) return reply.redirect(`/${sub}/` + (req!.url.includes('?') ? req!.url.slice(req!.url.indexOf('?')) : ''), 301);
+  return reply.header('Cache-Control', 'no-cache').sendFile(sub ? `${sub}/index.html` : 'index.html');
 }

@@ -62,7 +62,7 @@ export default fp(async function errorPlugin(app: FastifyInstance, opts: { serve
   app.setNotFoundHandler((req, reply) => {
     // Serving the web app (WEB_DIST_DIR): a page address the browser loads
     // directly gets the app, which routes it on the client.
-    if (opts.servesWeb && wantsPage(req)) return sendPage(reply);
+    if (opts.servesWeb && wantsPage(req)) return sendPage(reply, req);
     return reply.status(404).send({
       error: { code: 'NOT_FOUND' as ErrorCode, message: 'route not found', requestId: req.id },
     });

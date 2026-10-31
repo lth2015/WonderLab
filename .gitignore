@@ -10,3 +10,4 @@ server-data
 strokes/*.json
 # and the sentences colleagues wrote for rule calibration (strokes/README.md)
 strokes/*.txt
+dist-edo

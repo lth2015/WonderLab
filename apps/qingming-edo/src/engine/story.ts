@@ -1,0 +1,45 @@
+import type { HotspotDef, SaveData } from '../contract';
+import { ENTRIES } from '../content/script';
+import { HOTSPOTS, questById } from '../content/world';
+import { hasFlag, questState, test } from './state';
+
+/** The node a person (or prop) opens with now. */
+export function entryFor(targetId: string, s: SaveData): string | null {
+  const rules = ENTRIES[targetId];
+  if (!rules) return null;
+  return rules.find((r) => test(s, r.when))?.node ?? null;
+}
+
+export function visibleSpots(s: SaveData): HotspotDef[] {
+  return HOTSPOTS.filter((h) => test(s, h.visibleWhen));
+}
+
+/** 回想可能 (spec §9): derived, never stored. */
+export function replayable(quest: string, s: SaveData): boolean {
+  const q = questById.get(quest);
+  return !!q && q.replayPolicy !== 'none' && questState(s, quest) === 'complete';
+}
+
+export interface Nearby {
+  id: string;
+  text: string;
+  spotId: string;
+}
+
+/**
+ * 「近くのこと」 (spec §7): at most three things that can be done now. It
+ * only points; choosing one shows the place, it never does the task.
+ */
+export function nearby(s: SaveData): Nearby[] {
+  const out: Nearby[] = [];
+  if (!hasFlag(s, 'paper_pressed')) {
+    out.push({ id: 'papers', text: '青葉屋の店先で、紙が風にあおられている', spotId: 'h-papers' });
+  } else if (questState(s, 'kaze') !== 'complete') {
+    out.push({ id: 'sketch', text: '宗吉が、何を描くか待っている', spotId: 'h-sokichi' });
+  }
+  if (!hasFlag(s, 'met_okon')) out.push({ id: 'okon', text: '道具屋のお紺が、手入れを終えた道具を眺めている', spotId: 'h-okon' });
+  if (!hasFlag(s, 'met_kisuke')) out.push({ id: 'kisuke', text: '茶店の喜助が、朝の客を待っている', spotId: 'h-kisuke' });
+  if (!hasFlag(s, 'met_oharu')) out.push({ id: 'oharu', text: '茶店の前で、お春が何かを探している', spotId: 'h-oharu' });
+  if (!hasFlag(s, 'met_kinji')) out.push({ id: 'kinji', text: '天秤棒の振売りが、商いから戻ってきた', spotId: 'h-kinji' });
+  return out.slice(0, 3);
+}
