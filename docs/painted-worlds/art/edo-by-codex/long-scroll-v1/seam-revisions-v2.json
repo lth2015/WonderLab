@@ -1,0 +1,103 @@
+{
+  "tool": "built-in image_gen",
+  "basedOnFeedback": "collab94246c5",
+  "status": "candidates requiring exact seam review",
+  "assets": [
+    {
+      "section": 3,
+      "status": "edge-repair candidate; exact stitched seam not yet accepted",
+      "native": {
+        "file": "edo-segment-03-v2.png",
+        "width": 1862,
+        "height": 845,
+        "bytes": 3266534,
+        "alpha": false,
+        "sha256": "421991a2cfb34a70ff3c18fa8987692191b53dd45a6b5f76591dd3321f8fa12e"
+      },
+      "webp": {
+        "file": "edo-segment-03-v2.webp",
+        "bytes": 646852,
+        "quality": 94
+      },
+      "sourceWindow": {
+        "x": 250.17142857142858,
+        "y": 0,
+        "width": 1361.6571428571428,
+        "height": 845
+      },
+      "prompt": "edo-segment-03-v2.prompt.txt"
+    },
+    {
+      "section": 5,
+      "status": "edge-repair candidate; exact stitched seam not yet accepted",
+      "native": {
+        "file": "edo-segment-05-v2.png",
+        "width": 1862,
+        "height": 845,
+        "bytes": 3332528,
+        "alpha": false,
+        "sha256": "b3e23e66920404c1d92cd85bda3fec13bda0070817ec6fafef56e7bc4761b878"
+      },
+      "webp": {
+        "file": "edo-segment-05-v2.webp",
+        "bytes": 675060,
+        "quality": 94
+      },
+      "sourceWindow": {
+        "x": 250.17142857142858,
+        "y": 0,
+        "width": 1361.6571428571428,
+        "height": 845
+      },
+      "prompt": "edo-segment-05-v2.prompt.txt"
+    },
+    {
+      "section": 11,
+      "status": "edge-repair candidate; exact stitched seam not yet accepted",
+      "native": {
+        "file": "edo-segment-11-v2.png",
+        "width": 1862,
+        "height": 845,
+        "bytes": 3304878,
+        "alpha": false,
+        "sha256": "84676c2e882e582a7f789667c0c6aef41965edaadbb92476d8939cfb7ff9017f"
+      },
+      "webp": {
+        "file": "edo-segment-11-v2.webp",
+        "bytes": 680008,
+        "quality": 94
+      },
+      "sourceWindow": {
+        "x": 250.17142857142858,
+        "y": 0,
+        "width": 1361.6571428571428,
+        "height": 845
+      },
+      "prompt": "edo-segment-11-v2.prompt.txt"
+    },
+    {
+      "section": 12,
+      "status": "edge-repair candidate; exact stitched seam not yet accepted",
+      "native": {
+        "file": "edo-segment-12-v2.png",
+        "width": 1591,
+        "height": 989,
+        "bytes": 3183996,
+        "alpha": false,
+        "sha256": "e6d63e79d2926bd386b619e494c276283cf6b5dde26251303f1b0dddc6ffba83"
+      },
+      "webp": {
+        "file": "edo-segment-12-v2.webp",
+        "bytes": 607252,
+        "quality": 94
+      },
+      "sourceWindow": {
+        "x": 0,
+        "y": 0.838652482269481,
+        "width": 1591,
+        "height": 987.322695035461
+      },
+      "prompt": "edo-segment-12-v2.prompt.txt"
+    }
+  ]
+}

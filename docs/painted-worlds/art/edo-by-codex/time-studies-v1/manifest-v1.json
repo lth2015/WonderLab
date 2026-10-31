@@ -1,0 +1,175 @@
+{
+  "tool": "built-in image_gen",
+  "reference": "../edo-nihonbashi-key-v1.png",
+  "status": "two time-of-day master studies",
+  "assets": [
+    {
+      "id": "morning",
+      "status": "lighting study, not a registered runtime layer or full-scroll variant",
+      "native": {
+        "file": "edo-key-morning-v1.png",
+        "width": 2172,
+        "height": 724,
+        "bytes": 3481663,
+        "sha256": "53b766162076e549529f907ebfce6f7b7d21e0ff2c626b92f34aa1d9e9fcb588"
+      },
+      "webp": {
+        "file": "edo-key-morning-v1.webp",
+        "quality": 94,
+        "bytes": 718628
+      },
+      "prompt": "edo-key-morning-v1.prompt.txt",
+      "sampledMaterialRegionMeans": {
+        "paper": {
+          "region": {
+            "left": 1000,
+            "top": 0,
+            "width": 100,
+            "height": 25
+          },
+          "meanRgb": [
+            146,
+            144,
+            134
+          ]
+        },
+        "water": {
+          "region": {
+            "left": 250,
+            "top": 620,
+            "width": 60,
+            "height": 40
+          },
+          "meanRgb": [
+            146,
+            144,
+            134
+          ]
+        },
+        "timber": {
+          "region": {
+            "left": 1800,
+            "top": 420,
+            "width": 60,
+            "height": 25
+          },
+          "meanRgb": [
+            146,
+            144,
+            134
+          ]
+        },
+        "stone": {
+          "region": {
+            "left": 1100,
+            "top": 630,
+            "width": 60,
+            "height": 30
+          },
+          "meanRgb": [
+            146,
+            144,
+            134
+          ]
+        },
+        "foliage": {
+          "region": {
+            "left": 930,
+            "top": 150,
+            "width": 40,
+            "height": 30
+          },
+          "meanRgb": [
+            146,
+            144,
+            134
+          ]
+        }
+      }
+    },
+    {
+      "id": "evening",
+      "status": "lighting study, not a registered runtime layer or full-scroll variant",
+      "native": {
+        "file": "edo-key-evening-v1.png",
+        "width": 2172,
+        "height": 724,
+        "bytes": 3411814,
+        "sha256": "f0152b5ee267dd511b1fe626cabcfc71d00bb7431181cfd44dae9631fb57da94"
+      },
+      "webp": {
+        "file": "edo-key-evening-v1.webp",
+        "quality": 94,
+        "bytes": 700506
+      },
+      "prompt": "edo-key-evening-v1.prompt.txt",
+      "sampledMaterialRegionMeans": {
+        "paper": {
+          "region": {
+            "left": 1000,
+            "top": 0,
+            "width": 100,
+            "height": 25
+          },
+          "meanRgb": [
+            136,
+            119,
+            97
+          ]
+        },
+        "water": {
+          "region": {
+            "left": 250,
+            "top": 620,
+            "width": 60,
+            "height": 40
+          },
+          "meanRgb": [
+            136,
+            119,
+            97
+          ]
+        },
+        "timber": {
+          "region": {
+            "left": 1800,
+            "top": 420,
+            "width": 60,
+            "height": 25
+          },
+          "meanRgb": [
+            136,
+            119,
+            97
+          ]
+        },
+        "stone": {
+          "region": {
+            "left": 1100,
+            "top": 630,
+            "width": 60,
+            "height": 30
+          },
+          "meanRgb": [
+            136,
+            119,
+            97
+          ]
+        },
+        "foliage": {
+          "region": {
+            "left": 930,
+            "top": 150,
+            "width": 40,
+            "height": 30
+          },
+          "meanRgb": [
+            136,
+            119,
+            97
+          ]
+        }
+      }
+    }
+  ]
+}

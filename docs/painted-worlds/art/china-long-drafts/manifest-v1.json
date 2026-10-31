@@ -1,0 +1,83 @@
+{
+  "tool": "built-in image_gen",
+  "status": "not integrated",
+  "assets": [
+    {
+      "id": "fields",
+      "native": "fields-v1.png",
+      "preview": "fields-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "alpha": false,
+      "webpBytes": 737908,
+      "prompt": "Historical-scene handscroll game continuation. Reference is the NEXT plate on the right. Produce a NEW wide 3:1 plate to its LEFT. Its right edge continues the reference's left rural willow bank: same cart path and stone-edged river at exactly the same height, same stone blocks and fence size. Match the same fine ink lines, thin warm neutral mineral watercolor and aged silk; same building door heights and timber scale, never miniaturize to fit extra buildings. This is the opening of an original Song-era Chinese riverside scroll: spring fields, orderly vegetable beds, reed fences, a small farm hamlet and open straw-roof sheds, stacks of empty baskets, a quiet winding cart track along the water, budding willows, a distant village barely visible in pale mist. A low empty handcart rests beside the path. The far LEFT ends naturally in reeds and a pale river bend with a little blank silk breathing room, while the RIGHT continues seamlessly into the ferry plate. Overall road direction horizontal, locally parallel oblique architecture, NO vanishing-point street. River is the lower foreground. Clearly visible dry walkable ground throughout. No people or human silhouettes, no animals, no boats, no text, no letters, no borders or page dividers. Around 2172x724, same 3:1 ratio as reference.",
+      "status": "draft; seams and actor coordinates not approved"
+    },
+    {
+      "id": "ferry_fixed",
+      "native": "ferry_fixed-v1.png",
+      "preview": "ferry_fixed-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "alpha": false,
+      "webpBytes": 660022,
+      "prompt": "Precise local correction for a continuous handscroll. Image 1 is the EDIT TARGET: the upstream ferry plate. Image 2 is the next plate to its RIGHT. Preserve the whole of image 1, its countryside, pavilion, willows, road, sky, river texture and color. Change ONLY the bridge approach near image 1's far RIGHT edge. The deck at image 1's right edge is currently too high: lower that joining end so it meets the bridge deck entering from the LEFT edge of image 2, at approximately source y=315 on the 724-high original canvas. Make the last narrow strip of the corrected image match image 2's first narrow strip: same bridge deck, rail bars, stone abutment, water and their heights, as if both were one continuous timber bridge. Preserve the ferry pavilion and the LEFT/central majority of image 1 unchanged. Do not invent a second bridge or an archway divider. Same 3:1 canvas, same building scale, fine ink/watercolor detail and warm paper color. No people, silhouettes, boats, animals or text.",
+      "status": "draft; seams and actor coordinates not approved"
+    },
+    {
+      "id": "craft",
+      "native": "craft-v1.png",
+      "preview": "craft-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "alpha": false,
+      "webpBytes": 722472,
+      "prompt": "Historical-scene game background for an original Chinese Song-era riverside handscroll. Fine hand-drawn ink contours and thin muted mineral watercolor on warm aged silk, same material detail, colors and architectural scale as the reference. Oblique handscroll perspective with locally parallel beams; overall travel direction horizontal. Output a wide landscape plate at the SAME 3:1 aspect ratio as the reference, around 2172x724 or larger if supported. The reference is an existing middle plate; produce a NEW adjacent location, not a variation of the same bridge view. Keep the existing door heights, roof ridge levels, quay stone size and timber thickness consistent with the reference; never shrink buildings to fit more of them. Preserve continuous ground and water. No people, no human silhouettes, no animals, no boats, no readable writing, no signage letters, no borders or panel dividers. Empty ground is for separately composited interactive people. Water occupies the lower foreground; the broad walkable quay and road are clearly visible. NEW PLATE TO THE RIGHT / EAST of the reference. The LEFT narrow edge must repeat the reference's RIGHT edge: willow at an urban paper shop frontage, low stone quay beside water, same bank height. Continue this bank into a small artisans' lane with open bamboo-weaving and cloth-dyeing workshops, hanging plain cloth, tools, baskets, shelves, a quiet lane between worn timber houses and open space to set down a handcart. An old stone gateway is only hinted at in the far RIGHT edge, not centered; the next plate continues through it. Near the right edge the road and stone waterside remain at the same height as their neighboring shop floors. Leave the foreground river and a continuous walking lane. Warm neutral daylight, the same sky-paper hue as reference. No task actors baked into the scene.",
+      "status": "draft; seams and actor coordinates not approved"
+    },
+    {
+      "id": "gate",
+      "native": "gate-v1.png",
+      "preview": "gate-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "alpha": false,
+      "webpBytes": 744464,
+      "prompt": "Historical-scene handscroll game continuation. Reference is the PREVIOUS plate on the left. Produce a NEW wide 3:1 plate to its RIGHT. LEFT narrow band continues the reference RIGHT narrow band with its half-visible stone gateway, same quay height and paving stones and old street width. Maintain EXACTLY the scale of existing doors, roof ridges, wall stones and tools; do not make anything smaller in the new plate. Same fine detailed ink contours, thin muted mineral watercolor, warm neutral silk color, oblique locally parallel architecture, overall horizontal travel. The main subject is a substantial but human-scaled old Chinese city gate and a lively-in-potential street inside: weathered stone archway set in a low city wall, timber gate tower above, a few open wine/food shop fronts, plain hanging shop cloth, barrels and covered goods stalls, a lane following the same river quay. Far roofs and trees pale in the distance. The river continues through the lower foreground and the walkable road stays unbroken beside it. The RIGHT edge leads toward wooden river warehouses and a cargo quay, keeping paving and water levels consistent. No people or silhouettes, no boats, no animals, no readable text, no shop letters, no modern objects, no borders, no montage panels. Around 2172x724, same 3:1 aspect as reference.",
+      "status": "draft; seams and actor coordinates not approved"
+    },
+    {
+      "id": "harbor",
+      "native": "harbor-v1.png",
+      "preview": "harbor-v1.webp",
+      "width": 2170,
+      "height": 725,
+      "alpha": false,
+      "webpBytes": 764452,
+      "prompt": "A NEW 3:1 continuation plate to the RIGHT of the reference in the same original Chinese Song-era river handscroll. Match its LEFT edge to the reference RIGHT edge, preserving shop-floor, quay-top and water heights, same paving block size, same existing roof ridge levels and door sizes. Fine expressive ink contours, varied line weight, delicate muted watercolor on the identical warm neutral silk, material detail equal to reference. Locally parallel oblique architecture, total travel direction horizontal. The city street opens into a river cargo harbor: large timber warehouses with open shaded bays, stacks of rope coils, bundled timber, sacks, woven baskets, raised wooden loading stages, a broad stone quay and two modest timber piers projecting into the river. Leave safe continuous walking space above the quay wall; clearly supported boards at every pier. Farther roofs are pale with atmospheric distance. River fills lower foreground, no vessels baked in. RIGHT edge leaves the busiest warehouses for a quieter willow-lined lane toward a walled riverside garden. No people or silhouettes, no animals, no boats, no text, no calligraphy or signs, no modern machinery, no borders or montage. Around 2172x724 or larger native resolution at same 3:1 ratio. Do not shrink the buildings as the scroll continues.",
+      "status": "draft; seams and actor coordinates not approved"
+    },
+    {
+      "id": "garden",
+      "native": "garden-v1.png",
+      "preview": "garden-v1.webp",
+      "width": 2170,
+      "height": 725,
+      "alpha": false,
+      "webpBytes": 781626,
+      "prompt": "Use case: historical-scene. Asset: the NEW right-hand end plate of a continuous Northern Song Chinese river handscroll game, original fictional Kaifeng district. Reference image is the immediately PRECEDING harbor plate, for shared river level, walkway elevation, building size, pale neutral silk, fine varied ink and restrained mineral wash. Do not repeat its warehouses. Compose a native 3:1 landscape around 2172x724 or higher. Continue from a timber harbor at the left edge into a quiet willow-lined riverside lane and a modest walled courtyard garden on the right. At left, same stone quay at approximately y=480 on a 724-high canvas, river foreground below; a few stacked wicker containers and timber piers taper out of view. Center: connected clear dry lane follows a gently bending stone riverbank, small courtyard entrance, tiled walls with aged joints, modest study pavilion with open lattice, a small wooden bench and empty earthen tea vessels, clustered spring willow and peach branches, roots placed in soil pockets. Right: winding path toward distant small village rooftops, reeds along the shore, broad quiet water turning out of the frame; light grey-green distance fading gradually into warm neutral paper. Keep a hypothetical foreground adult about93px high at724height, doors about135px; the courtyard is modest, never a giant palace. Fine material detail in wood grain, tile overlap, basket weave, plants and stone waterline; thin blue-grey river reflections; warm timber, muted grey-green foliage, sparse faded pink blossoms. Coherent soft daylight identical to reference, no orange sunset, no dramatic spotlight or haze overlay. Main walking surface must remain continuous and exposed, no flooded path, no unsupported stairs, no rail cutting the walking lane. Empty background for separate actor placement: NO people, animals, moving boats or main story props, NO words, labels, signature, border, modern object, fantasy or Japanese architecture. Fill entire frame, subtle handmade ink painting with real atmospheric depth rather than a row of facade elevations.",
+      "status": "draft; seams and actor coordinates not approved"
+    },
+    {
+      "id": "crowd",
+      "native": "crowd-v1.png",
+      "preview": "crowd-v1.webp",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "webpBytes": 447594,
+      "prompt": "Game-ready transparent sprite atlas of TWELVE DISTINCT Chinese Song-era ordinary townspeople, matching the supplied fine-ink thin-watercolor river handscroll. Arrange exactly 4 columns by 3 rows in separate spacious cells, no figures or props overlap cell boundaries. Same oblique 3/4 viewpoint, soft diffuse light and scale; full bodies with complete heads and both shoes on the same cell baseline. Adults 5.5-6 heads tall, small realistic faces, subtle fingers and clothing folds, muted sage, bluegray, ochre, rust, parchment and dusty plum. Every person has a different face, age, hair and silhouette. Row1 left to right: elder male farmer in sage with rope coil; middle-aged woman in rust carrying a small market basket; young mother in bluegrey holding a small child's hand (both feet on common ground); sturdy porter in ochre with a compact basket held at waist, NO wide shoulder pole. Row2: elder travelling scholar in cream and grey with a closed book; young errand boy in indigo with cloth bundle; bamboo artisan in ochre apron holding thin reeds close to body; weaver woman in muted plum with folded cloth. Row3: fisherman in straw hat and short grey-green work robe; young girl in dusty pink with wicker basket; older woman in taupe with short walking stick; messenger in moss cloak with small shoulder bag. Natural standing, looking or doing a small hand task, no dramatic gestures. NO ground, no cast shadow, no paper rectangle, no texture behind figures, no colored fringe or glow, no grid lines or text. TRUE TRANSPARENT ALPHA background. Each complete figure and close-held prop must stay inside its own cell with generous margin. A square atlas around 1536x1536 or larger.",
+      "status": "draft; seams and actor coordinates not approved"
+    }
+  ]
+}
