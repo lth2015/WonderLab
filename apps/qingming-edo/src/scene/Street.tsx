@@ -47,6 +47,8 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   const cam = useRef<number | null>(null); // left edge, scene units
   const size = useRef({ w: 0, h: 0, scale: 1 });
   const anim = useRef(0);
+  // the zoom has its own frame loop: a touch or a focus during it must not freeze it half way
+  const zoomAnim = useRef(0);
   const [scale, setScale] = useState(1);
   const base = useRef(1); // scale at zoom 1
   const top = useRef(TOP); // scene y at the top of the view
@@ -107,7 +109,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   useEffect(() => {
     const target = zoomed ? ZOOM : 1;
     if (target === zoomNow.current) return;
-    cancelAnimationFrame(anim.current);
+    cancelAnimationFrame(zoomAnim.current);
     const { w, h } = size.current;
     const s0 = size.current.scale;
     const top0 = top.current;
@@ -133,10 +135,10 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     const step = (t: number) => {
       const k = Math.min(1, (t - t0) / 300);
       apply(k);
-      if (k < 1) anim.current = requestAnimationFrame(step);
+      if (k < 1) zoomAnim.current = requestAnimationFrame(step);
       else setScale(s1);
     };
-    anim.current = requestAnimationFrame(step);
+    zoomAnim.current = requestAnimationFrame(step);
   }, [zoomed, reduceMotion, setCam]);
 
   useImperativeHandle(
@@ -208,7 +210,13 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     }
   };
 
-  useEffect(() => () => cancelAnimationFrame(anim.current), []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(anim.current);
+      cancelAnimationFrame(zoomAnim.current);
+    },
+    [],
+  );
 
   const layerStyle = (w: number): React.CSSProperties => ({ width: w, height: SCENE_H, transformOrigin: '0 0' });
 
