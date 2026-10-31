@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, HOTSPOTS, ROLES, characterById, kazeComposition, type Subject } from './content/world';
+import { AMBIENT, AMBIENT_LABEL, HOTSPOTS, ROLES, characterById, kazeComposition, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
@@ -537,28 +537,4 @@ function linesOf(n: (typeof NODES)[string], inRecall: boolean) {
   return inRecall ? n.lines.filter((l) => !l.reward) : n.lines;
 }
 
-const AMBIENT_LABEL: Record<string, string> = {
-  'noren-aoba': '青葉屋の暖簾',
-  'noren-kure': 'くれ竹の暖簾',
-  lantern: '辻行灯',
-  brooms: '荒物屋の竹箒',
-  steam: '茶店の湯気',
-  barrel: '路地の天水桶',
-  giboshi: '橋の擬宝珠',
-  willow: '川端の柳',
-  boat: '川の荷舟',
-  ladder: '屋根の梯子',
-  timber: '材木置き場',
-  sake: '酒屋の杉玉',
-  umbrellas: '傘屋の番傘',
-  tower: '火の見櫓',
-  well: '路地の井戸',
-  cooper: '桶屋の箍',
-  medicine: '薬種屋の薬袋',
-  prints: '絵草紙屋の錦絵',
-  kido: '町木戸',
-  ootana: '大店の暖簾',
-  kura: '土蔵',
-  inari: '路地奥の鳥居',
-  ceramics: '瀬戸物屋の棚',
-};
+

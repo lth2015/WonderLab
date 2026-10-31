@@ -1,9 +1,7 @@
-// 精絵（AI 生成、参考素材）— the whole street drawn as a painting, at the scale
-// agreed with the China edition (docs/handoff/painted-worlds-style-decision-v1.md:
-// main people 90 of 700 units, no passers-by baked in, a separate far layer,
-// a long scroll loaded by section). Scene units: nine sections of 1000 × 700 at
-// x 0–9000, read right to left from the bridge; the sky in them is transparent so
-// the far layer shows. Art and scripts: docs/painted-worlds/art/edo/.
+// 精絵 — the street painted by Codex (codex/painted-worlds-art,
+// docs/painted-worlds/art/edo-by-codex/), joined and mirrored by Claude so the
+// bridge is on the right and the scroll reads right to left. Scene units: 14
+// sections of 1000 × 700 at x 0–14000; the distant town is in the painting.
 //
 // People are separate transparent images: a pose changes with the story
 // without repainting the street, and passers-by are placed, not painted in.
@@ -19,10 +17,11 @@ const url = (name: string) => {
   return u;
 };
 
-export const SECTIONS = 9;
-export const STREET = Array.from({ length: SECTIONS }, (_, k) => url(`street-${k}`));
-/** The far layer: 8704 × 1024 px → 5950 × 700 units. */
-export const FAR = { href: url('far'), w: 5950, h: 700 };
+/** 14 sections of 1000 units (style decision #14); a section not yet painted is null. */
+export const SECTIONS = 14;
+export const STREET: (string | null)[] = Array.from({ length: SECTIONS }, (_, k) => URLS[`../assets/art/street-${k}.webp`] ?? null);
+/** The left end the camera may reach: the first painted section. */
+export const SCENE_X0 = STREET.findIndex(Boolean) * 1000;
 
 type SpriteId = keyof typeof SIZES;
 
@@ -45,13 +44,13 @@ function Sprite({ id, x, y, flip, className }: { id: SpriteId; x: number; y: num
 
 /** Where people stand in the painting (their feet), read off the gridded art. */
 export const SPOTS = {
-  seitaKneel: { x: 8500, y: 528 }, // on the paper shop's raised floor
-  seitaStand: { x: 8520, y: 576 }, // in the street before the shop
-  sokichi: { x: 8645, y: 562 }, // at the bridge foot
-  okon: { x: 8205, y: 548 }, // before the tools shop
-  kisuke: { x: 7660, y: 546 }, // at the tea house front
-  oharu: { x: 7520, y: 572 }, // in the street before the tea house
-  kinji: { x: 6680, y: 578 }, // resting before the rice shop
+  seitaKneel: { x: 12440, y: 538 }, // on the paper shop's raised floor
+  seitaStand: { x: 12560, y: 590 }, // in the street before the shop
+  sokichi: { x: 12640, y: 578 }, // in the street before the stone lantern, towards the bridge
+  okon: { x: 12150, y: 562 }, // before the tools shop
+  kisuke: { x: 11650, y: 546 }, // at the tea house front
+  oharu: { x: 11400, y: 582 }, // in the street before the tea house
+  kinji: { x: 7480, y: 572 }, // resting before the rice shop
 };
 
 /**
@@ -66,10 +65,10 @@ const CROWD_IDS: SpriteId[] = [
 export const CROWD = (() => {
   const out: { id: SpriteId; x: number; y: number; flip: boolean }[] = [];
   const keepClear = Object.values(SPOTS).map((p) => p.x);
-  for (let i = 0; i < 34; i++) {
-    const x = 180 + i * 262 + ((i * 137) % 110);
-    if (x > 8960 || keepClear.some((k) => Math.abs(k - x) < 85)) continue;
-    out.push({ id: CROWD_IDS[(i * 3) % CROWD_IDS.length], x, y: 588 + ((i * 53) % 62), flip: i % 3 === 0 });
+  for (let i = 0; i < 46; i++) {
+    const x = 180 + i * 300 + ((i * 137) % 120);
+    if (x < SCENE_X0 + 60 || x > 12760 || keepClear.some((k) => Math.abs(k - x) < 85)) continue;
+    out.push({ id: CROWD_IDS[(i * 3) % CROWD_IDS.length], x, y: 592 + ((i * 53) % 34), flip: i % 3 === 0 });
   }
   return out;
 })();
@@ -103,7 +102,7 @@ export function posesFor(s: SaveData): Poses {
 function LooseSheets() {
   const l = { fill: '#f6efdf', stroke: '#514d3e', strokeWidth: 0.5, strokeLinejoin: 'round' as const };
   return (
-    <g className="flap" transform="translate(6000 0)">
+    <g className="flap" transform={`translate(${SPOTS.seitaKneel.x - 2500} ${SPOTS.seitaKneel.y - 528})`}>
       <path d="M 2470 526 q 4 -13 16 -16 l 2 6 q -8 3 -12 11 Z" {...l} />
       <path d="M 2520 524 q 6 -15 18 -14 l -1 6 q -9 0 -13 9 Z" {...l} />
       <path d="M 2482 516 q 3 -11 11 -14 l 2 5 q -6 3 -8 10 Z" {...l} />
@@ -125,7 +124,7 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
   return (
     <g>
       {STREET.map((href, k) =>
-        k < sections[0] || k > sections[1] ? null : (
+        !href || k < sections[0] || k > sections[1] ? null : (
           // a hair of overlap hides the seam that sub-pixel rounding would show
           <image key={k} href={href} x={k * 1000 - (k ? 0.5 : 0)} y={0} width={1000 + (k < SECTIONS - 1 ? 0.5 : 0)} height={700} preserveAspectRatio="none" />
         ),
@@ -162,8 +161,8 @@ export function PaintedPageScene({ composition }: { composition: string }) {
   const view =
     composition === 'tenugui-return'
       ? {
-          x0: 7380,
-          y0: 230,
+          x0: SPOTS.oharu.x - 60,
+          y0: 240,
           w: 330,
           people: [
             { id: 'kisuke-bow' as SpriteId, ...SPOTS.kisuke },
@@ -171,10 +170,10 @@ export function PaintedPageScene({ composition }: { composition: string }) {
           ],
         }
       : composition === 'dougu-deliver'
-      ? { x0: 6520, y0: 230, w: 330, people: [{ id: 'kinji-nod' as SpriteId, ...SPOTS.kinji }] }
+      ? { x0: SPOTS.kinji.x - 165, y0: 240, w: 330, people: [{ id: 'kinji-nod' as SpriteId, ...SPOTS.kinji }] }
       : {
-          x0: 8050,
-          y0: 230,
+          x0: SPOTS.okon.x - 140,
+          y0: 240,
           w: 330,
           people: [
             { id: 'okon-bow' as SpriteId, ...SPOTS.okon },
@@ -187,7 +186,7 @@ export function PaintedPageScene({ composition }: { composition: string }) {
     <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`}>
       <rect x={view.x0 - 10} y={view.y0 - 10} width={view.w + 20} height={700} fill="#e1cfa6" />
       {STREET.map((href, i) =>
-        i < first || i > first + 1 ? null : <image key={i} href={href} x={i * 1000} y={0} width={1000} height={700} preserveAspectRatio="none" />,
+        !href || i < first || i > first + 1 ? null : <image key={i} href={href!} x={i * 1000} y={0} width={1000} height={700} preserveAspectRatio="none" />,
       )}
       {view.people.map((p) => (
         <Sprite key={p.id} id={p.id} x={p.x} y={p.y} />
