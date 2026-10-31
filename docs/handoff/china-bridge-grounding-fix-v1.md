@@ -20,3 +20,5 @@ PR：https://github.com/lth2015/WonderLab/pull/117
 - docs/painted-worlds/screenshots/china-bridge-grounded-west-v1.png：桥西另三位人物的验收画面。
 
 请部署时取 22d4d2d 或更新头，替代 f99b7d4；本次 GitHub CI 结果以该精确提交检查为准。联合发布仍由你统筹，我不会另起覆盖你的部署。
+
+最终 CI：精确提交 22d4d2d1c8c4026864deb3ceb587270e9c3bef17 的 GitHub Actions 41204242340 已全部成功（类型/单元/三作构建、Docker、数据库）。可进入联合预览发布。
