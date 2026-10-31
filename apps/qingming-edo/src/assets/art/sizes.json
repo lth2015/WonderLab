@@ -1,0 +1,106 @@
+{
+ "seita-press": {
+  "w": 45.1,
+  "h": 49.2
+ },
+ "seita-bow": {
+  "w": 32.8,
+  "h": 52
+ },
+ "seita-stand": {
+  "w": 28.7,
+  "h": 89.9
+ },
+ "sokichi-hold": {
+  "w": 30.4,
+  "h": 89.9
+ },
+ "sokichi-point": {
+  "w": 41,
+  "h": 88.5
+ },
+ "sokichi-nod": {
+  "w": 28.7,
+  "h": 89.6
+ },
+ "okon-hold": {
+  "w": 28.7,
+  "h": 89.9
+ },
+ "okon-bow": {
+  "w": 26.7,
+  "h": 86.8
+ },
+ "okon-wipe": {
+  "w": 28.7,
+  "h": 89.6
+ },
+ "kisuke-teapot": {
+  "w": 41.7,
+  "h": 89.9
+ },
+ "kisuke-pour": {
+  "w": 37.9,
+  "h": 85.4
+ },
+ "kisuke-bow": {
+  "w": 36.2,
+  "h": 83.7
+ },
+ "oharu-search": {
+  "w": 41,
+  "h": 89.9
+ },
+ "oharu-ask": {
+  "w": 32.1,
+  "h": 84.4
+ },
+ "oharu-found": {
+  "w": 34.5,
+  "h": 88.5
+ },
+ "kinji-walk": {
+  "w": 65.3,
+  "h": 84.8
+ },
+ "kinji-rest": {
+  "w": 56.1,
+  "h": 85.4
+ },
+ "kinji-nod": {
+  "w": 46.1,
+  "h": 89.9
+ },
+ "crowd1-merchant": {
+  "w": 38.3,
+  "h": 88.5
+ },
+ "crowd1-parasol": {
+  "w": 34.9,
+  "h": 89.9
+ },
+ "crowd1-porter": {
+  "w": 46.5,
+  "h": 86.8
+ },
+ "crowd1-monk": {
+  "w": 39,
+  "h": 83.7
+ },
+ "crowd2-samurai": {
+  "w": 51.6,
+  "h": 89.9
+ },
+ "crowd2-apprentice": {
+  "w": 32.8,
+  "h": 85.1
+ },
+ "crowd2-fishmonger": {
+  "w": 69.4,
+  "h": 83.1
+ },
+ "crowd2-elder": {
+  "w": 41,
+  "h": 75.2
+ }
+}
