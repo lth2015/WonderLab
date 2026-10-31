@@ -9,6 +9,8 @@ import { Street, type StreetApi } from './scene/Street';
 import { Journal } from './ui/Journal';
 import { Settings } from './ui/Settings';
 import { Sketch } from './ui/Sketch';
+import { Wrap } from './ui/Wrap';
+import { posesFor } from './scene/painted';
 
 type Panel = 'journal' | 'items' | 'nearby' | 'settings' | null;
 const IDLE_MS = 8000; // spec §6
@@ -41,6 +43,7 @@ export function App() {
   const [dialogue, setDialogue] = useState<{ node: string; line: number } | null>(null);
   const [candidates, setCandidates] = useState<HotspotDef[] | null>(null);
   const [sketch, setSketch] = useState<Subject | null>(null);
+  const [game, setGame] = useState<{ id: 'wrap'; then: string | null } | null>(null);
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
       ? '記録が読めなかったため、元の記録を退避して最初から始めます。'
@@ -55,7 +58,7 @@ export function App() {
   const lastActivity = useRef(performance.now());
 
   const reduceMotion = save.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const busy = !!(dialogue || candidates || sketch || panel);
+  const busy = !!(dialogue || candidates || sketch || game || panel);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--text-scale', String(save.settings.textScale));
@@ -73,10 +76,13 @@ export function App() {
     (id: string) => {
       const n = NODES[id];
       if (!n) return setDialogue(null);
-      if (n.effects) commit(n.effects);
+      let next = n.effects ? apply(saveRef.current, n.effects) : saveRef.current;
+      // a node may leave a journal page: made once, kept even if the dialogue is closed early
+      if (n.page) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId, titleStyle: 'plain', madeAt: new Date().toISOString() });
+      if (next !== saveRef.current) setSave(next);
       setDialogue({ node: id, line: 0 });
     },
-    [commit],
+    [setSave],
   );
 
   const openTarget = useCallback(
@@ -127,6 +133,9 @@ export function App() {
     if (c.sketch) {
       setDialogue(null);
       setSketch(c.sketch);
+    } else if (c.game) {
+      setDialogue(null);
+      setGame({ id: c.game, then: c.next ?? null });
     } else if (c.next) openNode(c.next);
     else closeDialogue();
   };
@@ -186,9 +195,7 @@ export function App() {
         <Street
           apiRef={street}
           spots={spots}
-          pressed={hasFlag(save, 'paper_pressed')}
-          kazeDone={questState(save, 'kaze') === 'complete'}
-          metOkon={hasFlag(save, 'met_okon')}
+          poses={posesFor(save)}
           reacting={reacting}
           reduceMotion={reduceMotion}
           interactive={entered && !busy}
@@ -289,6 +296,16 @@ export function App() {
         </div>
       )}
 
+      {game?.id === 'wrap' && (
+        <Wrap
+          onDone={() => {
+            const then = game.then;
+            setGame(null);
+            if (then) openNode(then);
+          }}
+          onCancel={() => setGame(null)}
+        />
+      )}
       {sketch && <Sketch subject={sketch} onDone={finishSketch} onCancel={() => setSketch(null)} reduceMotion={reduceMotion} />}
 
       {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} />}
@@ -299,7 +316,13 @@ export function App() {
             所持金 <strong>{save.wallet.balanceMinor}</strong> 文
           </p>
           <p className="small">文はこの町の中だけで使うお金です。金額は遊びのための調整値で、1805年の物価ではありません。</p>
-          <p>持ち物はまだありません。</p>
+          {hasFlag(save, 'dougu_carry') && questState(save, 'dougu') !== 'complete' ? (
+            <ul className="list">
+              <li>お紺から預かった包み（金次さんの弁当箱・箸箱・砥石）</li>
+            </ul>
+          ) : (
+            <p>持ち物はまだありません。</p>
+          )}
           <button type="button" className="primary" onClick={() => setPanel(null)}>
             町に戻る
           </button>

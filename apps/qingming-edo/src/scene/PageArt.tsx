@@ -122,8 +122,10 @@ function Scene({ subject, framing }: { subject: Subject; framing: Framing }) {
 }
 
 export interface PageArtProps {
-  subject: Subject;
-  framing: Framing;
+  subject?: Subject;
+  framing?: Framing;
+  /** A ready-made picture (scene/painted.tsx PaintedPageScene) instead of a line-drawn one. */
+  scene?: React.ReactNode;
   titleStyle: string;
   title: string;
   place: string;
@@ -132,7 +134,7 @@ export interface PageArtProps {
   idPrefix?: string;
 }
 
-export function PageArt({ subject, framing, titleStyle, title, place, credit, idPrefix = 'pg' }: PageArtProps) {
+export function PageArt({ subject, framing, scene, titleStyle, title, place, credit, idPrefix = 'pg' }: PageArtProps) {
   const slip = SLIP[titleStyle] ?? SLIP.plain;
   const clip = `${idPrefix}-clip`;
   return (
@@ -147,10 +149,15 @@ export function PageArt({ subject, framing, titleStyle, title, place, credit, id
       </defs>
       <g clipPath={`url(#${clip})`}>
         <rect x={PIC_X} y={PIC_Y} width={PIC_W} height={PIC_H} fill="#f3ebd9" />
-        <Scene subject={subject} framing={framing} />
-        <Mist x={20} y={56} w={300} h={40} opacity={0.55} />
-        <Mist x={360} y={110} w={240} h={30} opacity={0.4} />
-        <Mist x={-40} y={PAGE_H - 160} w={360} h={36} opacity={0.45} />
+        {scene ?? (subject && framing && <Scene subject={subject} framing={framing} />)}
+        {/* the line-drawn pages get mist bands; a painted page keeps its own sky */}
+        {!scene && (
+          <>
+          <Mist x={20} y={56} w={300} h={40} opacity={0.55} />
+          <Mist x={360} y={110} w={240} h={30} opacity={0.4} />
+          <Mist x={-40} y={PAGE_H - 160} w={360} h={36} opacity={0.45} />
+          </>
+        )}
       </g>
       {/* 題箋 */}
       <rect x={PAGE_W - 108} y={56} width={52} height={[...title].length * 34 + 30} fill={slip.fill} stroke={INK} strokeWidth={1.2} />
@@ -173,8 +180,28 @@ export function PageArt({ subject, framing, titleStyle, title, place, credit, id
 }
 
 /** Turns a rendered page SVG into a PNG blob at 2× (1200 × 1600). */
+/** An SVG drawn as an image cannot fetch what it links to: inline every <image> first. */
+async function inlineImages(svg: SVGSVGElement): Promise<SVGSVGElement> {
+  const copy = svg.cloneNode(true) as SVGSVGElement;
+  await Promise.all(
+    [...copy.querySelectorAll('image')].map(async (img) => {
+      const href = img.getAttribute('href') ?? img.getAttribute('xlink:href');
+      if (!href || href.startsWith('data:')) return;
+      const blob = await (await fetch(href)).blob();
+      const url = await new Promise<string>((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.onerror = () => rej(r.error);
+        r.readAsDataURL(blob);
+      });
+      img.setAttribute('href', url);
+    }),
+  );
+  return copy;
+}
+
 export async function pageToPng(svg: SVGSVGElement): Promise<Blob> {
-  const text = new XMLSerializer().serializeToString(svg);
+  const text = new XMLSerializer().serializeToString(await inlineImages(svg));
   const url = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml;charset=utf-8' }));
   try {
     const img = new Image();

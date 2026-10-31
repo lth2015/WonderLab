@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { JournalEntry, SaveData } from '../contract';
 import { PAGE_SLOTS, PAGE_TITLES, parseKaze } from '../content/world';
 import { PageArt, pageToPng } from '../scene/PageArt';
+import { PaintedPageScene } from '../scene/painted';
 
 // 絵巻帳 (spec §6, §10, §18): only what actually happened. A page, once made,
 // stays even if the save dialog is closed. Saving the clear image is free.
@@ -11,13 +12,28 @@ const COMMENT: Record<string, string> = {
   shopfront: '店先は町の顔だ。紙が静まった今の店を、よく留めた。',
   street: '人は止まらん。その流れの中で、紙は一枚も飛ばなかった。それでいい。',
 };
-const PLACE: Record<string, string> = { 'p01-kaze': '日本橋北詰・朝　青葉屋の店先' };
+const PLACE: Record<string, string> = {
+  'p01-kaze': '日本橋北詰・朝　青葉屋の店先',
+  'dougu-deliver': '日本橋・朝　米屋の前',
+  'dougu-entrust': '日本橋・朝　くれ竹の店先',
+};
+/** 宗吉's word on a page, by its composition (or, for 一頁目, its subject). */
+const COMMENT_BY_COMPOSITION: Record<string, string> = {
+  'dougu-deliver': '渡した手と、受け取った手。その間にあるものが描けている。',
+  'dougu-entrust': '届けた者は描かれていない。だが、託した人の思いは残っている。',
+};
+
+function comment(entry: JournalEntry): string | null {
+  const k = parseKaze(entry.compositionId);
+  return k ? COMMENT[k.subject] : (COMMENT_BY_COMPOSITION[entry.compositionId] ?? null);
+}
 const CREDIT = '清明上河図：江戸編';
 
 function Page({ entry, idPrefix }: { entry: JournalEntry; idPrefix: string }) {
   const k = parseKaze(entry.compositionId);
-  if (!k) return null;
-  return <PageArt subject={k.subject} framing={k.framing} titleStyle={entry.titleStyle} title={PAGE_TITLES[entry.pageId]} place={PLACE[entry.pageId]} credit={CREDIT} idPrefix={idPrefix} />;
+  const common = { titleStyle: entry.titleStyle, title: PAGE_TITLES[entry.pageId], credit: CREDIT, idPrefix };
+  if (k) return <PageArt subject={k.subject} framing={k.framing} place={PLACE[entry.pageId]} {...common} />;
+  return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={PLACE[entry.compositionId]} {...common} />;
 }
 
 export function Journal({ save, onClose, onToast }: { save: SaveData; onClose(): void; onToast(t: string): void }) {
@@ -56,16 +72,16 @@ export function Journal({ save, onClose, onToast }: { save: SaveData; onClose():
   };
 
   if (open) {
-    const k = parseKaze(open.compositionId);
+    const said = comment(open);
     return (
       <div className="panel" role="dialog" aria-labelledby="page-h">
         <h2 id="page-h">{PAGE_TITLES[open.pageId]}</h2>
         <div className="page-big" ref={big}>
           <Page entry={open} idPrefix="big" />
         </div>
-        {k && (
+        {said && (
           <p className="comment">
-            <span className="who">宗吉</span>「{COMMENT[k.subject]}」
+            <span className="who">宗吉</span>「{said}」
           </p>
         )}
         <div className="row">

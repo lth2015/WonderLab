@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { ENTRIES, NODES, ON_CLOSE } from '../content/script';
-import { characterById, HOTSPOTS, questById, SCENE_W } from '../content/world';
+import { characterById, HOTSPOTS, PAGES, questById, SCENE_W } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
-import { addPage, apply, newSave, questState, test } from './state';
+import { addPage, apply, hasFlag as hasFlagFn, newSave, questState, test } from './state';
 import { entryFor, nearby, visibleSpots } from './story';
 
 const memory = () => {
@@ -91,11 +91,74 @@ describe('風のいたずら', () => {
   });
 });
 
+/** Opens a node as the app does: effects, then its page (once). */
+function open(s: SaveData, id: string): SaveData {
+  const n = NODES[id];
+  if (n.effects) s = apply(s, n.effects);
+  if (n.page) s = addPage(s, { pageId: n.page.pageId, compositionId: n.page.compositionId, titleStyle: 'plain', madeAt: new Date().toISOString() });
+  return s;
+}
+
+function afterKaze(): SaveData {
+  let s = play(newSave(), 'kaze.pressed', ['働く手を描く']);
+  s = finishSketch(s);
+  return play(s, 'kaze.after.hands');
+}
+
+describe('いつもの道具', () => {
+  it('お紺 only asks once 風のいたずら is done', () => {
+    expect(entryFor('okon', newSave())).toBe('okon.first');
+    expect(entryFor('okon', afterKaze())).toBe('okon.ask');
+  });
+
+  it('declining keeps the story open, and she asks again kindly', () => {
+    let s = open(afterKaze(), 'okon.declined');
+    expect(entryFor('okon', s)).toBe('okon.ask.again');
+    expect(questState(s, 'dougu')).toBe('undiscovered');
+    s = open(s, 'okon.wrapped');
+    expect(entryFor('okon', s)).toBe('okon.choose');
+  });
+
+  it('delivering it yourself: 24文 once, a page, 金次 remembers you', () => {
+    let s = open(open(afterKaze(), 'okon.wrapped'), 'okon.carry');
+    expect(entryFor('kinji', s)).toBe('kinji.receive');
+    expect(entryFor('okon', s)).toBe('okon.carrying');
+    s = open(s, 'kinji.receive');
+    expect(questState(s, 'dougu')).toBe('complete');
+    expect(s.wallet.balanceMinor).toBe(72 + 24);
+    expect(s.journal.pages.map((p) => p.compositionId)).toEqual(['kaze-hands-near', 'dougu-deliver']);
+    expect(s.progress.familiarity.kinji?.level).toBe(1);
+    // the same dialogue again, or a stale one: nothing more
+    s = open(s, 'kinji.receive');
+    expect(s.wallet.balanceMinor).toBe(96);
+    expect(s.journal.pages).toHaveLength(2);
+    expect(entryFor('kinji', s)).toBe('kinji.done');
+    expect(entryFor('okon', s)).toBe('okon.done');
+  });
+
+  it('entrusting it to お春: the same 24文, a different page, and no second ending', () => {
+    let s = open(open(afterKaze(), 'okon.wrapped'), 'okon.entrust');
+    expect(questState(s, 'dougu')).toBe('complete');
+    expect(s.wallet.balanceMinor).toBe(96);
+    expect(s.journal.pages.map((p) => p.compositionId)).toEqual(['kaze-hands-near', 'dougu-entrust']);
+    expect(entryFor('kinji', s)).toBe('kinji.done.entrust');
+    expect(entryFor('oharu', s)).toBe('oharu.after');
+    // no way back into the delivery from here
+    expect(hasFlagFn(s, 'dougu_carry')).toBe(false);
+  });
+
+  it('carrying the bundle shows in 持ち物 and 近くのこと points to 金次', () => {
+    const s = open(open(afterKaze(), 'okon.wrapped'), 'okon.carry');
+    expect(nearby(s)[0]).toMatchObject({ id: 'dougu-carry', spotId: 'h-kinji' });
+  });
+});
+
 describe('script integrity', () => {
   it('every link, entry and close effect names a real node', () => {
     for (const [id, n] of Object.entries(NODES)) {
       if (n.next) expect(NODES[n.next], `${id} → ${n.next}`).toBeDefined();
       for (const c of n.choices ?? []) if (c.next) expect(NODES[c.next], `${id} → ${c.next}`).toBeDefined();
+      if (n.page) expect(PAGES.some((p) => p.id === n.page!.pageId), `${id}: ${n.page.pageId}`).toBe(true);
       for (const l of n.lines) if (l.by !== 'narration') expect(characterById.get(l.by), `${id}: ${l.by}`).toBeDefined();
     }
     for (const rules of Object.values(ENTRIES)) for (const r of rules) expect(NODES[r.node]).toBeDefined();

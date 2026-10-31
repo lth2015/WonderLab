@@ -115,6 +115,21 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
+  {
+    // 二頁目：いつもの道具 (spec §9). Either ending completes it, for the same reward.
+    id: 'dougu',
+    prerequisites: [{ quest: 'kaze', is: 'complete' }],
+    steps: [
+      { id: 'wrap', doneWhen: { flag: 'dougu_wrapped' } },
+      { id: 'hand-over', doneWhen: { any: [{ flag: 'dougu_by_hand' }, { flag: 'dougu_entrusted' }] } },
+    ],
+    completionEffects: [
+      { type: 'grant', rewardId: 'dougu', amountMinor: 24 },
+      { type: 'familiarity', characterId: 'okon', eventId: 'dougu' },
+      { type: 'questState', quest: 'dougu', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
@@ -147,11 +162,21 @@ export const PAGE_SLOTS = 12; // spec §5: 絵巻帳12頁
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
+  { id: 'p02-dougu', triggerId: 'dougu', compositionId: 'dougu-{deliver|entrust}', captionId: 'dougu', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
   'p01-kaze': '風のいたずら',
+  'p02-dougu': 'いつもの道具',
 };
+
+/** 包みを整える (spec §10): three goods, each matched to the cloth with its mark. Fiction. */
+export const WRAP_ITEMS = [
+  { id: 'bento', label: '塗り直した弁当箱', mark: 'wave', markLabel: '波の印' },
+  { id: 'hashi', label: '箸箱', mark: 'diamond', markLabel: '菱の印' },
+  { id: 'toishi', label: '砥石', mark: 'circle', markLabel: '丸の印' },
+] as const;
+export type WrapMark = (typeof WRAP_ITEMS)[number]['mark'];
 
 export function kazeComposition(subject: Subject, framing: Framing): string {
   return `kaze-${subject}-${framing}`;
