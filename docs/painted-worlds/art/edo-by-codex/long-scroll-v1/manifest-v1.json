@@ -152,6 +152,74 @@
       "reference": "edo-segment-05-v1.png",
       "prompt": "edo-segment-06-v1.prompt.txt",
       "review": "No people or lettering. Bamboo/wood workshop, hand tools, low benches, cloth-yard left continuation and rice-bale right transition. Native aspect now matches1128:700 closely; door height and connected pavement visually compatible. Exact seams still need pair review."
+    },
+    {
+      "section": 7,
+      "title": "米铺仓门与侧巷",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-07-v1.png",
+        "width": 1591,
+        "height": 989,
+        "bytes": 3384053,
+        "alpha": false,
+        "sha256": "ef30757adebd90b500976f3b4bfad049e01d66ae05da40b0e693827dc372a077"
+      },
+      "webp": {
+        "file": "edo-segment-07-v1.webp",
+        "quality": 94,
+        "bytes": 689788
+      },
+      "world": {
+        "x": 5936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 6000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 0,
+        "y": 0.838652482269481,
+        "width": 1591,
+        "height": 987.322695035461
+      },
+      "reference": "edo-segment-06-v1.png",
+      "prompt": "edo-segment-07-v1.prompt.txt",
+      "review": "No background people or writing. Rice bales, measuring boxes and loading apron; right lane opens to canal. Same fine material treatment, empty usable street. Exact joining curb and roof edges need runtime seam review."
+    },
+    {
+      "section": 8,
+      "title": "河货转运街口",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-08-v1.png",
+        "width": 1591,
+        "height": 989,
+        "bytes": 3361302,
+        "alpha": false,
+        "sha256": "8edb4d81c4e8de1600e086efc2fc873b6e31c3999011203241175157b6b05fb6"
+      },
+      "webp": {
+        "file": "edo-segment-08-v1.webp",
+        "quality": 94,
+        "bytes": 710402
+      },
+      "world": {
+        "x": 6936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 7000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 0,
+        "y": 0.838652482269481,
+        "width": 1591,
+        "height": 987.322695035461
+      },
+      "reference": "edo-segment-07-v1.png",
+      "prompt": "edo-segment-08-v1.prompt.txt",
+      "review": "No people, animals or writing. Cargo awning, handcart and open apron connect dry foreground street to canal landing; river behind road. Lower roofs and open water break storefront rhythm. Native scene checked for connected pavement, not yet seam-approved."
     }
   ]
 }
