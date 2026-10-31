@@ -10,3 +10,12 @@
 .dialog-notice{display:flex;align-items:flex-start;gap:10px;padding:12px 25px;background:#e0e5cf;color:#637453;border-bottom:1px solid #b6bea0;position:sticky;top:105px;z-index:2;font-size:14px;line-height:1.8}.dialog-notice>svg{flex-shrink:0;margin-top:4px}.dialog-notice>span{flex:1}.dialog-notice>button{display:grid;place-items:center;min-width:32px;min-height:32px;flex-shrink:0}.large-text .dialog-notice{font-size:20px}@media(max-width:760px){.dialog-notice{top:103px;padding:10px 20px;font-size:14px}}
 
 .postcard-art{overflow:hidden;max-height:290px}.postcard.close-view .postcard-art>.journal-art{transform:scale(1.5);transform-origin:50% 65%}.postcard-art>.journal-art{max-height:290px}
+
+/* Painted assets keep their natural palette and one shared feet coordinate system. */
+.painted-landscape{filter:none}.person-hotspot .person-label{bottom:calc(100% + 10px)}
+.painted-passer{animation:painted-stroll 35s ease-in-out infinite;transform-box:fill-box}.painted-passer.passer-1{animation-duration:42s;animation-direction:reverse}.painted-passer.passer-2{animation-duration:48s}.painted-passer.passer-3{animation-duration:31s;animation-direction:reverse}.painted-passer.passer-4{animation-duration:39s}.painted-passer.passer-5{animation-duration:44s;animation-direction:reverse}.painted-passer.passer-6{animation-duration:52s}.painted-passer.passer-7{animation-duration:37s;animation-direction:reverse}
+@keyframes painted-stroll{0%,100%{transform:translateX(-5px)}50%{transform:translateX(8px)}}
+.painted-willow{animation:painted-willow 12s ease-in-out infinite;transform-origin:3600px 0}.painted-willow.active{animation-duration:2s}@keyframes painted-willow{0%,100%{transform:rotate(-.4deg)}50%{transform:rotate(.7deg)}}
+.paper-breeze{animation:paper-breeze 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}@keyframes paper-breeze{0%,100%{rotate:0deg}45%{rotate:-2deg}}
+.water-rings{animation:water-rings 3s ease-out both;transform-origin:1900px 1010px}@keyframes water-rings{from{opacity:.9;scale:.6}to{opacity:0;scale:1.8}}
+.warm-kettle{animation:kettle-warm 1.2s ease-in-out 3}@keyframes kettle-warm{50%{opacity:.7}}

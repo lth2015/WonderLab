@@ -2,8 +2,8 @@
 
 | 项目 | 来源 / 路径 | 使用与依据 |
 |---|---|---|
-| 场景、建筑、船、人物、柳树 | `apps/qingming-china/src/Art.tsx` | 本次开发原创 SVG；可编辑、无馆藏图片复制、未调用生成图模型 |
-| 画册与图标 | 同上 | 原创 SVG；个别画页复用绘画基元，使用不同题意、构图或配色 |
+| 河岸底景、六人三姿态、船、柳枝、小物 | `apps/qingming-china/public/art/china/*-v1.webp` | 内置 imagegen 生成的原创精绘，透明图集保留 alpha，未使用馆藏高清图。提示词、实际尺寸和局限见 [精绘接入记录](art/china/README.md)。 |
+| 画册与图标 | `apps/qingming-china/src/Art.tsx` | 原创 SVG；个别画页复用绘画基元，使用不同题意、构图或配色 |
 | 纸张细纹 | `src/style.css` 内嵌 SVG 噪声 | 程序生成，无外部纹理 |
 | 环境声、互动声 | `src/audio.ts` | 原创 Web Audio 合成；默认关闭，不含录音或采样 |
 | 字体 | 设备自带 Songti SC / STSong / SimSun 等衬线字体 | 不分发字体文件；实际字体随设备变化 |

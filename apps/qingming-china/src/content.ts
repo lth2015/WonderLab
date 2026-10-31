@@ -1,20 +1,20 @@
 import type { ScrollWorld } from '../../../packages/scroll-contracts';
 
 export const WORLD: ScrollWorld = {
-  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.1.0', defaultLocale: 'zh-CN',
+  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.2.0', defaultLocale: 'zh-CN',
   scenes: [
-    { id: 'tea', bounds: { x: 0, y: 0, width: 1200, height: 1000 }, layers: ['distant', 'market', 'river'], hotspots: [], ambienceId: 'tea' },
-    { id: 'bridge', bounds: { x: 1200, y: 0, width: 1200, height: 1000 }, layers: ['distant', 'bridge', 'river'], hotspots: [], ambienceId: 'water' },
-    { id: 'paper', bounds: { x: 2400, y: 0, width: 1200, height: 1000 }, layers: ['distant', 'shops', 'river'], hotspots: [], ambienceId: 'breeze' },
+    { id: 'bridge', bounds: { x: 0, y: 0, width: 1800, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'water' },
+    { id: 'tea', bounds: { x: 1800, y: 0, width: 850, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'tea' },
+    { id: 'paper', bounds: { x: 2650, y: 0, width: 950, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'breeze' },
   ],
 };
 export const CHARACTERS = {
-  liu: { name: '小柳', role: '纸铺少年', color: '#707c6a', x: 2790, y: 561, scene: 'paper', line: '哎呀，这春风又来翻我的画纸了。能替我把纸角压一压吗？', refuse: '不妨事，沿河慢慢逛。风小些，我再把它铺平。' },
-  zhou: { name: '周伯', role: '汴河船工', color: '#627e7c', x: 2260, y: 655, scene: 'bridge', line: '一船茶叶，等着上岸。替我理理绳子吧，认准绳结的模样就成。', refuse: '不急，水缓。想试的时候，再来唤我。' },
-  cheng: { name: '阿成', role: '岸边脚夫', color: '#ad7852', x: 2120, y: 478, scene: 'bridge', line: '何娘的茶摊还等着新茶。周伯的船靠稳了，我就接这一担。', refuse: '你先逛着，我在这儿候船。' },
-  he: { name: '何娘', role: '桥西茶娘', color: '#9b5844', x: 685, y: 492, scene: 'tea', line: '歇歇脚吧。茶汤刚温好，这里总留着一张凳子。', refuse: '好，路过渴了，再来喝口茶。' },
-  chen: { name: '陈生', role: '远行客人', color: '#77798b', x: 1050, y: 535, scene: 'tea', line: '方才在这里歇脚，起身才发现香囊不见了。那是家中人缝给我的……', refuse: '多谢挂念，我再沿路找找。' },
-  shen: { name: '沈砚', role: '你的师父', color: '#6e7064', x: 3190, y: 498, scene: 'paper', line: '不必急着画尽一座城。先记住一个人，画便有了温度。', refuse: '去吧。我在柳荫下，等你说说今日的见闻。' },
+  liu: { name: '小柳', role: '纸铺少年', color: '#707c6a', x: 2880, y: 850, scene: 'paper', line: '哎呀，这春风又来翻我的画纸了。能替我把纸角压一压吗？', refuse: '不妨事，沿河慢慢逛。风小些，我再把它铺平。' },
+  zhou: { name: '周伯', role: '汴河船工', color: '#627e7c', x: 1550, y: 682, scene: 'bridge', line: '一船茶叶，等着上岸。替我理理绳子吧，认准绳结的模样就成。', refuse: '不急，水缓。想试的时候，再来唤我。' },
+  cheng: { name: '阿成', role: '岸边脚夫', color: '#ad7852', x: 1785, y: 673, scene: 'bridge', line: '何娘的茶摊还等着新茶。周伯的船靠稳了，我就接这一担。', refuse: '你先逛着，我在这儿候船。' },
+  he: { name: '何娘', role: '桥畔茶娘', color: '#9b5844', x: 2210, y: 757, scene: 'tea', line: '歇歇脚吧。茶汤刚温好，这里总留着一张凳子。', refuse: '好，路过渴了，再来喝口茶。' },
+  chen: { name: '陈生', role: '远行客人', color: '#77798b', x: 2480, y: 804, scene: 'tea', line: '方才在这里歇脚，起身才发现香囊不见了。那是家中人缝给我的……', refuse: '多谢挂念，我再沿路找找。' },
+  shen: { name: '沈砚', role: '你的师父', color: '#6e7064', x: 3330, y: 884, scene: 'paper', line: '不必急着画尽一座城。先记住一个人，画便有了温度。', refuse: '去吧。我在柳荫下，等你说说今日的见闻。' },
 } as const;
 export type CharacterId = keyof typeof CHARACTERS;
 export type PageId = typeof PAGES[number]['id'];
@@ -33,12 +33,12 @@ export const PAGES = [
   { id: 'departure', title: '今日汴河', subtitle: '留一页给自己', caption: '走过这段河岸，我把实际发生的相遇收进画册。繁华很远，也很近。', art: 'landscape', color: '#7d8b81' },
 ] as const;
 export const ENVIRONMENT = [
-  { id: 'willow', x: 3050, y: 340, label: '拂一拂柳枝', text: '柳梢拂过水面，落下一点新绿。', page: 'willow' },
-  { id: 'water', x: 2520, y: 790, label: '听一听水声', text: '水纹一圈圈漾开，船影也轻轻晃了晃。' },
-  { id: 'banner', x: 2640, y: 425, label: '看看招幌', text: '布幌迎风，纸铺的竹帘轻轻响。' },
-  { id: 'cat', x: 450, y: 547, label: '摸摸檐下的猫', text: '猫伸了个懒腰，又蜷回暖和的檐下。' },
-  { id: 'sparrow', x: 1570, y: 388, label: '看看桥头的雀', text: '两只雀儿换了根栏杆，仍旧并排站着。' },
-  { id: 'wheel', x: 1970, y: 440, label: '看看独轮车', text: '木轮咯吱一声。阿成把货担挪开，给行人让路。' },
-  { id: 'brazier', x: 590, y: 475, label: '看看煮茶炉', text: '壶嘴升起一缕白汽。河风里有了新茶的香气。', page: 'market' },
-  { id: 'bell', x: 1460, y: 310, label: '轻触桥头风铃', text: '一声清响，飘过桥下缓缓的水。', page: 'bridge' },
+  { id: 'willow', x: 3400, y: 250, label: '拂一拂柳枝', text: '柳梢拂过水面，落下一点新绿。', page: 'willow' },
+  { id: 'water', x: 1900, y: 1010, label: '听一听水声', text: '水纹一圈圈漾开，船影也轻轻晃了晃。' },
+  { id: 'banner', x: 2685, y: 520, label: '看看招幌', text: '布幌迎风，纸铺的竹帘轻轻响。' },
+  { id: 'cat', x: 2525, y: 774, label: '摸摸檐下的猫', text: '猫伸了个懒腰，又蜷回暖和的檐下。' },
+  { id: 'sparrow', x: 1130, y: 400, label: '看看桥头的雀', text: '两只雀儿换了根栏杆，仍旧并排站着。' },
+  { id: 'wheel', x: 1865, y: 680, label: '看看独轮车', text: '木轮咯吱一声。阿成把货担挪开，给行人让路。' },
+  { id: 'brazier', x: 2190, y: 755, label: '看看煮茶炉', text: '壶嘴升起一缕白汽。河风里有了新茶的香气。', page: 'market' },
+  { id: 'bell', x: 1340, y: 515, label: '轻触桥头风铃', text: '一声清响，飘过桥下缓缓的水。', page: 'bridge' },
 ] as const;
