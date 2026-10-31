@@ -37,6 +37,7 @@ export function test(s: SaveData, c: Condition | undefined): boolean {
     const st = questState(s, c.quest);
     return Array.isArray(c.is) ? c.is.includes(st) : st === c.is;
   }
+  if ('pagesAtLeast' in c) return s.journal.pages.length >= c.pagesAtLeast;
   return false;
 }
 

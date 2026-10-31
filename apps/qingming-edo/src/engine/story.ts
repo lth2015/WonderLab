@@ -1,6 +1,6 @@
 import type { HotspotDef, SaveData } from '../contract';
 import { ENTRIES } from '../content/script';
-import { HOTSPOTS, questById, SKETCHES, sketchPageId } from '../content/world';
+import { HOTSPOTS, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from '../content/world';
 import { hasFlag, questState, test } from './state';
 
 /** The node a person (or prop) opens with now. */
@@ -34,6 +34,7 @@ const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
 export function nearby(s: SaveData): Nearby[] {
   const out: Nearby[] = [];
+  if (s.journal.pages.length >= PAGE_SLOTS && !hasFlag(s, 'book_full')) out.push({ id: 'book', text: '一冊になった絵巻帳を、宗吉に見せる', spotId: 'h-sokichi' });
   if (!hasFlag(s, 'paper_pressed')) {
     out.push({ id: 'papers', text: '青葉屋の店先で、紙が風にあおられている', spotId: 'h-papers' });
   } else if (questState(s, 'kaze') !== 'complete') {

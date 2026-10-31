@@ -1,5 +1,5 @@
 import type { Condition, Effect } from '../contract';
-import { AMBIENT, questById, SKETCHES, sketchPageId, type Subject } from './world';
+import { AMBIENT, PAGE_SLOTS, questById, SKETCHES, sketchPageId, type Subject } from './world';
 
 // 台本 (spec §8, §12). Readable modern Japanese with a light Edo touch; each
 // person has their own voice rather than one loud Edo dialect for everyone.
@@ -105,6 +105,19 @@ export const NODES: Record<string, DialogueNode> = {
       { by: 'seita', text: 'これ、少ないですが番頭さんからです。紙を守ってくださったお礼に。', reward: true },
       { by: 'narration', text: '十二文を受け取った。絵巻帳に、最初の一頁が残った。', reward: true },
     ],
+  },
+  // 絵巻帳が一冊に (all twelve pages): the free experience comes to rest, the town goes on
+  'sokichi.full': {
+    effects: [{ type: 'setFlag', flag: 'book_full' }],
+    lines: [
+      { by: 'sokichi', text: 'ほう……。白い頁が、もう一枚も残っておらんな。' },
+      { by: 'sokichi', text: '紙屋の店先から、町はずれの川端まで。お前の目で歩いた日本橋が、一冊になった。' },
+      { by: 'sokichi', text: '絵巻は、描き終えたところで終わりではない。明日になれば、町はまた違う顔を見せる。……また歩け。' },
+      { by: 'narration', text: '絵巻帳が、一冊になった。' },
+    ],
+  },
+  'sokichi.full.again': {
+    lines: [{ by: 'sokichi', text: 'また来たか。町は変わらんようで、毎朝少しずつ違う。見返すたびに、頁も違って見えるはずだ。' }],
   },
   'sokichi.done': {
     lines: [
@@ -340,7 +353,7 @@ for (const k of SKETCHES) {
 }
 
 // After a story, the person can be talked with a little more (即興のひとこと).
-for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done']) {
+for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again']) {
   NODES[id].choices = [{ label: '少し話す', talk: true }];
 }
 
@@ -362,6 +375,8 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { node: 'seita.first' },
   ],
   sokichi: [
+    { when: { flag: 'book_full' }, node: 'sokichi.full.again' },
+    { when: { pagesAtLeast: PAGE_SLOTS }, node: 'sokichi.full' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'sokichi.done' },
     { when: { flag: 'kaze_page' }, node: 'kaze.reward' },
     { when: { flag: 'paper_pressed' }, node: 'sokichi.ask' },

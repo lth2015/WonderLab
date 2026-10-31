@@ -129,7 +129,7 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
     <div className="panel" role="dialog" aria-labelledby="journal-h">
       <h2 id="journal-h">絵巻帳</h2>
       <p className="small">
-        {pages.length} / {PAGE_SLOTS} 頁
+        {pages.length} / {PAGE_SLOTS} 頁{pages.length >= PAGE_SLOTS && '　一冊になりました'}
       </p>
       <ul className="slots">
         {Array.from({ length: PAGE_SLOTS }, (_, i) => {

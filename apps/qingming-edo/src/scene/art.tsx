@@ -31,12 +31,15 @@ export const MINCHO = "'Hiragino Mincho ProN','Yu Mincho','Noto Serif JP','Noto 
  * Vertical text, one character per line. SVG writing-mode is uneven across
  * browsers and in the saved PNG; stacking glyphs is the same everywhere.
  */
+/** Glyphs that turn in vertical writing (縦書き). */
+const VERTICAL: Record<string, string> = { 'ー': '｜', '（': '︵', '）': '︶', '「': '﹁', '」': '﹂', '、': '︑', '。': '︒' };
+
 export function VText({ x, y, text, size, fill, gap = 1.18 }: { x: number; y: number; text: string; size: number; fill: string; gap?: number }) {
   return (
     <g>
       {[...text].map((ch, i) => (
         <text key={i} x={x} y={y + size + i * size * gap} fontSize={size} fill={fill} textAnchor="middle" fontFamily={MINCHO}>
-          {ch === 'ー' ? '｜' : ch}
+          {VERTICAL[ch] ?? ch}
         </text>
       ))}
     </g>
