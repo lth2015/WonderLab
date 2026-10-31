@@ -224,8 +224,8 @@ describe('touch', () => {
   });
 
   it('every street target is reachable on a 360 px phone without overlapping a person', () => {
-    // scale on a 360 px wide phone (Street.tsx: w / 400)
-    const scale = 360 / 400;
+    // scale on a 360 px wide phone (Street.tsx: w / 340)
+    const scale = 360 / 340;
     const people = HOTSPOTS.filter((h) => h.kind === 'character');
     for (const p of people) {
       const hits = resolveTap(HOTSPOTS, p.anchor.x, p.anchor.y, scale);

@@ -36,26 +36,29 @@ export const ROLES: Record<string, string> = {
 
 const notPressed = { not: { flag: 'paper_pressed' } };
 
+// Read off the gridded painting (docs/painted-worlds/art/edo/README.md); people
+// stand where scene/painted.tsx SPOTS puts their feet.
 export const HOTSPOTS: HotspotDef[] = [
   // people
-  { id: 'h-sokichi', targetId: 'sokichi', kind: 'character', anchor: { x: 2640, y: 440 }, hitArea: { x: 2614, y: 392, w: 54, h: 144 }, priority: 5 },
-  { id: 'h-seita', targetId: 'seita', kind: 'character', anchor: { x: 2560, y: 400 }, hitArea: { x: 2512, y: 376, w: 84, h: 146 }, priority: 5 },
-  { id: 'h-okon', targetId: 'okon', kind: 'character', anchor: { x: 2215, y: 420 }, hitArea: { x: 2190, y: 350, w: 52, h: 146 }, priority: 5 },
-  { id: 'h-kisuke', targetId: 'kisuke', kind: 'character', anchor: { x: 1360, y: 460 }, hitArea: { x: 1328, y: 384, w: 64, h: 156 }, priority: 5 },
-  { id: 'h-oharu', targetId: 'oharu', kind: 'character', anchor: { x: 1130, y: 460 }, hitArea: { x: 1100, y: 392, w: 60, h: 148 }, priority: 5 },
-  { id: 'h-kinji', targetId: 'kinji', kind: 'character', anchor: { x: 760, y: 460 }, hitArea: { x: 700, y: 380, w: 120, h: 160 }, priority: 5 },
+  { id: 'h-sokichi', targetId: 'sokichi', kind: 'character', anchor: { x: 2645, y: 500 }, hitArea: { x: 2628, y: 470, w: 36, h: 94 }, priority: 5 },
+  { id: 'h-seita', targetId: 'seita', kind: 'character', anchor: { x: 2530, y: 486 }, hitArea: { x: 2474, y: 478, w: 66, h: 100 }, priority: 5 },
+  { id: 'h-okon', targetId: 'okon', kind: 'character', anchor: { x: 2205, y: 490 }, hitArea: { x: 2188, y: 456, w: 34, h: 94 }, priority: 5 },
+  { id: 'h-kisuke', targetId: 'kisuke', kind: 'character', anchor: { x: 1660, y: 490 }, hitArea: { x: 1638, y: 454, w: 44, h: 94 }, priority: 5 },
+  { id: 'h-oharu', targetId: 'oharu', kind: 'character', anchor: { x: 1520, y: 520 }, hitArea: { x: 1500, y: 480, w: 40, h: 94 }, priority: 5 },
+  { id: 'h-kinji', targetId: 'kinji', kind: 'character', anchor: { x: 680, y: 530 }, hitArea: { x: 650, y: 490, w: 60, h: 90 }, priority: 5 },
   // the first help: one tap on the blowing papers (spec §9 一頁目)
-  { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 2530, y: 452 }, hitArea: { x: 2468, y: 430, w: 80, h: 46 }, priority: 8, visibleWhen: notPressed },
-  // ambient reactions (spec §5: 8 or more)
-  { id: 'a-noren-aoba', targetId: 'noren-aoba', kind: 'ambient', anchor: { x: 2497, y: 356 }, hitArea: { x: 2343, y: 325, w: 308, h: 60 }, priority: 1 },
-  { id: 'a-noren-kure', targetId: 'noren-kure', kind: 'ambient', anchor: { x: 2203, y: 338 }, hitArea: { x: 2107, y: 314, w: 192, h: 46 }, priority: 1 },
-  { id: 'a-sparrows', targetId: 'sparrows', kind: 'ambient', anchor: { x: 2330, y: 98 }, hitArea: { x: 2285, y: 82, w: 90, h: 34 }, priority: 2 },
-  { id: 'a-dog', targetId: 'dog', kind: 'ambient', anchor: { x: 1590, y: 520 }, hitArea: { x: 1550, y: 490, w: 80, h: 50 }, priority: 2 },
-  { id: 'a-steam', targetId: 'steam', kind: 'ambient', anchor: { x: 1250, y: 380 }, hitArea: { x: 1210, y: 330, w: 80, h: 110 }, priority: 2 },
-  { id: 'a-barrel', targetId: 'barrel', kind: 'ambient', anchor: { x: 1950, y: 500 }, hitArea: { x: 1926, y: 462, w: 50, h: 80 }, priority: 2 },
-  { id: 'a-giboshi', targetId: 'giboshi', kind: 'ambient', anchor: { x: 2735, y: 336 }, hitArea: { x: 2722, y: 318, w: 28, h: 40 }, priority: 2 },
-  { id: 'a-willow', targetId: 'willow', kind: 'ambient', anchor: { x: 2830, y: 220 }, hitArea: { x: 2772, y: 96, w: 118, h: 220 }, priority: 1 },
-  { id: 'a-boat', targetId: 'boat', kind: 'ambient', anchor: { x: 2860, y: 630 }, hitArea: { x: 2709, y: 562, w: 291, h: 138 }, priority: 2 },
+  { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 2480, y: 516 }, hitArea: { x: 2444, y: 500, w: 76, h: 32 }, priority: 8, visibleWhen: notPressed },
+  // ambient reactions (spec §5: 8 or more) — all on things in the painting
+  { id: 'a-noren-aoba', targetId: 'noren-aoba', kind: 'ambient', anchor: { x: 2517, y: 428 }, hitArea: { x: 2415, y: 405, w: 205, h: 45 }, priority: 1 },
+  { id: 'a-noren-kure', targetId: 'noren-kure', kind: 'ambient', anchor: { x: 2205, y: 410 }, hitArea: { x: 2070, y: 392, w: 270, h: 36 }, priority: 1 },
+  { id: 'a-lantern', targetId: 'lantern', kind: 'ambient', anchor: { x: 2388, y: 476 }, hitArea: { x: 2374, y: 448, w: 28, h: 58 }, priority: 2 },
+  { id: 'a-brooms', targetId: 'brooms', kind: 'ambient', anchor: { x: 1077, y: 446 }, hitArea: { x: 1050, y: 400, w: 55, h: 92 }, priority: 2 },
+  { id: 'a-steam', targetId: 'steam', kind: 'ambient', anchor: { x: 1577, y: 437 }, hitArea: { x: 1556, y: 415, w: 42, h: 45 }, priority: 2 },
+  { id: 'a-barrel', targetId: 'barrel', kind: 'ambient', anchor: { x: 1414, y: 434 }, hitArea: { x: 1398, y: 410, w: 32, h: 48 }, priority: 2 },
+  { id: 'a-giboshi', targetId: 'giboshi', kind: 'ambient', anchor: { x: 2874, y: 443 }, hitArea: { x: 2860, y: 425, w: 28, h: 36 }, priority: 2 },
+  { id: 'a-willow', targetId: 'willow', kind: 'ambient', anchor: { x: 2740, y: 350 }, hitArea: { x: 2685, y: 215, w: 110, h: 270 }, priority: 1 },
+  { id: 'a-boat', targetId: 'boat', kind: 'ambient', anchor: { x: 2822, y: 617 }, hitArea: { x: 2655, y: 566, w: 335, h: 104 }, priority: 2 },
+  { id: 'a-ladder', targetId: 'ladder', kind: 'ambient', anchor: { x: 468, y: 370 }, hitArea: { x: 418, y: 210, w: 100, h: 320 }, priority: 1 },
 ];
 
 export const SCENE: SceneDef = {
@@ -87,13 +90,14 @@ export const WORLD: WorldDef = {
 export const AMBIENT: Record<string, string> = {
   'noren-aoba': '暖簾が、ふわりと揺れた。',
   'noren-kure': '藍の暖簾の向こうで、道具を拭く音がする。',
-  sparrows: '屋根の雀が、ぱっと飛び立った。',
-  dog: '犬がこちらを見て、尾を一つ振った。',
+  lantern: '辻行灯。夜になれば、この灯りが通りを照らす。',
+  brooms: '竹箒が束になって、軒先に立てかけてある。',
   steam: '茶店の釜から、白い湯気が立ちのぼる。',
-  barrel: '天水桶の水面に、空が映っている。',
+  barrel: '路地の天水桶に、空が映っている。',
   giboshi: '欄干の擬宝珠が、朝の光を返している。',
   willow: '川風に、柳の枝がそよいだ。',
-  boat: '荷を積んだ舟が、ゆっくり橋の下へ入っていく。',
+  boat: '荷を積んだ舟が、岸につながれている。',
+  ladder: '屋根に長い梯子が掛けてある。火の用心のためだろうか。',
 };
 
 export const QUESTS: QuestDef[] = [
