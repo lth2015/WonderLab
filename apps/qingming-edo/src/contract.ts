@@ -139,6 +139,14 @@ export interface Settings {
   reduceMotion: boolean;
   textScale: 1 | 1.25 | 1.5;
   timeChoice?: TimeChoice;
+  /** 0–1 each; absent in saves made before sound existed (the defaults apply). */
+  sound?: SoundLevels;
+}
+
+export interface SoundLevels {
+  ambient: number;
+  ui: number;
+  music: number;
 }
 
 export interface SaveData {
