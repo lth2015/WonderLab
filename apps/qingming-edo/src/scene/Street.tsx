@@ -23,6 +23,8 @@ export interface StreetProps {
   zoomed: boolean;
   onTap(hits: HotspotDef[]): void;
   onActivity(): void;
+  /** The scene x at the middle of the view, whenever it moves (for the sound). */
+  onCamera?(x: number): void;
 }
 
 const START_X = 12505;
@@ -41,7 +43,9 @@ function topFor(zoom: number, s: number, h: number): number {
 const ZOOM = 2;
 const ZOOM_FOCUS_Y = 470;
 
-export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity }: StreetProps) {
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera }: StreetProps) {
+  const onCam = useRef(onCamera);
+  onCam.current = onCamera;
   const box = useRef<HTMLDivElement>(null);
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const cam = useRef<number | null>(null); // left edge, scene units
@@ -78,6 +82,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
       const from = Math.max(0, Math.floor(cam.current / 1000) - 1);
       const to = Math.min(SECTIONS - 1, Math.floor((cam.current + viewW) / 1000) + 1);
       setSections((r) => (r[0] === from && r[1] === to ? r : [from, to]));
+      onCam.current?.(cam.current + viewW / 2);
     },
     [paint],
   );

@@ -8,6 +8,7 @@ import { exportText, importText, load, persist, SAVE_KEY } from './save';
 import { addPage, addRecallPage, apply, hasFlag as hasFlagFn, newSave, questState, test } from './state';
 import { entryFor, nearby, visibleSpots } from './story';
 import { reachedTimes, timeOf } from './time';
+import { DEFAULT_LEVELS, LEVEL_STEPS, levelsOf } from './sound';
 
 const memory = () => {
   const m = new Map<string, string>();
@@ -442,5 +443,21 @@ describe('touch', () => {
       const hits = resolveTap(HOTSPOTS, p.anchor.x, p.anchor.y, scale);
       expect(hits[0]?.targetId, p.id).toBe(p.targetId);
     }
+  });
+});
+
+describe('音の設定', () => {
+  it('keeps valid levels through export and import, and falls back for old or bad ones', () => {
+    const s = newSave();
+    const withSound = { ...s, settings: { ...s.settings, sound: { ambient: 0, ui: 1, music: 0.35 } } };
+    const r = importText(exportText(withSound));
+    expect(r.ok && r.save.settings.sound).toEqual({ ambient: 0, ui: 1, music: 0.35 });
+    expect(levelsOf(s.settings)).toEqual(DEFAULT_LEVELS); // a save from before sound
+    const bad = importText(exportText({ ...s, settings: { ...s.settings, sound: { ambient: 3, ui: 'x', music: 0 } as never } }));
+    expect(bad.ok && bad.save.settings.sound).toBeUndefined();
+    expect(levelsOf({ sound: { ambient: -1, ui: 0, music: 0 } })).toEqual(DEFAULT_LEVELS);
+  });
+  it('offers only levels that the settings can show as pressed', () => {
+    for (const v of Object.values(DEFAULT_LEVELS)) expect(LEVEL_STEPS).toContain(v);
   });
 });

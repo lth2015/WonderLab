@@ -60,8 +60,14 @@ export function migrate(raw: unknown): SaveData | 'newer' {
       reduceMotion: st.reduceMotion === true,
       textScale: st.textScale === 1.25 || st.textScale === 1.5 ? st.textScale : 1,
       timeChoice: st.timeChoice === 'morning' || st.timeChoice === 'noon' || st.timeChoice === 'evening' ? st.timeChoice : 'auto',
+      ...(okLevels(st.sound) ? { sound: { ambient: st.sound.ambient, ui: st.sound.ui, music: st.sound.music } } : {}),
     },
   };
+}
+
+function okLevels(l: unknown): l is NonNullable<SaveData['settings']['sound']> {
+  const v = l as Record<string, unknown> | null | undefined;
+  return !!v && ['ambient', 'ui', 'music'].every((k) => typeof v[k] === 'number' && (v[k] as number) >= 0 && (v[k] as number) <= 1);
 }
 
 export function load(store: Store, now = new Date()): LoadResult {
