@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ENTRIES, NODES, ON_CLOSE } from '../content/script';
-import { characterById, HOTSPOTS, PAGES, questById, SCENE_W } from '../content/world';
+import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
+import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
+import { characterById, HOTSPOTS, PAGES, questById, questOfPage, SCENE_W } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
-import { addPage, apply, hasFlag as hasFlagFn, newSave, questState, test } from './state';
+import { addPage, addRecallPage, apply, hasFlag as hasFlagFn, newSave, questState, test } from './state';
 import { entryFor, nearby, visibleSpots } from './story';
 
 const memory = () => {
@@ -199,6 +200,73 @@ describe('あの人の手拭い', () => {
     s = open(open(open(open(s, 'oharu.accepted'), 'kisuke.served'), 'kisuke.picked'), 'oharu.return');
     expect(s.wallet.balanceMinor).toBe(60 + 12 + 24 + 18);
     expect(s.journal.pages).toHaveLength(3);
+  });
+});
+
+describe('回想', () => {
+  const doneDeliver = () => open(open(open(afterKaze(), 'okon.wrapped'), 'okon.carry'), 'kinji.receive');
+
+  it('the other ending leaves one more page, once, and pays nothing', () => {
+    let s = doneDeliver();
+    const money = s.wallet.balanceMinor;
+    s = addRecallPage(s, 'p02-dougu', 'dougu-entrust');
+    expect(s.journal.pages.map((p) => `${p.pageId}:${p.compositionId}`)).toContain('p02-dougu-b:dougu-entrust');
+    expect(s.wallet.balanceMinor).toBe(money);
+    // again, either ending: nothing more
+    const before = s;
+    expect(addRecallPage(s, 'p02-dougu', 'dougu-entrust')).toBe(before);
+    expect(addRecallPage(s, 'p02-dougu', 'dougu-deliver')).toBe(before);
+  });
+
+  it('the same ending again adds nothing', () => {
+    const s = doneDeliver();
+    expect(addRecallPage(s, 'p02-dougu', 'dougu-deliver')).toBe(s);
+  });
+
+  it('another sketch of 一頁目 is kept as its own page', () => {
+    const s = addRecallPage(afterKaze(), 'p01-kaze', 'kaze-street-wide', 'indigo');
+    expect(s.journal.pages.find((p) => p.pageId === 'p01-kaze-b')).toMatchObject({ compositionId: 'kaze-street-wide', titleStyle: 'indigo' });
+  });
+
+  it('nothing is added for a story not yet finished', () => {
+    const s = newSave();
+    expect(addRecallPage(s, 'p02-dougu', 'dougu-entrust')).toBe(s);
+  });
+
+  it('every story starts its recall at a real node, and every walk-away node goes on to one', () => {
+    for (const [q, start] of Object.entries(RECALL_START)) {
+      expect(questById.get(q), q).toBeDefined();
+      expect(NODES[start], start).toBeDefined();
+    }
+    for (const [id, n] of Object.entries(NODES)) if (n.recallNext) expect(NODES[n.recallNext], id).toBeDefined();
+  });
+
+  it('a recall shows no line about being paid, and every story still has something to show', () => {
+    for (const [id, n] of Object.entries(NODES)) {
+      const shown = n.lines.filter((l) => !l.reward);
+      if (/文を受け取った/.test(n.lines.map((l) => l.text).join())) expect(shown.some((l) => /文を受け取った/.test(l.text)), id).toBe(false);
+    }
+  });
+
+  it('extra pages belong to their story', () => {
+    expect(questOfPage('p02-dougu-b')).toBe('dougu');
+    expect(questOfPage('p01-kaze-b')).toBe('kaze');
+  });
+});
+
+describe('即興のひとこと', () => {
+  it('every person you can stay with has a scripted line for each topic and a goodbye', () => {
+    for (const n of Object.values(NODES))
+      for (const c of n.choices ?? [])
+        if (c.talk) {
+          const who = n.lines.find((l) => l.by !== 'narration')!.by;
+          for (const t of TALK_TOPICS) expect(FALLBACK[who]?.[t.id], `${who} ${t.id}`).toBeTruthy();
+          expect(TALK_CLOSE[who], who).toBeTruthy();
+        }
+  });
+  it('talk is offered only once a story is done, never while asking for help', () => {
+    expect(NODES['seita.first'].choices?.some((c) => c.talk)).toBeFalsy();
+    expect(NODES['seita.done'].choices?.some((c) => c.talk)).toBe(true);
   });
 });
 

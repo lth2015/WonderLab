@@ -794,3 +794,31 @@ button[aria-pressed='true'] {
   font-size: 0.8125rem;
   text-align: center;
 }
+
+/* ---------------------------------------------------------------- 回想 */
+.sheet.dialogue.recall {
+  background: #ece5d3;
+  border-top: 2px solid #b7a37c;
+}
+.recall-tag {
+  margin: 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
+  color: #7a6a4c;
+}
+.recall-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---------------------------------------------------------------- 即興のひとこと */
+.improv-tag {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: #6b7f5a;
+}
+.improv-tag::before {
+  content: '〜 ';
+}

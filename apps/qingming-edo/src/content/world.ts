@@ -205,13 +205,23 @@ export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
   { id: 'p02-dougu', triggerId: 'dougu', compositionId: 'dougu-{deliver|entrust}', captionId: 'dougu', sourceRefs: [] },
   { id: 'p03-tenugui', triggerId: 'tenugui', compositionId: 'tenugui-return', captionId: 'tenugui', sourceRefs: [] },
+  // left by 回想: another composition, or the other ending (engine/state.ts addRecallPage)
+  { id: 'p01-kaze-b', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
+  { id: 'p02-dougu-b', triggerId: 'dougu', compositionId: 'dougu-{deliver|entrust}', captionId: 'dougu', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
   'p01-kaze': '風のいたずら',
   'p02-dougu': 'いつもの道具',
   'p03-tenugui': 'あの人の手拭い',
+  'p01-kaze-b': '風のいたずら（もう一枚）',
+  'p02-dougu-b': 'いつもの道具（もう一つの朝）',
 };
+
+/** The story a page belongs to, for 回想. */
+export function questOfPage(pageId: string): string | null {
+  return PAGES.find((p) => p.id === pageId)?.triggerId ?? null;
+}
 
 /** 包みを整える (spec §10): three goods, each matched to the cloth with its mark. Fiction. */
 export const WRAP_ITEMS = [
