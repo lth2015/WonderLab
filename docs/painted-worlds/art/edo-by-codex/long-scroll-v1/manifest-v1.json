@@ -1,0 +1,89 @@
+{
+  "tool": "built-in image_gen",
+  "world": {
+    "width": 14000,
+    "height": 700,
+    "sections": 14
+  },
+  "master": {
+    "file": "../edo-nihonbashi-key-v1.png",
+    "worldX": 0,
+    "drawWidth": 2100,
+    "drawHeight": 700,
+    "visibleEnd": 2000,
+    "sections": [
+      1,
+      2
+    ]
+  },
+  "assets": [
+    {
+      "section": 3,
+      "title": "茶店与斜巷",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-03-v1.png",
+        "width": 1862,
+        "height": 845,
+        "bytes": 3580705,
+        "alpha": false,
+        "sha256": "7bd871e3696063fd0b2cfd74ddbe3dd07e7f11e772a75170bcfd93a910e241dd"
+      },
+      "webp": {
+        "file": "edo-segment-03-v1.webp",
+        "quality": 94,
+        "bytes": 743242
+      },
+      "world": {
+        "x": 1936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 2000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 250.17142857142858,
+        "y": 0,
+        "width": 1361.6571428571428,
+        "height": 845
+      },
+      "reference": "../edo-nihonbashi-key-v1.png",
+      "prompt": "edo-segment-03-v1.prompt.txt",
+      "review": "No people or text. Indigo shop, tea counter, side alley and dry foreground road are visible. Native framing wider than requested; preserve scale when cutting, verify door height and curb before runtime placement."
+    },
+    {
+      "section": 4,
+      "title": "巷口小院与水井",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-04-v1.png",
+        "width": 1862,
+        "height": 845,
+        "bytes": 3585633,
+        "alpha": false,
+        "sha256": "5fbdb60de2f0761c9325e609afb8a16ff1840dce56dfd5fae3c5fe9bfc1460d3"
+      },
+      "webp": {
+        "file": "edo-segment-04-v1.webp",
+        "quality": 94,
+        "bytes": 753242
+      },
+      "world": {
+        "x": 2936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 3000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 250.17142857142858,
+        "y": 0,
+        "width": 1361.6571428571428,
+        "height": 845
+      },
+      "reference": "edo-segment-03-v1.png",
+      "prompt": "edo-segment-04-v1.prompt.txt",
+      "review": "No people, animals or writing. Japanese courtyard, well, plum tree, bamboo fence and open side lane visible. Road remains connected; independently check the crop and curb transition against segment03 before runtime."
+    }
+  ]
+}
