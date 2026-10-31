@@ -1,9 +1,8 @@
-import type { Framing, Subject } from '../content/world';
 import type React from 'react';
-import { BridgeEnd, Figure, INK, MINCHO, Mist, MistDefs, PAPER, Papers, Shop, VText, WASH } from './art';
+import { INK, MINCHO, PAPER, VText, WASH } from './art';
 
 // 絵巻頁 (spec §10 写生): the player picks subject, framing and title slip;
-// the page itself is composed here, so drawing skill never matters.
+// the page is a composed cut from the painted street, so drawing skill never matters.
 // Attributes only (no classes): this SVG is also turned into the saved PNG.
 
 export const PAGE_W = 600;
@@ -20,112 +19,9 @@ const SLIP: Record<string, { fill: string; text: string }> = {
   vermilion: { fill: WASH.vermilion, text: PAPER },
 };
 
-function Hands() {
-  // Two hands squaring a stack of paper under a paperweight, close up.
-  const l = { stroke: INK, strokeWidth: 2.4, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
-  return (
-    <g>
-      <rect x={40} y={430} width={520} height={200} fill={WASH.wood} {...l} />
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <rect key={i} x={150 - i} y={420 - i * 9} width={300 + i * 2} height={12} fill={i % 2 ? '#fbf7ec' : '#f4eedd'} {...l} strokeWidth={1.4} />
-      ))}
-      <rect x={250} y={350} width={110} height={22} rx={4} fill={WASH.dim} {...l} />
-      {/* left hand and sleeve */}
-      <path d="M -10 300 Q 70 300 120 350 L 96 400 Q 50 370 -10 380 Z" fill={WASH.indigoPale} {...l} />
-      <path d="M 110 352 Q 150 350 170 372 Q 180 388 166 396 L 150 392 Q 160 404 146 410 L 104 404 Z" fill={WASH.skin} {...l} />
-      {/* right hand and sleeve */}
-      <path d="M 610 290 Q 530 296 486 344 L 506 396 Q 552 364 610 372 Z" fill={WASH.indigoPale} {...l} />
-      <path d="M 494 346 Q 456 346 436 370 Q 428 386 442 392 L 456 388 Q 448 402 462 406 L 500 400 Z" fill={WASH.skin} {...l} />
-    </g>
-  );
-}
-
-/** Places the street rectangle starting at (x0, y0), w units wide, into the page's picture area. */
-function Frame({ x0, y0, w, children }: { x0: number; y0: number; w: number; children: React.ReactNode }) {
-  const k = PIC_W / w;
-  return <g transform={`translate(${PIC_X} ${PIC_Y}) scale(${k}) translate(${-x0} ${-y0})`}>{children}</g>;
-}
-
-/** The street around the paper shop, in street units (ground at 540), shared by the wider pages. */
-function Street({ pressed = true }: { pressed?: boolean }) {
-  return (
-    <g>
-      {Array.from({ length: 16 }, (_, i) => (
-        <g key={i} opacity={0.3}>
-          <path d={`M ${1500 + i * 110} 452 l 12 -22 h 76 l 12 22 Z`} fill={WASH.tile} />
-          <rect x={1506 + i * 110} y={452} width={88} height={60} fill={WASH.indigoPale} />
-        </g>
-      ))}
-      <rect x={1400} y={540} width={1800} height={700} fill="#dccdae" />
-      <BridgeEnd x={2640} ground={540} />
-      <Shop x={2160} w={360} ground={540} noren={WASH.persimmon} norenText="紙" sign="青葉屋" signSide="紙品々">
-        <Papers x={2236} y={478} pressed={pressed} />
-      </Shop>
-      <Shop x={1720} w={360} ground={540} noren={WASH.indigo} norenText="道具" sign="くれ竹" />
-    </g>
-  );
-}
-
-function Scene({ subject, framing }: { subject: Subject; framing: Framing }) {
-  if (subject === 'hands' && framing === 'near') return <Hands />;
-  if (subject === 'hands') {
-    // 清太 at the counter, squaring the paper under the weight
-    return (
-      <Frame x0={2210} y0={250} w={300}>
-        <Street />
-        <Figure x={2440} y={540} robe={WASH.indigoPale} hair="man" pose="reach" facing={-1} />
-      </Frame>
-    );
-  }
-  if (subject === 'shopfront' && framing === 'near') {
-    return (
-      <Frame x0={2180} y0={190} w={330}>
-        <Street />
-        <Figure x={2405} y={556} robe={WASH.indigoPale} hair="man" pose="bow" facing={-1} />
-      </Frame>
-    );
-  }
-  if (subject === 'shopfront') {
-    return (
-      <Frame x0={1700} y0={-250} w={860}>
-        <Street />
-        <Figure x={2440} y={540} robe={WASH.indigoPale} hair="man" pose="bow" facing={-1} />
-        <Figure x={1960} y={540} robe="#5d6b7c" obi={WASH.vermilion} hair="woman" facing={-1} />
-        <Figure x={2604} y={540} robe="#7b7062" hair="elder" facing={-1} />
-      </Frame>
-    );
-  }
-  if (framing === 'near') {
-    // the people passing the shop, close
-    return (
-      <Frame x0={2150} y0={300} w={360}>
-        <Street />
-        <Figure x={2190} y={600} robe={WASH.green} hair="woman" pose="walk" />
-        <Figure x={2440} y={540} robe={WASH.indigoPale} hair="man" pose="bow" facing={-1} scale={0.9} />
-        <Figure x={2330} y={640} robe={WASH.ochre} hair="man" pose="carry" facing={-1} scale={1.1}>
-          <path d="M -60 -114 L 60 -114" stroke={WASH.woodDark} strokeWidth={4} />
-          <path d="M -56 -112 v 30 M 56 -112 v 30" stroke={INK} strokeWidth={1} />
-          <path d="M -74 -84 h 36 l -6 30 h -24 Z M 38 -84 h 36 l -6 30 h -24 Z" fill={WASH.wood} stroke={INK} strokeWidth={1.2} />
-        </Figure>
-      </Frame>
-    );
-  }
-  return (
-    <Frame x0={1760} y0={-330} w={1000}>
-      <Street />
-      {[1800, 1980, 2160, 2340, 2560, 2720].map((x, i) => (
-        <Figure key={x} x={x} y={580 + (i % 3) * 40} robe={[WASH.green, WASH.ochre, '#9c6b5a', WASH.persimmon][i % 4]} hair={i % 3 ? 'man' : 'woman'} pose="walk" facing={i % 2 ? 1 : -1} />
-      ))}
-      <Figure x={2440} y={540} robe={WASH.indigoPale} hair="man" facing={-1} />
-    </Frame>
-  );
-}
-
 export interface PageArtProps {
-  subject?: Subject;
-  framing?: Framing;
-  /** A ready-made picture (scene/painted.tsx PaintedPageScene) instead of a line-drawn one. */
-  scene?: React.ReactNode;
+  /** The picture: a cut from the painted street (scene/painted.tsx PaintedPageScene). */
+  scene: React.ReactNode;
   titleStyle: string;
   title: string;
   place: string;
@@ -134,14 +30,13 @@ export interface PageArtProps {
   idPrefix?: string;
 }
 
-export function PageArt({ subject, framing, scene, titleStyle, title, place, credit, idPrefix = 'pg' }: PageArtProps) {
+export function PageArt({ scene, titleStyle, title, place, credit, idPrefix = 'pg' }: PageArtProps) {
   const slip = SLIP[titleStyle] ?? SLIP.plain;
   const clip = `${idPrefix}-clip`;
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${PAGE_W} ${PAGE_H}`} width={PAGE_W} height={PAGE_H} role="img" aria-label={`${title}　${place}`}>
       <rect width={PAGE_W} height={PAGE_H} fill={PAPER} />
       <rect x={24} y={24} width={PAGE_W - 48} height={PAGE_H - 48} fill="none" stroke={INK} strokeWidth={1.2} opacity={0.5} />
-      <MistDefs />
       <defs>
         <clipPath id={clip}>
           <rect x={PIC_X} y={PIC_Y} width={PIC_W} height={PIC_H} />
@@ -149,15 +44,7 @@ export function PageArt({ subject, framing, scene, titleStyle, title, place, cre
       </defs>
       <g clipPath={`url(#${clip})`}>
         <rect x={PIC_X} y={PIC_Y} width={PIC_W} height={PIC_H} fill="#f3ebd9" />
-        {scene ?? (subject && framing && <Scene subject={subject} framing={framing} />)}
-        {/* the line-drawn pages get mist bands; a painted page keeps its own sky */}
-        {!scene && (
-          <>
-          <Mist x={20} y={56} w={300} h={40} opacity={0.55} />
-          <Mist x={360} y={110} w={240} h={30} opacity={0.4} />
-          <Mist x={-40} y={PAGE_H - 160} w={360} h={36} opacity={0.45} />
-          </>
-        )}
+        {scene}
       </g>
       {/* 題箋 */}
       <rect x={PAGE_W - 108} y={56} width={52} height={[...title].length * 34 + 30} fill={slip.fill} stroke={INK} strokeWidth={1.2} />

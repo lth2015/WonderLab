@@ -164,11 +164,6 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
 
 // ---------------------------------------------------------------- journal pages
 
-/**
- * A page cut from the painted street (二頁目 onwards): the world rectangle
- * starting at (x0, y0), w units wide, fills the page's picture area
- * (40, 40, 520 × 660 in PageArt), with the people of that moment on it.
- */
 /** 朝 a little pale and cool, 昼 as painted, 夕 warm and lower (like the street's CSS filters). */
 const PAGE_TINT: Record<'morning' | 'noon' | 'evening', string | null> = {
   morning: '1.02 0 0 0 0.01  0 1.03 0 0 0.01  0 0 1.06 0 0.015  0 0 0 1 0',
@@ -176,11 +171,53 @@ const PAGE_TINT: Record<'morning' | 'noon' | 'evening', string | null> = {
   evening: '0.97 0.06 0.01 0 0.015  0.03 0.92 0.02 0 0  0.01 0.03 0.82 0 0  0 0 0 1 0',
 };
 
+type Person = { id: SpriteId; x: number; y: number; flip?: boolean };
+/**
+ * 一頁目 (風のいたずら): the subject × framing the player chose, at the paper
+ * shop, in the moment after the papers were held down.
+ */
+const KAZE_VIEWS: Record<string, { x0: number; y0: number; w: number; people: Person[] }> = {
+  'hands-near': { x0: 12330, y0: 330, w: 230, people: [{ id: 'seita-press', ...SPOTS.seitaKneel }] },
+  'hands-wide': { x0: 12250, y0: 190, w: 360, people: [{ id: 'seita-press', ...SPOTS.seitaKneel }] },
+  'shopfront-near': { x0: 12335, y0: 250, w: 290, people: [{ id: 'seita-bow', ...SPOTS.seitaStand }] },
+  'shopfront-wide': { x0: 12190, y0: 110, w: 440, people: [{ id: 'seita-bow', ...SPOTS.seitaStand }] },
+  'street-near': {
+    x0: 12380,
+    y0: 240,
+    w: 330,
+    people: [
+      { id: 'seita-stand', ...SPOTS.seitaStand },
+      { id: 'crowd1-porter', x: 12450, y: 628, flip: true },
+      { id: 'sokichi-nod', ...SPOTS.sokichi },
+    ],
+  },
+  'street-wide': {
+    x0: 12120,
+    y0: 40,
+    w: 520,
+    people: [
+      { id: 'crowd2-samurai', x: 12200, y: 612 },
+      { id: 'seita-stand', ...SPOTS.seitaStand },
+      { id: 'crowd1-parasol', x: 12360, y: 630, flip: true },
+      { id: 'crowd1-porter', x: 12470, y: 624, flip: true },
+      { id: 'sokichi-nod', ...SPOTS.sokichi },
+    ],
+  },
+};
+
+/**
+ * A page cut from the painted street: the world rectangle starting at
+ * (x0, y0), w units wide, fills the page's picture area (40, 40, 520 × 660
+ * in PageArt), with the people of that moment on it.
+ */
 export function PaintedPageScene({ composition }: { composition: string }) {
   const sk = parseSketch(composition);
-  const view = sk
-    ? { ...sk.sketch.view, people: [] as { id: SpriteId; x: number; y: number }[] }
-    : composition === 'tenugui-return'
+  const kz = /^kaze-([a-z]+-(?:near|wide))$/.exec(composition);
+  const view: { x0: number; y0: number; w: number; people: Person[] } = sk
+    ? { ...sk.sketch.view, people: [] }
+    : kz && KAZE_VIEWS[kz[1]]
+      ? KAZE_VIEWS[kz[1]]
+      : composition === 'tenugui-return'
       ? {
           x0: SPOTS.oharu.x - 60,
           y0: 240,
@@ -217,7 +254,7 @@ export function PaintedPageScene({ composition }: { composition: string }) {
         !href || i < first || i > first + 1 ? null : <image key={i} href={href!} x={i * 1000} y={0} width={1000} height={700} preserveAspectRatio="none" />,
       )}
       {view.people.map((p) => (
-        <Sprite key={p.id} id={p.id} x={p.x} y={p.y} />
+        <Sprite key={p.id} id={p.id} x={p.x} y={p.y} flip={p.flip} />
       ))}
     </g>
   );
