@@ -26,6 +26,17 @@ export function initialState(): GameState {
     wallet: 60, journal: [], claimed: [], progress: { quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
     settings: { reduced: false, largeText: false, hints: true, sound: false, ambience: 0.3, effects: 0.4 } };
 }
+
+// Completed pages are the lasting record; the current route resets on replay.
+export function summaryEvents(state: GameState): string[] {
+  const events: string[] = [];
+  if (state.claimed.includes('paper')) events.push('你替小柳压住了画纸，也留下了自己的第一幅小画。');
+  if (state.journal.includes('river-delivery')) events.push('你理好绳索、认出货签，随阿成把新茶送到了何娘手里。');
+  if (state.journal.includes('river-team')) events.push('你理好绳索、认出货签，站在岸边看周伯与阿成接过这一船日常。');
+  if (state.progress.tea) events.push('你记得客人的偏好，为他们配了一席合口的茶点。');
+  if (state.claimed.includes('purse')) events.push('你找到了香囊的主人，听陈生说起姐姐缝进针脚的牵挂。');
+  return events.length ? events : ['你沿河停留，看了一会儿属于这座城的春日。'];
+}
 function addPage(s: GameState, id: PageId) { if (!s.journal.includes(id)) s.journal.push(id); }
 function complete(s: GameState, id: QuestId, reward: number) {
   s.progress.quests[id].status = 'complete';

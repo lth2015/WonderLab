@@ -4,10 +4,11 @@ import { Icon } from './Art';
 import type { GameState } from './game';
 import { PaintedLandscape } from './PaintedArt';
 import { PERSON_HEIGHT, WORLD_HEIGHT, WORLD_WIDTH, personPosition, sceneAt } from './layout';
+import { targetsAt, type SceneTarget, type TargetBounds } from './hit-targets';
 
-export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked }: {
+export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, onTargets, feedback, locked }: {
   game: GameState; center: number; setCenter: (x: number) => void;
-  onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; feedback: string; locked: boolean;
+  onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; onTargets: (targets: SceneTarget[]) => void; feedback: string; locked: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 1200, height: 700 });
@@ -41,7 +42,21 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
       }}
       onPointerUp={() => { gesture.current=null; setDragging(false); }}
       onPointerCancel={() => { gesture.current=null; setDragging(false); }}
-      onClickCapture={e=>{ if(suppress.current) { e.stopPropagation(); e.preventDefault(); suppress.current=false; } }}>
+      onClickCapture={e=>{
+        if(suppress.current) { e.stopPropagation(); e.preventDefault(); suppress.current=false; return; }
+        // Keyboard/assistive clicks already identify a specific focused button.
+        if(e.detail===0 || locked) return;
+        if(!(e.target instanceof Element) || !e.target.closest('button[data-hit-kind]')) return;
+        const bounds: TargetBounds[] = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button[data-hit-kind]')).map(button=>{
+          const id=button.dataset.hitId!;
+          const label=button.getAttribute('aria-label')??id;
+          const target:SceneTarget=button.dataset.hitKind==='person'?{kind:'person',id:id as CharacterId,label}:{kind:'environment',id,label};
+          const rect=button.getBoundingClientRect();
+          return {target,left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom};
+        });
+        const targets=targetsAt(e.clientX,e.clientY,bounds);
+        if(targets.length>1){e.stopPropagation();e.preventDefault();onTargets(targets);}
+      }}>
       <div className="world-strip" style={{ width: WORLD_WIDTH*scale, height: WORLD_HEIGHT*scale, transform: `translate3d(${size.width/2-actual*scale}px, ${Math.min(0,(size.height-WORLD_HEIGHT*scale)/2)}px, 0)`, '--world-scale': scale } as CSSProperties}>
         <PaintedLandscape state={game} feedback={feedback}/>
         {game.started && <div className="hotspots">
@@ -49,11 +64,11 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
             const c=CHARACTERS[id];
             const {x,y}=personPosition(id,game);
             const featured=(scene==='paper'&&id==='liu')||(scene==='bridge'&&id==='zhou')||(scene==='tea'&&id==='he');
-            return <button key={id} className={`person-hotspot ${featured?'featured':''}`} style={{ left:x*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={()=>onPerson(id)} aria-label={`与${c.name}交谈，${c.role}`}>
+            return <button key={id} data-hit-kind="person" data-hit-id={id} className={`person-hotspot ${featured?'featured':''}`} style={{ left:x*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={()=>onPerson(id)} aria-label={`与${c.name}交谈，${c.role}`}>
               <span className="person-label"><span className="conversation-mark">···</span>{c.name}</span><span className="person-ring"/>
             </button>;
           })}
-          {ENVIRONMENT.map(env => <button key={env.id} className={`environment-hotspot ${feedback===env.id?'activated':''}`} style={{left:env.x*scale,top:env.y*scale}} onClick={()=>onEnvironment(env.id)} aria-label={env.label}><span className="environment-dot"/><span className="environment-label">{env.label}</span></button>)}
+          {ENVIRONMENT.map(env => <button key={env.id} data-hit-kind="environment" data-hit-id={env.id} className={`environment-hotspot ${feedback===env.id?'activated':''}`} style={{left:env.x*scale,top:env.y*scale}} onClick={()=>onEnvironment(env.id)} aria-label={env.label}><span className="environment-dot"/><span className="environment-label">{env.label}</span></button>)}
         </div>}
       </div>
     </div>

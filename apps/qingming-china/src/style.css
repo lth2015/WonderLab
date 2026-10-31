@@ -18,3 +18,5 @@
 .paper-breeze{animation:paper-breeze 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}@keyframes paper-breeze{0%,100%{rotate:0deg}45%{rotate:-2deg}}
 .water-rings{animation:water-rings 3s ease-out both;transform-origin:1900px 1010px}@keyframes water-rings{from{opacity:.9;scale:.6}to{opacity:0;scale:1.8}}
 .warm-kettle{animation:kettle-warm 1.2s ease-in-out 3}@keyframes kettle-warm{50%{opacity:.7}}
+.target-options{display:grid;gap:12px}.target-options>button{width:100%;justify-content:space-between;text-align:left}.guest-heading p,.nearby-list p{font-size:var(--body-size);line-height:1.85}
+.tea-options b,.tea-options small{font-size:var(--body-size);line-height:1.5;white-space:normal}.large-text .tea-options{grid-template-columns:1fr}

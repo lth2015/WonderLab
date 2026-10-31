@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialState, parseSave, reduceGame, type Action, type GameState } from './game';
+import { initialState, parseSave, reduceGame, summaryEvents, type Action, type GameState } from './game';
 import { PAGES } from './content';
 import { isSaveEnvelope } from '../../../packages/scroll-contracts';
 
@@ -36,4 +36,26 @@ describe('钱包与存档边界',()=>{
     expect(()=>parseSave('{broken')).toThrow();change(s=>{s.journal=['unknown' as never];});change(s=>{s.progress.clues=['he','he'];});change(s=>{s.progress.quests.paper={status:'complete',step:2};});change(s=>{s.settings.effects=2;});change(s=>{s.progress.quests.boat.step=99;});
   });
   it('状态转换保持输入不可变',()=>{const s=initialState();const copy=structuredClone(s);reduceGame(s,{type:'PRESS_PAPER'});expect(s).toEqual(copy);});
+});
+
+describe('今日小记的真实经历',()=>{
+  it('送茶后重逢并刷新，不会把空路线写成岸边观察',()=>{
+    const s=parseSave(JSON.stringify(run([...boat,{type:'REPLAY',quest:'boat'}])));
+    expect(s.progress.route).toBeNull();
+    const text=summaryEvents(s).join('');
+    expect(text).toContain('随阿成把新茶送到了何娘手里');
+    expect(text).not.toContain('站在岸边');
+  });
+  it('观察路线在重逢中保留，未走过送茶就不编写送达',()=>{
+    const s=run([...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'},{type:'REPLAY',quest:'boat'}]);
+    expect(summaryEvents(s).join('')).toContain('站在岸边');
+    expect(summaryEvents(s).join('')).not.toContain('随阿成');
+  });
+  it('补齐两条分支后再次重逢，两种已发生经历都保留',()=>{
+    const s=run([...boat,{type:'REPLAY',quest:'boat'},...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'},{type:'REPLAY',quest:'boat'}]);
+    expect(summaryEvents(s)).toHaveLength(2);
+    expect(summaryEvents(s).join('')).toContain('随阿成');
+    expect(summaryEvents(s).join('')).toContain('站在岸边');
+    expect(s.wallet).toBe(84);
+  });
 });
