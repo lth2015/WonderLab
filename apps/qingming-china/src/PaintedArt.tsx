@@ -1,7 +1,7 @@
 import { CHARACTERS, type CharacterId } from './content';
 import type { GameState } from './game';
 import manifest from './art-manifest.json';
-import { PERSON_HEIGHT, WORLD_HEIGHT, WORLD_WIDTH, personPosition, personPose } from './layout';
+import { ORIGIN, PERSON_HEIGHT, ROLL_WIDTH, TILE, TILES, WORLD_HEIGHT, WORLD_WIDTH, personPosition, personPose } from './layout';
 import { WALKERS } from './walkers';
 
 const artUrl = (file: string) => `${import.meta.env.BASE_URL}art/china/${file}`;
@@ -60,14 +60,23 @@ function Prop({ kind, x, y, width, className }: { kind: keyof typeof propFrames;
   return <g className={className} transform={`translate(${x} ${y})`}><Atlas asset={manifest.props} frame={frame} x={-width / 2} y={-height} width={width} height={height}/></g>;
 }
 
-export function PaintedLandscape({ state, feedback }: { state: GameState; feedback: string }) {
+/** The long scroll's tiles within reach of the view (and one more each side, so a drag never shows paper). */
+function RollTiles({ center, viewHalf }: { center: number; viewHalf: number }) {
+  const from = Math.floor((center - viewHalf + ORIGIN) / TILE) - 1, to = Math.floor((center + viewHalf + ORIGIN) / TILE) + 1;
+  const tiles = [];
+  for (let k = Math.max(0, from); k <= Math.min(TILES - 1, to); k++)
+    tiles.push(<image key={k} href={artUrl(`scroll/scroll-${String(k).padStart(2, '0')}.webp`)} x={k * TILE - ORIGIN} y={0} width={TILE + 1} height={WORLD_HEIGHT} preserveAspectRatio="none"/>);
+  return <g className="roll-tiles">{tiles}</g>;
+}
+
+export function PaintedLandscape({ state, feedback, center, viewHalf }: { state: GameState; feedback: string; center: number; viewHalf: number }) {
   const boatDone = state.progress.quests.boat.step === 3;
   const delivered = state.progress.route === 'deliver';
   const actors = [
     ...WALKERS.map((p, i) => ({ ...p, key: `passer-${i}`, pose: 0 as const, crowd: true })),
     ...people.map(id => ({ ...personPosition(id, state), id, key: id, height: PERSON_HEIGHT, flip: false, pose: personPose(id, state), crowd: false })),
   ].sort((a, b) => a.y - b.y);
-  return <svg id="world-art" viewBox={`0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`} xmlns="http://www.w3.org/2000/svg" className="landscape painted-landscape" aria-hidden="true">
+  return <svg id="world-art" viewBox={`${-ORIGIN} 0 ${ROLL_WIDTH} ${WORLD_HEIGHT}`} xmlns="http://www.w3.org/2000/svg" className="landscape painted-landscape" aria-hidden="true">
     <defs><mask id="bridge-front-rails" maskUnits="userSpaceOnUse" x="0" y="225" width="1470" height="330">
       <g transform={`scale(${WORLD_WIDTH / manifest.river.width})`} fill="none" stroke="white" strokeLinejoin="round">
         <polyline points={deckLine} transform="translate(0 -42)" strokeWidth="4"/>
@@ -75,7 +84,7 @@ export function PaintedLandscape({ state, feedback }: { state: GameState; feedba
         <polyline points={deckLine} transform="translate(0 -10)" strokeWidth="5"/>
       </g>
     </mask></defs>
-    <image href={artUrl(manifest.river.file)} width={WORLD_WIDTH} height={WORLD_HEIGHT}/>
+    <RollTiles center={center} viewHalf={viewHalf}/>
     <g className="river-traffic">
       <PaintedBoat kind="small" x={610} y={784} width={270}/>
       <PaintedBoat kind="trader" x={470} y={1100} width={520}/>
