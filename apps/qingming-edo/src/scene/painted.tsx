@@ -93,8 +93,8 @@ export function posesFor(s: SaveData): Poses {
     sokichi: kazeDone ? 'sokichi-nod' : pressed ? 'sokichi-point' : 'sokichi-hold',
     // wiping lacquer until the errand; holding the bundle while it waits; a bow once it is home
     okon: dougu === 'complete' ? 'okon-bow' : hasFlag(s, 'dougu_wrapped') && !hasFlag(s, 'dougu_carry') ? 'okon-hold' : 'okon-wipe',
-    kisuke: 'kisuke-teapot',
-    oharu: hasFlag(s, 'dougu_entrusted') ? 'oharu-ask' : 'oharu-search',
+    kisuke: questState(s, 'tenugui') === 'complete' ? 'kisuke-bow' : hasFlag(s, 'tenugui_asked') && !hasFlag(s, 'tenugui_clue') ? 'kisuke-pour' : 'kisuke-teapot',
+    oharu: questState(s, 'tenugui') === 'complete' ? 'oharu-found' : hasFlag(s, 'tenugui_asked') || hasFlag(s, 'dougu_entrusted') ? 'oharu-ask' : 'oharu-search',
     kinji: hasFlag(s, 'dougu_by_hand') ? 'kinji-nod' : 'kinji-rest',
   };
 }
@@ -160,7 +160,17 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
  */
 export function PaintedPageScene({ composition }: { composition: string }) {
   const view =
-    composition === 'dougu-deliver'
+    composition === 'tenugui-return'
+      ? {
+          x0: 7380,
+          y0: 230,
+          w: 330,
+          people: [
+            { id: 'kisuke-bow' as SpriteId, ...SPOTS.kisuke },
+            { id: 'oharu-found' as SpriteId, ...SPOTS.oharu },
+          ],
+        }
+      : composition === 'dougu-deliver'
       ? { x0: 6520, y0: 230, w: 330, people: [{ id: 'kinji-nod' as SpriteId, ...SPOTS.kinji }] }
       : {
           x0: 8050,

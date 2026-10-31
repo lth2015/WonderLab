@@ -153,6 +153,55 @@ describe('いつもの道具', () => {
   });
 });
 
+describe('あの人の手拭い', () => {
+  it('お春 asks only after 風のいたずら, and 喜助 knows about it only once she has', () => {
+    expect(entryFor('oharu', newSave())).toBe('oharu.first');
+    const s = afterKaze();
+    expect(entryFor('oharu', s)).toBe('oharu.ask');
+    expect(entryFor('kisuke', s)).toBe('kisuke.first');
+  });
+
+  it('follows ask → tea → compare → return, and pays 18文 once', () => {
+    let s = open(afterKaze(), 'oharu.accepted');
+    expect(entryFor('kisuke', s)).toBe('kisuke.lost');
+    expect(nearby(s).some((n) => n.id === 'tenugui-kisuke' && n.spotId === 'h-kisuke')).toBe(true);
+    s = open(s, 'kisuke.served');
+    expect(entryFor('kisuke', s)).toBe('kisuke.compare');
+    s = open(s, 'kisuke.picked');
+    expect(entryFor('oharu', s)).toBe('oharu.return');
+    expect(nearby(s).some((n) => n.id === 'tenugui-return' && n.spotId === 'h-oharu')).toBe(true);
+    s = open(s, 'oharu.return');
+    expect(questState(s, 'tenugui')).toBe('complete');
+    expect(s.wallet.balanceMinor).toBe(72 + 18);
+    expect(s.journal.pages.map((p) => p.pageId)).toEqual(['p01-kaze', 'p03-tenugui']);
+    s = open(s, 'oharu.return');
+    expect(s.wallet.balanceMinor).toBe(90);
+    expect(entryFor('oharu', s)).toBe('oharu.done3');
+    expect(entryFor('kisuke', s)).toBe('kisuke.done3');
+  });
+
+  it('declining leaves it open; asking again is kind', () => {
+    const s = open(afterKaze(), 'oharu.declined');
+    expect(entryFor('oharu', s)).toBe('oharu.ask.again');
+  });
+
+  it('after carrying お紺\'s bundle, お春 reports that first, then asks', () => {
+    let s = open(open(afterKaze(), 'okon.wrapped'), 'okon.entrust');
+    expect(entryFor('oharu', s)).toBe('oharu.after');
+    expect(NODES['oharu.after'].next).toBe('oharu.ask');
+    s = open(s, 'oharu.after');
+    expect(entryFor('oharu', s)).toBe('oharu.ask');
+  });
+
+  it('all three stories together pay 12 + 24 + 18 and leave three pages', () => {
+    let s = open(open(afterKaze(), 'okon.wrapped'), 'okon.carry');
+    s = open(s, 'kinji.receive');
+    s = open(open(open(open(s, 'oharu.accepted'), 'kisuke.served'), 'kisuke.picked'), 'oharu.return');
+    expect(s.wallet.balanceMinor).toBe(60 + 12 + 24 + 18);
+    expect(s.journal.pages).toHaveLength(3);
+  });
+});
+
 describe('script integrity', () => {
   it('every link, entry and close effect names a real node', () => {
     for (const [id, n] of Object.entries(NODES)) {

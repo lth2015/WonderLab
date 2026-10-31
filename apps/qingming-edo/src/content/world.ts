@@ -154,6 +154,23 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
+  {
+    // 三頁目：あの人の手拭い (spec §9). A wrong guess only gives another clue.
+    id: 'tenugui',
+    prerequisites: [{ quest: 'kaze', is: 'complete' }],
+    steps: [
+      { id: 'serve', doneWhen: { flag: 'tenugui_clue' } },
+      { id: 'pick', doneWhen: { flag: 'tenugui_found' } },
+      { id: 'return', doneWhen: { quest: 'tenugui', is: 'complete' } },
+    ],
+    completionEffects: [
+      { type: 'grant', rewardId: 'tenugui', amountMinor: 18 },
+      { type: 'familiarity', characterId: 'oharu', eventId: 'tenugui' },
+      { type: 'familiarity', characterId: 'kisuke', eventId: 'tenugui' },
+      { type: 'questState', quest: 'tenugui', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
@@ -187,11 +204,13 @@ export const PAGE_SLOTS = 12; // spec §5: 絵巻帳12頁
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
   { id: 'p02-dougu', triggerId: 'dougu', compositionId: 'dougu-{deliver|entrust}', captionId: 'dougu', sourceRefs: [] },
+  { id: 'p03-tenugui', triggerId: 'tenugui', compositionId: 'tenugui-return', captionId: 'tenugui', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
   'p01-kaze': '風のいたずら',
   'p02-dougu': 'いつもの道具',
+  'p03-tenugui': 'あの人の手拭い',
 };
 
 /** 包みを整える (spec §10): three goods, each matched to the cloth with its mark. Fiction. */
@@ -201,6 +220,40 @@ export const WRAP_ITEMS = [
   { id: 'toishi', label: '砥石', mark: 'circle', markLabel: '丸の印' },
 ] as const;
 export type WrapMark = (typeof WRAP_ITEMS)[number]['mark'];
+
+/**
+ * 茶店の気配り (spec §10): three tea-and-sweet sets; each regular's liking is
+ * shown in words and as marks. Nothing here is a real price or a remedy.
+ * 麦湯 (barley water) and 羊羹 / 団子 / 煎餅 are period-plausible but unreviewed (fiction).
+ */
+export const TEA_SETS = [
+  { id: 'hot-yokan', label: '熱い煎茶と羊羹', temp: 'hot', sweet: true },
+  { id: 'warm-senbei', label: 'ぬるめの煎茶と煎餅', temp: 'warm', sweet: false },
+  { id: 'cold-dango', label: '冷たい麦湯と団子', temp: 'cold', sweet: true },
+] as const;
+export type TeaSetId = (typeof TEA_SETS)[number]['id'];
+export const TEA_GUESTS = [
+  {
+    id: 'daiku',
+    label: '朝の仕事帰りの大工',
+    says: '暑くてかなわねえ。冷てえのがいい。腹も減ったから、甘いもんをくれ。',
+    likes: { temp: 'cold', sweet: true },
+    wants: 'cold-dango' as TeaSetId,
+  },
+  {
+    id: 'shisho',
+    label: '三味線の女師匠',
+    says: '猫舌なのよ、熱いのはだめ。それと、甘いものは控えているの。',
+    likes: { temp: 'warm', sweet: false },
+    wants: 'warm-senbei' as TeaSetId,
+  },
+] as const;
+
+/** あの人の手拭い: two forgotten cloths; the ご隠居's is the wave pattern, tied tight. */
+export const TENUGUI = [
+  { id: 'nami', pattern: 'wave', label: '藍地に白い波の柄', knot: 'tight', knotLabel: '固い本結び', owner: true },
+  { id: 'asanoha', pattern: 'hemp', label: '藍地に白い麻の葉の柄', knot: 'loose', knotLabel: 'ゆるい蝶結び', owner: false },
+] as const;
 
 export function kazeComposition(subject: Subject, framing: Framing): string {
   return `kaze-${subject}-${framing}`;
