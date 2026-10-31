@@ -188,9 +188,11 @@ export function App() {
           spots={spots}
           pressed={hasFlag(save, 'paper_pressed')}
           kazeDone={questState(save, 'kaze') === 'complete'}
+          metOkon={hasFlag(save, 'met_okon')}
           reacting={reacting}
           reduceMotion={reduceMotion}
           interactive={entered && !busy}
+          talking={!!(dialogue || candidates)}
           onTap={onTap}
           onActivity={activity}
         />

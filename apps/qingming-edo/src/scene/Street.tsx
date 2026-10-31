@@ -2,7 +2,8 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, u
 import type { HotspotDef } from '../contract';
 import { GROUND_Y, SCENE, SCENE_H, SCENE_W } from '../content/world';
 import { clampCamera, isDrag, resolveTap } from '../engine/hit';
-import { Barrel, BridgeEnd, Boat, Dog, Figure, Mist, MistDefs, Papers, Shop, Sparrows, Steam, WASH, Willow } from './art';
+import { Barrel, Dog, Figure, Mist, MistDefs, Shop, Steam, WASH } from './art';
+import { PAINTED_X0, PaintedSection } from './painted';
 
 export interface StreetApi {
   /** Brings scene x to the middle of the view (≤300 ms, instant when motion is reduced). */
@@ -14,19 +15,22 @@ export interface StreetProps {
   spots: HotspotDef[];
   pressed: boolean;
   kazeDone: boolean;
+  metOkon: boolean;
   reacting: ReadonlySet<string>;
   reduceMotion: boolean;
   /** False while a dialogue, game or panel holds the screen (spec §7 遊びの途中). */
   interactive: boolean;
+  /** A conversation is open: lift the street so the people stay above the sheet (spec §7 会話). */
+  talking: boolean;
   onTap(hits: HotspotDef[]): void;
   onActivity(): void;
 }
 
 const G = GROUND_Y;
-const START_X = 2430;
+const START_X = 2560;
 const NEAR_H = SCENE_H + 600; // the road goes on below the picture on tall screens
 
-export function Street({ apiRef, spots, pressed, kazeDone, reacting, reduceMotion, interactive, onTap, onActivity }: StreetProps) {
+export function Street({ apiRef, spots, pressed, kazeDone, metOkon, reacting, reduceMotion, interactive, talking, onTap, onActivity }: StreetProps) {
   const box = useRef<HTMLDivElement>(null);
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const cam = useRef<number | null>(null); // left edge, scene units
@@ -58,9 +62,9 @@ export function Street({ apiRef, spots, pressed, kazeDone, reacting, reduceMotio
       const w = el.clientWidth;
       const h = el.clientHeight;
       // Fill the height on wide screens; on a phone keep about 560 units of
-      // street in view (about 460 units) (the paper shop, its clerk and the master together)
+      // street in view (about 400 units: the painted section rewards a closer look) (the paper shop, its clerk and the master together)
       // and let the road continue below the picture.
-      const s = Math.max(0.5, Math.min(h / SCENE_H, w / 460));
+      const s = Math.max(0.5, Math.min(h / SCENE_H, w / 400));
       size.current = { w, h, scale: s };
       setScale(s);
       // First view: by the bridge on the right, where the scroll begins,
@@ -162,6 +166,7 @@ export function Street({ apiRef, spots, pressed, kazeDone, reacting, reduceMotio
       onKeyDown={onKeyDown}
       data-scale={scale.toFixed(3)}
     >
+      <div className={talking ? 'pan talking' : 'pan'}>
       {/* far: sky, distant roofs, mist */}
       <div className="layer" ref={(el) => void (layers.current[0] = el)} style={layerStyle(SCENE_W)}>
         <svg width={SCENE_W} height={SCENE_H} viewBox={`0 0 ${SCENE_W} ${SCENE_H}`} aria-hidden="true">
@@ -194,29 +199,21 @@ export function Street({ apiRef, spots, pressed, kazeDone, reacting, reduceMotio
       {/* mid: the street itself — hotspots are in this layer's units */}
       <div className="layer" ref={(el) => void (layers.current[1] = el)} style={layerStyle(SCENE_W)}>
         <svg width={SCENE_W} height={SCENE_H} viewBox={`0 0 ${SCENE_W} ${SCENE_H}`} aria-hidden="true">
-          <rect x={0} y={G} width={2640} height={SCENE_H - G} fill="#dccdae" />
-          <path d={`M 0 ${G + 2} H 2620`} stroke="#33291f" strokeWidth={1.2} opacity={0.5} />
+          <rect x={0} y={G} width={PAINTED_X0 + 80} height={SCENE_H - G} fill="#dccdae" />
+          <path d={`M 0 ${G + 2} H ${PAINTED_X0 + 40}`} stroke="#33291f" strokeWidth={1.2} opacity={0.5} />
 
-          <BridgeEnd x={2640} ground={G} giboshiClass={`giboshi${r('giboshi')}`} />
-          <Boat x={2830} y={612} className={`boat${r('boat')}`} />
-          <Willow x={2548} y={G} swayClass={`willow${r('willow')}`} />
+          {/* section 1, 橋詰: the painted street (scene/painted.tsx) */}
+          <PaintedSection
+            pressed={pressed}
+            kazeDone={kazeDone}
+            metOkon={metOkon}
+            glints={spots
+              .filter((h) => h.kind === 'ambient' && h.anchor.x >= PAINTED_X0 && reacting.has(h.targetId))
+              .map((h) => ({ id: h.id, ...h.hitArea }))}
+          />
 
-          {/* 紙屋 青葉屋 */}
-          <Shop x={2160} w={360} ground={G} noren={WASH.persimmon} norenText="紙" sign="青葉屋" signSide="紙品々" norenClass={`noren${r('noren-aoba')}`}>
-            <Papers x={2236} y={G - 62} pressed={pressed} flapClass="flap" />
-          </Shop>
-          <Barrel x={2098} y={G} />
-
-          {/* 道具屋 くれ竹 */}
-          <Shop x={1720} w={360} ground={G} noren={WASH.indigo} norenText="道具" sign="くれ竹" norenClass={`noren${r('noren-kure')}`}>
-            <g>
-              <ellipse cx={1800} cy={G - 70} rx={20} ry={8} fill={WASH.ochre} stroke="#33291f" strokeWidth={1.2} />
-              <rect x={1836} y={G - 86} width={34} height={22} fill={WASH.woodDark} stroke="#33291f" strokeWidth={1.2} />
-              <path d={`M 1890 ${G - 64} l 40 -26 l 6 6 l -40 24 Z`} fill={WASH.wood} stroke="#33291f" strokeWidth={1.2} />
-            </g>
-          </Shop>
-          <Sparrows x={2050} y={168} className={`sparrows${r('sparrows')}`} />
-
+          {/* sections 2 and 3 are still drawn in line (仮), for comparison */}
+          <Barrel x={1928} y={G} />
           <Dog x={1560} y={G + 6} wagClass={`wag${r('dog')}`} />
 
           {/* 茶店 喜の字 */}
@@ -228,17 +225,13 @@ export function Street({ apiRef, spots, pressed, kazeDone, reacting, reduceMotio
             </g>
           </Shop>
           <Steam x={1248} y={G - 70} className={`steam${r('steam')}`} />
+          <Shop x={1560} w={380} ground={G} noren={WASH.indigoPale} norenText="荒物" />
 
           {/* 米屋 and 太物屋: the street goes on */}
           <Shop x={540} w={400} ground={G} noren={WASH.green} norenText="米" />
           <Shop x={80} w={420} ground={G} noren={WASH.persimmon} norenText="太物" sign="" />
 
-          {/* people */}
-          <Figure x={2604} y={G} robe="#7b7062" hair="elder" facing={-1}>
-            <rect x={14} y={-100} width={20} height={26} fill="#f7f1e3" stroke="#33291f" strokeWidth={1.2} />
-          </Figure>
-          <Figure x={2440} y={G} robe={WASH.indigoPale} hair="man" pose={pressed ? (kazeDone ? 'stand' : 'bow') : 'reach'} facing={-1} className={pressed ? '' : 'fret'} />
-          <Figure x={1960} y={G} robe="#5d6b7c" obi={WASH.vermilion} hair="woman" facing={-1} />
+          {/* people of sections 2 and 3 */}
           <Figure x={1360} y={G} robe="#8c7a5a" hair="man" facing={-1} />
           <Figure x={1130} y={G} robe="#b77d6a" obi={WASH.indigo} hair="woman" pose="stand" />
           <Figure x={760} y={G} robe={WASH.ochre} hair="man" pose="carry">
@@ -254,15 +247,14 @@ export function Street({ apiRef, spots, pressed, kazeDone, reacting, reduceMotio
           <g className="walker w2">
             <Figure x={900} y={G + 56} robe="#6e7f8f" hair="man" pose="walk" facing={-1} />
           </g>
-          <g className="walker w3">
-            <Figure x={2300} y={G + 70} robe="#a0805e" hair="man" pose="walk" scale={1.05} />
-          </g>
         </svg>
       </div>
 
       {/* near: the edge of the road, a little in front */}
       <div className="layer" ref={(el) => void (layers.current[2] = el)} style={{ ...layerStyle(SCENE_W + 400), height: NEAR_H }}>
         <svg width={SCENE_W + 400} height={NEAR_H} viewBox={`0 0 ${SCENE_W + 400} ${NEAR_H}`} aria-hidden="true">
+          {/* everything here sits below the picture (y ≥ 700), so it never covers the painted road */}
+          <g transform="translate(0 46)">
           <rect x={0} y={SCENE_H - 30} width={SCENE_W + 400} height={NEAR_H - SCENE_H + 30} fill="#cbb890" />
           <path d={`M 0 ${SCENE_H - 40} Q 800 ${SCENE_H - 56} 1600 ${SCENE_H - 44} T 3400 ${SCENE_H - 48} V ${SCENE_H} H 0 Z`} fill="#cbb890" />
           {Array.from({ length: 34 }, (_, i) => (
@@ -273,20 +265,12 @@ export function Street({ apiRef, spots, pressed, kazeDone, reacting, reduceMotio
           {Array.from({ length: 70 }, (_, i) => (
             <line key={i} x1={i * 50} y1={SCENE_H - 11} x2={i * 50} y2={SCENE_H - 1} stroke="#6f5f45" strokeWidth={1.2} />
           ))}
-          <Barrel x={420} y={SCENE_H + 60} />
-          <Barrel x={2380} y={SCENE_H + 70} />
-          <g opacity={0.95}>
-            <Figure x={1420} y={SCENE_H + 150} robe="#7a8a6a" hair="man" pose="carry" scale={1.25} facing={-1}>
-              <path d="M -60 -114 L 60 -114" stroke={WASH.woodDark} strokeWidth={4} />
-              <path d="M -56 -112 v 28 M 56 -112 v 28" stroke="#33291f" strokeWidth={1} />
-              <path d="M -74 -84 h 36 l -6 30 h -24 Z M 38 -84 h 36 l -6 30 h -24 Z" fill={WASH.ochre} stroke="#33291f" strokeWidth={1.2} />
-            </Figure>
-            <Figure x={3060} y={SCENE_H + 130} robe="#9c6b5a" obi={WASH.indigo} hair="woman" pose="walk" scale={1.2} />
-          </g>
           {Array.from({ length: 18 }, (_, i) => (
             <path key={i} d={`M ${i * 190 + 40} ${SCENE_H - 40} q -4 -14 -10 -18 M ${i * 190 + 44} ${SCENE_H - 40} q 2 -16 8 -20`} stroke={WASH.green} strokeWidth={1.6} fill="none" />
           ))}
+          </g>
         </svg>
+      </div>
       </div>
     </div>
   );
