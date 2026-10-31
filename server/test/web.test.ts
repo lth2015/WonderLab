@@ -18,6 +18,9 @@ describe('serving the web app', () => {
     writeFileSync(join(dir, 'index.html'), '<!doctype html><title>万象生</title>');
     mkdirSync(join(dir, 'assets'));
     writeFileSync(join(dir, 'assets', 'index-abc123.js'), 'console.log(1)');
+    mkdirSync(join(dir, 'edo', 'assets'), { recursive: true });
+    writeFileSync(join(dir, 'edo', 'index.html'), '<!doctype html><title>日本橋、ひと頁</title>');
+    writeFileSync(join(dir, 'edo', 'assets', 'index-edo123.js'), 'console.log(2)');
     app = await buildServer({ config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'silent', WEB_DIST_DIR: dir }), chat });
   });
   afterAll(() => app.close());
@@ -48,6 +51,27 @@ describe('serving the web app', () => {
       expect(res.statusCode, url).toBe(200);
       expect(res.body, url).toContain('万象生');
     }
+  });
+
+  it('serves a work built into its own folder at its own path (清明上河図：江戸編)', async () => {
+    const page = await app.inject({ url: '/edo/', headers: html });
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain('日本橋、ひと頁');
+    expect(page.headers['cache-control']).toBe('no-cache');
+    const asset = await app.inject({ url: '/edo/assets/index-edo123.js' });
+    expect(asset.statusCode).toBe(200);
+    expect(asset.headers['cache-control']).toContain('immutable');
+  });
+
+  it('answers an unknown address inside the work with that work, not the main app', async () => {
+    const res = await app.inject({ url: '/edo/no-such-scene?x=1', headers: html });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('日本橋、ひと頁');
+    const bare = await app.inject({ url: '/edo?from=hub', headers: html });
+    expect(bare.statusCode).toBe(301);
+    expect(bare.headers.location).toBe('/edo/?from=hub');
+    // a name that only starts like it is still the main app
+    expect((await app.inject({ url: '/edomae', headers: html })).body).toContain('万象生');
   });
 
   it('keeps the API answering as an API', async () => {

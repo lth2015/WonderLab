@@ -18,7 +18,11 @@ export default defineConfig({
   base,
   plugins: [react()],
   build: {
-    outDir: fileURLToPath(new URL('../../dist-edo', import.meta.url)),
+    // EDO_OUT_DIR (from the repository root): `npm run build` puts the work
+    // into dist/edo/, where the server answers /edo/ (server/src/web.ts).
+    outDir: process.env.EDO_OUT_DIR
+      ? fileURLToPath(new URL(`../../${process.env.EDO_OUT_DIR}`, import.meta.url))
+      : fileURLToPath(new URL('../../dist-edo', import.meta.url)),
     emptyOutDir: true,
   },
   server: { host: true, port: 5180 },

@@ -36,10 +36,11 @@ npm run edo:preview    # ビルド結果の確認
 
 ### 影響範囲
 
-- 変更したもの：ルート `package.json` に `edo:*` スクリプト追加、`.gitignore` に `dist-edo`、CI に江戸編の 3 手順を追加。
+- 変更したもの：ルート `package.json`（`edo:*` スクリプト、`build` の最後に `edo:site`）、`.gitignore` に `dist-edo`、CI に江戸編のテストと独立ドメイン向けビルドを追加。
 - 既存の型検査・466 件のテスト・ビルドは変更後も通過（2026-10-31 確認）。
 - 保存キーは `ww:qingming-edo:save`（破損時の退避は `ww:qingming-edo:save-corrupt-<時刻>`）だけ。他の作品のキーは読まない・消さない。
-- **want.world の `/edo/` はまだ配信していない。** 現在のサーバーは `/edo/` を既存アプリの `index.html` に落とす。配信には `server/src/web.ts` と Docker イメージへの `dist-edo` 追加が要るので、体験版がそろってから別 PR にする。
+- `npm run build` は江戸編も `dist/edo/` に作る（`edo:site`）。サーバーは配信ディレクトリ直下で `index.html` を持つフォルダーを作品として扱い、`/edo/...` のページ要求には江戸編の `index.html` を返す（存在しない場面も江戸編の開始画面へ）。`/edo` は `/edo/` へ 301。ハッシュ付き素材は一年キャッシュ。中国編を `dist/qingming/` に置けば同じ仕組みで `/qingming/` になる。
+- 変更したサーバーのファイル：`server/src/web.ts`、`server/src/plugins/errors.ts`（テスト `server/test/web.test.ts` に 2 件追加）。既存アプリの応答は変わらない。
 
 ## 2. 現在の状態（§20-2・3 の途中）
 
