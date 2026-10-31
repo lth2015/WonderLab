@@ -499,3 +499,20 @@ describe('町の写生', () => {
     }
   });
 });
+
+describe('絵巻帳が一冊に', () => {
+  it('twelve pages bring 宗吉 to his closing words once, then a quieter greeting', () => {
+    let s = apply(newSave(), questById.get('kaze')!.completionEffects);
+    const now = new Date().toISOString();
+    for (const p of PAGES.slice(0, PAGE_SLOTS - 1)) s = addPage(s, { pageId: p.id, compositionId: 'x', titleStyle: 'plain', madeAt: now });
+    expect(entryFor('sokichi', s)).toBe('sokichi.done');
+    expect(nearby(s).some((n) => n.id === 'book')).toBe(false);
+    s = addPage(s, { pageId: PAGES[PAGE_SLOTS - 1].id, compositionId: 'x', titleStyle: 'plain', madeAt: now });
+    expect(entryFor('sokichi', s)).toBe('sokichi.full');
+    expect(nearby(s)[0].id).toBe('book');
+    s = apply(s, NODES['sokichi.full'].effects!);
+    expect(entryFor('sokichi', s)).toBe('sokichi.full.again');
+    expect(nearby(s).some((n) => n.id === 'book')).toBe(false);
+    expect(JSON.stringify(NODES['sokichi.full'])).not.toMatch(/grant|reward/);
+  });
+});
