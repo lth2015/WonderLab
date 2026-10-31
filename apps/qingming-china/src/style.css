@@ -18,3 +18,9 @@
 .paper-breeze{animation:paper-breeze 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}@keyframes paper-breeze{0%,100%{rotate:0deg}45%{rotate:-2deg}}
 .water-rings{animation:water-rings 3s ease-out both;transform-origin:1900px 1010px}@keyframes water-rings{from{opacity:.9;scale:.6}to{opacity:0;scale:1.8}}
 .warm-kettle{animation:kettle-warm 1.2s ease-in-out 3}@keyframes kettle-warm{50%{opacity:.7}}
+/* 大字阅读: the tea preferences and nearby stories follow the body size too */
+.large-text .guest-heading p,.large-text .nearby-list p{font-size:var(--body-size);line-height:1.6}
+.large-text .tea-options{grid-template-columns:1fr}
+.large-text .tea-options b{font-size:var(--body-size);white-space:normal}
+.large-text .tea-options small{font-size:calc(var(--body-size)*.72);line-height:1.5}
+.large-text .nearby-list small{font-size:calc(var(--body-size)*.72)}
