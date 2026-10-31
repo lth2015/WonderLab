@@ -58,6 +58,20 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'a-giboshi', targetId: 'giboshi', kind: 'ambient', anchor: { x: 8874, y: 443 }, hitArea: { x: 8860, y: 425, w: 28, h: 36 }, priority: 2 },
   { id: 'a-willow', targetId: 'willow', kind: 'ambient', anchor: { x: 8740, y: 350 }, hitArea: { x: 8685, y: 215, w: 110, h: 270 }, priority: 1 },
   { id: 'a-boat', targetId: 'boat', kind: 'ambient', anchor: { x: 8822, y: 617 }, hitArea: { x: 8655, y: 566, w: 335, h: 104 }, priority: 2 },
+  // sections 0–5: the street going north to the canal (long scroll, decision #14)
+  { id: 'a-timber', targetId: 'timber', kind: 'ambient', anchor: { x: 535, y: 485 }, hitArea: { x: 420, y: 410, w: 230, h: 150 }, priority: 2 },
+  { id: 'a-sake', targetId: 'sake', kind: 'ambient', anchor: { x: 1465, y: 535 }, hitArea: { x: 1400, y: 470, w: 130, h: 130 }, priority: 2 },
+  { id: 'a-umbrellas', targetId: 'umbrellas', kind: 'ambient', anchor: { x: 1840, y: 530 }, hitArea: { x: 1700, y: 480, w: 280, h: 100 }, priority: 2 },
+  { id: 'a-tower', targetId: 'tower', kind: 'ambient', anchor: { x: 1860, y: 260 }, hitArea: { x: 1800, y: 150, w: 120, h: 220 }, priority: 2 },
+  { id: 'a-well', targetId: 'well', kind: 'ambient', anchor: { x: 2605, y: 505 }, hitArea: { x: 2565, y: 450, w: 80, h: 110 }, priority: 2 },
+  { id: 'a-cooper', targetId: 'cooper', kind: 'ambient', anchor: { x: 2830, y: 515 }, hitArea: { x: 2720, y: 460, w: 220, h: 110 }, priority: 2 },
+  { id: 'a-medicine', targetId: 'medicine', kind: 'ambient', anchor: { x: 3290, y: 432 }, hitArea: { x: 3160, y: 400, w: 260, h: 65 }, priority: 2 },
+  { id: 'a-prints', targetId: 'prints', kind: 'ambient', anchor: { x: 3585, y: 470 }, hitArea: { x: 3480, y: 445, w: 210, h: 50 }, priority: 2 },
+  { id: 'a-kido', targetId: 'kido', kind: 'ambient', anchor: { x: 4135, y: 390 }, hitArea: { x: 4000, y: 220, w: 270, h: 340 }, priority: 1 },
+  { id: 'a-ootana', targetId: 'ootana', kind: 'ambient', anchor: { x: 4555, y: 400 }, hitArea: { x: 4270, y: 370, w: 570, h: 60 }, priority: 2 },
+  { id: 'a-kura', targetId: 'kura', kind: 'ambient', anchor: { x: 4885, y: 315 }, hitArea: { x: 4770, y: 230, w: 230, h: 170 }, priority: 2 },
+  { id: 'a-inari', targetId: 'inari', kind: 'ambient', anchor: { x: 5336, y: 392 }, hitArea: { x: 5296, y: 362, w: 80, h: 60 }, priority: 2 },
+  { id: 'a-ceramics', targetId: 'ceramics', kind: 'ambient', anchor: { x: 5815, y: 495 }, hitArea: { x: 5650, y: 430, w: 330, h: 130 }, priority: 1 },
   { id: 'a-ladder', targetId: 'ladder', kind: 'ambient', anchor: { x: 6468, y: 370 }, hitArea: { x: 6418, y: 210, w: 100, h: 320 }, priority: 1 },
 ];
 
@@ -95,6 +109,19 @@ export const AMBIENT: Record<string, string> = {
   willow: '川風に、柳の枝がそよいだ。',
   boat: '荷を積んだ舟が、岸につながれている。',
   ladder: '屋根に長い梯子が掛けてある。火の用心のためだろうか。',
+  timber: '材木が背丈より高く立てかけてある。木の香りがする。',
+  sake: '酒屋の軒に、杉玉が下がっている。',
+  umbrellas: '開いた番傘が、店先にいくつも干してある。',
+  tower: '火の見櫓。てっぺんの半鐘が、朝日を受けている。',
+  well: '井戸の釣瓶が、きしりと鳴った。',
+  cooper: '桶屋の店先に、竹の箍が輪になって掛かっている。',
+  medicine: '薬種屋の軒に、薬袋がずらりと下がっている。',
+  prints: '絵草紙屋の店先に、錦絵が吊るしてある。',
+  kido: '町木戸。夜になると、この戸が閉められる。',
+  ootana: '大店の長い暖簾。奥から算盤の音がする。',
+  kura: '白壁の土蔵。厚い扉が少しだけ開いている。',
+  inari: '路地の奥に、小さな稲荷の鳥居が見える。',
+  ceramics: '瀬戸物屋の棚に、皿や鉢が並んでいる。',
 };
 
 export const QUESTS: QuestDef[] = [

@@ -282,8 +282,8 @@ describe('touch', () => {
 
   it('the camera stays on the street', () => {
     expect(clampCamera(-50, 400, SCENE_W)).toBe(0);
-    expect(clampCamera(5000, 400, SCENE_W)).toBe(SCENE_W - 400);
-    expect(clampCamera(100, 4000, SCENE_W)).toBe(0);
+    expect(clampCamera(SCENE_W + 5000, 400, SCENE_W)).toBe(SCENE_W - 400);
+    expect(clampCamera(100, SCENE_W + 1000, SCENE_W)).toBe(0);
   });
 
   it('every street target is reachable on a 360 px phone without overlapping a person', () => {

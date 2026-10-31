@@ -176,7 +176,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
           <rect width={FAR.w * 2} height={SCENE_H} fill="#e1cfa6" />
           {/* raised so the distant roofs show just above the street's rooftops */}
           <image href={FAR.href} x={0} y={-110} width={FAR.w} height={FAR.h} preserveAspectRatio="none" />
-          <image href={FAR.href} x={-FAR.w} y={-110} width={FAR.w} height={FAR.h} preserveAspectRatio="none" transform="scale(-1 1)" />
+          <image href={FAR.href} x={-2 * FAR.w} y={-110} width={FAR.w} height={FAR.h} preserveAspectRatio="none" transform="scale(-1 1)" />
         </svg>
       </div>
 

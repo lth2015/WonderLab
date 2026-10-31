@@ -5,7 +5,8 @@
 // Then crops the 3000-unit scene (rightmost 4389 px) into three 1000-unit
 // sections and writes a gridded preview in world units for placing things.
 const sharp = require('/home/user/wonderlab/node_modules/sharp');
-const S = '/tmp/claude-0/-home-user-wonderlab/ec2033cc-b1cd-5687-b5c6-3d575ad20284/scratchpad/r2';
+const S = '/tmp/claude-0/-home-user-wonderlab/ec2033cc-b1cd-5687-b5c6-3d575ad20284/scratchpad/r3';
+const N = 9; // sections of 1000 units
 const OUT = '/home/user/wonderlab/apps/qingming-edo/src/assets/art';
 const H = 1024, PX = 1024 / 700, SEC = Math.round(1000 * PX); // 1463
 const TOL = 22, MAX_Y = 640;
@@ -50,8 +51,8 @@ const TOL = 22, MAX_Y = 640;
   await sharp(rgba).toFile(`${S}/mid-keyed.png`);
 
   // the scene: the rightmost 3 × 1463 px
-  const x0 = W - 3 * SEC;
-  for (let k = 0; k < 3; k++) {
+  const x0 = W - N * SEC;
+  for (let k = 0; k < N; k++) {
     await sharp(rgba)
       .extract({ left: x0 + k * SEC, top: 0, width: SEC, height: H })
       .webp({ quality: 80, alphaQuality: 90 })
@@ -61,7 +62,7 @@ const TOL = 22, MAX_Y = 640;
   await sharp(`${S}/far-full.png`).webp({ quality: 72 }).toFile(`${OUT}/far.webp`);
 
   // gridded previews, 1 px per world unit, over a mid-grey so the transparent sky shows
-  for (let k = 0; k < 3; k++) {
+  for (let k = 0; k < N; k++) {
     const sec = await sharp(rgba).extract({ left: x0 + k * SEC, top: 0, width: SEC, height: H }).resize(1000, 700).png().toBuffer();
     let grid = '';
     for (let u = 0; u <= 1000; u += 50) grid += `<line x1="${u}" y1="0" x2="${u}" y2="700" stroke="${u % 100 ? '#f0f' : '#c00'}" stroke-width="${u % 100 ? 0.5 : 1}" opacity="0.6"/>`;
