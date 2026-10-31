@@ -4,7 +4,7 @@ import { boatSummary, initialState, parseSave, readSave, reduceGame, SAVE_KEY, t
 import { Icon, JournalArt } from './Art';
 import { ScrollView } from './ScrollView';
 import { PaintedPerson } from './PaintedArt';
-import { CHAPTERS, SCENE_CENTER, personPosition, personPose, sceneAt, type SceneId } from './layout';
+import { CHAPTERS, SCENE_CENTER, personPosition, personPose, sceneAt, type ChapterId } from './layout';
 import { RiverAudio } from './audio';
 import { downloadFile, exportPostcard } from './export';
 
@@ -61,7 +61,7 @@ export function App() {
     if(!game.started||!game.settings.hints||modal||hidden||game.progress.visited.length)return;
     const t=setTimeout(()=>setHint(true),8000);return()=>clearTimeout(t);
   },[game.started,game.settings.hints,game.progress.visited.length,modal,hidden]);
-  useEffect(()=>{const requested=new URLSearchParams(location.search).get('scene');if(requested){if(Object.hasOwn(SCENE_CENTER,requested))setCenter(SCENE_CENTER[requested as SceneId]);else setToast('这段画卷尚未收录，已回到虹桥两岸。');}},[]);
+  useEffect(()=>{const requested=new URLSearchParams(location.search).get('scene');if(requested){if(Object.hasOwn(SCENE_CENTER,requested))setCenter(SCENE_CENTER[requested as ChapterId]);else setToast('这段画卷尚未收录，已回到虹桥两岸。');}},[]);
   const act=(action:Action)=>setGame(prev=>reduceGame(prev,action));
   const open=(m:Modal)=>{if(!modal)lastFocus.current=document.activeElement as HTMLElement;setModal(m);setHint(false);};
   const close=()=>{setModal(null);requestAnimationFrame(()=>lastFocus.current?.focus({preventScroll:true}));};
