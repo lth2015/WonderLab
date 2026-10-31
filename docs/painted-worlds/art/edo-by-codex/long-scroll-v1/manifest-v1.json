@@ -220,6 +220,74 @@
       "reference": "edo-segment-07-v1.png",
       "prompt": "edo-segment-08-v1.prompt.txt",
       "review": "No people, animals or writing. Cargo awning, handcart and open apron connect dry foreground street to canal landing; river behind road. Lower roofs and open water break storefront rhythm. Native scene checked for connected pavement, not yet seam-approved."
+    },
+    {
+      "section": 9,
+      "title": "木栈与小水埠",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-09-v1.png",
+        "width": 1591,
+        "height": 988,
+        "bytes": 3436199,
+        "alpha": false,
+        "sha256": "26f8bcdd39dca1482ae739a86ce183437f585594031b31fce215350c5fda3a85"
+      },
+      "webp": {
+        "file": "edo-segment-09-v1.webp",
+        "quality": 94,
+        "bytes": 748118
+      },
+      "world": {
+        "x": 7936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 8000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 0,
+        "y": 0.33865248226948097,
+        "width": 1591,
+        "height": 987.322695035461
+      },
+      "reference": "edo-segment-08-v1.png",
+      "prompt": "edo-segment-09-v1.prompt.txt",
+      "review": "No people, lettering or animals. Empty moored open Japanese cargo skiff, stout piers, connected dry quay access, canal behind main road. Foreground walking strip is intact; landing and pottery transition reviewed visually, exact adjacent seam pending."
+    },
+    {
+      "section": 10,
+      "title": "陶器店与桶屋",
+      "status": "original delivered; seam and runtime anchoring require integration",
+      "native": {
+        "file": "edo-segment-10-v1.png",
+        "width": 1592,
+        "height": 988,
+        "bytes": 3415737,
+        "alpha": false,
+        "sha256": "c74476cf92cd8cbde4db41239b550512449f9730337056540fc4f0c0d73f7e14"
+      },
+      "webp": {
+        "file": "edo-segment-10-v1.webp",
+        "quality": 94,
+        "bytes": 743534
+      },
+      "world": {
+        "x": 8936,
+        "width": 1128,
+        "height": 700,
+        "visibleX": 9000,
+        "visibleWidth": 1000
+      },
+      "sourceWindow": {
+        "x": 0,
+        "y": 0.02836879432624073,
+        "width": 1592,
+        "height": 987.9432624113475
+      },
+      "reference": "edo-segment-09-v1.png",
+      "prompt": "edo-segment-10-v1.prompt.txt",
+      "review": "No people, lettering or animals. Pottery shelves, unused low wheel, cooper's vats and bamboo shelter; canal recedes through left alley. Main dry street and stone curb continue. Native small ceramic shapes and tools visually checked; exact seam and foot anchors pending integration."
     }
   ]
 }
