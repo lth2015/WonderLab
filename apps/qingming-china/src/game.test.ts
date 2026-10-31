@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { initialState, parseSave, reduceGame, type Action, type GameState } from './game';
+import { boatSummary, initialState, parseSave, reduceGame, type Action, type GameState } from './game';
+import { PERSON_HEIGHT, personPosition, pickHotspot } from './layout';
 import { PAGES } from './content';
 import { isSaveEnvelope } from '../../../packages/scroll-contracts';
 
@@ -36,4 +37,27 @@ describe('钱包与存档边界',()=>{
     expect(()=>parseSave('{broken')).toThrow();change(s=>{s.journal=['unknown' as never];});change(s=>{s.progress.clues=['he','he'];});change(s=>{s.progress.quests.paper={status:'complete',step:2};});change(s=>{s.settings.effects=2;});change(s=>{s.progress.quests.boat.step=99;});
   });
   it('状态转换保持输入不可变',()=>{const s=initialState();const copy=structuredClone(s);reduceGame(s,{type:'PRESS_PAPER'});expect(s).toEqual(copy);});
+});
+
+describe('审查修复',()=>{
+  it('重逢后小结仍按画册的实际历史讲述送茶',()=>{
+    const s=run([...boat,{type:'REPLAY',quest:'boat'}]);
+    expect(s.progress.route).toBeNull();
+    expect(boatSummary(s.journal)).toContain('送到了何娘手里');
+    const both=run([...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'}],s);
+    expect(boatSummary(both.journal)).toContain('一回随阿成');
+    expect(boatSummary(run([...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'}]).journal)).toContain('站在岸边');
+  });
+  it('猫与茶炉的中心点按邻近归给环境，人物身上仍归人物',()=>{
+    const g=run([{type:'START'}]);
+    for(const scale of [.35,.6,1]){
+      expect(pickHotspot(2525,774,g,scale)).toEqual({kind:'environment',id:'cat'});
+      expect(pickHotspot(2190,755,g,scale)).toEqual({kind:'environment',id:'brazier'});
+      const chen=personPosition('chen',g);
+      expect(pickHotspot(chen.x,chen.y-PERSON_HEIGHT*.48,g,scale)).toEqual({kind:'person',id:'chen'});
+      const he=personPosition('he',g);
+      expect(pickHotspot(he.x,he.y-PERSON_HEIGHT*.48,g,scale)).toEqual({kind:'person',id:'he'});
+    }
+    expect(pickHotspot(10,10,g,1)).toBeNull();
+  });
 });
