@@ -603,3 +603,30 @@ button[aria-pressed='true'] {
     animation: none;
   }
 }
+
+/* a touch on the painted section: a soft glint, then gone */
+.glint {
+  opacity: 0;
+  animation: glint 1.2s ease-out;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+@keyframes glint {
+  20% {
+    opacity: 0.55;
+  }
+}
+.rm .glint {
+  animation: none !important;
+  opacity: 0;
+}
+
+/* While talking, the street slides up so the speaker stays above the sheet. */
+.pan {
+  position: absolute;
+  inset: 0;
+  transition: transform 300ms var(--ease);
+}
+.pan.talking {
+  transform: translateY(-22vh);
+}
