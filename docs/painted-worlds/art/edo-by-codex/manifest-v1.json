@@ -1,0 +1,28 @@
+{
+  "id": "edo-nihonbashi-key-v1",
+  "status": "composition and brushwork master; runtime layers and anchors require integration",
+  "tool": "built-in image_gen",
+  "native": {
+    "file": "edo-nihonbashi-key-v1.png",
+    "width": 2172,
+    "height": 724,
+    "alpha": false,
+    "bytes": 3540101,
+    "sha256": "68549c28448b3e5e5fe1f6045de0d23f33e722586e824e1838d6fe73851535e5"
+  },
+  "preview": {
+    "file": "edo-nihonbashi-key-v1.webp",
+    "quality": 94,
+    "width": 2172,
+    "height": 724,
+    "bytes": 694952
+  },
+  "prompt": "edo-nihonbashi-key-v1.prompt.txt",
+  "input": "apps/qingming-edo/src/assets/art/street-1.webp from codex/qingming-china at 2fd3625; Japanese architecture reference only",
+  "notes": [
+    "No Chinese image used as input for the accepted key art.",
+    "No background people, text or animation.",
+    "Near, middle and far scenery are combined in this master; not represented as completed independent runtime layers.",
+    "Fictional street; historical fidelity not certified."
+  ]
+}
