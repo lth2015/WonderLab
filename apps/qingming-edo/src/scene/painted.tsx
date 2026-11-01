@@ -107,14 +107,22 @@ export function posesFor(s: SaveData): Poses {
 
 /** Loose sheets lifting in the wind beside 清太, until the weight is on them. */
 function LooseSheets() {
-  const l = { fill: '#f6efdf', stroke: '#514d3e', strokeWidth: 0.5, strokeLinejoin: 'round' as const };
+  const edge = { stroke: '#887957', strokeWidth: 0.55, strokeLinejoin: 'round' as const };
   return (
     <g transform={`translate(${SPOTS.seitaKneel.x - 2500} ${SPOTS.seitaKneel.y - 528})`}>
+      <g fill="#66563b" opacity={0.13}>
+        <ellipse cx={2483} cy={537} rx={12} ry={1.8} />
+        <ellipse cx={2532} cy={536} rx={11} ry={1.6} />
+      </g>
       {/* Keep scene placement outside the CSS transform animation. */}
       <g className="flap">
-        <path d="M 2470 526 q 4 -13 16 -16 l 2 6 q -8 3 -12 11 Z" {...l} />
-        <path d="M 2520 524 q 6 -15 18 -14 l -1 6 q -9 0 -13 9 Z" {...l} />
-        <path d="M 2482 516 q 3 -11 11 -14 l 2 5 q -6 3 -8 10 Z" {...l} />
+        {/* Broad paper faces and shaded turned corners read even without motion. */}
+        <path d="M 2470 524 L 2489 517 Q 2493 523 2499 530 L 2480 538 Q 2475 532 2470 524 Z" fill="#e9dfc5" {...edge} />
+        <path d="M 2470 524 Q 2476 522 2477 517 L 2483 519 Q 2479 526 2473 529 Z" fill="#d5c6a6" {...edge} />
+        <path d="M 2474 524 Q 2479 523 2480 519 M 2481 535 L 2496 529" fill="none" stroke="#fbf0d8" strokeWidth={0.65} />
+        <path d="M 2520 521 L 2539 517 L 2545 531 L 2525 536 Q 2524 528 2520 521 Z" fill="#e9dfc5" {...edge} />
+        <path d="M 2532 519 Q 2539 518 2539 513 Q 2544 516 2545 522 L 2541 524 Q 2538 520 2532 519 Z" fill="#d5c6a6" {...edge} />
+        <path d="M 2527 533 L 2542 530 M 2536 518 Q 2540 518 2541 516" fill="none" stroke="#fbf0d8" strokeWidth={0.65} />
       </g>
     </g>
   );
