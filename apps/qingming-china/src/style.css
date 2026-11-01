@@ -34,3 +34,15 @@
 .scroll-tour nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
 .scroll-tour button { min-height: 48px; min-width: 0; padding: 12px 10px; border: 1px solid #c6c1a8; font-size: var(--body-size); line-height: 1.5; overflow-wrap: anywhere; }
 .scroll-tour button[aria-current="location"] { background: #dce2c9; border-color: #869573; }
+
+.harbor-conversation { display: flex; align-items: center; gap: 24px; margin-bottom: 20px; }
+.harbor-conversation > img { width: 108px; height: 190px; object-fit: contain; flex: 0 0 auto; }
+.harbor-conversation blockquote { font-size: var(--body-size); line-height: 1.9; color: #586d52; }
+.harbor-look { margin: 16px 0 24px; border: 1px solid #c6c1a8; }
+.harbor-look img { display: block; width: 100%; max-height: 310px; object-fit: cover; object-position: center 42%; }
+.harbor-look figcaption { padding: 12px; font-size: var(--body-size); line-height: 1.6; }
+.harbor-actions, .harbor-choices { display: grid; gap: 12px; }
+.harbor-choices > button { min-height: 48px; padding: 14px 16px; text-align: left; border: 1px solid #c6c1a8; font-size: var(--body-size); line-height: 1.6; }
+.harbor-hint { font-size: var(--body-size); color: #865c43; padding: 12px; border-left: 2px solid #a78b68; }
+@media(max-width:500px) { .harbor-conversation { gap: 16px; align-items: flex-start; } .harbor-conversation > img { width: 82px; height: 155px; } }
+@media(max-width:500px) { .large-text .harbor-conversation { flex-direction: column; } .large-text .harbor-conversation > img { height: 120px; width: 80px; } }
