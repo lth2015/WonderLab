@@ -1,0 +1,8 @@
+{
+  "canShare_called": true,
+  "share_called": false,
+  "errors": [
+    "synthetic canShare failure"
+  ],
+  "failure_fallback_shown": false
+}

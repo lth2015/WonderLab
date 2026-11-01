@@ -1,0 +1,358 @@
+{
+  "edo": {
+    "trials": [
+      {
+        "ready_proxy_ms": 2165.400000002235,
+        "resource_encoded_bytes": 1132100,
+        "resource_transfer_bytes": 1136000,
+        "resources": [
+          {
+            "path": "/edo/assets/index-DV6_m2Kv.js",
+            "encoded_bytes": 243671
+          },
+          {
+            "path": "/edo/assets/index-BXO8YN4Q.css",
+            "encoded_bytes": 11988
+          },
+          {
+            "path": "/edo/assets/street-11-CbXw6Bwg.webp",
+            "encoded_bytes": 267896
+          },
+          {
+            "path": "/edo/assets/street-12-DYD11wdb.webp",
+            "encoded_bytes": 262562
+          },
+          {
+            "path": "/edo/assets/street-13-BnKymCOt.webp",
+            "encoded_bytes": 250342
+          },
+          {
+            "path": "/edo/assets/crowd1-porter-Sc1Qe_F1.webp",
+            "encoded_bytes": 15330
+          },
+          {
+            "path": "/edo/assets/kinji-rest-Cz6_wJxd.webp",
+            "encoded_bytes": 19524
+          },
+          {
+            "path": "/edo/assets/kisuke-teapot-CZnflnJ0.webp",
+            "encoded_bytes": 15066
+          },
+          {
+            "path": "/edo/assets/oharu-search-B5KzPlCC.webp",
+            "encoded_bytes": 13422
+          },
+          {
+            "path": "/edo/assets/okon-wipe-684RUWI5.webp",
+            "encoded_bytes": 11550
+          },
+          {
+            "path": "/edo/assets/seita-press-CfrVtJt9.webp",
+            "encoded_bytes": 9510
+          },
+          {
+            "path": "/edo/assets/sokichi-hold-RsmCYcDK.webp",
+            "encoded_bytes": 10904
+          },
+          {
+            "path": "/favicon.ico",
+            "encoded_bytes": 335
+          }
+        ]
+      },
+      {
+        "ready_proxy_ms": 2124.599999997765,
+        "resource_encoded_bytes": 1131765,
+        "resource_transfer_bytes": 1135365,
+        "resources": [
+          {
+            "path": "/edo/assets/index-DV6_m2Kv.js",
+            "encoded_bytes": 243671
+          },
+          {
+            "path": "/edo/assets/index-BXO8YN4Q.css",
+            "encoded_bytes": 11988
+          },
+          {
+            "path": "/edo/assets/street-11-CbXw6Bwg.webp",
+            "encoded_bytes": 267896
+          },
+          {
+            "path": "/edo/assets/street-13-BnKymCOt.webp",
+            "encoded_bytes": 250342
+          },
+          {
+            "path": "/edo/assets/street-12-DYD11wdb.webp",
+            "encoded_bytes": 262562
+          },
+          {
+            "path": "/edo/assets/crowd1-porter-Sc1Qe_F1.webp",
+            "encoded_bytes": 15330
+          },
+          {
+            "path": "/edo/assets/kinji-rest-Cz6_wJxd.webp",
+            "encoded_bytes": 19524
+          },
+          {
+            "path": "/edo/assets/kisuke-teapot-CZnflnJ0.webp",
+            "encoded_bytes": 15066
+          },
+          {
+            "path": "/edo/assets/oharu-search-B5KzPlCC.webp",
+            "encoded_bytes": 13422
+          },
+          {
+            "path": "/edo/assets/okon-wipe-684RUWI5.webp",
+            "encoded_bytes": 11550
+          },
+          {
+            "path": "/edo/assets/seita-press-CfrVtJt9.webp",
+            "encoded_bytes": 9510
+          },
+          {
+            "path": "/edo/assets/sokichi-hold-RsmCYcDK.webp",
+            "encoded_bytes": 10904
+          }
+        ]
+      },
+      {
+        "ready_proxy_ms": 2081.900000002235,
+        "resource_encoded_bytes": 1131765,
+        "resource_transfer_bytes": 1135365,
+        "resources": [
+          {
+            "path": "/edo/assets/index-DV6_m2Kv.js",
+            "encoded_bytes": 243671
+          },
+          {
+            "path": "/edo/assets/index-BXO8YN4Q.css",
+            "encoded_bytes": 11988
+          },
+          {
+            "path": "/edo/assets/street-11-CbXw6Bwg.webp",
+            "encoded_bytes": 267896
+          },
+          {
+            "path": "/edo/assets/street-13-BnKymCOt.webp",
+            "encoded_bytes": 250342
+          },
+          {
+            "path": "/edo/assets/street-12-DYD11wdb.webp",
+            "encoded_bytes": 262562
+          },
+          {
+            "path": "/edo/assets/crowd1-porter-Sc1Qe_F1.webp",
+            "encoded_bytes": 15330
+          },
+          {
+            "path": "/edo/assets/kinji-rest-Cz6_wJxd.webp",
+            "encoded_bytes": 19524
+          },
+          {
+            "path": "/edo/assets/kisuke-teapot-CZnflnJ0.webp",
+            "encoded_bytes": 15066
+          },
+          {
+            "path": "/edo/assets/oharu-search-B5KzPlCC.webp",
+            "encoded_bytes": 13422
+          },
+          {
+            "path": "/edo/assets/okon-wipe-684RUWI5.webp",
+            "encoded_bytes": 11550
+          },
+          {
+            "path": "/edo/assets/seita-press-CfrVtJt9.webp",
+            "encoded_bytes": 9510
+          },
+          {
+            "path": "/edo/assets/sokichi-hold-RsmCYcDK.webp",
+            "encoded_bytes": 10904
+          }
+        ]
+      }
+    ],
+    "median_ready_proxy_ms": 2124.599999997765,
+    "median_resource_encoded_bytes": 1131765
+  },
+  "china": {
+    "trials": [
+      {
+        "ready_proxy_ms": 4029.900000002235,
+        "resource_encoded_bytes": 3544813,
+        "resource_transfer_bytes": 3548413,
+        "resources": [
+          {
+            "path": "/qingming/assets/index-c_B1fZYL.js",
+            "encoded_bytes": 227056
+          },
+          {
+            "path": "/qingming/assets/index-DZw3HaVx.css",
+            "encoded_bytes": 36972
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-09.webp",
+            "encoded_bytes": 166008
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-10.webp",
+            "encoded_bytes": 181322
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-11.webp",
+            "encoded_bytes": 185080
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-12.webp",
+            "encoded_bytes": 261808
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-13.webp",
+            "encoded_bytes": 240922
+          },
+          {
+            "path": "/qingming/art/china/boats-v1.webp",
+            "encoded_bytes": 431154
+          },
+          {
+            "path": "/qingming/art/china/props-v1.webp",
+            "encoded_bytes": 465930
+          },
+          {
+            "path": "/qingming/art/china/characters-v1.webp",
+            "encoded_bytes": 501694
+          },
+          {
+            "path": "/qingming/art/china/willow-v1.webp",
+            "encoded_bytes": 846620
+          },
+          {
+            "path": "/qingming/favicon.svg",
+            "encoded_bytes": 247
+          }
+        ]
+      },
+      {
+        "ready_proxy_ms": 4024.199999999255,
+        "resource_encoded_bytes": 3544813,
+        "resource_transfer_bytes": 3548413,
+        "resources": [
+          {
+            "path": "/qingming/assets/index-c_B1fZYL.js",
+            "encoded_bytes": 227056
+          },
+          {
+            "path": "/qingming/assets/index-DZw3HaVx.css",
+            "encoded_bytes": 36972
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-09.webp",
+            "encoded_bytes": 166008
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-10.webp",
+            "encoded_bytes": 181322
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-11.webp",
+            "encoded_bytes": 185080
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-12.webp",
+            "encoded_bytes": 261808
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-13.webp",
+            "encoded_bytes": 240922
+          },
+          {
+            "path": "/qingming/art/china/boats-v1.webp",
+            "encoded_bytes": 431154
+          },
+          {
+            "path": "/qingming/art/china/props-v1.webp",
+            "encoded_bytes": 465930
+          },
+          {
+            "path": "/qingming/art/china/characters-v1.webp",
+            "encoded_bytes": 501694
+          },
+          {
+            "path": "/qingming/art/china/willow-v1.webp",
+            "encoded_bytes": 846620
+          },
+          {
+            "path": "/qingming/favicon.svg",
+            "encoded_bytes": 247
+          }
+        ]
+      },
+      {
+        "ready_proxy_ms": 4019.89999999851,
+        "resource_encoded_bytes": 3544813,
+        "resource_transfer_bytes": 3548413,
+        "resources": [
+          {
+            "path": "/qingming/assets/index-c_B1fZYL.js",
+            "encoded_bytes": 227056
+          },
+          {
+            "path": "/qingming/assets/index-DZw3HaVx.css",
+            "encoded_bytes": 36972
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-09.webp",
+            "encoded_bytes": 166008
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-10.webp",
+            "encoded_bytes": 181322
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-11.webp",
+            "encoded_bytes": 185080
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-12.webp",
+            "encoded_bytes": 261808
+          },
+          {
+            "path": "/qingming/art/china/scroll/scroll-13.webp",
+            "encoded_bytes": 240922
+          },
+          {
+            "path": "/qingming/art/china/boats-v1.webp",
+            "encoded_bytes": 431154
+          },
+          {
+            "path": "/qingming/art/china/props-v1.webp",
+            "encoded_bytes": 465930
+          },
+          {
+            "path": "/qingming/art/china/characters-v1.webp",
+            "encoded_bytes": 501694
+          },
+          {
+            "path": "/qingming/art/china/willow-v1.webp",
+            "encoded_bytes": 846620
+          },
+          {
+            "path": "/qingming/favicon.svg",
+            "encoded_bytes": 247
+          }
+        ]
+      }
+    ],
+    "median_ready_proxy_ms": 4024.199999999255,
+    "median_resource_encoded_bytes": 3544813
+  },
+  "conditions": {
+    "cache": "disabled; new context each trial",
+    "network": "10Mbps down /1Mbps up /100ms latency via CDP",
+    "cpu": "4x slowdown",
+    "viewport": "390x844@3",
+    "runtime": "headless Chromium, GPU disabled",
+    "ready_proxy": "networkidle + entry button enabled + two RAF; not measured first interactive instant",
+    "server": "local Python static HTTP, no gzip or Brotli; no production CDN/TTFB",
+    "navigation_document_bytes": "excluded from resource byte sum"
+  }
+}
