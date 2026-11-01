@@ -24,3 +24,6 @@
 .large-text .tea-options b{font-size:var(--body-size);white-space:normal}
 .large-text .tea-options small{font-size:calc(var(--body-size)*.72);line-height:1.5}
 .large-text .nearby-list small{font-size:calc(var(--body-size)*.72)}
+
+/* Direct camera movement avoids crossing roll tiles outside the loaded view. */
+.world-strip { transition: none; }
