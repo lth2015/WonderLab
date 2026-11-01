@@ -7,6 +7,7 @@ import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/sta
 import { entryFor, nearby, visibleSpots } from './engine/story';
 import { reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
+import { hasPlayableProgress, observeProgress, study } from './engine/study';
 import { Street, type StreetApi } from './scene/Street';
 import { Journal, SCENE_ID } from './ui/Journal';
 import { Settings } from './ui/Settings';
@@ -55,7 +56,9 @@ export function App() {
   // storage that refuses writes: say so once, and point to the export (spec §16, review V04)
   const saveFailedSaid = useRef(false);
   const toastRef = useRef<(t: string) => void>(() => {});
-  const setSave = useCallback((next: SaveData) => {
+  const setSave = useCallback((next: SaveData, observe = true) => {
+    // 試遊の記録: the player's own steps only; an imported or reset save is not "played"
+    if (observe) observeProgress(saveRef.current, next);
     // the ref moves at once: two writes in one tick (a "met" flag, then the
     // dialogue's own effects) must build on each other, not on the last render
     saveRef.current = next;
@@ -63,6 +66,7 @@ export function App() {
     // Recorded as soon as progress is decided (spec §19 保存).
     if (writable.current && !persist(storage() ?? memoryStore, next) && !saveFailedSaid.current) {
       saveFailedSaid.current = true;
+      study.emit('error', { code: 'save_write_failed' }, 'error-save-write');
       toastRef.current('この端末に記録を保存できませんでした。続けて遊べますが、閉じると消えます。設定の「記録を書き出す」で残せます。');
     }
   }, []);
@@ -107,6 +111,27 @@ export function App() {
     document.documentElement.classList.toggle('rm', reduceMotion);
   }, [save.settings.textScale, reduceMotion]);
 
+  // 試遊の記録: arrival, a return with progress, and a save that could not be read
+  useEffect(() => {
+    const viaLink = (() => {
+      try {
+        return new URLSearchParams(location.search).has('scene');
+      } catch {
+        return false;
+      }
+    })();
+    study.emit('world_entered', { source: viaLink ? 'journal' : 'direct' }, 'world-entered');
+    if (boot.kind === 'loaded' && hasPlayableProgress(boot.save)) study.emit('revisit', { has_progress: true }, 'revisit');
+    if (boot.kind === 'corrupt' || boot.kind === 'unbacked') study.emit('error', { code: 'save_read_failed' }, 'error-save-read');
+    const unexpected = () => study.emit('error', { code: 'unexpected_error' }, 'error-unexpected');
+    window.addEventListener('error', unexpected);
+    window.addEventListener('unhandledrejection', unexpected);
+    return () => {
+      window.removeEventListener('error', unexpected);
+      window.removeEventListener('unhandledrejection', unexpected);
+    };
+  }, []);
+
   // 音: nothing until the first touch or key; levels and time of day follow the save
   useEffect(() => {
     const go = () => sound.unlock();
@@ -129,6 +154,9 @@ export function App() {
     if (balance > was.balance) setTimeout(() => sound.cue('coin'), pageCount > was.pageCount ? 700 : 0);
     lastCounts.current = { pageCount, balance };
   }, [pageCount, balance]);
+  useEffect(() => {
+    if (panel === 'journal') study.emit('journal_opened', { page_count: saveRef.current.journal.pages.length });
+  }, [panel]);
   const sheetOpen = !!(panel || sketch || game);
   const lastSheet = useRef(sheetOpen);
   useEffect(() => {
@@ -189,6 +217,7 @@ export function App() {
       setHint(null);
       if (spot.kind === 'ambient') {
         sound.cue('react');
+        study.emit('first_interaction_completed', { interaction_id: 'observation', elapsed_ms: study.elapsed() }, 'first-interaction');
         const id = spot.targetId;
         setReacting((r) => new Set(r).add(id));
         setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), 1400);
@@ -598,13 +627,13 @@ export function App() {
           onAllowOverwrite={() => {
             writable.current = true;
             setUnreadable(null);
-            setSave(saveRef.current);
+            setSave(saveRef.current, false);
             setToast('この端末で、新しい記録の保存を始めました。');
           }}
           onReplace={(s) => {
             setUnreadable(null);
             writable.current = true;
-            setSave(s);
+            setSave(s, false);
           }}
           onClose={() => setPanel(null)}
           onToast={setToast}
