@@ -1,5 +1,7 @@
 import type { QuestState, SaveData } from '../contract';
 import { GUIDE_STOPS, PAGES } from '../content/world';
+import { SESSION_STUDY_KEY } from './save';
+import { SESSION_MODE } from './session';
 
 // 試遊の記録 (spec 計測: 入場、初回の有効操作、小話の開始と完了、絵巻帳の閲覧、
 // 保存の試行と結果、再訪、エラー). The same event names and fields as the China
@@ -7,6 +9,8 @@ import { GUIDE_STOPS, PAGES } from '../content/world';
 // the two works can be read side by side. Local memory only: no storage key,
 // no network, no visitor id, no save contents, no free text. The player exports
 // it from 設定 on purpose; a download request is not "sent to anyone".
+// 試遊会 (?session=1) alone keeps it in this browser under
+// ww:qingming-edo:study:session until 「次の方へ」 (engine/session.ts).
 
 export type QuestId = 'kaze' | 'dougu' | 'tenugui';
 type Method = 'system' | 'system_link' | 'link';
@@ -48,13 +52,41 @@ const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
 };
 const randomId = () => globalThis.crypto?.randomUUID?.() ?? 'event-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 
-export function createStudy(environment: string, buildId: string, now: () => number = () => performance.now()) {
-  const events: StudyEvent[] = [];
-  const seen = new Set<string>();
-  const sessionId = randomId();
+/** Where a 試遊会 player's log survives a reload. Normal play keeps it in memory only. */
+export type StudyKeep = { store: { getItem(k: string): string | null; setItem(k: string, v: string): void }; key: string };
+type Kept = { session_id: string; started_wall: number; dropped: number; seen: string[]; events: StudyEvent[] };
+
+function restore(keep: StudyKeep | undefined): Kept | null {
+  if (!keep) return null;
+  try {
+    const k = JSON.parse(keep.store.getItem(keep.key) ?? 'null') as Kept | null;
+    if (!k || typeof k.session_id !== 'string' || typeof k.started_wall !== 'number' || !Array.isArray(k.events) || !Array.isArray(k.seen)) return null;
+    // only events of this session and this work
+    const events = k.events.filter((e) => e && e.session_id === k.session_id && e.world_id === 'qingming-edo').slice(-1000);
+    return { session_id: k.session_id, started_wall: k.started_wall, dropped: Number(k.dropped) || 0, seen: k.seen.filter((x) => typeof x === 'string'), events };
+  } catch {
+    return null;
+  }
+}
+
+export function createStudy(environment: string, buildId: string, now: () => number = () => performance.now(), keep?: StudyKeep, wall: () => number = Date.now) {
+  const prior = restore(keep);
+  const events: StudyEvent[] = prior?.events ?? [];
+  const seen = new Set<string>(prior?.seen ?? []);
+  const sessionId = prior?.session_id ?? randomId();
+  // kept: count from when this player started, across reloads (wall clock)
+  const startedWall = prior?.started_wall ?? wall();
   const startedAt = now();
-  let dropped = 0;
-  const elapsed = () => Math.max(0, Math.round(now() - startedAt));
+  let dropped = prior?.dropped ?? 0;
+  const elapsed = () => Math.max(0, Math.round(keep ? wall() - startedWall : now() - startedAt));
+  const save = () => {
+    if (!keep) return;
+    try {
+      keep.store.setItem(keep.key, JSON.stringify({ session_id: sessionId, started_wall: startedWall, dropped, seen: [...seen], events } satisfies Kept));
+    } catch {
+      // storage full or blocked: the log still lives in memory
+    }
+  };
   return {
     elapsed,
     emit<K extends keyof Events>(type: K, fields: Events[K], once?: string): boolean {
@@ -72,6 +104,7 @@ export function createStudy(environment: string, buildId: string, now: () => num
         dropped++;
       }
       events.push(event);
+      save();
       return true;
     },
     snapshot: () => ({ schema_version: 1, session_id: sessionId, environment, world_id: 'qingming-edo' as const, build_id: buildId, dropped, events: structuredClone(events) }),
@@ -79,7 +112,20 @@ export function createStudy(environment: string, buildId: string, now: () => num
 }
 export type Study = ReturnType<typeof createStudy>;
 
-export const study = createStudy(import.meta.env?.MODE ?? 'test', (import.meta.env?.VITE_EDO_BUILD_ID as string | undefined) || 'unversioned');
+function sessionKeep(): StudyKeep | undefined {
+  if (!SESSION_MODE) return undefined;
+  try {
+    return { store: localStorage, key: SESSION_STUDY_KEY };
+  } catch {
+    return undefined;
+  }
+}
+export const study = createStudy(
+  SESSION_MODE ? 'playtest-session' : (import.meta.env?.MODE ?? 'test'),
+  (import.meta.env?.VITE_EDO_BUILD_ID as string | undefined) || 'unversioned',
+  undefined,
+  sessionKeep(),
+);
 
 const ORDER: QuestState[] = ['undiscovered', 'discovered', 'active', 'ready', 'complete'];
 const at = (s: SaveData, q: QuestId) => ORDER.indexOf(s.progress.quests[q] ?? 'undiscovered');

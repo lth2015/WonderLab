@@ -1001,3 +1001,24 @@ button.term[aria-expanded="true"] {
   text-decoration: line-through;
   opacity: 0.8;
 }
+
+/* 試遊会 (?session=1) */
+.top .session-badge {
+  flex: none;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0.25em 0.45em;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.session-box {
+  border: 1px dashed currentColor;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin: 0 0 1rem;
+}
+.session-box h3 {
+  margin-top: 0;
+}
