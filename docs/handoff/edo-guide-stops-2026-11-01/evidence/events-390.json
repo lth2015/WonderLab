@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "session_id": "bc932bff-cc35-471f-827c-032bba1ca219",
+  "environment": "development",
+  "world_id": "qingming-edo",
+  "build_id": "unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "673442dc-4ac9-4dd9-9bf1-091f02411010",
+      "session_id": "bc932bff-cc35-471f-827c-032bba1ca219",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T10:26:58.223Z",
+      "elapsed_ms": 75,
+      "environment": "development",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "world_entered",
+      "source": "direct"
+    }
+  ]
+}
