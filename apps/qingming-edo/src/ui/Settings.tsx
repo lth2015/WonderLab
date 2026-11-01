@@ -92,7 +92,7 @@ export function Settings({
             </div>
           </div>
         ))}
-        <p className="small">音がなくても、すべて遊べます。端末を消音にしていると鳴りません。</p>
+        <p className="small">音は、画面右上の「♪」で出したり止めたりできます（はじめは音なし）。音がなくても、すべて遊べます。端末を消音にしていると鳴りません。</p>
       </fieldset>
 
       <h3>記録</h3>

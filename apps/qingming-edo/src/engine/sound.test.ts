@@ -61,14 +61,17 @@ class FakeContext {
   }
 }
 
-async function freshSound() {
+/** The engine as the player sees it once they have turned sound on; `enabled: false` for the default. */
+async function freshSound({ enabled = true } = {}) {
   vi.resetModules();
   FakeContext.made = [];
   sourceStarts = 0;
   vi.stubGlobal('window', { AudioContext: FakeContext, setTimeout: vi.fn(() => 0) });
   vi.stubGlobal('document', { hidden: false, addEventListener() {} });
   vi.stubGlobal('navigator', {});
-  return (await import('./sound')).sound;
+  const s = (await import('./sound')).sound;
+  s.setEnabled(enabled);
+  return s;
 }
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -151,5 +154,29 @@ describe('quiet ambient mix', () => {
     ctx.currentTime = 40;
     fire(0);
     expect(sourceStarts).toBe(birds);
+  });
+});
+
+describe('音は本人が有効にする (spec §4)', () => {
+  it('until the player turns sound on, a gesture creates nothing', async () => {
+    const sound = await freshSound({ enabled: false });
+    sound.unlock();
+    expect(FakeContext.made).toHaveLength(0);
+    expect(sound.timeBell()).toBe(false);
+    sound.setEnabled(true);
+    sound.unlock();
+    expect(FakeContext.made).toHaveLength(1);
+  });
+  it('turning it off suspends a running context and keeps it from resuming', async () => {
+    const sound = await freshSound();
+    sound.unlock();
+    const ctx = FakeContext.made[0];
+    let suspended = 0;
+    ctx.suspend = () => { suspended++; ctx.state = 'suspended'; return Promise.resolve(); };
+    sound.setEnabled(false);
+    expect(suspended).toBe(1);
+    const before = ctx.resumeCalls;
+    sound.unlock();
+    expect(ctx.resumeCalls).toBe(before);
   });
 });
