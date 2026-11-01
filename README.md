@@ -104,3 +104,9 @@ npm run analyze -- logs/*.json --notes notes.json --out 验证报告.md
 ## 许可证
 
 **Apache License 2.0**，见 [`LICENSE`](LICENSE)。字体（SIL OFL 1.1）等例外，以及移植自 yuha 的部分，见 [`NOTICE`](NOTICE)。
+
+## 汴河拾光 · 清明上河图中国篇
+
+独立应用位于 [apps/qingming-china](apps/qingming-china/README.md)。运行 `npm run dev:qingming`（5175 端口）、`npm run test:qingming` 或 `npm run build:qingming`。根目录 `npm run build` 同时构建主应用、江户篇与中国篇，分别位于 `/`、`/edo/` 与 `/qingming/`；两作存档互不混用。
+
+实现范围与验收限制见 [开发记录](docs/painted-worlds/china-implementation.md)。

@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run edo:site",
+    "build": "tsc -b && vite build && npm run edo:site && npm run qingming:site",
     "build:r1": "WW_EXPERIMENT=poc-r1 npm run build && cp deploy/static/_headers dist/_headers",
     "build:gift": "WW_EXPERIMENT=poc-gift-r1 npm run build && cp deploy/static/_headers dist/_headers",
     "typecheck": "tsc -b && tsc -p server/tsconfig.json",
@@ -26,7 +26,11 @@
     "edo:build": "tsc -p apps/qingming-edo/tsconfig.json && vite build --config apps/qingming-edo/vite.config.ts",
     "edo:preview": "vite preview --config apps/qingming-edo/vite.config.ts",
     "edo:test": "vitest run --config apps/qingming-edo/vitest.config.ts",
-    "edo:site": "tsc -p apps/qingming-edo/tsconfig.json && EDO_OUT_DIR=dist/edo vite build --config apps/qingming-edo/vite.config.ts"
+    "edo:site": "tsc -p apps/qingming-edo/tsconfig.json && EDO_OUT_DIR=dist/edo vite build --config apps/qingming-edo/vite.config.ts",
+    "dev:qingming": "npm --prefix apps/qingming-china run dev",
+    "build:qingming": "npm --prefix apps/qingming-china run build",
+    "test:qingming": "npm --prefix apps/qingming-china test",
+    "qingming:site": "tsc -p apps/qingming-china/tsconfig.json && QINGMING_OUT_DIR=dist/qingming vite build --config apps/qingming-china/vite.config.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",
