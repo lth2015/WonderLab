@@ -14,3 +14,16 @@
 .night-scene h4{font-size:20px;font-weight:500;margin:16px 0}
 .night-page{padding:20px;margin:16px 0;background:#f3ecd8;border:1px solid #9d967b}
 @media(max-width:600px){.night-study{padding:14px}.postcard-delivery .button-row>*{width:100%;box-sizing:border-box}.night-scene{padding:12px}}
+.keepsake-shop{line-height:1.9}
+.keepsake-shop>p{margin:12px 0}
+.keepsake-catalogue{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+.keepsake-catalogue button{display:flex;flex-direction:column;gap:10px;text-align:left;padding:16px;border:1px solid #bbb296;background:#eee6d1;line-height:1.8}
+.keepsake-catalogue button.selected{border-color:#98583f;box-shadow:inset 0 0 0 1px #98583f}
+.keepsake-catalogue b{font-size:20px;font-weight:500}
+.keepsake-catalogue small{color:#797b65}
+.keepsake-shop [aria-pressed=true]{outline:2px solid #98583f;outline-offset:2px}
+.keepsake-card{display:block;width:100%;max-width:480px;margin:24px auto;box-shadow:0 4px 22px #484d3320}
+.keepsake-shop .button-row{flex-wrap:wrap;gap:12px}
+.keepsake-shop>button{margin-top:18px;min-height:44px}
+.keepsake-shop [role=status]{margin:16px 0}
+@media(max-width:600px){.keepsake-catalogue{grid-template-columns:1fr}.keepsake-catalogue button{padding:14px}.keepsake-shop .button-row button{flex:1;min-width:100px}}

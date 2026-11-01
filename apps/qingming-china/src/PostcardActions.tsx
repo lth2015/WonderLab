@@ -4,6 +4,7 @@ import type { GameState } from './game';
 import { createPostcard, downloadFile } from './export';
 import { publicJournalLink } from './links';
 import { study } from './study';
+import { prepareShare } from './sharing';
 
 export function PostcardActions({ game, id, art, back }: { game: GameState; id: PageId; art: () => SVGSVGElement | null; back: () => void }) {
   const [image, setImage] = useState<Awaited<ReturnType<typeof createPostcard>> | null>(null);
@@ -47,24 +48,23 @@ export function PostcardActions({ game, id, art, back }: { game: GameState; id: 
   };
   const share = async () => {
     if (!image || sharing) return;
-    study.emit('share_attempted', { page_id: id, method: 'system' });
     const file = new File([image.blob], image.name, { type: 'image/png' });
-    let supported = false;
-    try { supported = typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] }) === true; } catch { /* platform cannot share files */ }
-    if (!supported) {
-      study.emit('share_result', { method: 'system', result: 'unavailable' });
-      setMessage('系统图片分享不可用。可以保存清晰图片，或复制作品链接。');
+    const choice = prepareShare(file, url, '汴河拾光 · 画中相遇');
+    const method = choice?.method ?? 'system';
+    study.emit('share_attempted', { page_id: id, method });
+    if (!choice) {
+      study.emit('share_result', { method, result: 'unavailable' });
+      setMessage('系统分享不可用。可以保存清晰图片，或复制作品链接。');
       return;
     }
     setSharing(true);
     try {
-      // The image is ready before the gesture, preserving mobile user activation.
-      await navigator.share({ files: [file], title: '汴河拾光 · 画中相遇', url });
-      study.emit('share_result', { method: 'system', result: 'invoked' });
-      setMessage('已交由系统处理分享。');
+      await navigator.share(choice.data);
+      study.emit('share_result', { method, result: 'invoked' });
+      setMessage(method === 'system_link' ? '已交由系统分享作品链接；仍可另存清晰图片。' : '已交由系统处理分享。');
     } catch (e) {
       const cancelled = e instanceof DOMException && e.name === 'AbortError';
-      study.emit('share_result', { method: 'system', result: cancelled ? 'cancelled' : 'failed' });
+      study.emit('share_result', { method, result: cancelled ? 'cancelled' : 'failed' });
       setMessage(cancelled ? '已取消分享，画页仍在。' : '分享未完成。可以保存图片或复制作品链接。');
     } finally { setSharing(false); }
   };

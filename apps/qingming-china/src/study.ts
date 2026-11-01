@@ -2,7 +2,7 @@ import { PAGES } from './content';
 import type { GameState, QuestId } from './game';
 
 type Source = 'direct' | 'journal';
-type Method = 'system' | 'link';
+type Method = 'system' | 'system_link' | 'link';
 type Events = {
   world_entered: { source: Source };
   first_interaction_completed: { interaction_id: string; elapsed_ms: number };
@@ -13,22 +13,32 @@ type Events = {
   share_result: { method: Method; result: 'invoked' | 'cancelled' | 'copied' | 'unavailable' | 'failed' };
   offer_viewed: { product_id: string; offer_version: number; placement: 'album' | 'summary' };
   interest_registered: { product_id: string; offer_version: number };
+  keepsake_previewed: { product_id: string; purpose: 'self' | 'gift' };
+  keepsake_export_attempted: { product_id: string; purpose: 'self' | 'gift' };
+  keepsake_export_completed: { product_id: string; purpose: 'self' | 'gift'; stage: 'download_requested' };
+  keepsake_share_result: { product_id: string; purpose: 'self' | 'gift'; result: 'invoked' | 'cancelled' | 'copied' | 'unavailable' | 'failed' };
 };
 export type StudyEvent = { event_id: string; schema_version: 1; occurred_at: string; environment: string; world_id: 'qingming-china'; build_id: string; type: keyof Events; [key: string]: unknown };
 const inList = (xs: readonly unknown[]) => (v: unknown) => xs.includes(v);
 const positive = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
 const page = inList(PAGES.map(p => p.id));
-const product = inList(['qingming-china-night-return']);
+const souvenir = inList(['qingming-china-keepsake-peace', 'qingming-china-keepsake-light', 'qingming-china-keepsake-tea']);
+const product = (v: unknown) => v === 'qingming-china-night-return' || souvenir(v);
+const purpose = inList(['self', 'gift']);
 const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
   world_entered: { source: inList(['direct', 'journal']) },
   first_interaction_completed: { interaction_id: inList(['paper', 'boat', 'purse', 'harbor', 'tea', 'observation']), elapsed_ms: positive },
   story_completed: { story_id: inList(['paper', 'boat', 'purse', 'harbor', 'night-lantern']), first_completion: v => typeof v === 'boolean' },
   journal_export_attempted: { page_id: page, export_type: inList(['png']) },
   journal_export_completed: { page_id: page, export_type: inList(['png']), stage: inList(['download_requested']) },
-  share_attempted: { page_id: page, method: inList(['system', 'link']) },
-  share_result: { method: inList(['system', 'link']), result: inList(['invoked', 'cancelled', 'copied', 'unavailable', 'failed']) },
+  share_attempted: { page_id: page, method: inList(['system', 'system_link', 'link']) },
+  share_result: { method: inList(['system', 'system_link', 'link']), result: inList(['invoked', 'cancelled', 'copied', 'unavailable', 'failed']) },
   offer_viewed: { product_id: product, offer_version: positive, placement: inList(['album', 'summary']) },
   interest_registered: { product_id: product, offer_version: positive },
+  keepsake_previewed: { product_id: souvenir, purpose },
+  keepsake_export_attempted: { product_id: souvenir, purpose },
+  keepsake_export_completed: { product_id: souvenir, purpose, stage: inList(['download_requested']) },
+  keepsake_share_result: { product_id: souvenir, purpose, result: inList(['invoked', 'cancelled', 'copied', 'unavailable', 'failed']) },
 };
 
 /** Local memory only. No visitor identity, storage, network or third-party SDK. */

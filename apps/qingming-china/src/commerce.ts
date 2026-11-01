@@ -37,6 +37,3 @@ export async function contentAccess(contentPackId: string, reader: EntitlementRe
     return ['owned', 'unowned', 'unavailable'].includes(access) ? access : 'unavailable';
   } catch { return 'unavailable'; }
 }
-
-// Research content only. Production builds have no test purchase/ownership switch.
-export const internalStudyEnabled = () => import.meta.env.DEV && new URLSearchParams(location.search).get('study') === 'night-return';
