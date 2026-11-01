@@ -1,3 +1,4 @@
+import { SESSION_MODE, SESSION_STUDY_KEY } from './session';
 import { PAGES } from './content';
 import type { GameState, QuestId } from './game';
 
@@ -36,32 +37,72 @@ const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
 };
 const randomId = () => globalThis.crypto?.randomUUID?.() ?? 'event-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 
-/** Ephemeral local memory only. No persistence, visitor identity, network or SDK. */
-export function createStudy(environment: string, buildId: string, receiver?: (event: StudyEvent) => void) {
-  const events: StudyEvent[] = [], seen = new Set<string>(), sessionId = randomId(), startedAt = performance.now();
-  let dropped = 0;
+export type StudyKeep = { store: Pick<Storage, 'getItem' | 'setItem'>; key: string };
+type Kept = { session_id: string; started_wall: number; dropped: number; seen: string[]; events: StudyEvent[] };
+function cleanFields(type: string, fields: Record<string, unknown>): Record<string, unknown> | null {
+  if (!Object.hasOwn(schemas, type)) return null;
+  const schema = schemas[type as keyof Events];
+  if (!schema) return null;
+  const kept: Record<string, unknown> = {};
+  for (const [key, valid] of Object.entries(schema)) {
+    if (!valid(fields[key])) return null;
+    kept[key] = fields[key];
+  }
+  return kept;
+}
+function restore(keep: StudyKeep | undefined, environment: string): Kept | null {
+  if (!keep) return null;
+  try {
+    const raw = keep.store.getItem(keep.key);
+    if (!raw || raw.length > 2_000_000) return null;
+    const k = JSON.parse(raw);
+    if (!k || typeof k.session_id !== 'string' || !k.session_id || k.session_id.length > 128 || typeof k.started_wall !== 'number' || !Number.isFinite(k.started_wall) || k.started_wall < 0 || !Array.isArray(k.events) || !Array.isArray(k.seen)) return null;
+    const events: StudyEvent[] = [];
+    for (const e of k.events) {
+      if (!e || e.schema_version !== 1 || e.session_id !== k.session_id || e.world_id !== 'qingming-china' || typeof e.type !== 'string' || typeof e.event_id !== 'string' || !e.event_id || e.event_id.length > 128 || typeof e.occurred_at !== 'string' || !Number.isFinite(Date.parse(e.occurred_at)) || !positive(e.elapsed_ms) || typeof e.build_id !== 'string' || e.build_id.length > 128) continue;
+      const fields = cleanFields(e.type, e);
+      if (!fields) continue;
+      events.push({ event_id: e.event_id, session_id: k.session_id, schema_version: 1, occurred_at: e.occurred_at, elapsed_ms: e.elapsed_ms, environment, world_id: 'qingming-china', build_id: e.build_id, type: e.type as keyof Events, ...fields });
+    }
+    if (k.events.length && !events.length) return null;
+    return { session_id: k.session_id, started_wall: k.started_wall, dropped: (positive(k.dropped) ? k.dropped : 0) + Math.max(0, events.length - 1000), seen: k.seen.filter((key: unknown) => typeof key === 'string' && key.length <= 128).slice(-1000), events: events.slice(-1000) };
+  } catch { return null; }
+}
+
+/** Normal visits use memory only; an explicit playtest keep survives refreshes. */
+export function createStudy(environment: string, buildId: string, receiver?: (event: StudyEvent) => void, keep?: StudyKeep, wall: () => number = Date.now, now: () => number = () => performance.now()) {
+  const prior = restore(keep, environment);
+  const events: StudyEvent[] = prior?.events ?? [], seen = new Set<string>(prior?.seen ?? []);
+  const sessionId = prior?.session_id ?? randomId(), startedWall = prior?.started_wall ?? wall(), startedAt = now();
+  let dropped = prior?.dropped ?? 0;
+  const elapsed = () => Math.max(0, Math.round(keep ? wall() - startedWall : now() - startedAt));
+  const persist = () => {
+    if (!keep) return;
+    try { keep.store.setItem(keep.key, JSON.stringify({ session_id: sessionId, started_wall: startedWall, dropped, seen: [...seen], events } satisfies Kept)); } catch { /* blocked/full storage: retain the in-memory log */ }
+  };
   return {
-    elapsed: () => Math.max(0, Math.round(performance.now() - startedAt)),
+    elapsed,
     has: (key: string) => seen.has(key),
     emit<K extends keyof Events>(type: K, fields: Events[K], once?: string): boolean {
       if (once && seen.has(once)) return false;
-      const kept: Record<string, unknown> = {};
-      for (const [key, valid] of Object.entries(schemas[type])) {
-        const value = (fields as Record<string, unknown>)[key];
-        if (!valid(value)) return false;
-        kept[key] = value;
-      }
+      const kept = cleanFields(type, fields as Record<string, unknown>);
+      if (!kept) return false;
       if (once) seen.add(once);
-      const event: StudyEvent = { event_id: randomId(), session_id: sessionId, schema_version: 1, occurred_at: new Date().toISOString(), elapsed_ms: Math.max(0, Math.round(performance.now() - startedAt)), environment, world_id: 'qingming-china', build_id: buildId, type, ...kept };
+      const event: StudyEvent = { event_id: randomId(), session_id: sessionId, schema_version: 1, occurred_at: new Date().toISOString(), elapsed_ms: elapsed(), environment, world_id: 'qingming-china', build_id: buildId, type, ...kept };
       if (events.length === 1000) { events.shift(); dropped++; }
       events.push(event);
+      persist();
       try { receiver?.(structuredClone(event)); } catch { /* optional debug receiver never breaks the game */ }
       return true;
     },
     snapshot: () => ({ schema_version: 1, session_id: sessionId, environment, world_id: 'qingming-china', build_id: buildId, dropped, events: structuredClone(events) }),
   };
 }
-export const study = createStudy(import.meta.env.MODE, import.meta.env.VITE_QINGMING_BUILD_ID || 'unversioned');
+function sessionKeep(): StudyKeep | undefined {
+  if (!SESSION_MODE) return undefined;
+  try { return { store: localStorage, key: SESSION_STUDY_KEY }; } catch { return undefined; }
+}
+export const study = createStudy(SESSION_MODE ? 'playtest-session' : import.meta.env.MODE, import.meta.env.VITE_QINGMING_BUILD_ID || 'unversioned', undefined, sessionKeep());
 export function hasPlayableProgress(game: GameState): boolean {
   return game.started || game.journal.length > 0 || quests.some(id => game.progress.quests[id].step > 0) || game.progress.ropes.length > 0 || game.progress.observations.length > 0;
 }

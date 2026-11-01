@@ -1,0 +1,25 @@
+{
+  "widths": [
+    360,
+    390
+  ],
+  "text_percent": 150,
+  "ordinary_progress_unchanged": true,
+  "isolated_game_keys": true,
+  "refresh_same_player_and_wall_start": true,
+  "once_persists": true,
+  "replay_completion": [
+    true,
+    false
+  ],
+  "no_revisit_in_session": true,
+  "cancel_next_preserves_player": true,
+  "confirm_next_new_id_fresh_game": true,
+  "filename_has_player_id_prefix": true,
+  "normal_mode_leaves_session_keys_untouched": true,
+  "session_0_normal": true,
+  "corrupt_log_new_player": true,
+  "no_extra_storage_keys": true,
+  "external_requests": [],
+  "page_errors": []
+}
