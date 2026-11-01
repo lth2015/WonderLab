@@ -131,6 +131,24 @@ function seam(left, right, ow) {
     }
     console.log(report.slice(-4).join('\n'));
   }
+  // rectangle patches (Codex seam-10-11-v3 style): a crop of a generated image placed at
+  // runtime (mirrored) pixel coordinates; hard left/right ends, a few px of feather top/bottom
+  const rdir = `${S}/cx/rects`;
+  if (fs.existsSync(rdir)) {
+    for (const f of fs.readdirSync(rdir).filter((f) => f.endsWith('.json'))) {
+      const r = JSON.parse(fs.readFileSync(`${rdir}/${f}`, 'utf8'));
+      const { data: pd } = await sharp(`${rdir}/${r.image}`).removeAlpha().extract({ left: r.src.x, top: r.src.y, width: r.src.w, height: r.src.h }).resize(r.dst.w, r.dst.h, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+      const fe = r.featherY ?? 0;
+      for (let y = 0; y < r.dst.h; y++) {
+        const t = fe ? Math.min(1, (y + 0.5) / fe, (r.dst.h - y - 0.5) / fe) : 1;
+        for (let x = 0; x < r.dst.w; x++) {
+          const o = ((r.dst.y + y) * W + r.dst.x + x) * 3, i = (y * r.dst.w + x) * 3;
+          for (let c = 0; c < 3; c++) mir[o + c] = Math.round(mir[o + c] * (1 - t) + pd[i + c] * t);
+        }
+      }
+      console.log(`rect patch ${f} at px ${r.dst.x},${r.dst.y} ${r.dst.w}×${r.dst.h}`);
+    }
+  }
   await sharp(mir, { raw: { width: W, height: H, channels: 3 } }).png().toFile(`${S}/cx/runtime-full.png`);
   const mfilled = Uint8Array.from(filled).reverse();
   fs.mkdirSync(OUT, { recursive: true });
