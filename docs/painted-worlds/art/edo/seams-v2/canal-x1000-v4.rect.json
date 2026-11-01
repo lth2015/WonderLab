@@ -1,0 +1,8 @@
+{
+  "image": "canal-x1000-v4.webp",
+  "src": { "x": 0, "y": 0, "w": 1120, "h": 980 },
+  "dst": { "x": 840, "y": 0, "w": 1120, "h": 980 },
+  "featherY": 0,
+  "baseline": "b3bad08",
+  "note": "Already aligned runtime crop, repaired with image_gen and 4px minimum-difference side cuts. Mirrored world x600-1400. Do not mirror again."
+}
