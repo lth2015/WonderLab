@@ -5,8 +5,8 @@ import type { SoundLevels, TimeOfDay } from '../contract';
 // water, birds, paper and tools come first; the music is a few
 // plucked notes now and then, with long silence between (余白).
 //
-// - Nothing sounds until the player has touched the page (browsers require it,
-//   and the spec asks for it); `unlock()` is called from the first gesture.
+// - Nothing sounds until the player turns sound on (setEnabled) and touches the
+//   page (browsers require a gesture); `unlock()` is called from gestures.
 // - On iOS, WebAudio follows the silent switch; `audioSession.type = 'ambient'`
 //   asks for that explicitly where Safari offers it, and lets other audio mix.
 // - Three levels (ambient, UI, music) set in 設定; 0 means silent. Every sound
@@ -57,7 +57,23 @@ class SoundEngine {
     return !!this.ctx;
   }
 
+  private enabled = false;
+
+  /**
+   * The player's own choice (spec: 音は別途本人が有効にする). Off: nothing is
+   * created, and a running context is suspended. On: the next unlock() starts it.
+   */
+  setEnabled(on: boolean): void {
+    this.enabled = on;
+    if (!on && this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+  }
+
+  get isEnabled(): boolean {
+    return this.enabled;
+  }
+
   unlock(): void {
+    if (!this.enabled) return;
     if (this.ctx) {
       // 'suspended', or 'interrupted' on iOS after a call or another app's audio
       this.resume();
@@ -469,7 +485,7 @@ class SoundEngine {
   /** Asks a stopped context to run again; a refusal (no gesture yet) waits for the next touch. */
   private resume(): void {
     const ctx = this.ctx;
-    if (!ctx || ctx.state === 'running' || ctx.state === 'closed' || document.hidden) return;
+    if (!this.enabled || !ctx || ctx.state === 'running' || ctx.state === 'closed' || document.hidden) return;
     ctx.resume().catch(() => {});
   }
 
