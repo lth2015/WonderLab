@@ -64,7 +64,9 @@ export function App() {
     saveRef.current = next;
     setSaveRaw(next);
     // Recorded as soon as progress is decided (spec §19 保存).
-    if (writable.current && !persist(storage() ?? memoryStore, next) && !saveFailedSaid.current) {
+    // no storage at all (blocked, private mode) counts as a failed save too (review V04)
+    const store = storage();
+    if (writable.current && (!store || !persist(store, next)) && !saveFailedSaid.current) {
       saveFailedSaid.current = true;
       study.emit('error', { code: 'save_write_failed' }, 'error-save-write');
       toastRef.current('この端末に記録を保存できませんでした。続けて遊べますが、閉じると消えます。設定の「記録を書き出す」で残せます。');
