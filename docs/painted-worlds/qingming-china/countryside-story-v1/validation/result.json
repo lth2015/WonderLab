@@ -1,0 +1,24 @@
+{
+  "widths": [
+    360,
+    390
+  ],
+  "text_percent": 150,
+  "actual_boat_touch": true,
+  "keyboard": true,
+  "guide_nearby_text_routes": true,
+  "refresh_resume_step": 2,
+  "wrong_choices_no_advance": true,
+  "wallet_first_replay": 60,
+  "new_page_once": true,
+  "album_pages": 15,
+  "png_size": [
+    1440,
+    1800
+  ],
+  "master_and_summary": true,
+  "farmer_observation_preserved": true,
+  "v3_import_exact_progress_and_time": true,
+  "no_import_completion_events": true,
+  "page_errors": []
+}

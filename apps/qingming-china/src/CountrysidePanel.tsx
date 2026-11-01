@@ -20,7 +20,7 @@ export function CountrysidePanel({ game, act, onPage, close }: {
   };
   return <>
     <p className="section-note">乡野渡口 · 田伯{step < 4 ? ` · 第 ${step + 1} / 4 步` : ' · 已留下画页'}</p>
-    <div className="harbor-conversation">
+    <div className="harbor-conversation countryside-conversation">
       <img src={`${import.meta.env.BASE_URL}art/china/tian-bo-v1.webp`} alt="戴草帽、持木桨招呼邻居的渡船人田伯"/>
       <blockquote>{LINES[step]}</blockquote>
     </div>
