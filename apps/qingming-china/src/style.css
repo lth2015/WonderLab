@@ -50,3 +50,12 @@
 .gate-note { border: 1px solid #c6c1a8; padding: 20px; margin: 16px 0 24px; background: #eee7d5; color: #586d52; font-size: var(--body-size); line-height: 1.9; }
 .gate-note p { margin: 10px 0; }
 .gate-note small { display: block; text-align: right; }
+
+.time-button { min-height:44px; cursor:pointer; border-bottom:1px solid #a8ac93; }
+.time-button:hover { color:#50664a; }
+.time-choices { display:grid; gap:12px; margin:20px 0; }
+.time-choices button { justify-content:flex-start; }
+.time-choices button[aria-pressed=true] { border-color:#667c5b; background:#dce2cd; }
+.time-choices button:disabled { opacity:.6; cursor:default; }
+.playtest-records summary { cursor:pointer; min-height:44px; display:flex; align-items:center; font-size:var(--body-size); }
+.playtest-records p { margin:12px 0; font-size:var(--body-size); line-height:1.8; }
