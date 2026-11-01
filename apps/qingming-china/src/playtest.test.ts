@@ -60,3 +60,12 @@ describe('local playtest records',()=>{
     snap.events.length=0;expect(a.snapshot().events).toHaveLength(1000);
   });
 });
+
+it('乡野故事首通/重逢的记录与免费进度一致',()=>{
+  const recorder=createStudy('test','test-build');let s=initialState();
+  const country:Action[]=[{type:'COUNTRYSIDE_TALK'},{type:'COUNTRYSIDE_SIGNAL',signal:'wave'},{type:'COUNTRYSIDE_BOARD',plan:'steady'},{type:'COUNTRYSIDE_SKETCH'}];
+  for(const a of [...country,{type:'REPLAY',quest:'countryside'} as const,...country]){const next=reduceGame(s,a);observeProgress(s,next,recorder);s=next;}
+  const events=recorder.snapshot().events;
+  expect(events.filter(e=>e.type==='story_started').map(e=>e.story_id)).toEqual(['countryside','countryside']);
+  expect(events.filter(e=>e.type==='story_completed').map(e=>e.first_completion)).toEqual([true,false]);expect(s.wallet).toBe(60);
+});

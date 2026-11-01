@@ -19,7 +19,7 @@ type Events = {
 export type StudyEvent = { event_id: string; session_id: string; schema_version: 1; occurred_at: string; elapsed_ms: number; environment: string; world_id: 'qingming-china'; build_id: string; type: keyof Events; [key: string]: unknown };
 const inList = (xs: readonly unknown[]) => (v: unknown) => xs.includes(v);
 const positive = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
-const quests: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate'];
+const quests: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate', 'countryside'];
 const page = inList(PAGES.map(p => p.id));
 const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
   world_entered: { source: inList(['direct', 'journal']) },
