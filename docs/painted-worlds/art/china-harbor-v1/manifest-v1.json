@@ -1,0 +1,22 @@
+{
+  "tool": "built-in image_gen",
+  "character": "杜叔（原创虚构货港脚夫）",
+  "use": "Dialogue cutout only; do not overlay a second person over the baked harbor porter.",
+  "reference": "PR130 scroll-13.webp clothing and fine-ink style only",
+  "native": {
+    "file": "du-shu-v1.png",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 2113901,
+    "hasAlpha": true,
+    "sha256": "6b8532936a6eb1dfd346a034668602de712a2c41286e5c8996b82afa03247d88"
+  },
+  "production": {
+    "file": "du-shu-v1.webp",
+    "width": 1024,
+    "height": 1536,
+    "bytes": 286256,
+    "sha256": "8a58c87e8a493ebf99cf5cf92d4329f5b55f5d109377bf98e1f055d798f87066"
+  },
+  "review": "Full body and both feet visible; native alpha preserved; no pixel upscaling, no claim of historical costume reconstruction."
+}
