@@ -1,0 +1,141 @@
+{
+  "checks": [
+    {
+      "case": "360-normal-title",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.765,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "360-normal-entered",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.765,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "360-session-title",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.765,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "360-session-entered",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.765,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "390-normal-title",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.991,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "390-normal-entered",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.991,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "390-session-title",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.991,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "390-session-entered",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.991,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "390-session-zoomed",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 9.982,
+      "visible_every_frame": true,
+      "fully_in_view": false,
+      "storage_unchanged": true
+    },
+    {
+      "case": "1280-normal-title",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.691,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "1280-normal-entered",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.691,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "1280-session-title",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.691,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    },
+    {
+      "case": "1280-session-entered",
+      "samples": 49,
+      "cycles": 2,
+      "max_x_delta_px": 0.0,
+      "max_y_delta_px": 4.691,
+      "visible_every_frame": true,
+      "fully_in_view": true,
+      "storage_unchanged": true
+    }
+  ],
+  "zoomed_anchored": true,
+  "app_reduced_motion": true,
+  "system_reduced_motion_at_load": true,
+  "press_papers_removes_animation": true,
+  "session_does_not_write_ordinary_save": true,
+  "page_errors": [],
+  "device": "headless Chromium; touch emulation at 360/390, desktop 1280"
+}
