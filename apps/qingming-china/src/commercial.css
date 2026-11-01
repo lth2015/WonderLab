@@ -1,0 +1,16 @@
+.person-hotspot.located .person-label{opacity:1}
+.person-hotspot.located .person-ring{border-color:#a34f3c;box-shadow:0 0 0 5px #f2ebcb99}
+.postcard-delivery{margin-top:20px;line-height:1.8}
+.postcard-delivery .button-row{flex-wrap:wrap;gap:12px}
+.postcard-delivery [role=status]{margin:14px 0}
+.manual-link{display:block;margin:14px 0}
+.manual-link input{display:block;width:100%;min-height:44px;box-sizing:border-box;padding:10px;border:1px solid #9eaa8c;background:#faf5e8;font-size:14px}
+.night-study{margin:24px 0;padding:20px;border:1px solid #aca68a;background:#eee6d2;line-height:1.9}
+.night-study h3{font-size:24px;margin:10px 0}
+.night-study p{margin:12px 0}
+.night-study button{margin:6px 8px 6px 0;min-height:44px;white-space:normal}
+.night-scene{margin:20px 0;padding:16px;background:#e2ddcb;border:1px solid #999b85}
+.night-scene>img{display:block;width:100%;max-height:220px;object-fit:cover;filter:brightness(.6) saturate(.65) hue-rotate(8deg)}
+.night-scene h4{font-size:20px;font-weight:500;margin:16px 0}
+.night-page{padding:20px;margin:16px 0;background:#f3ecd8;border:1px solid #9d967b}
+@media(max-width:600px){.night-study{padding:14px}.postcard-delivery .button-row>*{width:100%;box-sizing:border-box}.night-scene{padding:12px}}
