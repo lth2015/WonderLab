@@ -949,3 +949,22 @@ button.term[aria-expanded="true"] {
 .term-note small {
   font-weight: normal;
 }
+
+/* 音は本人が有効にする: a small ♪ in the top bar, struck through while off */
+.top > * {
+  white-space: nowrap;
+}
+.top .sound-toggle {
+  margin-left: auto;
+  min-width: 44px;
+  padding: 4px 10px;
+  font-size: 1.35em;
+  text-decoration: none;
+}
+.top .sound-toggle + .ghost {
+  margin-left: 0;
+}
+.top .sound-toggle[aria-pressed='false'] span {
+  text-decoration: line-through;
+  opacity: 0.8;
+}

@@ -82,6 +82,7 @@ export function migrate(raw: unknown): SaveData | 'newer' {
       textScale: st.textScale === 1.25 || st.textScale === 1.5 ? st.textScale : 1,
       timeChoice: st.timeChoice === 'morning' || st.timeChoice === 'noon' || st.timeChoice === 'evening' ? st.timeChoice : 'auto',
       ...(okLevels(st.sound) ? { sound: { ambient: st.sound.ambient, ui: st.sound.ui, music: st.sound.music } } : {}),
+      ...(st.soundOn === true ? { soundOn: true } : {}),
     },
   };
 }

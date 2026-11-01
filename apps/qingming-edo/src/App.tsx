@@ -145,6 +145,14 @@ export function App() {
       for (const e of events) window.removeEventListener(e, go, true);
     };
   }, []);
+  const soundOn = save.settings.soundOn === true;
+  useEffect(() => sound.setEnabled(soundOn), [soundOn]);
+  const toggleSound = () => {
+    const on = !soundOn;
+    setSave({ ...saveRef.current, settings: { ...saveRef.current.settings, soundOn: on }, updatedAt: new Date().toISOString() }, false);
+    sound.setEnabled(on);
+    if (on) sound.unlock(); // this press is the gesture
+  };
   const levels = levelsOf(save.settings);
   useEffect(() => sound.setLevels(levels), [levels.ambient, levels.ui, levels.music]);
   // a page made and coins received each have their sound, beside what the screen shows
@@ -421,6 +429,9 @@ export function App() {
             ))}
           </div>
         )}
+        <button type="button" className="ghost sound-toggle" aria-pressed={soundOn} onClick={toggleSound} aria-label={soundOn ? '音を止める' : '音を出す'} title={soundOn ? '音を止める' : '音を出す'}>
+          <span aria-hidden="true">♪</span>
+        </button>
         <button type="button" className="ghost" onClick={() => setPanel('settings')}>
           設定
         </button>
@@ -448,6 +459,7 @@ export function App() {
               日本橋、ひと頁
             </h1>
             <p>絵師の見習いとして、春の日本橋をしばらく歩きます。</p>
+            <p className="small">音ははじめは出ません。右上の「♪」で出せます。</p>
             <button
               type="button"
               className="primary"

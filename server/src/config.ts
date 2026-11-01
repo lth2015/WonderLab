@@ -356,7 +356,8 @@ const envSchema = z.object({
   // 清明上河図：江戸編 — 即興のひとこと (server/src/edo-talk.ts). Uses the TokenStars key;
   // EDO_TALK_MODEL_ID empty turns it off.
   EDO_TALK_MODEL_ID: z.string().default('gpt-6-luna'),
-  EDO_TALK_TIMEOUT_MS: decimal(9000),
+  // the app gives up at 8 s (spec §12); the server answers before that, so the fallback is clean
+  EDO_TALK_TIMEOUT_MS: decimal(7500),
   EDO_TALK_PER_VISITOR: decimal(40),
   EDO_TALK_DAILY: decimal(3000),
   /** Three caps: per invite per day, the whole site per day, and the project in total. */

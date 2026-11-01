@@ -10,7 +10,8 @@ import { FALLBACK, TALK_CLOSE, TALK_TOPICS, TALK_TURNS, type TalkTopic } from '.
 
 const API = (import.meta.env.VITE_EDO_API as string | undefined) ?? '/api';
 const SHOW_WAIT_AFTER_MS = 600;
-const GIVE_UP_MS = 10_000; // spec §12: over ~8 s, the script
+// spec §12: a cancellable wait within 2 s (shown at 0.6 s); past 8 s, the script line
+const GIVE_UP_MS = 8_000;
 
 type Said = { text: string; live: boolean };
 
