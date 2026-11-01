@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, AMBIENT_LABEL, HOTSPOTS, ROLES, characterById, kazeComposition, type Subject } from './content/world';
+import { AMBIENT, AMBIENT_LABEL, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
@@ -135,7 +135,7 @@ export function App() {
       }
       let next = n.effects && !inRecall ? apply(saveRef.current, n.effects) : saveRef.current;
       // a node may leave a journal page: made once, kept even if the dialogue is closed early
-      if (n.page && !inRecall) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId, titleStyle: 'plain', madeAt: new Date().toISOString() });
+      if (n.page && !inRecall) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId.replace('{tod}', timeOf(next)), titleStyle: 'plain', madeAt: new Date().toISOString() });
       if (inRecall) {
         // a memory is not where the player stands: bring the speaker into view
         const who = linesOf(n, true).find((l) => l.by !== 'narration')?.by;
@@ -162,6 +162,10 @@ export function App() {
         const id = spot.targetId;
         setReacting((r) => new Set(r).add(id));
         setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), 1400);
+        // 町の写生: after the first page, some places can be drawn (once each)
+        const k = sketchOfSpot(id);
+        const cur = saveRef.current;
+        if (k && questState(cur, 'kaze') === 'complete' && !cur.journal.pages.some((p) => p.pageId === sketchPageId(k.id))) return openNode(`sk.${k.id}`);
         setToast(AMBIENT[id] ?? null);
         return;
       }
@@ -278,6 +282,11 @@ export function App() {
     }, 1000);
     return () => clearInterval(t);
   }, [entered, busy, nb]);
+
+  const canSketch = (targetId: string) => {
+    const k = sketchOfSpot(targetId);
+    return !!k && k.spots[0] === targetId && questState(save, 'kaze') === 'complete' && !save.journal.pages.some((p) => p.pageId === sketchPageId(k.id));
+  };
 
   const goTo = (spotId: string, open: boolean) => {
     const spot = HOTSPOTS.find((h) => h.id === spotId);
@@ -529,6 +538,7 @@ export function App() {
                 <li key={s.id}>
                   <button type="button" onClick={() => goTo(s.id, true)}>
                     {AMBIENT_LABEL[s.targetId]}
+                    {canSketch(s.targetId) && <span className="small">（写生できる）</span>}
                   </button>
                 </li>
               ))}

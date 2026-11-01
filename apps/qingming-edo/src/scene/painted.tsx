@@ -9,6 +9,7 @@
 import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import SIZES from '../assets/art/sizes.json';
+import { parseSketch } from '../content/world';
 
 const URLS = import.meta.glob('../assets/art/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
 const url = (name: string) => {
@@ -163,14 +164,60 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
 
 // ---------------------------------------------------------------- journal pages
 
+/** 朝 a little pale and cool, 昼 as painted, 夕 warm and lower (like the street's CSS filters). */
+const PAGE_TINT: Record<'morning' | 'noon' | 'evening', string | null> = {
+  morning: '1.02 0 0 0 0.01  0 1.03 0 0 0.01  0 0 1.06 0 0.015  0 0 0 1 0',
+  noon: null,
+  evening: '0.97 0.06 0.01 0 0.015  0.03 0.92 0.02 0 0  0.01 0.03 0.82 0 0  0 0 0 1 0',
+};
+
+type Person = { id: SpriteId; x: number; y: number; flip?: boolean };
 /**
- * A page cut from the painted street (二頁目 onwards): the world rectangle
- * starting at (x0, y0), w units wide, fills the page's picture area
- * (40, 40, 520 × 660 in PageArt), with the people of that moment on it.
+ * 一頁目 (風のいたずら): the subject × framing the player chose, at the paper
+ * shop, in the moment after the papers were held down.
+ */
+const KAZE_VIEWS: Record<string, { x0: number; y0: number; w: number; people: Person[] }> = {
+  'hands-near': { x0: 12330, y0: 330, w: 230, people: [{ id: 'seita-press', ...SPOTS.seitaKneel }] },
+  'hands-wide': { x0: 12250, y0: 190, w: 360, people: [{ id: 'seita-press', ...SPOTS.seitaKneel }] },
+  'shopfront-near': { x0: 12335, y0: 250, w: 290, people: [{ id: 'seita-bow', ...SPOTS.seitaStand }] },
+  'shopfront-wide': { x0: 12190, y0: 110, w: 440, people: [{ id: 'seita-bow', ...SPOTS.seitaStand }] },
+  'street-near': {
+    x0: 12380,
+    y0: 240,
+    w: 330,
+    people: [
+      { id: 'seita-stand', ...SPOTS.seitaStand },
+      { id: 'crowd1-porter', x: 12450, y: 628, flip: true },
+      { id: 'sokichi-nod', ...SPOTS.sokichi },
+    ],
+  },
+  'street-wide': {
+    x0: 12120,
+    y0: 40,
+    w: 520,
+    people: [
+      { id: 'crowd2-samurai', x: 12200, y: 612 },
+      { id: 'seita-stand', ...SPOTS.seitaStand },
+      { id: 'crowd1-parasol', x: 12360, y: 630, flip: true },
+      { id: 'crowd1-porter', x: 12470, y: 624, flip: true },
+      { id: 'sokichi-nod', ...SPOTS.sokichi },
+    ],
+  },
+};
+
+/**
+ * A page cut from the painted street: the world rectangle starting at
+ * (x0, y0), w units wide, fills the page's picture area (40, 40, 520 × 660
+ * in PageArt), with the people of that moment on it.
  */
 export function PaintedPageScene({ composition }: { composition: string }) {
-  const view =
-    composition === 'tenugui-return'
+  const sk = parseSketch(composition);
+  const kz = /^kaze-([a-z]+-(?:near|wide))$/.exec(composition);
+  const view: { x0: number; y0: number; w: number; people: Person[] } = sk
+    ? { ...sk.sketch.view, people: [] }
+    : kz && KAZE_VIEWS[kz[1]]
+      ? KAZE_VIEWS[kz[1]]
+      : composition === 'tenugui-return'
       ? {
           x0: SPOTS.oharu.x - 60,
           y0: 240,
@@ -193,14 +240,21 @@ export function PaintedPageScene({ composition }: { composition: string }) {
         };
   const k = 520 / view.w;
   const first = Math.floor(view.x0 / 1000);
+  // the time it was drawn, as a colour matrix inside the SVG (so a saved PNG keeps it)
+  const tint = sk ? PAGE_TINT[sk.tod] : null;
   return (
-    <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`}>
+    <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`} filter={tint ? `url(#page-tint-${sk!.tod})` : undefined}>
+      {tint && (
+        <filter id={`page-tint-${sk!.tod}`} colorInterpolationFilters="sRGB">
+          <feColorMatrix type="matrix" values={tint} />
+        </filter>
+      )}
       <rect x={view.x0 - 10} y={view.y0 - 10} width={view.w + 20} height={700} fill="#e1cfa6" />
       {STREET.map((href, i) =>
         !href || i < first || i > first + 1 ? null : <image key={i} href={href!} x={i * 1000} y={0} width={1000} height={700} preserveAspectRatio="none" />,
       )}
       {view.people.map((p) => (
-        <Sprite key={p.id} id={p.id} x={p.x} y={p.y} />
+        <Sprite key={p.id} id={p.id} x={p.x} y={p.y} flip={p.flip} />
       ))}
     </g>
   );

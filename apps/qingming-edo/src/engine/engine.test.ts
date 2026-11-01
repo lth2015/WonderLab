@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
-import { characterById, HOTSPOTS, PAGES, questById, questOfPage, SCENE_W } from '../content/world';
+import { characterById, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
@@ -459,5 +459,60 @@ describe('音の設定', () => {
   });
   it('offers only levels that the settings can show as pressed', () => {
     for (const v of Object.values(DEFAULT_LEVELS)) expect(LEVEL_STEPS).toContain(v);
+  });
+});
+
+describe('町の写生', () => {
+  const done = () => apply(newSave(), questById.get('kaze')!.completionEffects);
+  it('each place is a real ambient spot, with its offer and its page', () => {
+    for (const k of SKETCHES) {
+      for (const sp of k.spots) expect(HOTSPOTS.some((h) => h.kind === 'ambient' && h.targetId === sp)).toBe(true);
+      expect(NODES[`sk.${k.id}`].choices?.[0].next).toBe(`sk.${k.id}.made`);
+      expect(NODES[`sk.${k.id}.made`].page?.pageId).toBe(sketchPageId(k.id));
+      expect(PAGE_TITLES[sketchPageId(k.id)]).toBe(k.title);
+      expect(k.view.y0 + (k.view.w * 660) / 520).toBeLessThanOrEqual(700); // the page's 520×660 picture stays inside the painting
+    }
+  });
+  it('three stories, two recall pages and seven sketches fill the twelve slots exactly', () => {
+    expect(PAGES.length).toBe(PAGE_SLOTS);
+    expect(new Set(PAGES.map((p) => p.id)).size).toBe(PAGE_SLOTS);
+  });
+  it('「近くのこと」 points to the next undrawn place only after the first page', () => {
+    expect(nearby(newSave()).some((n) => n.id === 'sketches')).toBe(false);
+    let s = done();
+    // make room: the other stories are finished too
+    s = apply(s, [...questById.get('dougu')!.completionEffects, ...questById.get('tenugui')!.completionEffects]);
+    expect(nearby(s).find((n) => n.id === 'sketches')?.spotId).toBe('a-boat');
+    s = addPage(s, { pageId: sketchPageId('boat'), compositionId: 'sketch-boat-noon', titleStyle: 'plain', madeAt: new Date().toISOString() });
+    expect(nearby(s).find((n) => n.id === 'sketches')?.text).toContain('あと6か所');
+  });
+  it('a sketch page remembers the time it was drawn', () => {
+    expect(parseSketch('sketch-dye-evening')?.sketch.title).toBe('紺屋の干し場');
+    expect(parseSketch('sketch-dye-evening')?.tod).toBe('evening');
+    expect(parseSketch('sketch-nowhere-noon')).toBeNull();
+    expect(NODES['sk.dye.made'].page?.compositionId).toBe('sketch-dye-{tod}');
+  });
+  it('a sketch is not a story: no money and no 回想', () => {
+    for (const k of SKETCHES) {
+      expect(JSON.stringify(NODES[`sk.${k.id}.made`])).not.toMatch(/reward|wallet/);
+      expect(questById.get(questOfPage(sketchPageId(k.id))!)).toBeUndefined();
+    }
+  });
+});
+
+describe('絵巻帳が一冊に', () => {
+  it('twelve pages bring 宗吉 to his closing words once, then a quieter greeting', () => {
+    let s = apply(newSave(), questById.get('kaze')!.completionEffects);
+    const now = new Date().toISOString();
+    for (const p of PAGES.slice(0, PAGE_SLOTS - 1)) s = addPage(s, { pageId: p.id, compositionId: 'x', titleStyle: 'plain', madeAt: now });
+    expect(entryFor('sokichi', s)).toBe('sokichi.done');
+    expect(nearby(s).some((n) => n.id === 'book')).toBe(false);
+    s = addPage(s, { pageId: PAGES[PAGE_SLOTS - 1].id, compositionId: 'x', titleStyle: 'plain', madeAt: now });
+    expect(entryFor('sokichi', s)).toBe('sokichi.full');
+    expect(nearby(s)[0].id).toBe('book');
+    s = apply(s, NODES['sokichi.full'].effects!);
+    expect(entryFor('sokichi', s)).toBe('sokichi.full.again');
+    expect(nearby(s).some((n) => n.id === 'book')).toBe(false);
+    expect(JSON.stringify(NODES['sokichi.full'])).not.toMatch(/grant|reward/);
   });
 });

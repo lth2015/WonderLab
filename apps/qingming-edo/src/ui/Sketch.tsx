@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { FRAMINGS, SUBJECTS, TITLE_STYLES, type Framing, type Subject } from '../content/world';
+import { FRAMINGS, kazeComposition, SUBJECTS, TITLE_STYLES, type Framing, type Subject } from '../content/world';
 import { PageArt } from '../scene/PageArt';
+import { PaintedPageScene } from '../scene/painted';
 
 // 写生 (spec §10): not a drawing test. Pick framing and title slip; the page
 // is composed for you. Every choice is equal: no better or worse reward.
@@ -22,7 +23,13 @@ export function Sketch({
     <div className="panel sketch" role="dialog" aria-labelledby="sketch-h">
       <h2 id="sketch-h">写生　{label}</h2>
       <div className="page-preview">
-        <PageArt subject={subject} framing={framing} titleStyle={titleStyle} title="風のいたずら" place="日本橋北詰・朝　青葉屋の店先" idPrefix="pv" />
+        <PageArt
+          scene={<PaintedPageScene composition={kazeComposition(subject, framing)} />}
+          titleStyle={titleStyle}
+          title="風のいたずら"
+          place="日本橋北詰・朝　青葉屋の店先"
+          idPrefix="pv"
+        />
       </div>
       <fieldset>
         <legend>どこまで描くか</legend>
