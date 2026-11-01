@@ -23,6 +23,8 @@ export interface StreetProps {
   zoomed: boolean;
   onTap(hits: HotspotDef[]): void;
   onActivity(): void;
+  /** 様子を見る: a soft ink ring under one spot for a moment (spec §7: never a standing marker). */
+  cue?: { spotId: string; key: number } | null;
   /** The scene x at the middle of the view, whenever it moves (for the sound). */
   onCamera?(x: number): void;
 }
@@ -43,7 +45,14 @@ function topFor(zoom: number, s: number, h: number): number {
 const ZOOM = 2;
 const ZOOM_FOCUS_Y = 470;
 
-export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera }: StreetProps) {
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera, cue }: StreetProps) {
+  // a tap that found nothing still gets an answer: a small ink ripple where the finger was
+  const [ripple, setRipple] = useState<{ x: number; y: number; k: number } | null>(null);
+  useEffect(() => {
+    if (!ripple) return;
+    const t = setTimeout(() => setRipple(null), 500);
+    return () => clearTimeout(t);
+  }, [ripple]);
   const onCam = useRef(onCamera);
   onCam.current = onCamera;
   const box = useRef<HTMLDivElement>(null);
@@ -196,7 +205,9 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     drag.current = null;
     if (d.dragging || !interactive) return;
     const p = toScene(e.clientX, e.clientY);
-    onTap(resolveTap(spots, p.x, p.y, size.current.scale));
+    const hits = resolveTap(spots, p.x, p.y, size.current.scale);
+    if (!hits.length) setRipple({ x: p.x, y: p.y, k: performance.now() });
+    onTap(hits);
   };
   const onPointerCancel = () => {
     drag.current = null;
@@ -223,6 +234,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     [],
   );
 
+  const cueSpot = cue ? spots.find((h) => h.id === cue.spotId) : undefined;
   const layerStyle = (w: number): React.CSSProperties => ({ width: w, height: SCENE_H, transformOrigin: '0 0' });
 
   return (
@@ -258,6 +270,17 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
               .filter((h) => h.kind === 'ambient' && reacting.has(h.targetId))
               .map((h) => ({ id: h.id, ...h.hitArea }))}
           />
+          {cueSpot && (
+            <ellipse
+              key={`cue-${cue!.key}`}
+              className="cue-ring"
+              cx={cueSpot.hitArea.x + cueSpot.hitArea.w / 2}
+              cy={cueSpot.hitArea.y + cueSpot.hitArea.h - 6}
+              rx={Math.max(cueSpot.hitArea.w / 2 + 10, 34)}
+              ry={Math.max(cueSpot.hitArea.w / 2 + 10, 34) * 0.3}
+            />
+          )}
+          {ripple && <circle key={ripple.k} className="tap-ripple" cx={ripple.x} cy={ripple.y} r={16 / scale} />}
         </svg>
       </div>
 

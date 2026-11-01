@@ -947,6 +947,8 @@ button[aria-pressed='true'] {
 .guide-stops button[aria-current='location'] {
   outline: 2px solid currentColor;
   outline-offset: -2px;
+}
+
 /* 難語 (spec §8): a pressable word, and its note under the line */
 .sheet button.term,
 button.term {
@@ -1021,4 +1023,48 @@ button.term[aria-expanded="true"] {
 }
 .session-box h3 {
   margin-top: 0;
+}
+
+/* 様子を見る: a soft ink ring under the person, for a moment only (spec §7) */
+.cue-ring {
+  fill: rgba(255, 238, 180, 0.45);
+  stroke: #3b3326;
+  stroke-width: 4;
+  stroke-dasharray: 9 6;
+  opacity: 0;
+  pointer-events: none;
+  animation: cue-ring 2.6s ease-in-out forwards;
+}
+@keyframes cue-ring {
+  0% { opacity: 0; }
+  12%, 42%, 72% { opacity: 0.95; }
+  27%, 57% { opacity: 0.45; }
+  85% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+/* a tap on nothing: a small ripple of ink where the finger was */
+.tap-ripple {
+  fill: none;
+  stroke: #3b3326;
+  stroke-width: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tap-ripple 0.45s ease-out forwards;
+}
+@keyframes tap-ripple {
+  0% { opacity: 0.55; transform: scale(0.4); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+.rm .cue-ring {
+  animation: none;
+  opacity: 0.9;
+}
+.rm .tap-ripple {
+  animation: tap-ripple-still 0.45s ease-out forwards;
+}
+@keyframes tap-ripple-still {
+  0% { opacity: 0.5; }
+  100% { opacity: 0; }
 }
