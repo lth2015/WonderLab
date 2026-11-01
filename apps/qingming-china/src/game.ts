@@ -78,6 +78,13 @@ export function reduceGame(state: GameState, action: Action): GameState {
   return s;
 }
 
+/** The boat story as it actually happened, from the album (a replay clears the current route). */
+export function boatSummary(journal: readonly PageId[]): string {
+  const delivered=journal.includes('river-delivery'), watched=journal.includes('river-team');
+  if(delivered&&watched)return '你理好绳索、认出货签。一回随阿成把新茶送到何娘手里，一回站在岸边看周伯与阿成接过这一船日常。';
+  if(delivered)return '你理好绳索、认出货签，随阿成把新茶送到了何娘手里。';
+  return '你理好绳索、认出货签，站在岸边看周伯与阿成接过这一船日常。';
+}
 const questIds: QuestId[] = ['paper', 'boat', 'purse'];
 const characterIds = ['liu', 'zhou', 'cheng', 'he', 'chen', 'shen'];
 const statuses = ['unseen', 'discovered', 'active', 'ready', 'complete', 'replay'];
