@@ -100,6 +100,13 @@ export function App() {
   toastRef.current = setToast;
   const [reacting, setReacting] = useState<Set<string>>(new Set());
   const [hint, setHint] = useState<string | null>(null);
+  // 様子を見る: the ring under the person stays a moment, then goes (spec §7)
+  const [cue, setCue] = useState<{ spotId: string; key: number } | null>(null);
+  useEffect(() => {
+    if (!cue) return;
+    const t = setTimeout(() => setCue(null), 2600);
+    return () => clearTimeout(t);
+  }, [cue]);
   const dismissedHint = useRef<string | null>(null);
   const street = useRef<StreetApi>(null);
   const lastActivity = useRef(performance.now());
@@ -468,6 +475,7 @@ export function App() {
           talking={!!(dialogue || candidates || talk)}
           zoomed={zoomed}
           onTap={onTap}
+          cue={cue}
           onActivity={activity}
           onCamera={(x) => sound.place(x)}
         />
@@ -503,8 +511,15 @@ export function App() {
         {hint && !busy && (
           <div className="hint" role="status">
             <span>{nb.find((n) => n.id === hint)?.text}</span>
-            <button type="button" onClick={() => goTo(nb.find((n) => n.id === hint)!.spotId, false)}>
-              場所を見る
+            <button
+              type="button"
+              onClick={() => {
+                const spotId = nb.find((n) => n.id === hint)!.spotId;
+                goTo(spotId, false);
+                setCue({ spotId, key: performance.now() });
+              }}
+            >
+              様子を見る
             </button>
             <button
               type="button"
