@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "session_id": "79872c79-aff0-4ddb-837c-4a9717c43a61",
+  "environment": "development",
+  "world_id": "qingming-edo",
+  "build_id": "unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "2d3ef9fa-5865-403a-bd76-1ec00577a502",
+      "session_id": "79872c79-aff0-4ddb-837c-4a9717c43a61",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:34:49.619Z",
+      "elapsed_ms": 15,
+      "environment": "development",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "world_entered",
+      "source": "direct"
+    },
+    {
+      "event_id": "dfec2d65-ce23-43af-81ae-69971492e6c3",
+      "session_id": "79872c79-aff0-4ddb-837c-4a9717c43a61",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:34:49.619Z",
+      "elapsed_ms": 15,
+      "environment": "development",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "revisit",
+      "has_progress": true
+    },
+    {
+      "event_id": "77d807e3-68c8-4ae1-840e-b3de76d81d2b",
+      "session_id": "79872c79-aff0-4ddb-837c-4a9717c43a61",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:34:50.130Z",
+      "elapsed_ms": 526,
+      "environment": "development",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "guide_stop_selected",
+      "stop_id": "cooper"
+    },
+    {
+      "event_id": "2c467d74-723d-45e9-825c-2b02664d5f8a",
+      "session_id": "79872c79-aff0-4ddb-837c-4a9717c43a61",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:34:50.547Z",
+      "elapsed_ms": 943,
+      "environment": "development",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "guide_stop_selected",
+      "stop_id": "bridge"
+    }
+  ]
+}
