@@ -57,7 +57,8 @@ export function Talk({ who, done, onClose }: { who: string; done: string[]; onCl
     }
     clearTimeout(waitTimer);
     clearTimeout(giveUp);
-    if (ctl.signal.aborted && abort.current !== ctl) return; // superseded
+    if (abort.current !== ctl) return; // cancelled or superseded: say nothing, count nothing
+    abort.current = null;
     setSaid(out);
     setTurn((t) => t + 1);
     setWaiting(false);
@@ -65,7 +66,10 @@ export function Talk({ who, done, onClose }: { who: string; done: string[]; onCl
   };
 
   const cancel = () => {
-    abort.current?.abort();
+    // stopping waiting is not a turn: the pending answer is dropped, nothing is said
+    const ctl = abort.current;
+    abort.current = null;
+    ctl?.abort();
     setWaiting(false);
     setShowWait(false);
   };

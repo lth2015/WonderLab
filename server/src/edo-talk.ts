@@ -85,7 +85,8 @@ const TOPIC_TEXT: Record<TalkTopic, string> = {
 /** The request, as the app may send it. Anything else is refused. */
 export function parseTalk(body: unknown): { who: string; topic: TalkTopic; done: TalkStory[]; turn: number } | null {
   const b = body as { who?: unknown; topic?: unknown; done?: unknown; turn?: unknown } | null;
-  if (!b || typeof b.who !== 'string' || !(b.who in PERSONAS)) return null;
+  // own keys only: `in` would also let "constructor" or "__proto__" through
+  if (!b || typeof b.who !== 'string' || !Object.hasOwn(PERSONAS, b.who)) return null;
   if (typeof b.topic !== 'string' || !(TALK_TOPICS as readonly string[]).includes(b.topic)) return null;
   const done = Array.isArray(b.done) ? b.done.filter((d): d is TalkStory => (TALK_STORIES as readonly string[]).includes(d as string)) : [];
   const turn = typeof b.turn === 'number' && Number.isInteger(b.turn) ? Math.min(Math.max(b.turn, 0), 5) : 0;
@@ -123,8 +124,8 @@ export function cleanLine(value: unknown): string | null {
   const line = raw.trim().replace(/^[「『"]+|[」』"]+$/g, '').trim();
   const n = [...line].length;
   if (n < 15 || n > 150) return null;
-  // Japanese only: no Latin letters, URLs, digits or markup
-  if (/[A-Za-z0-9<>{}\\[\]@#$%^*_=|~`]/.test(line)) return null;
+  // Japanese only: no Latin letters, URLs, digits or markup, full-width ones included
+  if (/[A-Za-z0-9<>{}\\[\]@#$%^*_=|~`]/.test(line.normalize('NFKC'))) return null;
   if (!/[぀-ヿ]/.test(line)) return null;
   return line;
 }
@@ -138,7 +139,8 @@ export class TalkBudget {
     private readonly perVisitor: number,
     private readonly daily: number,
   ) {}
-  take(ip: string, now = new Date()): boolean {
+  take(ipAddr: string, now = new Date()): boolean {
+    const ip = visitorKey(ipAddr);
     const d = now.toISOString().slice(0, 10);
     if (d !== this.day) {
       this.day = d;
@@ -151,4 +153,15 @@ export class TalkBudget {
     this.total++;
     return true;
   }
+}
+
+/** One visitor per IPv4 address, and per IPv6 /64 (one home or phone gets a whole /64). */
+export function visitorKey(ip: string): string {
+  const v6 = ip.startsWith('::ffff:') ? null : ip.includes(':') ? ip : null;
+  if (!v6) return ip.replace(/^::ffff:/, '');
+  const [head, tail = ''] = v6.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  const full = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t];
+  return full.slice(0, 4).map((g) => g.toLowerCase().replace(/^0+(?=.)/, '')).join(':') + '::/64';
 }

@@ -1,0 +1,11 @@
+{
+ "pair": "s4|s5",
+ "image": "s4-s5.png",
+ "x0": 13438,
+ "w": 1024,
+ "hFull": 1024,
+ "band": 200,
+ "feather": 40,
+ "y0": 430,
+ "prompt": "Hand-painted Japanese emaki handscroll street of Edo about 1805, fine sumi ink lines and pale watercolour on warm paper, exactly matching the surrounding painting. Repaint only the cleared vertical strip so that the left and right halves join seamlessly: the curved stone curb of the side lane must continue without a break, and the earthen street must continue at the same level. Keep the same perspective, scale, colours, stone sizes and line weight as on both sides. No people, no animals, no text."
+}
