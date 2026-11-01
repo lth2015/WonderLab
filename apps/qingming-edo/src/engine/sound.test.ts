@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+let sourceStarts = 0;
+
 // A fake WebAudio, enough for unlock(): records bus gains and resume() calls.
 class Param {
   value = 1;
-  setTargetAtTime() {}
-  setValueAtTime() {}
+  setTargetAtTime(value: number) { this.value = value; }
+  setValueAtTime(value: number) { this.value = value; }
+  cancelScheduledValues() {}
   linearRampToValueAtTime() {}
   exponentialRampToValueAtTime() {}
 }
@@ -23,7 +26,7 @@ class Node {
   connect<T>(d: T) {
     return d;
   }
-  start() {}
+  start() { sourceStarts++; }
   stop() {}
 }
 class FakeContext {
@@ -61,13 +64,14 @@ class FakeContext {
 async function freshSound() {
   vi.resetModules();
   FakeContext.made = [];
-  vi.stubGlobal('window', { AudioContext: FakeContext, setTimeout: () => 0 });
+  sourceStarts = 0;
+  vi.stubGlobal('window', { AudioContext: FakeContext, setTimeout: vi.fn(() => 0) });
   vi.stubGlobal('document', { hidden: false, addEventListener() {} });
   vi.stubGlobal('navigator', {});
   return (await import('./sound')).sound;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('音 (review fixes from Codex, PR127)', () => {
   it('a save set to 切 is silent from the first moment: the buses start at 0', async () => {
@@ -111,5 +115,41 @@ describe('時の鐘', () => {
     expect(sound.timeBell()).toBe(true);
     FakeContext.made[0].state = 'suspended';
     expect(sound.timeBell()).toBe(false);
+  });
+});
+
+describe('quiet ambient mix', () => {
+  it('starts occasional ambience no sooner than 6.5 seconds and mutes active buses immediately', async () => {
+    const sound = await freshSound();
+    sound.unlock();
+    const ctx = FakeContext.made[0];
+    const delays = vi.mocked(window.setTimeout).mock.calls.map(call => call[1] as number);
+    expect(delays).toHaveLength(3);
+    expect(delays.every(delay => delay >= 6500)).toBe(true);
+    sound.setLevels({ ambient: 0, ui: 0, music: 0 });
+    expect(ctx.gains.slice(1, 4).map(g => g.gain.value)).toEqual([0, 0, 0]);
+  });
+  it('leaves a quiet gap between occasional sounds and skips them in a hidden tab', async () => {
+    const sound = await freshSound();
+    sound.unlock();
+    const ctx = FakeContext.made[0];
+    const timers = vi.mocked(window.setTimeout).mock.calls.slice(0, 3);
+    const fire = (index: number) => (timers[index][0] as () => void)();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    ctx.currentTime = 10;
+    const beds = sourceStarts;
+    fire(0);
+    expect(sourceStarts).toBeGreaterThan(beds);
+    const footsteps = sourceStarts;
+    fire(1);
+    expect(sourceStarts).toBe(footsteps);
+    ctx.currentTime = 19;
+    fire(1);
+    expect(sourceStarts).toBeGreaterThan(footsteps);
+    const birds = sourceStarts;
+    Object.assign(document, { hidden: true });
+    ctx.currentTime = 40;
+    fire(0);
+    expect(sourceStarts).toBe(birds);
   });
 });
