@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "session_id": "1d3f0e5c-afab-45bf-ad58-8c9b678ce647",
+  "environment": "production",
+  "world_id": "qingming-edo",
+  "build_id": "unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "b9f17960-031b-4a64-a204-d52d720370ee",
+      "session_id": "1d3f0e5c-afab-45bf-ad58-8c9b678ce647",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:10:26.268Z",
+      "elapsed_ms": 40,
+      "environment": "production",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "world_entered",
+      "source": "direct"
+    },
+    {
+      "event_id": "2c9051bb-9211-4613-9e3b-6d2fc8f095f4",
+      "session_id": "1d3f0e5c-afab-45bf-ad58-8c9b678ce647",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:10:26.847Z",
+      "elapsed_ms": 619,
+      "environment": "production",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "first_interaction_completed",
+      "interaction_id": "kaze"
+    },
+    {
+      "event_id": "25d87d36-2889-4054-8409-8b83aac6191a",
+      "session_id": "1d3f0e5c-afab-45bf-ad58-8c9b678ce647",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:10:26.847Z",
+      "elapsed_ms": 619,
+      "environment": "production",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "story_started",
+      "story_id": "kaze"
+    },
+    {
+      "event_id": "f0f909e1-cf11-4e66-8470-1e1724c9a9a7",
+      "session_id": "1d3f0e5c-afab-45bf-ad58-8c9b678ce647",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:10:27.910Z",
+      "elapsed_ms": 1681,
+      "environment": "production",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "story_completed",
+      "story_id": "kaze",
+      "first_completion": true
+    },
+    {
+      "event_id": "b0811009-a743-4062-a7a1-9fb6b0e54801",
+      "session_id": "1d3f0e5c-afab-45bf-ad58-8c9b678ce647",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:10:28.074Z",
+      "elapsed_ms": 1845,
+      "environment": "production",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "journal_opened",
+      "page_count": 1
+    },
+    {
+      "event_id": "d14d2d36-7e90-4c96-a323-b181e1ab2309",
+      "session_id": "1d3f0e5c-afab-45bf-ad58-8c9b678ce647",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:10:29.691Z",
+      "elapsed_ms": 3463,
+      "environment": "production",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "journal_export_attempted",
+      "page_id": "p01-kaze",
+      "export_type": "png"
+    },
+    {
+      "event_id": "2ed99f8a-2255-4d0f-bec8-9f4b49667f7d",
+      "session_id": "1d3f0e5c-afab-45bf-ad58-8c9b678ce647",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:10:29.692Z",
+      "elapsed_ms": 3463,
+      "environment": "production",
+      "world_id": "qingming-edo",
+      "build_id": "unversioned",
+      "type": "journal_export_completed",
+      "page_id": "p01-kaze",
+      "export_type": "png",
+      "stage": "download_requested"
+    }
+  ]
+}
