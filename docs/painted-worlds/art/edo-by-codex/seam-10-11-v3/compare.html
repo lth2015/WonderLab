@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>江户10|11路沿v3候选核对</title>
+<style>
+body{font:16px/1.6 system-ui;margin:24px;background:#eee7d6;color:#393b31}main{max-width:1400px;margin:auto}button{padding:10px 16px;font:inherit;margin:0 8px 10px 0}button[aria-pressed=true]{background:#3e5144;color:#fff}.frame{position:relative;width:100%;aspect-ratio:1400/980;overflow:hidden}.frame>img{position:absolute;width:100%;height:100%;inset:0}.patch{position:absolute;left:30%;top:76.5306122449%;width:51.4285714286%;height:14.2857142857%;display:none}.frame.show-patch .patch{display:block}.frame.bound .patch{outline:2px dashed #c34}.strip{width:100%;aspect-ratio:720/140;display:block}.grid{display:grid;gap:20px;grid-template-columns:1fr 1fr}.grid img{width:100%}small{display:block}.warn{background:#fff6da;padding:12px}h1{font-size:24px}figcaption{padding:6px 0}
+</style>
+<main><h1>江户10|11：中排石沿 v3 候选</h1>
+<p>原图来自 main e1a5ba5，运行坐标 x=3500–4500、y=0–700；已整卷镜像。这里用 SVG 裁窗把候选03映射回同一位置，模拟一个窄补丁；没有改生产图片。</p>
+<p class="warn">候选03建议仅局部试接。图像编辑输出带黑边，裁窗是 x=0,y=151,w=2170,h=420。候选01/02会移动补丁外的建筑和石沿，不建议接入；本页不把完整重绘盖到生产图。</p>
+<button id="before" aria-pressed="true">当前生产</button><button id="after" aria-pressed="false">候选03局部模拟</button><button id="outline" aria-pressed="false">显示补丁边界</button>
+<div id="frame" class="frame">
+<img src="runtime-x3500-4500-before.png" alt="当前生产相同世界坐标底图">
+<svg class="patch" viewBox="0 151 2170 420" preserveAspectRatio="none" aria-label="仅中排石沿的候选补丁"><image href="candidate-03-road-strip.png" width="2170" height="725"/></svg>
+</div>
+<p>补丁映射：底图像素 x=420,y=750,w=720,h=140；整卷运行像素 x=5320,y=750（1.4px/世界单位）；世界 x≈3800–4314.286,y≈535.714–635.714。它跨 street-3 / street-4，不是未镜像的源段11。</p>
+<h2>路沿近看</h2>
+<figure><figcaption>当前生产：右侧突升</figcaption><img class="strip" src="road-strip-before.png" alt="修复前窄条"></figure>
+<figure><figcaption>候选03：渐进上坡，精确边缘仍由接入者比较</figcaption><svg class="strip" viewBox="0 151 2170 420" preserveAspectRatio="none"><image href="candidate-03-road-strip.png" width="2170" height="725"/></svg></figure>
+<details><summary>未采用的全幅候选01/02</summary><div class="grid"><figure><img src="candidate-01-full-frame.png" alt="未采用候选01"><figcaption>01：台阶消除，但两端整行高度改变。</figcaption></figure><figure><img src="candidate-02-full-frame.png" alt="未采用候选02"><figcaption>02：仍有画外漂移，不能整幅覆盖。</figcaption></figure></div></details>
+</main>
+<script>
+const f=document.getElementById('frame'),before=document.getElementById('before'),after=document.getElementById('after'),outline=document.getElementById('outline');
+function set(v){f.classList.toggle('show-patch',v);before.setAttribute('aria-pressed',String(!v));after.setAttribute('aria-pressed',String(v))}
+before.onclick=()=>set(false);after.onclick=()=>set(true);outline.onclick=()=>{const v=f.classList.toggle('bound');outline.setAttribute('aria-pressed',String(v))};
+</script></html>

@@ -1,0 +1,11 @@
+Precision local image repair on the FIRST reference (the original current runtime image). The second reference is a rejected attempt: its middle curb is smooth but wrong because it shifts the right-hand row downward and changes too much outside the repair area. Do NOT copy that rejected attempt's uniform curb height.
+
+Keep the FIRST image's exact frame, buildings, barrel arrangement, bamboo fences, trees, roofs, paper color, ground texture, large foreground curb at y>=900 and rear shop curb near y=690. Repair only the middle low stone curb in x=560..1000,y=770..880 in the first 1400x980 image.
+
+CRITICAL ENDPOINT CONSTRAINTS (coordinates in the first reference):
+- For x<=560 leave the middle curb at its original height: top around y=812 and base around y=849.
+- For x>=1000 leave the middle curb at its original height: top around y=787 and base around y=816.
+- Between those anchors make ONE continuous row of low grey rectangular curb stones with a very shallow gradual uphill slope from the left anchor to the right anchor. Let the stones gradually climb roughly 25-30 pixels across a width of 440 pixels. NO sudden step at x~900, no second curb row, no triangular tall wedge, no added wall. Retain original stone size and face height (~25-30 px), with plausible earthen ground at their feet.
+- Preserve the tiny wooden drain near x=490,y=835 exactly, outside the repair.
+- Preserve both ends of the curb at the original heights all the way to the left/right edges. Do not flatten the whole row and do not redraw its ends.
+The path in front of the warehouses should look like a gentle road incline, not a raised terrace. Match the original sharp fine ink and restrained warm watercolor. No people, no text. Preserve exact original 1400:980 framing/aspect ratio. Return the complete first image with only this local improvement.

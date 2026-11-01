@@ -1,0 +1,149 @@
+{
+  "status": "candidate_requires_Claude_integration_review",
+  "tool": "built-in image_gen",
+  "branch": "codex/painted-worlds-art",
+  "production_baseline": "e1a5ba538d911a83eec67a2cf158a2879dcec6eb",
+  "orientation": "runtime coordinates after whole-roll mirror x=14000-x; not unmirrored source segment 11",
+  "runtime_px_per_world_unit": 1.4,
+  "before_crop": {
+    "file": "runtime-x3500-4500-before.png",
+    "runtime_pixel_rect": {
+      "x": 4900,
+      "y": 0,
+      "width": 1400,
+      "height": 980
+    },
+    "world_rect": {
+      "x": 3500,
+      "y": 0,
+      "width": 1000,
+      "height": 700
+    },
+    "sources": [
+      "apps/qingming-edo/src/assets/art/street-3.webp",
+      "apps/qingming-edo/src/assets/art/street-4.webp"
+    ]
+  },
+  "recommended_candidate": {
+    "file": "candidate-03-road-strip.png",
+    "source_window": {
+      "x": 0,
+      "y": 151,
+      "width": 2170,
+      "height": 420
+    },
+    "raw_size": {
+      "width": 2170,
+      "height": 725
+    },
+    "target_in_before_crop_px": {
+      "x": 420,
+      "y": 750,
+      "width": 720,
+      "height": 140
+    },
+    "target_in_runtime_px": {
+      "x": 5320,
+      "y": 750,
+      "width": 720,
+      "height": 140
+    },
+    "target_world": {
+      "x": 3800,
+      "y": 535.7142857142858,
+      "width": 514.2857142857143,
+      "height": 100
+    },
+    "strip_before": "road-strip-before.png",
+    "status": "try_local_patch_only_not_production_approved",
+    "review": "Abrupt middle curb step becomes continuous shallow incline. Hard-edge overlay preserves buildings and large foreground curb outside this rectangle exactly. Road texture and edge color must be evaluated by integrator; do not paste raw black letterbox or replace full tiles."
+  },
+  "rejected": [
+    {
+      "file": "candidate-01-full-frame.png",
+      "reason": "Changes row endpoints and geometry outside requested local repair."
+    },
+    {
+      "file": "candidate-02-full-frame.png",
+      "reason": "Still changes full-frame geometry; cannot replace production scene."
+    }
+  ],
+  "files": [
+    {
+      "file": "candidate-01-full-frame.png",
+      "bytes": 2970384,
+      "sha256": "e19a15108a36b33a5d37dcf47272b7c79b2b94b9423f3028498a1b30fcdf84cd",
+      "width": 1499,
+      "height": 1049,
+      "alpha": false
+    },
+    {
+      "file": "candidate-01.prompt.txt",
+      "bytes": 1626,
+      "sha256": "cd8c82adbb9ae824023203d7ea3dfd13d2bf66949c15943aad6cb0632519f5e8"
+    },
+    {
+      "file": "candidate-02-full-frame.png",
+      "bytes": 3086748,
+      "sha256": "fc1d78248b597967c1ef2528fc8121cf59cfbf3b75b76d02934b45501abfa949",
+      "width": 1500,
+      "height": 1049,
+      "alpha": false
+    },
+    {
+      "file": "candidate-02.prompt.txt",
+      "bytes": 1840,
+      "sha256": "6a882b12d47843dd1d4ed9e08d5143435b24d5b237efb48acedd5459533fc455"
+    },
+    {
+      "file": "candidate-03-road-strip.png",
+      "bytes": 1648514,
+      "sha256": "8895ec5f4971bdd6ae9a511a0726f7390a76971e735a7f6814aed22a4fa2d11b",
+      "width": 2170,
+      "height": 725,
+      "alpha": false
+    },
+    {
+      "file": "candidate-03.prompt.txt",
+      "bytes": 1354,
+      "sha256": "ea2cb414beab50cfc49a07d522adf220ed851848219a78bf047d6f1f69e958ca"
+    },
+    {
+      "file": "compare.html",
+      "bytes": 3507,
+      "sha256": "92ebccaa2145c4147695d9de3c39f23e491cd98cdd296109232d501e5fcb0a19"
+    },
+    {
+      "file": "preview-after.png",
+      "bytes": 2456802,
+      "sha256": "5669ac3e3722aee0f1b2c904c70d5dd553dd70fa4088bb43756fb376c10d5720",
+      "width": 1400,
+      "height": 981,
+      "alpha": false
+    },
+    {
+      "file": "preview-before.png",
+      "bytes": 2429199,
+      "sha256": "69cdf3e2eef309d88c63949b0c1ce091a0b6f3f5afe81bb9a2c8ac12ba537ea7",
+      "width": 1400,
+      "height": 981,
+      "alpha": false
+    },
+    {
+      "file": "road-strip-before.png",
+      "bytes": 228831,
+      "sha256": "ec0cd2f05cefe4011a3ff3bb9a8e3d48fbc0ec82f925bf94b8e2663a77d04c70",
+      "width": 720,
+      "height": 140,
+      "alpha": true
+    },
+    {
+      "file": "runtime-x3500-4500-before.png",
+      "bytes": 3299587,
+      "sha256": "a5c9e934f0b06081f15eedc051d00451ae1a63c04795f4dc36e0374b6fcbf685",
+      "width": 1400,
+      "height": 980,
+      "alpha": true
+    }
+  ]
+}
