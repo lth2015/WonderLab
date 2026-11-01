@@ -59,20 +59,18 @@ export const SPOTS = {
  * into the street, and kept clear of the people the story is about. A fixed
  * pattern, so the street looks the same on every visit.
  */
-const CROWD_IDS: SpriteId[] = [
-  'crowd1-merchant', 'crowd2-samurai', 'crowd1-parasol', 'crowd2-apprentice',
-  'crowd1-porter', 'crowd2-fishmonger', 'crowd1-monk', 'crowd2-elder',
+// Each silhouette appears once in the entire roll. Curated road positions
+// replace the old eight-sprite cycle (~40 copies at 300-unit intervals).
+export const CROWD: { id: SpriteId; x: number; y: number; flip: boolean }[] = [
+  { id: 'crowd2-samurai', x: 880, y: 612, flip: false },
+  { id: 'crowd2-elder', x: 2300, y: 610, flip: true },
+  { id: 'crowd1-monk', x: 3750, y: 608, flip: false },
+  { id: 'crowd2-fishmonger', x: 5650, y: 610, flip: true },
+  { id: 'crowd1-merchant', x: 8040, y: 610, flip: false },
+  { id: 'crowd2-apprentice', x: 9550, y: 614, flip: true },
+  { id: 'crowd1-parasol', x: 10780, y: 610, flip: false },
+  { id: 'crowd1-porter', x: 12300, y: 624, flip: true },
 ];
-export const CROWD = (() => {
-  const out: { id: SpriteId; x: number; y: number; flip: boolean }[] = [];
-  const keepClear = Object.values(SPOTS).map((p) => p.x);
-  for (let i = 0; i < 46; i++) {
-    const x = 180 + i * 300 + ((i * 137) % 120);
-    if (x < SCENE_X0 + 60 || x > 12760 || keepClear.some((k) => Math.abs(k - x) < 85)) continue;
-    out.push({ id: CROWD_IDS[(i * 3) % CROWD_IDS.length], x, y: 592 + ((i * 53) % 34), flip: i % 3 === 0 });
-  }
-  return out;
-})();
 
 /**
  * Roadside things in front of the painting. Some stand over a join where the
