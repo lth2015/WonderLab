@@ -3,6 +3,7 @@ import type { GameState } from './game';
 import manifest from './art-manifest.json';
 import { ORIGIN, PERSON_HEIGHT, ROLL_WIDTH, TILE, TILES, WORLD_HEIGHT, WORLD_WIDTH, personPosition, personPose } from './layout';
 import { WALKERS } from './walkers';
+import { MILL, Watermill } from './Watermill';
 
 const artUrl = (file: string) => `${import.meta.env.BASE_URL}art/china/${file}`;
 const people = Object.keys(CHARACTERS) as CharacterId[];
@@ -85,6 +86,8 @@ export function PaintedLandscape({ state, feedback, center, viewHalf }: { state:
       </g>
     </mask></defs>
     <RollTiles center={center} viewHalf={viewHalf}/>
+    {center + viewHalf > MILL.left - TILE && center - viewHalf < MILL.right + TILE &&
+      <Watermill running={center + viewHalf > MILL.left && center - viewHalf < MILL.right}/>}
     <g className="river-traffic">
       <PaintedBoat kind="small" x={610} y={784} width={270}/>
       <PaintedBoat kind="trader" x={470} y={1100} width={520}/>

@@ -1,0 +1,44 @@
+{
+  "source": {
+    "file": "apps/qingming-china/public/art/china/scroll/scroll-16.webp",
+    "sha256": "9dc7ec70894a01b15e0f7f1b91347f5c28022d39922c2fdd3d4567ec794a4e91",
+    "width": 1024,
+    "height": 1024
+  },
+  "generator": "image_gen.imagegen (original in-place background edit and original transparent normalized rotor)",
+  "raw_sources": {
+    "backplate": "exec-a9cffe2b-3eda-496c-a682-7dcde1a94e78.png",
+    "rotor": "exec-8440fc40-5344-4a63-a2e1-33fcdb0ce6d7.png"
+  },
+  "runtime_assets": [
+    {
+      "file": "apps/qingming-china/public/art/china/watermill/backplate-v1.webp",
+      "bytes": 41378,
+      "sha256": "e751d330a7e5dc026ed86f6f54568c243039fe1c63def85e22ddeb35eceb81d9"
+    },
+    {
+      "file": "apps/qingming-china/public/art/china/watermill/rotor-v1.webp",
+      "bytes": 111082,
+      "sha256": "0f1ade4dda758e84c054c8b843dfc7ca2adca72231bb2682a0a928b964dff063"
+    }
+  ],
+  "placement": {
+    "tile": 16,
+    "tile_scene_x": 8400,
+    "pixel_scale_x": 1.1728515625,
+    "pixel_scale_y": 1.171875,
+    "pivot_tile_px": [
+      605,
+      615
+    ],
+    "perspective_x": 0.85,
+    "period_seconds": 28,
+    "direction": "clockwise; downward flow on right"
+  },
+  "preparation": {
+    "backplate": "resize generated square to1024; crop(464,456,340,356); feather outer 4% alpha; WebP92",
+    "rotor": "resize source into544x640 ellipse; brightness .82/saturation .75; WebP90; transparent gaps retained"
+  },
+  "foreground": "original scroll-16 pixels clipped into bearing, posts, trough and near rail; no regenerated frame",
+  "water": "original painted fall clipped and overlaid with SVG downward repeating texture, splash paths and ripple ellipses"
+}

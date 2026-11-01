@@ -1,0 +1,31 @@
+{
+  "checks": [
+    {
+      "width": 390,
+      "no_first_view_assets": true,
+      "pivot_max_delta_px": 0,
+      "rotor_and_flow_move": true,
+      "offscreen_pause_and_unmount": true,
+      "app_and_live_system_reduced_motion": true,
+      "hidden_document_pauses": true,
+      "refresh_restores": true,
+      "wallet": 60,
+      "no_ordinary_save_write": true
+    },
+    {
+      "width": 1280,
+      "no_first_view_assets": true,
+      "pivot_max_delta_px": 0,
+      "rotor_and_flow_move": true,
+      "offscreen_pause_and_unmount": true,
+      "app_and_live_system_reduced_motion": true,
+      "hidden_document_pauses": true,
+      "refresh_restores": true,
+      "wallet": 60,
+      "no_ordinary_save_write": true
+    }
+  ],
+  "asset_failure_preserves_original": true,
+  "page_errors": [],
+  "device": "headless Chromium; mobile touch emulation, not physical phone"
+}
