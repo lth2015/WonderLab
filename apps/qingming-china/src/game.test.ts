@@ -10,6 +10,7 @@ const paper:Action[]=[{type:'PRESS_PAPER'},{type:'SKETCH',view:'hands'}];
 const rope:Action[]=[0,1,2].map(n=>({type:'ROPE',rope:n,target:n}));
 const boat:Action[]=[...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'deliver'}];
 const purse:Action[]=[{type:'FIND_PURSE'},{type:'EXAMINE_PURSE'},{type:'ASK',who:'he'},{type:'ASK',who:'cheng'},{type:'RETURN_PURSE',who:'chen'}];
+const countryside:Action[]=[{type:'COUNTRYSIDE_TALK'},{type:'COUNTRYSIDE_SIGNAL',signal:'wave'},{type:'COUNTRYSIDE_BOARD',plan:'steady'},{type:'COUNTRYSIDE_SKETCH'}];
 const gate:Action[]=[{type:'GATE_TALK'},{type:'GATE_LANDMARK',landmark:'silk'},{type:'GATE_WAIT',place:'eaves'},{type:'GATE_SKETCH'}];
 const harbor:Action[]=[{type:'HARBOR_TALK'},{type:'HARBOR_PLACE',place:'eaves'},{type:'HARBOR_CLEAR',move:'basket'},{type:'HARBOR_SKETCH'}];
 
@@ -26,7 +27,7 @@ describe('故事与奖励',()=>{
   it('归错人无损失，仍然可以归还陈生',()=>{const s=run([...purse.slice(0,-1),{type:'RETURN_PURSE',who:'liu'}]);expect(s.progress.quests.purse.step).toBe(3);expect(s.wallet).toBe(60);expect(reduceGame(s,{type:'RETURN_PURSE',who:'chen'}).wallet).toBe(78);});
   it('配席失败不会解锁；正确配席可以重复玩而不刷文钱',()=>{const s=run([{type:'TEA',selections:[2,0]}]);expect(s.progress.tea).toBe(false);const next=run([{type:'TEA',selections:[0,2]},{type:'TEA',selections:[0,2]}],s);expect(next.journal).toEqual(['tea-seat']);expect(next.wallet).toBe(60);});
   it('师父只能评价实际拥有的画页；未相遇时不能凭空写小结',()=>{expect(run([{type:'FAVORITE',page:'purse'},{type:'DEPART'}]).journal).toEqual([]);expect(run([...paper,{type:'FAVORITE',page:'paper-hands'},{type:'DEPART'}]).journal).toEqual(['paper-hands','master','departure']);});
-  it('十四页都能通过真实事件解锁',()=>{const s=run([...gate,...harbor,...paper,{type:'SKETCH',view:'boats'},{type:'SKETCH',view:'bridge'},...boat,{type:'REPLAY',quest:'boat'},...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'},...purse,{type:'TEA',selections:[0,2]},{type:'OBSERVE',id:'bell',page:'bridge'},{type:'OBSERVE',id:'willow',page:'willow'},{type:'OBSERVE',id:'brazier',page:'market'},{type:'FAVORITE',page:'purse'},{type:'DEPART'}]);expect(new Set(s.journal)).toEqual(new Set(PAGES.map(p=>p.id)));});
+  it('十五页都能通过真实事件解锁',()=>{const s=run([...countryside,...gate,...harbor,...paper,{type:'SKETCH',view:'boats'},{type:'SKETCH',view:'bridge'},...boat,{type:'REPLAY',quest:'boat'},...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'},...purse,{type:'TEA',selections:[0,2]},{type:'OBSERVE',id:'bell',page:'bridge'},{type:'OBSERVE',id:'willow',page:'willow'},{type:'OBSERVE',id:'brazier',page:'market'},{type:'FAVORITE',page:'purse'},{type:'DEPART'}]);expect(new Set(s.journal)).toEqual(new Set(PAGES.map(p=>p.id)));});
 });
 describe('钱包与存档边界',()=>{
   it('只能以整数文消费，余额不会低于零',()=>{const s=run(Array.from({length:20},()=>({type:'BUY',item:'tea'})));expect(s.wallet).toBe(0);expect(s.progress.purchases).toHaveLength(10);});
@@ -101,9 +102,9 @@ describe('货港相遇与十三页兼容',()=>{
   });
   it('v1旧存档保留原画册、文钱和进行中故事，仅补未开始的货港故事',()=>{
     const legacy=JSON.parse(JSON.stringify(run([...paper,...rope,{type:'TAG',tag:'tea'}])));
-    legacy.saveVersion=1;delete legacy.progress.quests.harbor;delete legacy.progress.quests.gate;
+    legacy.saveVersion=1;delete legacy.progress.quests.harbor;delete legacy.progress.quests.gate;delete legacy.progress.quests.countryside;
     const raw=JSON.stringify(legacy),s=parseSave(raw);
-    expect(s.saveVersion).toBe(3);expect(s.wallet).toBe(72);expect(s.journal).toEqual(['paper-hands']);
+    expect(s.saveVersion).toBe(4);expect(s.wallet).toBe(72);expect(s.journal).toEqual(['paper-hands']);
     expect(s.progress.quests.boat.step).toBe(2);expect(s.progress.quests.harbor).toEqual({status:'unseen',step:0});
     expect(JSON.stringify(legacy)).toBe(raw);
   });
@@ -114,7 +115,7 @@ describe('货港相遇与十三页兼容',()=>{
   });
   it('新画页可给师父看并进入小结，扩页来源仍是可到达的货港入口',()=>{
     const s=run([...harbor,{type:'FAVORITE',page:'harbor-space'},{type:'DEPART'}]);
-    expect(s.progress.favorite).toBe('harbor-space');expect(s.journal).toEqual(['harbor-space','master','departure']);expect(PAGES).toHaveLength(14);
+    expect(s.progress.favorite).toBe('harbor-space');expect(s.journal).toEqual(['harbor-space','master','departure']);expect(PAGES).toHaveLength(15);
   });
 });
 
@@ -137,10 +138,10 @@ describe('城门路条与第十四页',()=>{
   });
   it('v2旧存档只补未开始的城门故事，保留货港画页、钱包、原故事进度与设置',()=>{
     const legacy=JSON.parse(JSON.stringify(run([...harbor,...paper,...rope,{type:'TAG',tag:'tea'},{type:'SETTINGS',settings:{largeText:true,ambience:.15}}])));
-    legacy.saveVersion=2;delete legacy.progress.quests.gate;
+    legacy.saveVersion=2;delete legacy.progress.quests.gate;delete legacy.progress.quests.countryside;
     const raw=JSON.stringify(legacy),s=parseSave(raw);
-    expect(s.saveVersion).toBe(3);expect(s.progress.quests.gate).toEqual({status:'unseen',step:0});
-    const {gate:_,...quests}=s.progress.quests;
+    expect(s.saveVersion).toBe(4);expect(s.progress.quests.gate).toEqual({status:'unseen',step:0});
+    const {gate:_,countryside:__,...quests}=s.progress.quests;
     expect({...s,saveVersion:2,progress:{...s.progress,quests}}).toEqual(legacy);
     expect(JSON.stringify(legacy)).toBe(raw);
   });
@@ -153,9 +154,52 @@ describe('城门路条与第十四页',()=>{
   it('第十四页可给师父看、写入今日小记；原三故事奖励仍为54文',()=>{
     const s=run([...gate,...paper,...boat,...purse,{type:'FAVORITE',page:'gate-meeting'},{type:'DEPART'}]);
     expect(s.wallet).toBe(114);expect(s.progress.favorite).toBe('gate-meeting');expect(s.journal).toContain('master');expect(s.journal).toContain('departure');
-    expect(PAGES.at(-1)?.id).toBe('gate-meeting');
+    expect(PAGES[13]?.id).toBe('gate-meeting');
   });
   it('城门入口与既有驼队环境共用热区，不新增与烘焙人物重叠的可点击角色',()=>{
     for(const scale of [.35,.6,1])expect(pickHotspot(-5620,640,initialState(),scale)).toEqual({kind:'environment',id:'camels'});
+  });
+});
+
+describe('乡野渡口与第十五页',()=>{
+  it('每步可刷新续接，首通与重逢始终只得一页、不增加文钱',()=>{
+    let s=initialState();
+    for(const [i,a] of countryside.entries()){s=reduceGame(s,a);expect(s.progress.quests.countryside.step).toBe(i+1);s=parseSave(JSON.stringify(s));}
+    expect(s.wallet).toBe(60);expect(s.journal).toEqual(['ferry-neighbor']);expect(s.claimed).toEqual(['countryside']);
+    s=run([...countryside,{type:'REPLAY',quest:'countryside'},...countryside],s);
+    expect(s.wallet).toBe(60);expect(s.journal).toEqual(['ferry-neighbor']);expect(s.claimed).toEqual(['countryside']);expect(parseSave(JSON.stringify(s))).toEqual(s);
+  });
+  it('跳步、催促和未稳船的选择均不推进、不扣钱',()=>{
+    let s=run([{type:'COUNTRYSIDE_SKETCH'},{type:'COUNTRYSIDE_BOARD',plan:'steady'},{type:'COUNTRYSIDE_SIGNAL',signal:'wave'}]);
+    expect(s.progress.quests.countryside.step).toBe(0);
+    s=run([{type:'COUNTRYSIDE_TALK'},{type:'COUNTRYSIDE_SIGNAL',signal:'rush'},{type:'COUNTRYSIDE_SIGNAL',signal:'leave'}],s);
+    expect(s.progress.quests.countryside.step).toBe(1);
+    s=run([{type:'COUNTRYSIDE_SIGNAL',signal:'wave'},{type:'COUNTRYSIDE_BOARD',plan:'jump'},{type:'COUNTRYSIDE_BOARD',plan:'midriver'}],s);
+    expect(s.progress.quests.countryside.step).toBe(2);expect(s.wallet).toBe(60);expect(s.journal).toEqual([]);
+  });
+  it('v3旧档仅追加乡野空白故事，保留城门/货港/纸铺、理绳进度与时段设置',()=>{
+    const legacy=JSON.parse(JSON.stringify(run([...gate,...harbor,...paper,{type:'ROPE',rope:0,target:0},{type:'SETTINGS',settings:{timeChoice:'morning',largeText:true}}])));
+    legacy.saveVersion=3;delete legacy.progress.quests.countryside;
+    const raw=JSON.stringify(legacy),s=parseSave(raw);
+    expect(s.saveVersion).toBe(4);expect(s.progress.quests.countryside).toEqual({status:'unseen',step:0});
+    const {countryside:_,...quests}=s.progress.quests;
+    expect({...s,saveVersion:3,progress:{...s.progress,quests}}).toEqual(legacy);expect(JSON.stringify(legacy)).toBe(raw);
+  });
+  it('v4缺新故事、越界步骤及画页/完成/重复账本不一致均拒绝',()=>{
+    const invalid=(change:(s:Record<string,any>)=>void)=>{const s=JSON.parse(JSON.stringify(initialState()));change(s);expect(()=>parseSave(JSON.stringify(s))).toThrow();};
+    invalid(s=>delete s.progress.quests.countryside);invalid(s=>{s.progress.quests.countryside.step=5;});invalid(s=>{s.journal=['ferry-neighbor'];});invalid(s=>{s.claimed=['countryside'];});
+    const s=run(countryside);s.claimed.push('countryside');expect(()=>parseSave(JSON.stringify(s))).toThrow();
+  });
+  it('旧14页顺序保留，新页可给师父看、整理小记，原54文奖励不变',()=>{
+    const s=run([...countryside,...paper,...boat,...purse,{type:'FAVORITE',page:'ferry-neighbor'},{type:'DEPART'}]);
+    expect(PAGES[13].id).toBe('gate-meeting');expect(PAGES[14].id).toBe('ferry-neighbor');expect(s.progress.favorite).toBe('ferry-neighbor');expect(s.journal).toContain('master');expect(s.journal).toContain('departure');expect(s.wallet).toBe(114);
+  });
+  it('沿用渡船热区，农人和城门/货港热区仍各自可达',()=>{
+    for(const scale of [.35,.6,1]){
+      expect(pickHotspot(11610,805,initialState(),scale)).toEqual({kind:'environment',id:'ferry'});
+      expect(pickHotspot(11555,490,initialState(),scale)).toEqual({kind:'environment',id:'farmers'});
+      expect(pickHotspot(-5620,640,initialState(),scale)).toEqual({kind:'environment',id:'camels'});
+      expect(pickHotspot(5350,560,initialState(),scale)).toEqual({kind:'environment',id:'grain'});
+    }
   });
 });
