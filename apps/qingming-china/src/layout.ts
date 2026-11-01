@@ -51,6 +51,12 @@ export const CHAPTERS = [
   { id: 'harbor', name: '货港', x: 5400 },
   { id: 'fields', name: '乡野', x: 11400 },
 ] as const;
+/** The text guide also reaches both ends, including on phones without chapter buttons. */
+export const GUIDE_STOPS = [
+  { id: 'ferry', name: '卷首野渡', x: ROLL_MAX },
+  ...[...CHAPTERS].reverse(),
+  { id: 'lanes', name: '卷尾静巷', x: ROLL_MIN },
+] as const;
 export type ChapterId = typeof CHAPTERS[number]['id'];
 export const SCENE_CENTER = Object.fromEntries(CHAPTERS.map(c => [c.id, c.x])) as Record<ChapterId, number>;
 
