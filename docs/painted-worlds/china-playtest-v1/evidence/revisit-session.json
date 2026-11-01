@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "session_id": "1574ed30-a210-41dd-b600-08d2a943de4b",
+  "environment": "development",
+  "world_id": "qingming-china",
+  "build_id": "unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "14fe81d8-d74e-49f6-a98e-15ec5f86febe",
+      "session_id": "1574ed30-a210-41dd-b600-08d2a943de4b",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T08:56:13.560Z",
+      "elapsed_ms": 70,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "world_entered",
+      "source": "journal"
+    },
+    {
+      "event_id": "6072a6ea-0789-4ab5-8b65-b17ec91c81a4",
+      "session_id": "1574ed30-a210-41dd-b600-08d2a943de4b",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T08:56:13.560Z",
+      "elapsed_ms": 70,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "revisit",
+      "has_progress": true
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "first_session_once": true,
+  "replay_first_completion": [
+    true,
+    false
+  ],
+  "real_export_success_and_failure": true,
+  "journal_each_open": true,
+  "revisit_new_session_id": true,
+  "import_does_not_backfill": true,
+  "time_selection_persists": true,
+  "future_times_disabled": true,
+  "wallet_preserved": true,
+  "widths": [
+    360,
+    390
+  ],
+  "text_percent": 150,
+  "fixed_errors_only": true,
+  "no_new_storage_keys": true,
+  "external_requests": [],
+  "page_errors": []
+}
