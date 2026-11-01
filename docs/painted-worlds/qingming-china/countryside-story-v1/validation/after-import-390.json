@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+  "environment": "development",
+  "world_id": "qingming-china",
+  "build_id": "unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "24cb030d-21e0-4d9c-8cd2-bcea3ea51d78",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:02.303Z",
+      "elapsed_ms": 57,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "world_entered",
+      "source": "direct"
+    },
+    {
+      "event_id": "74015eb2-d97e-45e1-acb7-e4e2f2131e5f",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:02.303Z",
+      "elapsed_ms": 57,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "revisit",
+      "has_progress": true
+    },
+    {
+      "event_id": "1e2ed297-b41c-4714-9bcd-9bdf411a7c97",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:02.683Z",
+      "elapsed_ms": 437,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "first_interaction_completed",
+      "interaction_id": "countryside"
+    },
+    {
+      "event_id": "855615d3-a66a-4274-8b30-881f968afabf",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:02.711Z",
+      "elapsed_ms": 466,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "story_completed",
+      "story_id": "countryside",
+      "first_completion": true
+    },
+    {
+      "event_id": "d1f2798e-496e-4041-a9b8-6096f99e8a79",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:02.848Z",
+      "elapsed_ms": 603,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "journal_export_attempted",
+      "page_id": "ferry-neighbor",
+      "export_type": "png"
+    },
+    {
+      "event_id": "30760027-5ed6-4c18-b7a2-5df5c664fe1a",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:02.933Z",
+      "elapsed_ms": 688,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "journal_export_completed",
+      "page_id": "ferry-neighbor",
+      "export_type": "png",
+      "stage": "download_requested"
+    },
+    {
+      "event_id": "5cdf5c04-89b4-4edc-bd9b-c6b1e5aff3b9",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:02.969Z",
+      "elapsed_ms": 724,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "journal_opened",
+      "page_count": 1
+    },
+    {
+      "event_id": "1dee0220-bc72-4b46-89c8-82d1ccd3f729",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:03.271Z",
+      "elapsed_ms": 1026,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "story_started",
+      "story_id": "countryside"
+    },
+    {
+      "event_id": "bdb6aa1c-673c-4114-ab99-2e34ea474842",
+      "session_id": "f0561367-6845-4126-929c-4b373c9b4455",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T09:09:03.357Z",
+      "elapsed_ms": 1111,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "story_completed",
+      "story_id": "countryside",
+      "first_completion": false
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import type { ScrollWorld } from '../../../packages/scroll-contracts';
 
 export const WORLD: ScrollWorld = {
-  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.4.0', defaultLocale: 'zh-CN',
+  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.5.0', defaultLocale: 'zh-CN',
   scenes: [
     { id: 'bridge', bounds: { x: 0, y: 0, width: 1800, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'water' },
     { id: 'tea', bounds: { x: 1800, y: 0, width: 850, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'tea' },
@@ -33,6 +33,7 @@ export const PAGES = [
   { id: 'departure', title: '今日汴河', subtitle: '留一页给自己', caption: '走过这段河岸，我把实际发生的相遇收进画册。繁华很远，也很近。', art: 'landscape', color: '#7d8b81' },
   { id: 'harbor-space', title: '半步相让', subtitle: '货港相遇', caption: '我和杜叔把空箩收在墙边，给后来的人留出一处落担的空地。码头上让出的半步，也能安放一肩辛苦。', art: 'harbor', color: '#7c8264' },
   { id: 'gate-meeting', title: '认得归路', subtitle: '城门有约', caption: '我陪阿芦读过阿姊留下的路条：穿过城门，认准绸缎铺，在铺前檐下等候。驼队会远去，约好的地方却不会。她把路条收好，也记住了回城门的方向。', art: 'gate', color: '#718377' },
+  { id: 'ferry-neighbor', title: '这一程，不催', subtitle: '乡野渡口', caption: '我向田边挥手，告诉老邻居这一程船还在等。田伯稳好船，才迎他坐定；说起前年伤脚时，也是这位邻居替他照看菜畦。隔着一段水，人们仍记得彼此。', art: 'ferry', color: '#748271' },
 ] as const;
 export const ENVIRONMENT = [
   { id: 'willow', x: 3400, y: 250, label: '拂一拂柳枝', text: '柳梢拂过水面，落下一点新绿。', page: 'willow' },
@@ -56,5 +57,5 @@ export const ENVIRONMENT = [
   { id: 'inn', x: 7850, y: 620, label: '看看临水的客店', text: '客人倚着栏杆喝茶，门口拴着的骡子甩了甩尾巴。' },
   { id: 'mill', x: 9050, y: 800, label: '看看水磨', text: '水车慢慢转着，水从叶片上哗哗落下，磨房里传出石磨的声响。' },
   { id: 'farmers', x: 11555, y: 490, label: '看看田里的农人', text: '两位农人弯腰锄地，麦苗刚刚没过脚背。' },
-  { id: 'ferry', x: 11610, y: 805, label: '看看渡船', text: '小小的渡船载着一位客人，慢慢划向对岸。' },
+  { id: 'ferry', x: 11610, y: 805, label: '与乡野渡船人田伯交谈', text: '小小的渡船载着一位客人，慢慢划向对岸。' },
 ] as const;
