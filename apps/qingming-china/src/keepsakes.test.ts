@@ -29,6 +29,8 @@ describe('one-time digital keepsakes', () => {
     for (const state of ['unpaid', 'revoked'] as const) expect(planGiftClaim({ ...gift, state }, 'test-friend')).toEqual({ kind: 'unavailable' });
     expect(planGiftClaim({ ...gift, world_id: 'qingming-edo' }, 'test-friend')).toEqual({ kind: 'unavailable' });
     expect(planGiftClaim({ ...gift, revision: -1 }, 'test-friend')).toEqual({ kind: 'unavailable' });
+    expect(planGiftClaim({ ...gift, revision: Number.MAX_SAFE_INTEGER }, 'test-friend')).toEqual({ kind: 'unavailable' });
+    expect(planGiftClaim({ ...gift, recipient_subject: 'another-friend' }, 'test-friend')).toEqual({ kind: 'unavailable' });
     expect(planGiftClaim(gift, '')).toEqual({ kind: 'unavailable' });
     expect(planGiftClaim({ ...gift, product_id: 'unknown' }, 'test-friend')).toEqual({ kind: 'unavailable' });
   });

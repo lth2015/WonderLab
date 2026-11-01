@@ -27,8 +27,8 @@ const product = (v: unknown) => v === 'qingming-china-night-return' || souvenir(
 const purpose = inList(['self', 'gift']);
 const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
   world_entered: { source: inList(['direct', 'journal']) },
-  first_interaction_completed: { interaction_id: inList(['paper', 'boat', 'purse', 'harbor', 'tea', 'observation']), elapsed_ms: positive },
-  story_completed: { story_id: inList(['paper', 'boat', 'purse', 'harbor', 'night-lantern']), first_completion: v => typeof v === 'boolean' },
+  first_interaction_completed: { interaction_id: inList(['paper', 'boat', 'purse', 'harbor', 'gate', 'tea', 'observation']), elapsed_ms: positive },
+  story_completed: { story_id: inList(['paper', 'boat', 'purse', 'harbor', 'gate', 'night-lantern']), first_completion: v => typeof v === 'boolean' },
   journal_export_attempted: { page_id: page, export_type: inList(['png']) },
   journal_export_completed: { page_id: page, export_type: inList(['png']), stage: inList(['download_requested']) },
   share_attempted: { page_id: page, method: inList(['system', 'system_link', 'link']) },
@@ -70,7 +70,7 @@ export function createStudy(environment: string, buildId: string, receiver?: (ev
 export const study = createStudy(import.meta.env.MODE, import.meta.env.VITE_QINGMING_BUILD_ID || 'development-unversioned');
 const enteredAt = performance.now();
 export function observeProgress(before: GameState, after: GameState) {
-  const quests: QuestId[] = ['paper', 'boat', 'purse', 'harbor'];
+  const quests: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate'];
   const interaction = quests.find(id => after.progress.quests[id].step > before.progress.quests[id].step)
     ?? (after.progress.ropes.length > before.progress.ropes.length ? 'boat' : undefined)
     ?? (!before.progress.tea && after.progress.tea ? 'tea' : undefined)

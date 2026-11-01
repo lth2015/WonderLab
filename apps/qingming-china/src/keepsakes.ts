@@ -37,9 +37,9 @@ export type ClaimPlan = { kind: 'claim'; next: GiftRecord; license: 'perpetual_p
 /** Server-side rule proposal only. Commit with CAS/transaction and authenticated identity.
  * Not imported by the shop UI; it never grants access from a sample link. */
 export function planGiftClaim(record: GiftRecord, authenticatedRecipient: string): ClaimPlan {
-  if (!authenticatedRecipient.trim() || !record.gift_id || !record.buyer_subject || !Number.isSafeInteger(record.revision) || record.revision < 0 || record.world_id !== 'qingming-china' || !KEEPSAKES.some(item => item.product_id === record.product_id)) return { kind: 'unavailable' };
+  if (!authenticatedRecipient.trim() || !record.gift_id || !record.buyer_subject || !Number.isSafeInteger(record.revision) || record.revision < 0 || record.revision >= Number.MAX_SAFE_INTEGER || record.world_id !== 'qingming-china' || !KEEPSAKES.some(item => item.product_id === record.product_id)) return { kind: 'unavailable' };
   if (record.state === 'claimed') return { kind: record.recipient_subject === authenticatedRecipient ? 'already_claimed' : 'unavailable' };
-  if (record.state !== 'ready') return { kind: 'unavailable' };
+  if (record.state !== 'ready' || record.recipient_subject !== undefined) return { kind: 'unavailable' };
   return { kind: 'claim', next: { ...record, state: 'claimed', recipient_subject: authenticatedRecipient, revision: record.revision + 1 }, license: 'perpetual_personal' };
 }
 export interface KeepsakeGiftService {

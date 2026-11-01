@@ -39,6 +39,7 @@ describe('work links contain only public route fields', () => {
       expect([...url.searchParams.keys()]).toEqual(['world', 'scene', 'source']);
       expect(url.searchParams.get('scene')).toBe('harbor');
       expect(url.hash).toBe('');
+      expect(new URL(journalLink('gate-meeting', base)).searchParams.get('scene')).toBe('gate');
       expect(url.href).not.toMatch(/private|999|secret|invite/);
     }
   });

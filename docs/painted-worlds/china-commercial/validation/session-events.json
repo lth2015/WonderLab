@@ -6,9 +6,9 @@
   "dropped": 0,
   "events": [
     {
-      "event_id": "2caa8dc0-6914-4e21-9fe0-98252f816542",
+      "event_id": "6abf6551-60f1-4fdc-9ba5-a1b487263883",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:41.711Z",
+      "occurred_at": "2026-11-01T06:38:49.159Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -16,20 +16,20 @@
       "source": "journal"
     },
     {
-      "event_id": "85404e4f-27b2-441f-af0b-dbb9acb321a8",
+      "event_id": "5596673f-9214-4b33-8e05-4d8feb8780ef",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:42.305Z",
+      "occurred_at": "2026-11-01T06:38:49.755Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
       "type": "first_interaction_completed",
       "interaction_id": "paper",
-      "elapsed_ms": 643
+      "elapsed_ms": 714
     },
     {
-      "event_id": "22239371-35c3-43af-99c4-db339ceaf34a",
+      "event_id": "5c89fa35-71d5-4b96-9f94-4306708a074f",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:42.605Z",
+      "occurred_at": "2026-11-01T06:38:50.019Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -38,9 +38,9 @@
       "first_completion": true
     },
     {
-      "event_id": "92efd85a-64bc-42c4-bd44-adb9b0872648",
+      "event_id": "62d97140-1808-45f0-81fb-3f95c01a4b5d",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:42.923Z",
+      "occurred_at": "2026-11-01T06:38:50.370Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -49,9 +49,9 @@
       "export_type": "png"
     },
     {
-      "event_id": "c7f7ca7d-7d77-46b5-9ac3-6d83726a1929",
+      "event_id": "ee46cb70-c2a0-45a3-bd5c-f60694680f48",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:42.924Z",
+      "occurred_at": "2026-11-01T06:38:50.371Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -61,9 +61,9 @@
       "stage": "download_requested"
     },
     {
-      "event_id": "0a9efb0c-deea-4968-a03b-e580e23fd26d",
+      "event_id": "736a342e-0538-4f1e-bc82-66f18fd0ff93",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:43.015Z",
+      "occurred_at": "2026-11-01T06:38:50.460Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -72,9 +72,9 @@
       "method": "system"
     },
     {
-      "event_id": "b58493d0-2719-4531-8af5-45df6d9a0a75",
+      "event_id": "dd302cbb-8685-46d0-ba99-fcb6f1878b09",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:43.016Z",
+      "occurred_at": "2026-11-01T06:38:50.460Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -83,9 +83,9 @@
       "result": "invoked"
     },
     {
-      "event_id": "f146e54b-01a6-4ac9-9945-eb05b7d75d71",
+      "event_id": "d3b23556-70b4-4920-b669-9aa6427f0083",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:43.100Z",
+      "occurred_at": "2026-11-01T06:38:50.537Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -94,9 +94,9 @@
       "method": "system"
     },
     {
-      "event_id": "f8311300-46c4-4296-9565-9dfaccc5ed0c",
+      "event_id": "1b0240ac-5af7-4587-8aa1-7063480c8391",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:43.102Z",
+      "occurred_at": "2026-11-01T06:38:50.539Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -105,9 +105,9 @@
       "result": "cancelled"
     },
     {
-      "event_id": "4d068b2d-f24c-4767-8332-b3904f5997f5",
+      "event_id": "0ccc4561-34a7-46d6-802d-9b7175be609a",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:43.186Z",
+      "occurred_at": "2026-11-01T06:38:50.622Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -116,9 +116,9 @@
       "method": "link"
     },
     {
-      "event_id": "4f4134a9-80a5-45c2-a6bb-1433f89b0f9d",
+      "event_id": "105ce762-30a2-4cd1-b769-3e6237096325",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:43.186Z",
+      "occurred_at": "2026-11-01T06:38:50.622Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -127,9 +127,9 @@
       "result": "copied"
     },
     {
-      "event_id": "d8c614e4-5e6d-495d-a519-4648d0951a67",
+      "event_id": "b1b5624d-99a6-46ca-b23f-ae3c960723cc",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:43.670Z",
+      "occurred_at": "2026-11-01T06:38:51.105Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -139,9 +139,9 @@
       "placement": "album"
     },
     {
-      "event_id": "f6677b02-c297-462d-8581-dea2cf928e0c",
+      "event_id": "e56d376f-e9d6-493b-9c98-9e4632ea7de6",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:44.067Z",
+      "occurred_at": "2026-11-01T06:38:51.402Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -150,9 +150,9 @@
       "offer_version": 1
     },
     {
-      "event_id": "fd7f0693-755f-4e2b-8979-15d19bd1e3a5",
+      "event_id": "957448d3-48a0-41ce-a011-51fbd39af8a0",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:44.733Z",
+      "occurred_at": "2026-11-01T06:38:51.983Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",
@@ -161,9 +161,9 @@
       "first_completion": true
     },
     {
-      "event_id": "efaf8075-8891-4118-9705-3c16300f71ee",
+      "event_id": "dad3f381-2fcf-4fe2-a52b-96eb24f502ca",
       "schema_version": 1,
-      "occurred_at": "2026-11-01T04:41:45.399Z",
+      "occurred_at": "2026-11-01T06:38:52.583Z",
       "environment": "development",
       "world_id": "qingming-china",
       "build_id": "development-unversioned",

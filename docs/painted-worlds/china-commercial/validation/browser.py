@@ -8,7 +8,12 @@ OUT=Path('/workspace/.cloud-setup/china-commercial')
 OUT.mkdir(parents=True,exist_ok=True)
 KEY='ww:qingming-china:save:v1'
 def snapshot(page):
- return page.evaluate("async()=> (await import('/src/study.ts')).study.snapshot()")
+ if page.locator('dialog[open]').count():page.get_by_role('button',name='返回街上',exact=True).click()
+ page.get_by_role('button',name='设置',exact=True).click()
+ page.get_by_text('本次体验记录与隐私',exact=True).click()
+ with page.expect_download() as event:page.get_by_role('button',name='导出本次体验记录',exact=True).click()
+ dest=OUT/'session-export.json';event.value.save_as(str(dest))
+ return json.loads(dest.read_text())
 def save_of(page):
  return page.evaluate("JSON.parse(localStorage.getItem('"+KEY+"'))")
 def nearby_person(page,name):
@@ -117,7 +122,7 @@ with sync_playwright() as p:
  page.get_by_role('button',name='重新生成画页',exact=True).click()
  expect(page.get_by_role('button',name='保存清晰留念图',exact=True)).to_be_enabled()
  page.get_by_role('button',name='分享画页',exact=True).click()
- expect(page.get_by_text('系统图片分享不可用。可以保存清晰图片，或复制作品链接。',exact=True)).to_be_visible()
+ expect(page.get_by_text('系统分享不可用。可以保存清晰图片，或复制作品链接。',exact=True)).to_be_visible()
  page.get_by_role('button',name='复制作品链接',exact=True).click()
  expect(page.get_by_role('textbox',name='作品链接',exact=True)).to_be_visible()
  page.screenshot(path=str(OUT/'share-fallback-mobile.png'))

@@ -1,6 +1,6 @@
 import type { PageId } from './content';
 
-const sceneOf = (id: PageId) => id.startsWith('paper-') ? 'paper' : id.startsWith('river-') ? 'bridge' : id === 'harbor-space' ? 'harbor' : ['tea-seat', 'purse', 'market'].includes(id) ? 'tea' : 'bridge';
+const sceneOf = (id: PageId) => id.startsWith('paper-') ? 'paper' : id.startsWith('river-') ? 'bridge' : id === 'gate-meeting' ? 'gate' : id === 'harbor-space' ? 'harbor' : ['tea-seat', 'purse', 'market'].includes(id) ? 'tea' : 'bridge';
 
 /** Construct from a configured work URL, never forward the current query/hash. */
 export function journalLink(id: PageId, current: string, configured?: string): string {
