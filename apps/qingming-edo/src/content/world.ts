@@ -362,3 +362,22 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }
 export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);
+
+/**
+ * 通りの案内 (Codex review L02): stops along the whole roll, right (the bridge)
+ * to left (the quiet end), for players who cannot drag far, or use a keyboard.
+ * x is the camera centre in scene units. Provisional: Codex, who painted the
+ * fourteen sections, is fixing the final names and places.
+ */
+export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[] = [
+  { id: 'bridge', name: '日本橋', note: '擬宝珠の橋と、荷を積んだ舟', x: 13300 },
+  { id: 'aoba', name: '青葉屋の店先', note: '紙屋と、道具屋くれ竹', x: 12400 },
+  { id: 'teahouse', name: '茶店「喜の字」', note: '湯気の立つ茶店', x: 11500 },
+  { id: 'well', name: '小路の井戸', note: '井戸と、塀ごしの梅', x: 10450 },
+  { id: 'cloth', name: '布屋', note: '反物と、染め布の幟', x: 9150 },
+  { id: 'rice', name: '米屋の前', note: '米俵の店先', x: 7600 },
+  { id: 'kashi', name: '堀の河岸', note: '荷揚げと、小さな舟', x: 5800 },
+  { id: 'dye', name: '紺屋と桶屋', note: '藍甕と、桶の店先', x: 3800 },
+  { id: 'garden', name: '水辺の庭', note: '池と梅の庭', x: 1500 },
+  { id: 'end', name: '町はずれの川端', note: '大きな柳と縁台', x: 500 },
+];
