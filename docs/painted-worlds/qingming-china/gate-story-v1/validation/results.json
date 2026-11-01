@@ -1,0 +1,19 @@
+{
+  "widths": [
+    360,
+    390
+  ],
+  "text_size": "150%",
+  "keyboard": true,
+  "guide_and_text_entry": true,
+  "wrong_choices_no_advance": true,
+  "refresh_resume_step": 2,
+  "first_and_replay_wallet": 60,
+  "album_pages": 14,
+  "png_dimensions": [
+    1440,
+    1800
+  ],
+  "v2_import_preserves_progress": true,
+  "page_errors": []
+}

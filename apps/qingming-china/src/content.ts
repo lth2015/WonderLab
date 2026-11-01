@@ -1,7 +1,7 @@
 import type { ScrollWorld } from '../../../packages/scroll-contracts';
 
 export const WORLD: ScrollWorld = {
-  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.3.0', defaultLocale: 'zh-CN',
+  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.4.0', defaultLocale: 'zh-CN',
   scenes: [
     { id: 'bridge', bounds: { x: 0, y: 0, width: 1800, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'water' },
     { id: 'tea', bounds: { x: 1800, y: 0, width: 850, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'tea' },
@@ -32,6 +32,7 @@ export const PAGES = [
   { id: 'master', title: '画里有故人', subtitle: '与师父谈画', caption: '我把亲历的一页递给师父。他说：先记住一个人，画便有了温度。', art: 'brush', color: '#727665' },
   { id: 'departure', title: '今日汴河', subtitle: '留一页给自己', caption: '走过这段河岸，我把实际发生的相遇收进画册。繁华很远，也很近。', art: 'landscape', color: '#7d8b81' },
   { id: 'harbor-space', title: '半步相让', subtitle: '货港相遇', caption: '我和杜叔把空箩收在墙边，给后来的人留出一处落担的空地。码头上让出的半步，也能安放一肩辛苦。', art: 'harbor', color: '#7c8264' },
+  { id: 'gate-meeting', title: '认得归路', subtitle: '城门有约', caption: '我陪阿芦读过阿姊留下的路条：穿过城门，认准绸缎铺，在铺前檐下等候。驼队会远去，约好的地方却不会。她把路条收好，也记住了回城门的方向。', art: 'gate', color: '#718377' },
 ] as const;
 export const ENVIRONMENT = [
   { id: 'willow', x: 3400, y: 250, label: '拂一拂柳枝', text: '柳梢拂过水面，落下一点新绿。', page: 'willow' },
@@ -45,7 +46,7 @@ export const ENVIRONMENT = [
   // 长卷两端（x 为原画段的局部坐标；负数在虹桥以西、城内方向）
   { id: 'well', x: -7875, y: 785, label: '看看井台', text: '辘轳吱呀一转，一桶清水提上了井台。旁边的剃头匠正替客人修面。' },
   { id: 'silk', x: -6545, y: 610, label: '看看绸缎铺', text: '一匹匹素绢叠得齐整，掌柜拿着尺子，正替客人量布。' },
-  { id: 'camels', x: -5620, y: 640, label: '看看入城的驼队', text: '驼铃一声一声，驼队驮着货，从城门洞里慢慢走出来。' },
+  { id: 'camels', x: -5620, y: 640, label: '城门有约 · 与阿芦读路条', text: '驼铃一声一声，驼队驮着货，从城门洞里慢慢走出来。' },
   { id: 'oxcart', x: -4450, y: 790, label: '看看牛车', text: '牛车吱呀前行，满载的麻袋把车辕压得微微下沉。' },
   { id: 'dye', x: -3350, y: 560, label: '看看染坊晾布', text: '靛青与赭色的长布垂在竿上，风一过，像一道道水波。' },
   { id: 'restaurant', x: -1765, y: 450, label: '看看正店楼上', text: '楼上的客人推杯换盏，跑堂托着菜，在栏边穿来穿去。' },

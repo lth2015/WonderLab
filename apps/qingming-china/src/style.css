@@ -46,3 +46,7 @@
 .harbor-hint { font-size: var(--body-size); color: #865c43; padding: 12px; border-left: 2px solid #a78b68; }
 @media(max-width:500px) { .harbor-conversation { gap: 16px; align-items: flex-start; } .harbor-conversation > img { width: 82px; height: 155px; } }
 @media(max-width:500px) { .large-text .harbor-conversation { flex-direction: column; } .large-text .harbor-conversation > img { height: 120px; width: 80px; } }
+
+.gate-note { border: 1px solid #c6c1a8; padding: 20px; margin: 16px 0 24px; background: #eee7d5; color: #586d52; font-size: var(--body-size); line-height: 1.9; }
+.gate-note p { margin: 10px 0; }
+.gate-note small { display: block; text-align: right; }
