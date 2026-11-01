@@ -270,7 +270,7 @@ export const PAGE_TITLES: Record<string, string> = {
  * Ordered from the bridge (right) to the quiet end (left).
  */
 export const SKETCHES = [
-  { id: 'boat', spots: ['boat', 'willow'], title: '柳と荷舟', place: '橋のたもと', view: { x0: 13020, y0: 150, w: 420 }, comment: '石垣の重さと、舟の軽さ。並べると、川の流れが見えてくる。' },
+  { id: 'boat', spots: ['boat', 'willow'], title: '柳と荷舟', place: '橋のたもと', view: { x0: 13100, y0: 150, w: 420 }, comment: '石垣の重さと、舟の軽さ。並べると、川の流れが見えてくる。' },
   { id: 'well', spots: ['well', 'plum'], title: '井戸と梅', place: '小路の井戸', view: { x0: 10300, y0: 150, w: 420 }, comment: '井戸は町の台所だ。人がいなくても、人の朝が描ける。' },
   { id: 'cooper', spots: ['cooper', 'pottery'], title: '桶屋の店先', place: '桶屋と瀬戸物屋', view: { x0: 4110, y0: 150, w: 420 }, comment: '桶の箍を一本ずつ数えたな。その根気が線に出ている。' },
   { id: 'jetty', spots: ['jetty', 'willow2'], title: '河岸の小舟', place: '堀の河岸', view: { x0: 5160, y0: 130, w: 420 }, comment: '水は描かずに、杭と舟で見せる。よく分かっている。' },
