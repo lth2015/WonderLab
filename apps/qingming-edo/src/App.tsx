@@ -6,6 +6,7 @@ import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
 import { reachedTimes, TIMES, timeOf } from './engine/time';
+import { levelsOf, sound } from './engine/sound';
 import { Street, type StreetApi } from './scene/Street';
 import { Journal } from './ui/Journal';
 import { Settings } from './ui/Settings';
@@ -76,6 +77,35 @@ export function App() {
     document.documentElement.classList.toggle('rm', reduceMotion);
   }, [save.settings.textScale, reduceMotion]);
 
+  // 音: nothing until the first touch or key; levels and time of day follow the save
+  useEffect(() => {
+    const go = () => sound.unlock();
+    window.addEventListener('pointerdown', go, true);
+    window.addEventListener('keydown', go, true);
+    return () => {
+      window.removeEventListener('pointerdown', go, true);
+      window.removeEventListener('keydown', go, true);
+    };
+  }, []);
+  const levels = levelsOf(save.settings);
+  useEffect(() => sound.setLevels(levels), [levels.ambient, levels.ui, levels.music]);
+  // a page made and coins received each have their sound, beside what the screen shows
+  const pageCount = save.journal.pages.length;
+  const balance = save.wallet.balanceMinor;
+  const lastCounts = useRef({ pageCount, balance });
+  useEffect(() => {
+    const was = lastCounts.current;
+    if (pageCount > was.pageCount) sound.cue('page');
+    if (balance > was.balance) setTimeout(() => sound.cue('coin'), pageCount > was.pageCount ? 700 : 0);
+    lastCounts.current = { pageCount, balance };
+  }, [pageCount, balance]);
+  const sheetOpen = !!(panel || sketch || game);
+  const lastSheet = useRef(sheetOpen);
+  useEffect(() => {
+    if (sheetOpen !== lastSheet.current) sound.cue(sheetOpen ? 'open' : 'close');
+    lastSheet.current = sheetOpen;
+  }, [sheetOpen]);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4200);
@@ -128,12 +158,14 @@ export function App() {
       setCandidates(null);
       setHint(null);
       if (spot.kind === 'ambient') {
+        sound.cue('react');
         const id = spot.targetId;
         setReacting((r) => new Set(r).add(id));
         setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), 1400);
         setToast(AMBIENT[id] ?? null);
         return;
       }
+      sound.cue('tap');
       if (spot.kind === 'character' && !hasFlag(saveRef.current, `met_${spot.targetId}`)) {
         commit([{ type: 'setFlag', flag: `met_${spot.targetId}` }]);
       }
@@ -180,6 +212,7 @@ export function App() {
   const advance = () => {
     if (!dialogue) return;
     const n = NODES[dialogue.node];
+    sound.cue('turn');
     if (dialogue.line < linesOf(n, !!recall).length - 1) return setDialogue({ ...dialogue, line: dialogue.line + 1 });
     if (n.choices) return;
     if (n.next) return openNode(n.next);
@@ -257,6 +290,7 @@ export function App() {
 
   const spots = useMemo(() => visibleSpots(save), [save]);
   const tod = timeOf(save);
+  useEffect(() => sound.setTime(tod), [tod]);
   const reached = reachedTimes(save);
   // when a story's end moves the day on, say so once
   const lastTime = useRef(tod);
@@ -321,6 +355,7 @@ export function App() {
           zoomed={zoomed}
           onTap={onTap}
           onActivity={activity}
+          onCamera={(x) => sound.place(x)}
         />
 
         {!entered && (

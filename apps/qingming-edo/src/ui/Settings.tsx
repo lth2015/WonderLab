@@ -2,6 +2,13 @@ import { useRef, useState } from 'react';
 import type { SaveData, Settings as S } from '../contract';
 import { exportText, importText } from '../engine/save';
 import { newSave } from '../engine/state';
+import { LEVEL_STEPS, levelsOf } from '../engine/sound';
+
+const SOUND_ROWS = [
+  ['ambient', '町の音'],
+  ['ui', '操作の音'],
+  ['music', '音楽'],
+] as const;
 
 // 設定 (spec §7, §16): motion, text size, keeping one's own save file, and a
 // quiet way back to the other worlds.
@@ -22,6 +29,7 @@ export function Settings({
 }) {
   const file = useRef<HTMLInputElement>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const levels = levelsOf(save.settings);
   const set = (patch: Partial<S>) => onChange({ ...save, settings: { ...save.settings, ...patch }, updatedAt: new Date().toISOString() });
 
   const exportSave = () => {
@@ -63,7 +71,22 @@ export function Settings({
           ))}
         </div>
       </fieldset>
-      <p className="small">音はまだありません。音がなくても、すべて遊べます。</p>
+      <fieldset>
+        <legend>音</legend>
+        {SOUND_ROWS.map(([k, label]) => (
+          <div className="sound-row" key={k}>
+            <span id={`snd-${k}`}>{label}</span>
+            <div className="seg" role="group" aria-labelledby={`snd-${k}`}>
+              {LEVEL_STEPS.map((v, i) => (
+                <button type="button" key={v} aria-pressed={levels[k] === v} onClick={() => set({ sound: { ...levels, [k]: v } })}>
+                  {['切', '小', '中', '大'][i]}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        <p className="small">音がなくても、すべて遊べます。端末を消音にしていると鳴りません。</p>
+      </fieldset>
 
       <h3>記録</h3>
       <p className="small">記録はこの端末のブラウザーにだけ保存されます。別の端末や別のアドレスへは自動では移りません。</p>
