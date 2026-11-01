@@ -233,11 +233,112 @@ class SoundEngine {
       const n = 1 + Math.floor(Math.random() * 3);
       for (let i = 0; i < n; i++) this.chirp(t + i * 0.13, 3800 + Math.random() * 900);
     });
+    // far voices: calls from up and down the street, never words (Codex research:
+    // no call of 1805 Nihonbashi is recorded); busier in the morning
+    every(4000, 12000, () => {
+      if (this.levels.ambient <= 0) return;
+      const chance = busyAt(this.x) * (this.tod === 'morning' ? 0.9 : this.tod === 'noon' ? 0.6 : 0.3);
+      if (Math.random() > chance) return;
+      this.farCall();
+    });
     // music: a few notes, then a long rest
     every(18000, 42000, () => {
       if (this.levels.music <= 0) return;
       this.phrase();
     });
+  }
+
+  /**
+   * 石町の時の鐘, heard from some 600 m away (Codex, edo-sound-1805-v1): one toll
+   * and its long hum, softened by distance. A period-minded invention: no pitch,
+   * count or rhythm of the real bell is claimed. Returns whether it sounded.
+   */
+  timeBell(): boolean {
+    const ctx = this.ctx;
+    if (!ctx || !this.bus || this.levels.ambient <= 0 || ctx.state !== 'running') return false;
+    const t = ctx.currentTime + 0.05;
+    const far = ctx.createBiquadFilter();
+    far.type = 'lowpass';
+    far.frequency.value = 900;
+    far.connect(this.bus.ambient);
+    const F = 126;
+    // a temple bell's partials are not harmonic; two close tones beat slowly (the hum)
+    for (const [mul, amp, dec, det] of [
+      [0.5, 0.55, 14, 0],
+      [1, 1, 11, 0],
+      [1, 0.6, 11, 1.4],
+      [2.02, 0.4, 6, 0],
+      [2.76, 0.28, 4.5, 0],
+      [3.92, 0.14, 3, 0],
+      [5.4, 0.07, 2, 0],
+    ] as const) {
+      const o = ctx.createOscillator();
+      o.frequency.value = F * mul + det;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.09 * amp, t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+      o.connect(g).connect(far);
+      o.start(t);
+      o.stop(t + dec + 0.1);
+    }
+    // the wooden beam's knock, muffled by the distance
+    this.burst(far, t, 0.18, 260, 0.8, 0.08);
+    return true;
+  }
+
+  /** A street call far off: two to four voiced syllables through vowel-like formants, no words. */
+  private farCall(): void {
+    const ctx = this.ctx!;
+    const t0 = ctx.currentTime + 0.05;
+    const f0 = Math.random() < 0.5 ? 140 + Math.random() * 30 : 210 + Math.random() * 40;
+    const n = 2 + Math.floor(Math.random() * 3);
+    const pan = this.pan(Math.random() * 1.6 - 0.8);
+    const far = ctx.createBiquadFilter();
+    far.type = 'lowpass';
+    far.frequency.value = 1700;
+    const vol = ctx.createGain();
+    vol.gain.value = 0.035 + Math.random() * 0.02;
+    far.connect(vol).connect(pan).connect(this.bus!.ambient);
+    let t = t0;
+    for (let i = 0; i < n; i++) {
+      const last = i === n - 1;
+      const dur = last ? 0.45 + Math.random() * 0.35 : 0.16 + Math.random() * 0.14;
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      // the call rises through the syllables, and the last one is drawn out and falls
+      const f = f0 * (1 + i * 0.06);
+      o.frequency.setValueAtTime(f, t);
+      o.frequency.linearRampToValueAtTime(last ? f * 0.82 : f * 1.04, t + dur);
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(1, t + 0.03);
+      env.gain.setValueAtTime(1, t + dur * 0.7);
+      env.gain.linearRampToValueAtTime(0, t + dur);
+      // two formants, a different vowel each syllable
+      const [f1, f2] = [
+        [750, 1200],
+        [500, 900],
+        [400, 1900],
+        [650, 1500],
+      ][Math.floor(Math.random() * 4)];
+      for (const [fc, q, a] of [
+        [f1, 6, 1],
+        [f2, 8, 0.5],
+      ] as const) {
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = fc;
+        bp.Q.value = q;
+        const ga = ctx.createGain();
+        ga.gain.value = a;
+        o.connect(bp).connect(ga).connect(env);
+      }
+      env.connect(far);
+      o.start(t);
+      o.stop(t + dur + 0.05);
+      t += dur + 0.04 + Math.random() * 0.06;
+    }
   }
 
   private phrase(): void {
