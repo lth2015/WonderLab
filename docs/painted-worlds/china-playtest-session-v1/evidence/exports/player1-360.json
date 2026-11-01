@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "session_id": "1a8edc21-ddd3-44ea-ab1f-637ca5f1a303",
+  "environment": "playtest-session",
+  "world_id": "qingming-china",
+  "build_id": "unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "9fb8888d-cba7-4c4b-b6cf-b37b2d853390",
+      "session_id": "1a8edc21-ddd3-44ea-ab1f-637ca5f1a303",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:51:20.049Z",
+      "elapsed_ms": 61,
+      "environment": "playtest-session",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "world_entered",
+      "source": "direct"
+    },
+    {
+      "event_id": "0a945cfd-51e2-4a96-a418-2ffd8e5cde7b",
+      "session_id": "1a8edc21-ddd3-44ea-ab1f-637ca5f1a303",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:51:20.660Z",
+      "elapsed_ms": 671,
+      "environment": "playtest-session",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "first_interaction_completed",
+      "interaction_id": "paper"
+    },
+    {
+      "event_id": "391a69c6-8035-4622-acd7-16068158e918",
+      "session_id": "1a8edc21-ddd3-44ea-ab1f-637ca5f1a303",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:51:20.660Z",
+      "elapsed_ms": 672,
+      "environment": "playtest-session",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "story_started",
+      "story_id": "paper"
+    },
+    {
+      "event_id": "0a2d5a61-b161-463e-9ba1-e7b6512adbde",
+      "session_id": "1a8edc21-ddd3-44ea-ab1f-637ca5f1a303",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:51:20.726Z",
+      "elapsed_ms": 738,
+      "environment": "playtest-session",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "story_completed",
+      "story_id": "paper",
+      "first_completion": true
+    },
+    {
+      "event_id": "d81ae0d3-4ca7-42ca-af63-a49201757acd",
+      "session_id": "1a8edc21-ddd3-44ea-ab1f-637ca5f1a303",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:51:21.250Z",
+      "elapsed_ms": 1262,
+      "environment": "playtest-session",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "story_started",
+      "story_id": "paper"
+    },
+    {
+      "event_id": "861161b7-7f44-45ad-82cc-1c3d34a1ec3f",
+      "session_id": "1a8edc21-ddd3-44ea-ab1f-637ca5f1a303",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:51:21.310Z",
+      "elapsed_ms": 1322,
+      "environment": "playtest-session",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "story_completed",
+      "story_id": "paper",
+      "first_completion": false
+    }
+  ]
+}

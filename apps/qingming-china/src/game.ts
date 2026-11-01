@@ -2,7 +2,8 @@ import { isSaveEnvelope, type QuestStatus } from '../../../packages/scroll-contr
 import type { TimeChoice } from './time';
 import { PAGES, type PageId, type CharacterId } from './content';
 
-export const SAVE_KEY = 'ww:qingming-china:save:v1';
+import { SAVE_KEY } from './session';
+export { SAVE_KEY } from './session';
 export type QuestId = 'paper' | 'boat' | 'purse' | 'harbor' | 'gate' | 'countryside';
 type Quest = { status: QuestStatus; step: number };
 export interface GameState {

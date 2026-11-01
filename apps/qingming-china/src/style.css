@@ -62,3 +62,9 @@
 
 .countryside-conversation blockquote { margin:0; }
 @media(max-width:500px) { .large-text .countryside-conversation > img { height:150px; width:104px; } }
+
+.session-badge { position:absolute; top:12px; left:18px; z-index:5; background:#eee7d5; border:1px solid #9ba58c; padding:4px 10px; font-size:12px; color:#52674b; pointer-events:none; }
+.session-panel { margin-bottom:24px; padding:18px; border:1px solid #a8b097; background:#e3e8d2; }
+.session-panel h3 { font-size:var(--body-size); }
+.session-panel p { font-size:var(--body-size); line-height:1.8; margin:12px 0; }
+.session-panel .button-row { flex-wrap:wrap; }
