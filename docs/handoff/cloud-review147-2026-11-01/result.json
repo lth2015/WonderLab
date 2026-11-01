@@ -1,0 +1,20 @@
+{
+  "F03_settings_focus_trap_escape_restore": true,
+  "F01_rejects_unknown_page_preserves_save_no_white_screen": true,
+  "F02": {
+    "throw": {
+      "original_preserved_before_choice": true,
+      "download_original_exact": true,
+      "explicit_overwrite_works": true
+    },
+    "mismatch": {
+      "original_preserved_before_choice": true,
+      "download_original_exact": true,
+      "explicit_overwrite_works": true
+    }
+  },
+  "V04_write_notice": true,
+  "V04_getter_notice": false,
+  "F04_probe_error_link_share": true,
+  "page_errors": []
+}
