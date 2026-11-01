@@ -902,3 +902,14 @@ button[aria-pressed='true'] {
 .tod-evening .layer {
   filter: sepia(0.28) saturate(1.03) hue-rotate(-3deg) brightness(0.85) contrast(1.15);
 }
+
+/* 試遊の記録とプライバシー (Settings) */
+.playtest {
+  margin: 12px 0;
+}
+.playtest summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}

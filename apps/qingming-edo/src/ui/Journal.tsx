@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { JournalEntry, SaveData } from '../contract';
 import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage, validJournalEntry } from '../content/world';
 import { TIMES } from '../engine/time';
+import { study } from '../engine/study';
 import { replayable } from '../engine/story';
 import { PageArt, pageToPng } from '../scene/PageArt';
 import { PaintedPageScene } from '../scene/painted';
@@ -92,7 +93,8 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
 
   const download = async () => {
     const svg = big.current?.querySelector('svg');
-    if (!svg) return;
+    if (!svg || !open) return;
+    study.emit('journal_export_attempted', { page_id: open.pageId, export_type: 'png' });
     try {
       const blob = ready ?? (await pageToPng(svg));
       const url = URL.createObjectURL(blob);
@@ -103,8 +105,10 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
+      study.emit('journal_export_completed', { page_id: open.pageId, export_type: 'png', stage: 'download_requested' });
       onToast('画像を保存しました。');
     } catch {
+      study.emit('error', { code: 'postcard_export_failed' });
       onToast('画像を作れませんでした。もう一度お試しください。頁は絵巻帳に残っています。');
     }
   };
@@ -112,10 +116,13 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
   const copyLink = async () => {
     // Only the work's own address and its scene: no balance, reward or save in the link (spec §18).
     const url = workLink();
+    if (open) study.emit('share_attempted', { page_id: open.pageId, method: 'link' });
     try {
       await navigator.clipboard.writeText(url);
+      study.emit('share_result', { method: 'link', result: 'copied' });
       onToast('作品へのリンクをコピーしました。');
     } catch {
+      study.emit('share_result', { method: 'link', result: 'unavailable' });
       onToast(url);
     }
   };
@@ -135,10 +142,17 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
         /* link only */
       }
     }
+    const method = data.files ? 'system' : 'system_link';
+    study.emit('share_attempted', { page_id: open.pageId, method });
     try {
       await navigator.share(data);
+      study.emit('share_result', { method, result: 'invoked' }); // the sheet was used: not proof it reached anyone
     } catch (e) {
-      if ((e as DOMException)?.name === 'AbortError') return; // the player closed the sheet
+      if ((e as DOMException)?.name === 'AbortError') {
+        study.emit('share_result', { method, result: 'cancelled' });
+        return; // the player closed the sheet
+      }
+      study.emit('share_result', { method, result: 'failed' });
       onToast('共有できませんでした。画像を保存するか、リンクをコピーしてください。');
     }
   };
