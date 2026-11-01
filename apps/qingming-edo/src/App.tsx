@@ -306,6 +306,7 @@ export function App() {
   const reached = reachedTimes(save);
   // when a story's end moves the day on, say so once
   const lastTime = useRef(tod);
+  const bellRung = useRef(new Set<string>());
   useEffect(() => {
     if (lastTime.current === tod) return;
     const lines: string[] = [];
@@ -313,8 +314,11 @@ export function App() {
       const line = TIMES.find((t) => t.id === tod)!.arrive;
       if (line) lines.push(line);
     }
-    // 石町の時の鐘 marks the arrival of 朝 and 夕, once, from far off (shown as words too)
-    if (tod === 'morning' || tod === 'evening') {
+    // 石町の時の鐘 marks the arrival of 朝 and 夕, from far off (shown as words too).
+    // At most once per time of day in a visit: looking back and forth between
+    // times does not ring it again (Codex review of #136). Loading never rings.
+    if ((tod === 'morning' || tod === 'evening') && !bellRung.current.has(tod)) {
+      bellRung.current.add(tod);
       sound.timeBell();
       lines.push(BELL_LINE);
     }

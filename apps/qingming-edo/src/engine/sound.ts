@@ -234,7 +234,7 @@ class SoundEngine {
       for (let i = 0; i < n; i++) this.chirp(t + i * 0.13, 3800 + Math.random() * 900);
     });
     // far voices: calls from up and down the street, never words (Codex research:
-    // no call of 1805 Nihonbashi is recorded); busier in the morning
+    // the wording of 1805 Nihonbashi street calls could not be confirmed); busier in the morning
     every(4000, 12000, () => {
       if (this.levels.ambient <= 0) return;
       const chance = busyAt(this.x) * (this.tod === 'morning' ? 0.9 : this.tod === 'noon' ? 0.6 : 0.3);
