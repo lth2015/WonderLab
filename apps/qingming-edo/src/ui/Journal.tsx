@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JournalEntry, SaveData } from '../contract';
 import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage } from '../content/world';
 import { TIMES } from '../engine/time';
@@ -34,6 +34,13 @@ function comment(entry: JournalEntry): string | null {
   return k ? COMMENT[k.subject] : sk ? sk.sketch.comment : (COMMENT_BY_COMPOSITION[entry.compositionId] ?? null);
 }
 const CREDIT = '清明上河図：江戸編';
+/** The one scene a link may name (spec §16): the work's address plus ?scene=nihonbashi, nothing else. */
+export const SCENE_ID = 'nihonbashi';
+function workLink(): string {
+  const url = new URL(import.meta.env.BASE_URL, location.origin);
+  url.searchParams.set('scene', SCENE_ID);
+  return url.toString();
+}
 
 function Page({ entry, idPrefix }: { entry: JournalEntry; idPrefix: string }) {
   const k = parseKaze(entry.compositionId);
@@ -55,15 +62,42 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
   const big = useRef<HTMLDivElement>(null);
   const pages = save.journal.pages;
 
+  // The page image is made as soon as a page is opened, so the share sheet can be
+  // opened straight from the tap (iOS drops the gesture during a slow await).
+  const [png, setPng] = useState<{ pageId: string; blob: Blob } | null>(null);
+  const [pngFailed, setPngFailed] = useState(false);
+  useEffect(() => {
+    setPng(null);
+    setPngFailed(false);
+    if (!open) return;
+    let alive = true;
+    const t = setTimeout(async () => {
+      const svg = big.current?.querySelector('svg');
+      if (!svg) return;
+      try {
+        const blob = await pageToPng(svg);
+        if (alive) setPng({ pageId: open.pageId, blob });
+      } catch {
+        if (alive) setPngFailed(true);
+      }
+    }, 50);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [open]);
+  const ready = png && open && png.pageId === open.pageId ? png.blob : null;
+  const fileName = open ? `nihonbashi-hitopage-${open.pageId}.png` : '';
+
   const download = async () => {
     const svg = big.current?.querySelector('svg');
     if (!svg) return;
     try {
-      const blob = await pageToPng(svg);
+      const blob = ready ?? (await pageToPng(svg));
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `nihonbashi-hitopage-${open!.pageId}.png`;
+      a.download = fileName;
       document.body.append(a);
       a.click();
       a.remove();
@@ -75,13 +109,31 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
   };
 
   const copyLink = async () => {
-    // Only the work's own address: no balance, reward or save in the link (spec §18).
-    const url = new URL(import.meta.env.BASE_URL, location.origin).toString();
+    // Only the work's own address and its scene: no balance, reward or save in the link (spec §18).
+    const url = workLink();
     try {
       await navigator.clipboard.writeText(url);
       onToast('作品へのリンクをコピーしました。');
     } catch {
       onToast(url);
+    }
+  };
+
+  // 共有 (spec §18): the device's own share sheet, with the page image where it can carry files.
+  // Where there is none, the save and copy buttons stay. Cancelling is not an error.
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const share = async () => {
+    if (!open) return;
+    const data: ShareData = { title: '日本橋、ひと頁', text: `「${PAGE_TITLES[open.pageId]}」 — ${CREDIT}`, url: workLink() };
+    if (ready) {
+      const file = new File([ready], fileName, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) data.files = [file];
+    }
+    try {
+      await navigator.share(data);
+    } catch (e) {
+      if ((e as DOMException)?.name === 'AbortError') return; // the player closed the sheet
+      onToast('共有できませんでした。画像を保存するか、リンクをコピーしてください。');
     }
   };
 
@@ -93,13 +145,19 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
         <div className="page-big" ref={big}>
           <Page entry={open} idPrefix="big" />
         </div>
+        {pngFailed && <p className="small">共有用の画像を作れませんでした。リンクの共有と、画像の保存（もう一度作ります）はできます。</p>}
         {said && (
           <p className="comment">
             <span className="who">宗吉</span>「{said}」
           </p>
         )}
         <div className="row">
-          <button type="button" className="primary" onClick={download}>
+          {canShare && (
+            <button type="button" className="primary" onClick={share}>
+              共有する
+            </button>
+          )}
+          <button type="button" className={canShare ? undefined : 'primary'} onClick={download}>
             画像を保存
           </button>
           <button type="button" onClick={copyLink}>

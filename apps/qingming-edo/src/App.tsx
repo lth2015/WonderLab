@@ -8,7 +8,7 @@ import { entryFor, nearby, visibleSpots } from './engine/story';
 import { reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
 import { Street, type StreetApi } from './scene/Street';
-import { Journal } from './ui/Journal';
+import { Journal, SCENE_ID } from './ui/Journal';
 import { Settings } from './ui/Settings';
 import { Sketch } from './ui/Sketch';
 import { Wrap } from './ui/Wrap';
@@ -17,6 +17,16 @@ import { Tenugui } from './ui/Tenugui';
 import { Talk } from './ui/Talk';
 import { TALK_STORIES } from './content/talkStories';
 import { posesFor } from './scene/painted';
+
+/** A link naming a scene this work does not have opens the start screen with a note (spec §16). */
+function unknownScene(): boolean {
+  try {
+    const scene = new URLSearchParams(location.search).get('scene');
+    return scene !== null && scene !== SCENE_ID;
+  } catch {
+    return false;
+  }
+}
 
 /** Shown whenever the time bell is rung, so the event is there without sound too. */
 const BELL_LINE = '石町のほうから、時の鐘が遠く聞こえてくる。';
@@ -64,7 +74,9 @@ export function App() {
       ? '記録が読めなかったため、元の記録を退避して最初から始めます。'
       : boot.kind === 'newer'
         ? '新しい版の記録が見つかりました。その記録は書き換えず、この画面では保存しません。'
-        : null,
+        : unknownScene()
+          ? 'リンクの場面は見つかりませんでした。日本橋北詰の通りから始めます。'
+          : null,
   );
   const [reacting, setReacting] = useState<Set<string>>(new Set());
   const [hint, setHint] = useState<string | null>(null);
