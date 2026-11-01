@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "session_id": "817acb2e-8d62-41c3-a4f1-0a0a620f8b21",
+  "environment": "playtest-session",
+  "world_id": "qingming-china",
+  "build_id": "unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "3b4131de-33ac-4b6b-995e-b73040460f17",
+      "session_id": "817acb2e-8d62-41c3-a4f1-0a0a620f8b21",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T12:51:21.946Z",
+      "elapsed_ms": 46,
+      "environment": "playtest-session",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "world_entered",
+      "source": "direct"
+    }
+  ]
+}
