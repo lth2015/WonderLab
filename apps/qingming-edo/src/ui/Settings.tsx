@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { SaveData, Settings as S } from '../contract';
-import { exportText, importText } from '../engine/save';
+import { exportText, importText, SAVE_KEY, SESSION_STUDY_KEY } from '../engine/save';
+import { SESSION_MODE } from '../engine/session';
 import { newSave } from '../engine/state';
 import { study } from '../engine/study';
 import { LEVEL_STEPS, levelsOf } from '../engine/sound';
@@ -13,6 +14,30 @@ const SOUND_ROWS = [
 
 // 設定 (spec §7, §16): motion, text size, keeping one's own save file, and a
 // quiet way back to the other worlds.
+/** The playtest log as a file (the player or facilitator chooses to keep it). */
+function downloadStudy() {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(study.snapshot(), null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  const snap = study.snapshot();
+  a.download = SESSION_MODE ? `qingming-edo-shiyuukai-${snap.session_id.slice(0, 8)}.json` : 'qingming-edo-shiyuu-kiroku.json';
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** 試遊会: forget this player's progress and log, and start the next one fresh. */
+function nextPlayer() {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(SESSION_STUDY_KEY);
+  } catch {
+    // storage blocked: nothing was kept anyway
+  }
+  location.replace(`${location.pathname}?session=1`);
+}
+
 const HUB_URL = (import.meta.env.VITE_EDO_HUB_URL as string | undefined) ?? 'https://want.world/';
 
 export function Settings({
@@ -35,6 +60,7 @@ export function Settings({
 }) {
   const file = useRef<HTMLInputElement>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmNext, setConfirmNext] = useState(false);
   const levels = levelsOf(save.settings);
   const set = (patch: Partial<S>) => onChange({ ...save, settings: { ...save.settings, ...patch }, updatedAt: new Date().toISOString() });
 
@@ -64,6 +90,30 @@ export function Settings({
   return (
     <div className="panel" role="dialog" aria-labelledby="settings-h">
       <h2 id="settings-h">設定</h2>
+      {SESSION_MODE && (
+        <section className="session-box" aria-labelledby="session-h">
+          <h3 id="session-h">試遊会</h3>
+          <p className="small">この画面は試遊会用です。進み具合と試遊の記録は、ふだんの記録とは別に、この端末に残ります。</p>
+          <button type="button" onClick={downloadStudy}>
+            この方の試遊の記録を書き出す
+          </button>
+          {confirmNext ? (
+            <div className="row">
+              <p className="small">この方の進み具合と試遊の記録を消して、はじめから始めます。書き出しは済みましたか。</p>
+              <button type="button" onClick={nextPlayer}>
+                消して次の方へ
+              </button>
+              <button type="button" className="ghost" onClick={() => setConfirmNext(false)}>
+                やめる
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="ghost" onClick={() => setConfirmNext(true)}>
+              次の方へ
+            </button>
+          )}
+        </section>
+      )}
       <label className="check">
         <input type="checkbox" checked={save.settings.reduceMotion} onChange={(e) => set({ reduceMotion: e.target.checked })} />
         動きを減らす
@@ -167,20 +217,11 @@ export function Settings({
       <details className="playtest">
         <summary>この回の試遊の記録とプライバシー</summary>
         <p className="small">
-          試遊の検証のため、この画面を開いている間だけ、操作の種類と時刻（入場、最初の操作、小話の開始と完了、絵巻帳、保存、共有、再訪、エラー）を端末のメモリに残しています。名前、記録の中身、入力した文、住所などは含みません。どこへも送らず、閉じると消えます。
+          試遊の検証のため、この画面を開いている間だけ、操作の種類と時刻（入場、最初の操作、小話の開始と完了、絵巻帳、保存、共有、再訪、エラー）を端末のメモリに残しています。名前、記録の中身、入力した文、住所などは含みません。{SESSION_MODE ? 'どこへも送りません。試遊会では、「次の方へ」で消すまでこの端末に残ります。' : 'どこへも送らず、閉じると消えます。'}
         </p>
         <button
           type="button"
-          onClick={() => {
-            const url = URL.createObjectURL(new Blob([JSON.stringify(study.snapshot(), null, 2)], { type: 'application/json' }));
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'qingming-edo-shiyuu-kiroku.json';
-            document.body.append(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 2000);
-          }}
+          onClick={downloadStudy}
         >
           この回の試遊の記録を書き出す
         </button>

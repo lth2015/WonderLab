@@ -53,3 +53,57 @@ describe('試遊の記録 (same schema as the China work)', () => {
     expect(r.snapshot().events.map((e) => e.type)).toEqual(['guide_stop_selected']);
   });
 });
+
+describe('試遊会 (?session=1): the log survives a reload', () => {
+  const memStore = () => {
+    const m = new Map<string, string>();
+    return { m, getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
+  };
+
+  it('restores the same player, events and once-keys after a reload', () => {
+    const store = memStore();
+    let t = 1_000;
+    const wall = () => t;
+    const a = createStudy('playtest-session', 'b1', () => 0, { store, key: 'k' }, wall);
+    a.emit('world_entered', { source: 'direct' }, 'world-entered');
+    t = 61_000;
+    a.emit('journal_opened', { page_count: 1 });
+    // reload: a new recorder on the same key
+    t = 121_000;
+    const b = createStudy('playtest-session', 'b1', () => 0, { store, key: 'k' }, wall);
+    expect(b.snapshot().session_id).toBe(a.snapshot().session_id);
+    expect(b.emit('world_entered', { source: 'direct' }, 'world-entered')).toBe(false); // once stays once
+    b.emit('journal_opened', { page_count: 2 });
+    const ev = b.snapshot().events;
+    expect(ev.map((e) => e.type)).toEqual(['world_entered', 'journal_opened', 'journal_opened']);
+    expect(ev.map((e) => e.elapsed_ms)).toEqual([0, 60_000, 120_000]); // from this player's start
+  });
+
+  it('starts a new player when the kept log is missing or broken', () => {
+    const store = memStore();
+    store.m.set('k', '{broken');
+    const a = createStudy('playtest-session', 'b1', () => 0, { store, key: 'k' });
+    a.emit('world_entered', { source: 'direct' });
+    expect(a.snapshot().events).toHaveLength(1);
+    store.m.delete('k');
+    const b = createStudy('playtest-session', 'b1', () => 0, { store, key: 'k' });
+    expect(b.snapshot().session_id).not.toBe(a.snapshot().session_id);
+    expect(b.snapshot().events).toHaveLength(0);
+  });
+
+  it('keeps nothing in storage without 試遊会', () => {
+    const r = createStudy('production', 'b1');
+    r.emit('world_entered', { source: 'direct' });
+    expect(r.snapshot().events).toHaveLength(1); // memory only, as before
+  });
+
+  it('drops kept events that belong to another session or work', () => {
+    const store = memStore();
+    const a = createStudy('playtest-session', 'b1', () => 0, { store, key: 'k' });
+    a.emit('world_entered', { source: 'direct' });
+    const kept = JSON.parse(store.m.get('k')!);
+    kept.events.push({ ...kept.events[0], session_id: 'other' }, { ...kept.events[0], world_id: 'qingming-china' });
+    store.m.set('k', JSON.stringify(kept));
+    expect(createStudy('playtest-session', 'b1', () => 0, { store, key: 'k' }).snapshot().events).toHaveLength(1);
+  });
+});
