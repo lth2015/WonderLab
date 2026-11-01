@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "environment": "development",
+  "world_id": "qingming-china",
+  "build_id": "development-unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "2caa8dc0-6914-4e21-9fe0-98252f816542",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:41.711Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "world_entered",
+      "source": "journal"
+    },
+    {
+      "event_id": "85404e4f-27b2-441f-af0b-dbb9acb321a8",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:42.305Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "first_interaction_completed",
+      "interaction_id": "paper",
+      "elapsed_ms": 643
+    },
+    {
+      "event_id": "22239371-35c3-43af-99c4-db339ceaf34a",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:42.605Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "story_completed",
+      "story_id": "paper",
+      "first_completion": true
+    },
+    {
+      "event_id": "92efd85a-64bc-42c4-bd44-adb9b0872648",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:42.923Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "journal_export_attempted",
+      "page_id": "paper-bridge",
+      "export_type": "png"
+    },
+    {
+      "event_id": "c7f7ca7d-7d77-46b5-9ac3-6d83726a1929",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:42.924Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "journal_export_completed",
+      "page_id": "paper-bridge",
+      "export_type": "png",
+      "stage": "download_requested"
+    },
+    {
+      "event_id": "0a9efb0c-deea-4968-a03b-e580e23fd26d",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:43.015Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "share_attempted",
+      "page_id": "paper-bridge",
+      "method": "system"
+    },
+    {
+      "event_id": "b58493d0-2719-4531-8af5-45df6d9a0a75",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:43.016Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "share_result",
+      "method": "system",
+      "result": "invoked"
+    },
+    {
+      "event_id": "f146e54b-01a6-4ac9-9945-eb05b7d75d71",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:43.100Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "share_attempted",
+      "page_id": "paper-bridge",
+      "method": "system"
+    },
+    {
+      "event_id": "f8311300-46c4-4296-9565-9dfaccc5ed0c",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:43.102Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "share_result",
+      "method": "system",
+      "result": "cancelled"
+    },
+    {
+      "event_id": "4d068b2d-f24c-4767-8332-b3904f5997f5",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:43.186Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "share_attempted",
+      "page_id": "paper-bridge",
+      "method": "link"
+    },
+    {
+      "event_id": "4f4134a9-80a5-45c2-a6bb-1433f89b0f9d",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:43.186Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "share_result",
+      "method": "link",
+      "result": "copied"
+    },
+    {
+      "event_id": "d8c614e4-5e6d-495d-a519-4648d0951a67",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:43.670Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "offer_viewed",
+      "product_id": "qingming-china-night-return",
+      "offer_version": 1,
+      "placement": "album"
+    },
+    {
+      "event_id": "f6677b02-c297-462d-8581-dea2cf928e0c",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:44.067Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "interest_registered",
+      "product_id": "qingming-china-night-return",
+      "offer_version": 1
+    },
+    {
+      "event_id": "fd7f0693-755f-4e2b-8979-15d19bd1e3a5",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:44.733Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "story_completed",
+      "story_id": "night-lantern",
+      "first_completion": true
+    },
+    {
+      "event_id": "efaf8075-8891-4118-9705-3c16300f71ee",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T04:41:45.399Z",
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "development-unversioned",
+      "type": "story_completed",
+      "story_id": "night-lantern",
+      "first_completion": false
+    }
+  ]
+}

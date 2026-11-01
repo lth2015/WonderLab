@@ -21,7 +21,6 @@ export function PostcardActions({ game, id, art, back }: { game: GameState; id: 
     });
     return () => { active = false; };
     // Each mounted page owns one prepared image; a retry never changes the save.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, retry]);
 
   const save = () => {
@@ -50,7 +49,9 @@ export function PostcardActions({ game, id, art, back }: { game: GameState; id: 
     if (!image || sharing) return;
     study.emit('share_attempted', { page_id: id, method: 'system' });
     const file = new File([image.blob], image.name, { type: 'image/png' });
-    if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
+    let supported = false;
+    try { supported = typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] }) === true; } catch { /* platform cannot share files */ }
+    if (!supported) {
       study.emit('share_result', { method: 'system', result: 'unavailable' });
       setMessage('系统图片分享不可用。可以保存清晰图片，或复制作品链接。');
       return;

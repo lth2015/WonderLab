@@ -4,7 +4,7 @@ import { study } from './study';
 
 /** A playable concept study; no entitlement claim and no writes to the free save. */
 export function NightStudy({ placement }: { placement: 'album' | 'summary' }) {
-  const root = useRef<HTMLElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   const [opened, setOpened] = useState(false);
   const [step, setStep] = useState(0);
   const [hint, setHint] = useState('');
@@ -22,9 +22,11 @@ export function NightStudy({ placement }: { placement: 'album' | 'summary' }) {
     study.emit('interest_registered', { product_id: NIGHT_RETURN.product_id, offer_version: NIGHT_RETURN.offer_version }, 'interest-night-v1');
     setInterested(true);
   };
-  return <section className="night-study" ref={root} aria-label="汴河夜归内部概念试样">
-    <p className="section-note">内部概念试样 · 开发中 · {priceLabel(NIGHT_RETURN)}</p>
-    <h3>{NIGHT_RETURN.title}</h3><p>{NIGHT_RETURN.description}</p>
+  return <section className="night-study" aria-label="汴河夜归内部概念试样">
+    <div ref={root}>
+      <p className="section-note">内部概念试样 · 开发中 · {priceLabel(NIGHT_RETURN)}</p>
+      <h3>{NIGHT_RETURN.title}</h3><p>{NIGHT_RETURN.description}</p>
+    </div>
     <p className="fine-print">拟议续篇：3—5 段新故事，当前仅有下方的一段交互小样。画面复用白日素材试调夜色，尚非正式续篇美术。</p>
     {!opened ? <button className="secondary-button" onClick={() => setOpened(true)}>试走一段《桥边留一盏》</button> : <div className="night-scene">
       <img src={`${import.meta.env.BASE_URL}art/china/scroll/scroll-00.webp`} alt="复用现有河岸画面作夜色试样" />

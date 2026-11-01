@@ -10,8 +10,8 @@ export const NIGHT_RETURN: Product = {
   offer_version: 1, price: null, availability: 'internal',
 };
 export const CONTENT_PACKS = [
-  { id: 'qingming-china-free', version: 2, access: 'free', scenes: ['paper', 'bridge', 'tea', 'harbor'], stories: ['paper', 'boat', 'purse', 'harbor'], dependencies: [], art_status: 'existing-original-art' },
-  { id: NIGHT_RETURN.content_pack_id, version: 1, access: 'preview', scenes: ['night-landing'], stories: ['night-lantern'], dependencies: ['qingming-china-free'], art_status: 'reused-daylight-study-not-final' },
+  { id: 'qingming-china-free', version: 2, access: 'free', scenes: ['paper', 'bridge', 'tea', 'harbor'], stories: ['paper', 'boat', 'purse', 'harbor'], dependencies: [], art_status: 'existing-original-art', rights_status: 'see-existing-asset-register' },
+  { id: NIGHT_RETURN.content_pack_id, version: 1, access: 'preview', scenes: ['night-landing'], stories: ['night-lantern'], dependencies: ['qingming-china-free'], art_status: 'reused-daylight-study-not-final', rights_status: 'commercial-release-review-pending' },
 ] as const;
 export function priceLabel(product: Product): string {
   if (!product.price || !Number.isSafeInteger(product.price.amount_minor) || product.price.amount_minor <= 0) return '价格待定，尚未发售';

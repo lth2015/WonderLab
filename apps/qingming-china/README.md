@@ -33,3 +33,13 @@ npm run build:qingming
 公共 TypeScript 契约位于 `../../packages/scroll-contracts/index.ts`，与应用一起构建，不需单独安装公共包。它是待江户侧核对的初始提案，不宣称已共同冻结。
 
 详细限制、资产来源与验收记录见 `../../docs/painted-worlds/china-implementation.md`。
+
+## 画册与内部商业研究
+
+画页先在本机生成独立1440×1800 PNG，再提供保存、系统分享及复制作品链接；系统分享/剪贴板不支持时有保存/手动复制回退。生成失败不会清除存档，导出成功提示只代表已请求下载。设备相册和系统分享仍需真机检查。
+
+开发模式带 `?study=night-return`，在画册/今日小记中可玩《汴河夜归》内部小样，价格待定、尚未发售，无结账。生产构建不显示此入口。小样不改免费篇存档和奖励。
+
+设置中可以主动导出本次操作类型的内存记录，无文本/身份/钱包或自动上传，刷新清空。事件字典、目录/权益接口、素材缺口及观察表见 `../../docs/painted-worlds/china-commercial/README.md`。
+
+`VITE_QINGMING_PUBLIC_URL` 可配置本作分享用的正式HTTPS入口；未配保留当前作品目录。`VITE_QINGMING_BUILD_ID` 是可选非秘密构建标识。未修改DNS，跨子域名存档须JSON导出/导入。相对base继续支持 `/qingming/` 和独立根路径。
