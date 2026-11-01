@@ -65,6 +65,10 @@ spec:
             objectAlias: LEGAL_ENTITY_CONTACT
           - path: CATALOGUE_JSON
             objectAlias: CATALOGUE_JSON
+          # 江戸編の即興のひとこと (/api/edo/talk). Add the key to the AWS secret
+          # BEFORE applying this: a missing jmesPath entry fails the volume mount.
+          - path: TOKENSTARS_API_KEY
+            objectAlias: TOKENSTARS_API_KEY
   secretObjects:
     - secretName: wonderlab-api-runtime
       type: Opaque
@@ -95,6 +99,8 @@ spec:
           key: LEGAL_ENTITY_CONTACT
         - objectName: CATALOGUE_JSON
           key: CATALOGUE_JSON
+        - objectName: TOKENSTARS_API_KEY
+          key: TOKENSTARS_API_KEY
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -175,7 +181,8 @@ spec:
                 GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REDIRECT_URI GOOGLE_SESSION_SECRET \
                 STRIPE_API_VERSION STRIPE_PRICE_ID_INK_10 STRIPE_PRICE_ID_INK_MONTH \
                 STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET \
-                LEGAL_ENTITY_NAME LEGAL_ENTITY_CONTACT CATALOGUE_JSON; do
+                LEGAL_ENTITY_NAME LEGAL_ENTITY_CONTACT CATALOGUE_JSON \
+                TOKENSTARS_API_KEY; do
                 export "$key=$(cat "$API_RUNTIME_SECRET_DIR/$key")"
               done
               exec ./node_modules/.bin/tsx --tsconfig server/tsconfig.json server/src/index.ts
