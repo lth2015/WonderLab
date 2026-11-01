@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "base": "main@9637c35 / PR161",
+  "raw_generated_sources": {
+    "face": "exec-6d01467a-b3df-4704-82d0-5f178841ed3d.png",
+    "water": "exec-27ae8632-44a7-4b13-9ec4-97e22f277d88.png"
+  },
+  "runtime_assets": [
+    {
+      "file": "apps/qingming-china/public/art/china/watermill/backplate-v1.webp",
+      "bytes": 41378,
+      "sha256": "e751d330a7e5dc026ed86f6f54568c243039fe1c63def85e22ddeb35eceb81d9"
+    },
+    {
+      "file": "apps/qingming-china/public/art/china/watermill/face-v2.webp",
+      "bytes": 51724,
+      "sha256": "d0893958420c07bdf231b02a5316e3968fbd80887dd25576456c662cafcda8bc"
+    },
+    {
+      "file": "apps/qingming-china/public/art/china/watermill/fall-texture-v2.webp",
+      "bytes": 10216,
+      "sha256": "e31a60ae0c05e1f1f8c93014bf703cdc28b84c330e52233816b31da2ba164085"
+    },
+    {
+      "file": "apps/qingming-china/public/art/china/watermill/buckets-v2.webp",
+      "bytes": 195662,
+      "sha256": "870f9c99e043d4cec29160c04fed75a0cf0f8748b31bee79947373e263380e49"
+    }
+  ],
+  "runtime_bytes_total": 298980,
+  "build_only_material": "woodgrain-v2.webp (32x12, sampled from generated rim; not requested at runtime)",
+  "geometry": {
+    "bucket_count": 20,
+    "back_offset_tile_pixels": [
+      19,
+      -5
+    ],
+    "axis_tile_pixels": [
+      605,
+      615
+    ],
+    "perspective_x": 0.85,
+    "revolution_ms": 28000,
+    "bucket_radius_inner": 147,
+    "bucket_radius_outer": 164
+  },
+  "atlas": {
+    "frames": 42,
+    "period_ms": 1400,
+    "columns": 7,
+    "rows": 6,
+    "frame_size": [
+      180,
+      284
+    ],
+    "image_size": [
+      1260,
+      1704
+    ],
+    "scene_crop": [
+      565,
+      440,
+      225,
+      355
+    ],
+    "decoded_rgba_bytes": 8588160
+  },
+  "preparation": {
+    "face": "trim alpha, add8px padding; resize272x320 ellipse; brightness.74 saturation.6; WebP90/alpha100",
+    "wood": "crop face raw(560,55,128,48), resize32x12, same palette; used by atlas generator",
+    "water": "crop raw(320,0,420,1536), resize56x192, saturation.6 brightness.9; WebP90/alpha100",
+    "buckets": "project20 timber buckets into42 frames over18 degrees; embed wood as PNG in SVG and rasterize; pack7x6 WebP86/alpha100"
+  },
+  "motion": "CSS28s face rotation clock; small canvas crops the matching atlas frame only when its index changes, at most30fps; no per-frame React updates",
+  "water": "generated irregular painted fibers move inside fixed curved rivulet masks; original sparse paint, bucket-draining trails and waterline immersion retained",
+  "fallback": "four runtime image resources and bucket canvas must succeed before replacing the original static tile",
+  "export_scope": "current journal PNG uses separate SVG art and is unchanged; future full-scroll export should composite source assets and chosen atlas frame, not serialize the canvas foreignObject"
+}
