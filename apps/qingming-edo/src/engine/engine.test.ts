@@ -7,6 +7,7 @@ import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
 import { addPage, addRecallPage, apply, hasFlag as hasFlagFn, newSave, questState, test } from './state';
 import { entryFor, nearby, visibleSpots } from './story';
+import { reachedTimes, timeOf } from './time';
 
 const memory = () => {
   const m = new Map<string, string>();
@@ -267,6 +268,36 @@ describe('即興のひとこと', () => {
   it('talk is offered only once a story is done, never while asking for help', () => {
     expect(NODES['seita.first'].choices?.some((c) => c.talk)).toBeFalsy();
     expect(NODES['seita.done'].choices?.some((c) => c.talk)).toBe(true);
+  });
+});
+
+describe('朝・昼・夕', () => {
+  const all3 = () => {
+    let s = open(open(open(afterKaze(), 'okon.wrapped'), 'okon.carry'), 'kinji.receive');
+    return open(open(open(open(s, 'oharu.accepted'), 'kisuke.served'), 'kisuke.picked'), 'oharu.return');
+  };
+  it('moves only when a story ends', () => {
+    expect(timeOf(newSave())).toBe('morning');
+    expect(timeOf(play(newSave(), 'kaze.pressed'))).toBe('morning'); // mid-story: still morning
+    expect(timeOf(afterKaze())).toBe('noon');
+    const half = open(open(open(afterKaze(), 'okon.wrapped'), 'okon.carry'), 'kinji.receive');
+    expect(timeOf(half)).toBe('noon');
+    expect(timeOf(all3())).toBe('evening');
+  });
+  it('lets the player go back to a reached time, never forward to an unreached one', () => {
+    const s = afterKaze();
+    expect(timeOf({ ...s, settings: { ...s.settings, timeChoice: 'morning' } })).toBe('morning');
+    expect(timeOf({ ...s, settings: { ...s.settings, timeChoice: 'evening' } })).toBe('noon');
+    expect(reachedTimes(all3())).toEqual(['morning', 'noon', 'evening']);
+  });
+  it('no story waits on the time of day', () => {
+    // every entry rule reads flags and quests only, never the time
+    expect(JSON.stringify(ENTRIES)).not.toMatch(/morning|noon|evening|timeChoice/);
+  });
+  it('an old save without a time choice loads as auto', () => {
+    const old = { ...newSave(), settings: { reduceMotion: false, textScale: 1 } };
+    const r = importText(JSON.stringify(old));
+    expect(r.ok && r.save.settings.timeChoice).toBe('auto');
   });
 });
 

@@ -13,6 +13,9 @@ const GIVE_UP_MS = 10_000; // spec §12: over ~8 s, the script
 
 type Said = { text: string; live: boolean };
 
+/** Once the server says the feature is off (no key), stop asking for this visit. */
+let talkOff = false;
+
 export function Talk({ who, done, onClose }: { who: string; done: string[]; onClose(): void }) {
   const [turn, setTurn] = useState(0);
   const [said, setSaid] = useState<Said | null>(null);
@@ -24,6 +27,11 @@ export function Talk({ who, done, onClose }: { who: string; done: string[]; onCl
   useEffect(() => () => abort.current?.abort(), []);
 
   const ask = async (topic: TalkTopic) => {
+    if (talkOff) {
+      setSaid({ text: FALLBACK[who]?.[topic] ?? '……', live: false });
+      setTurn((t) => t + 1);
+      return;
+    }
     abort.current?.abort();
     const ctl = new AbortController();
     abort.current = ctl;
@@ -39,6 +47,7 @@ export function Talk({ who, done, onClose }: { who: string; done: string[]; onCl
         body: JSON.stringify({ who, topic, done, turn }),
         signal: ctl.signal,
       });
+      if (res.status === 503) talkOff = true;
       if (res.ok) {
         const j = (await res.json()) as { line?: unknown };
         if (typeof j.line === 'string' && j.line) out = { text: j.line, live: true };

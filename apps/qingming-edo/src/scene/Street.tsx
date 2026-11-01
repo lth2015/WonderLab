@@ -19,6 +19,8 @@ export interface StreetProps {
   interactive: boolean;
   /** A conversation is open: lift the street so the people stay above the sheet (spec §7 会話). */
   talking: boolean;
+  /** 詳しく見る (spec §7): twice as close; leaving it returns to where the player was. */
+  zoomed: boolean;
   onTap(hits: HotspotDef[]): void;
   onActivity(): void;
 }
@@ -28,23 +30,41 @@ const START_X = 8560;
 const TOP = 130;
 const NEAR_H = SCENE_H + 600; // the road goes on below the picture on tall screens
 
-export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, onTap, onActivity }: StreetProps) {
+/** The scene y at the top of the view: the empty sky is cut at zoom 1; close up, the street stays in the middle. */
+function topFor(zoom: number, s: number, h: number): number {
+  if (zoom === 1) return TOP;
+  const viewH = h / s;
+  return Math.max(0, Math.min(SCENE_H - viewH, ZOOM_FOCUS_Y - viewH * 0.55));
+}
+
+/** Close-up: how much nearer, and the height (scene units) kept near the middle of the view. */
+const ZOOM = 2;
+const ZOOM_FOCUS_Y = 470;
+
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity }: StreetProps) {
   const box = useRef<HTMLDivElement>(null);
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const cam = useRef<number | null>(null); // left edge, scene units
   const size = useRef({ w: 0, h: 0, scale: 1 });
   const anim = useRef(0);
   const [scale, setScale] = useState(1);
+  const base = useRef(1); // scale at zoom 1
+  const top = useRef(TOP); // scene y at the top of the view
+  const zoomNow = useRef(1);
+  const savedCenter = useRef<number | null>(null);
   // sections drawn: the ones in view and one either side (loaded by section, decision #14)
   const [sections, setSections] = useState<[number, number]>([7, 8]);
 
   const paint = useCallback(() => {
     const s = size.current.scale;
     const x = cam.current ?? 0;
-    if (box.current) box.current.dataset.cam = x.toFixed(1); // read by the browser checks
+    if (box.current) {
+      box.current.dataset.cam = x.toFixed(1); // read by the browser checks
+      box.current.dataset.top = top.current.toFixed(1);
+    }
     SCENE.layers.forEach((l, i) => {
       const el = layers.current[i];
-      if (el) el.style.transform = `translate3d(${-x * l.depth * s}px,${-TOP * s}px,0) scale(${s})`;
+      if (el) el.style.transform = `translate3d(${-x * l.depth * s}px,${-top.current * s}px,0) scale(${s})`;
     });
   }, []);
 
@@ -68,8 +88,10 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
       // Fill the height on wide screens; on a phone keep about 560 units of
       // street in view (about 400 units: the painted section rewards a closer look) (the paper shop, its clerk and the master together)
       // and let the road continue below the picture.
-      const s = Math.max(0.5, Math.min(h / (SCENE_H - TOP), w / 340));
+      base.current = Math.max(0.5, Math.min(h / (SCENE_H - TOP), w / 340));
+      const s = base.current * zoomNow.current;
       size.current = { w, h, scale: s };
+      top.current = topFor(zoomNow.current, s, h);
       setScale(s);
       // First view: by the bridge on the right, where the scroll begins,
       // with the paper shop in sight.
@@ -80,6 +102,42 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     ro.observe(el);
     return () => ro.disconnect();
   }, [setCam]);
+
+  // 詳しく見る: scale, top and the centre move together over ≤300 ms
+  useEffect(() => {
+    const target = zoomed ? ZOOM : 1;
+    if (target === zoomNow.current) return;
+    cancelAnimationFrame(anim.current);
+    const { w, h } = size.current;
+    const s0 = size.current.scale;
+    const top0 = top.current;
+    const c0 = (cam.current ?? 0) + w / s0 / 2;
+    if (zoomed) savedCenter.current = c0;
+    const c1 = zoomed ? c0 : (savedCenter.current ?? c0);
+    const s1 = base.current * target;
+    const top1 = topFor(target, s1, h);
+    zoomNow.current = target;
+    const apply = (k: number) => {
+      const e = 1 - (1 - k) ** 3;
+      const s = s0 + (s1 - s0) * e;
+      size.current = { ...size.current, scale: s };
+      top.current = top0 + (top1 - top0) * e;
+      setCam(c0 + (c1 - c0) * e - w / s / 2);
+    };
+    if (reduceMotion) {
+      apply(1);
+      setScale(s1);
+      return;
+    }
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / 300);
+      apply(k);
+      if (k < 1) anim.current = requestAnimationFrame(step);
+      else setScale(s1);
+    };
+    anim.current = requestAnimationFrame(step);
+  }, [zoomed, reduceMotion, setCam]);
 
   useImperativeHandle(
     apiRef,
@@ -107,7 +165,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   const toScene = (clientX: number, clientY: number) => {
     const r = box.current!.getBoundingClientRect();
     const s = size.current.scale;
-    return { x: (cam.current ?? 0) + (clientX - r.left) / s, y: TOP + (clientY - r.top) / s };
+    return { x: (cam.current ?? 0) + (clientX - r.left) / s, y: top.current + (clientY - r.top) / s };
   };
 
   const onPointerDown = (e: React.PointerEvent) => {

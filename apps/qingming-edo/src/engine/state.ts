@@ -14,7 +14,7 @@ export function newSave(now = new Date()): SaveData {
     progress: { quests: {}, flags: [], familiarity: {} },
     wallet: { currencyId: 'mon', balanceMinor: STARTING_MON, grantedRewardIds: [] },
     journal: { pages: [] },
-    settings: { reduceMotion: false, textScale: 1 },
+    settings: { reduceMotion: false, textScale: 1, timeChoice: 'auto' },
   };
 }
 
