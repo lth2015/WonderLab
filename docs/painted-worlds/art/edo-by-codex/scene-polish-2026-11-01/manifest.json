@@ -1,0 +1,59 @@
+{
+  "tool": "built-in image_gen",
+  "baseline": "b3bad08",
+  "code_commit": "c8b2de5fb801595296f4b7b7c37967f2cbea502b",
+  "world_crop": {
+    "x": 600,
+    "y": 0,
+    "width": 800,
+    "height": 700
+  },
+  "runtime_crop_px": {
+    "x": 840,
+    "y": 0,
+    "width": 1120,
+    "height": 980
+  },
+  "files": [
+    {
+      "file": "audio-check.py",
+      "bytes": 2022,
+      "sha256": "9c7cdbb8c7af092a11b8e69842f7fb0d0f6bf51e2ba3f521e94015f3d37d137f"
+    },
+    {
+      "file": "browser-check.py",
+      "bytes": 4516,
+      "sha256": "4e39b19fb8d07011a13283a864fda85dc723782d144e111f0b338b5d1acb21de"
+    },
+    {
+      "file": "canal-aligned.png",
+      "bytes": 2779017,
+      "sha256": "477fce3fb7c98aff1eeea1fb9221adcc3776cf0b52718f78b17328509a91502a"
+    },
+    {
+      "file": "canal-before.png",
+      "bytes": 2779397,
+      "sha256": "56a6554b17667e4354bbc1b1df55069f1d3e889eedfac937a01365faa232b6aa"
+    },
+    {
+      "file": "canal-generated.png",
+      "bytes": 3231933,
+      "sha256": "b61000f6a19f2f3e30e9693800b9037a79f9a1790f19db0f09d9468ec6502c4b"
+    },
+    {
+      "file": "canal.prompt.txt",
+      "bytes": 1606,
+      "sha256": "5c04f506e5cb696ee8822099a1b17519698cb67735b40a9ac3c2a8856de07620"
+    },
+    {
+      "file": "integrate.cjs",
+      "bytes": 2530,
+      "sha256": "0b737c1ff8152bd3fc3d450a2cab992005b414944f801c5f1fa600cfeb600b76"
+    },
+    {
+      "file": "patch-cuts.json",
+      "bytes": 8005,
+      "sha256": "6be110de26b337ed914348d77c33b71a668c592abd38c60fbd0415547b84584b"
+    }
+  ]
+}
