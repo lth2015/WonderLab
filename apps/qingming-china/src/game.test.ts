@@ -10,6 +10,7 @@ const paper:Action[]=[{type:'PRESS_PAPER'},{type:'SKETCH',view:'hands'}];
 const rope:Action[]=[0,1,2].map(n=>({type:'ROPE',rope:n,target:n}));
 const boat:Action[]=[...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'deliver'}];
 const purse:Action[]=[{type:'FIND_PURSE'},{type:'EXAMINE_PURSE'},{type:'ASK',who:'he'},{type:'ASK',who:'cheng'},{type:'RETURN_PURSE',who:'chen'}];
+const gate:Action[]=[{type:'GATE_TALK'},{type:'GATE_LANDMARK',landmark:'silk'},{type:'GATE_WAIT',place:'eaves'},{type:'GATE_SKETCH'}];
 const harbor:Action[]=[{type:'HARBOR_TALK'},{type:'HARBOR_PLACE',place:'eaves'},{type:'HARBOR_CLEAR',move:'basket'},{type:'HARBOR_SKETCH'}];
 
 describe('故事与奖励',()=>{
@@ -25,7 +26,7 @@ describe('故事与奖励',()=>{
   it('归错人无损失，仍然可以归还陈生',()=>{const s=run([...purse.slice(0,-1),{type:'RETURN_PURSE',who:'liu'}]);expect(s.progress.quests.purse.step).toBe(3);expect(s.wallet).toBe(60);expect(reduceGame(s,{type:'RETURN_PURSE',who:'chen'}).wallet).toBe(78);});
   it('配席失败不会解锁；正确配席可以重复玩而不刷文钱',()=>{const s=run([{type:'TEA',selections:[2,0]}]);expect(s.progress.tea).toBe(false);const next=run([{type:'TEA',selections:[0,2]},{type:'TEA',selections:[0,2]}],s);expect(next.journal).toEqual(['tea-seat']);expect(next.wallet).toBe(60);});
   it('师父只能评价实际拥有的画页；未相遇时不能凭空写小结',()=>{expect(run([{type:'FAVORITE',page:'purse'},{type:'DEPART'}]).journal).toEqual([]);expect(run([...paper,{type:'FAVORITE',page:'paper-hands'},{type:'DEPART'}]).journal).toEqual(['paper-hands','master','departure']);});
-  it('十三页都能通过真实事件解锁',()=>{const s=run([...harbor,...paper,{type:'SKETCH',view:'boats'},{type:'SKETCH',view:'bridge'},...boat,{type:'REPLAY',quest:'boat'},...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'},...purse,{type:'TEA',selections:[0,2]},{type:'OBSERVE',id:'bell',page:'bridge'},{type:'OBSERVE',id:'willow',page:'willow'},{type:'OBSERVE',id:'brazier',page:'market'},{type:'FAVORITE',page:'purse'},{type:'DEPART'}]);expect(new Set(s.journal)).toEqual(new Set(PAGES.map(p=>p.id)));});
+  it('十四页都能通过真实事件解锁',()=>{const s=run([...gate,...harbor,...paper,{type:'SKETCH',view:'boats'},{type:'SKETCH',view:'bridge'},...boat,{type:'REPLAY',quest:'boat'},...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'},...purse,{type:'TEA',selections:[0,2]},{type:'OBSERVE',id:'bell',page:'bridge'},{type:'OBSERVE',id:'willow',page:'willow'},{type:'OBSERVE',id:'brazier',page:'market'},{type:'FAVORITE',page:'purse'},{type:'DEPART'}]);expect(new Set(s.journal)).toEqual(new Set(PAGES.map(p=>p.id)));});
 });
 describe('钱包与存档边界',()=>{
   it('只能以整数文消费，余额不会低于零',()=>{const s=run(Array.from({length:20},()=>({type:'BUY',item:'tea'})));expect(s.wallet).toBe(0);expect(s.progress.purchases).toHaveLength(10);});
@@ -100,9 +101,9 @@ describe('货港相遇与十三页兼容',()=>{
   });
   it('v1旧存档保留原画册、文钱和进行中故事，仅补未开始的货港故事',()=>{
     const legacy=JSON.parse(JSON.stringify(run([...paper,...rope,{type:'TAG',tag:'tea'}])));
-    legacy.saveVersion=1;delete legacy.progress.quests.harbor;
+    legacy.saveVersion=1;delete legacy.progress.quests.harbor;delete legacy.progress.quests.gate;
     const raw=JSON.stringify(legacy),s=parseSave(raw);
-    expect(s.saveVersion).toBe(2);expect(s.wallet).toBe(72);expect(s.journal).toEqual(['paper-hands']);
+    expect(s.saveVersion).toBe(3);expect(s.wallet).toBe(72);expect(s.journal).toEqual(['paper-hands']);
     expect(s.progress.quests.boat.step).toBe(2);expect(s.progress.quests.harbor).toEqual({status:'unseen',step:0});
     expect(JSON.stringify(legacy)).toBe(raw);
   });
@@ -113,6 +114,48 @@ describe('货港相遇与十三页兼容',()=>{
   });
   it('新画页可给师父看并进入小结，扩页来源仍是可到达的货港入口',()=>{
     const s=run([...harbor,{type:'FAVORITE',page:'harbor-space'},{type:'DEPART'}]);
-    expect(s.progress.favorite).toBe('harbor-space');expect(s.journal).toEqual(['harbor-space','master','departure']);expect(PAGES).toHaveLength(13);
+    expect(s.progress.favorite).toBe('harbor-space');expect(s.journal).toEqual(['harbor-space','master','departure']);expect(PAGES).toHaveLength(14);
+  });
+});
+
+describe('城门路条与第十四页',()=>{
+  it('四步各可恢复，首通、重复点击和重逢只记一页且不改变文钱',()=>{
+    let s=initialState();
+    for(const [i,a] of gate.entries()){s=reduceGame(s,a);expect(s.progress.quests.gate.step).toBe(i+1);s=parseSave(JSON.stringify(s));}
+    expect(s.wallet).toBe(60);expect(s.journal).toEqual(['gate-meeting']);expect(s.claimed).toEqual(['gate']);
+    s=run([...gate,{type:'REPLAY',quest:'gate'},...gate],s);
+    expect(s.wallet).toBe(60);expect(s.journal).toEqual(['gate-meeting']);expect(s.claimed).toEqual(['gate']);
+    expect(parseSave(JSON.stringify(s))).toEqual(s);
+  });
+  it('越步与错误路标、错误等候方式不能推进或扣钱',()=>{
+    let s=run([{type:'GATE_SKETCH'},{type:'GATE_WAIT',place:'eaves'},{type:'GATE_LANDMARK',landmark:'silk'}]);
+    expect(s.progress.quests.gate.step).toBe(0);
+    s=run([{type:'GATE_TALK'},{type:'GATE_LANDMARK',landmark:'camels'},{type:'GATE_LANDMARK',landmark:'ferry'}],s);
+    expect(s.progress.quests.gate.step).toBe(1);
+    s=run([{type:'GATE_LANDMARK',landmark:'silk'},{type:'GATE_WAIT',place:'caravan'},{type:'GATE_WAIT',place:'wander'}],s);
+    expect(s.progress.quests.gate.step).toBe(2);expect(s.wallet).toBe(60);expect(s.journal).toEqual([]);
+  });
+  it('v2旧存档只补未开始的城门故事，保留货港画页、钱包、原故事进度与设置',()=>{
+    const legacy=JSON.parse(JSON.stringify(run([...harbor,...paper,...rope,{type:'TAG',tag:'tea'},{type:'SETTINGS',settings:{largeText:true,ambience:.15}}])));
+    legacy.saveVersion=2;delete legacy.progress.quests.gate;
+    const raw=JSON.stringify(legacy),s=parseSave(raw);
+    expect(s.saveVersion).toBe(3);expect(s.progress.quests.gate).toEqual({status:'unseen',step:0});
+    const {gate:_,...quests}=s.progress.quests;
+    expect({...s,saveVersion:2,progress:{...s.progress,quests}}).toEqual(legacy);
+    expect(JSON.stringify(legacy)).toBe(raw);
+  });
+  it('v3缺城门故事、越界、重复完成账本与画页不一致均拒绝',()=>{
+    const invalid=(change:(s:Record<string,any>)=>void)=>{const s=JSON.parse(JSON.stringify(initialState()));change(s);expect(()=>parseSave(JSON.stringify(s))).toThrow();};
+    invalid(s=>delete s.progress.quests.gate);invalid(s=>{s.progress.quests.gate.step=5;});
+    invalid(s=>{s.journal=['gate-meeting'];});invalid(s=>{s.claimed=['gate'];});
+    const complete=run(gate);complete.claimed.push('gate');expect(()=>parseSave(JSON.stringify(complete))).toThrow();
+  });
+  it('第十四页可给师父看、写入今日小记；原三故事奖励仍为54文',()=>{
+    const s=run([...gate,...paper,...boat,...purse,{type:'FAVORITE',page:'gate-meeting'},{type:'DEPART'}]);
+    expect(s.wallet).toBe(114);expect(s.progress.favorite).toBe('gate-meeting');expect(s.journal).toContain('master');expect(s.journal).toContain('departure');
+    expect(PAGES.at(-1)?.id).toBe('gate-meeting');
+  });
+  it('城门入口与既有驼队环境共用热区，不新增与烘焙人物重叠的可点击角色',()=>{
+    for(const scale of [.35,.6,1])expect(pickHotspot(-5620,640,initialState(),scale)).toEqual({kind:'environment',id:'camels'});
   });
 });
