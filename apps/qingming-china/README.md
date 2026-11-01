@@ -10,7 +10,7 @@ npm run test:qingming
 npm run build:qingming
 ```
 
-也可在本目录运行npm ci与npm run dev/test/build；可复用上层已安装依赖。默认开发端口5175，独立产物dist/。根站全量build另将作品放入dist/qingming/。
+也可在本目录运行`npm ci`、`npm run dev`、`npm test`、`npm run build`；可复用上层已安装依赖。默认开发端口5175，独立产物dist/。根站全量build另将作品放入dist/qingming/。
 
 - 入画后到纸铺压纸、选构图/题签，留下第一幅画；也能自由拖卷、方向键或通过附近文字路径探索全部人物和环境。
 - 原三故事是一纸春风、这一船日常、谁的香囊；后续货港《半步相让》、城门《认得归路》、乡野《这一程，不催》。后三段均0文奖励，原三段合计54文，初始60文。
