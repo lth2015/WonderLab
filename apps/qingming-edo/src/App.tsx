@@ -12,6 +12,8 @@ import { Sketch } from './ui/Sketch';
 import { Wrap } from './ui/Wrap';
 import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
+import { Talk } from './ui/Talk';
+import { TALK_STORIES } from './content/talkStories';
 import { posesFor } from './scene/painted';
 
 type Panel = 'journal' | 'items' | 'nearby' | 'settings' | null;
@@ -45,6 +47,7 @@ export function App() {
   const [dialogue, setDialogue] = useState<{ node: string; line: number } | null>(null);
   const [candidates, setCandidates] = useState<HotspotDef[] | null>(null);
   const [sketch, setSketch] = useState<Subject | null>(null);
+  const [talk, setTalk] = useState<string | null>(null);
   const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui'; then: string | null } | null>(null);
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
@@ -60,7 +63,7 @@ export function App() {
   const lastActivity = useRef(performance.now());
 
   const reduceMotion = save.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const busy = !!(dialogue || candidates || sketch || game || panel);
+  const busy = !!(dialogue || candidates || sketch || game || panel || talk);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--text-scale', String(save.settings.textScale));
@@ -180,6 +183,13 @@ export function App() {
   const choose = (i: number) => {
     const c = NODES[dialogue!.node].choices![i];
     if (c.effects && !recallRef.current) commit(c.effects);
+    if (c.talk) {
+      const n = NODES[dialogue!.node];
+      if (ON_CLOSE[dialogue!.node]) commit(ON_CLOSE[dialogue!.node]);
+      setDialogue(null);
+      setTalk(n.lines.find((l) => l.by !== 'narration')?.by ?? null);
+      return;
+    }
     if (c.sketch) {
       setDialogue(null);
       setSketch(c.sketch);
@@ -264,7 +274,7 @@ export function App() {
           reacting={reacting}
           reduceMotion={reduceMotion}
           interactive={entered && !busy}
-          talking={!!(dialogue || candidates)}
+          talking={!!(dialogue || candidates || talk)}
           onTap={onTap}
           onActivity={activity}
         />
@@ -362,6 +372,9 @@ export function App() {
         </div>
       )}
 
+      {talk && (
+        <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} onClose={() => setTalk(null)} />
+      )}
       {game && (() => {
         const done = () => {
           const then = game.then;

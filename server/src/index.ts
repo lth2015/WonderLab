@@ -52,7 +52,9 @@ if (config.accountsEnabled) {
   if (config.RUN_WORKER) stopWorker = startWorker(ctx);
 }
 
-const app = await buildServer({ config, chat: chatJsonWith(ts), aiReady, ctx });
+const edoChat = ts.apiKey && config.EDO_TALK_MODEL_ID ? chatJsonWith({ ...ts, model: config.EDO_TALK_MODEL_ID }) : null;
+const app = await buildServer({ config, chat: chatJsonWith(ts), aiReady, ctx, edoChat });
+if (!edoChat) app.log.warn('TOKENSTARS_API_KEY not set: 江戸編 talk falls back to its script');
 if (!aiReady) app.log.warn('TOKENSTARS_API_KEY / TOKENSTARS_MODEL_ID not set: 一句成境 stays local');
 if (!ctx) app.log.warn('DATABASE_URL not set: accounts and payments are off');
 

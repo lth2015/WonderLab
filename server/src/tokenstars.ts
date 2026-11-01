@@ -71,7 +71,8 @@ export type ChatResult =
   | { status: 'ok'; value: unknown; usage: unknown }
   | { status: 'refused' | 'failed'; code: string; requestId?: string | null };
 
-export type ChatJson = (messages: ChatMessage[], opts?: { maxTokens?: number; temperature?: number; timeoutMs?: number }) => Promise<ChatResult>;
+/** temperature: null leaves it out, for models that only take their default (e.g. gpt-6-luna). */
+export type ChatJson = (messages: ChatMessage[], opts?: { maxTokens?: number; temperature?: number | null; timeoutMs?: number }) => Promise<ChatResult>;
 
 /** One chat round trip that must come back as a JSON object. */
 export function chatJsonWith(cfg: TokenStarsConfig): ChatJson {
@@ -82,7 +83,7 @@ export function chatJsonWith(cfg: TokenStarsConfig): ChatJson {
       res = await post(
         cfg,
         cfg.chatPath,
-        { model: cfg.model, messages, temperature, max_tokens: maxTokens, response_format: { type: 'json_object' } },
+        { model: cfg.model, messages, ...(temperature === null ? {} : { temperature }), max_tokens: maxTokens, response_format: { type: 'json_object' } },
         timeoutMs,
       );
     } catch (err) {

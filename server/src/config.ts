@@ -353,6 +353,12 @@ const envSchema = z.object({
   SCENE_CACHE_SALT: z.string().default(() => randomBytes(16).toString('hex')),
   SCENE_CACHE_TTL_HOURS: decimal(24),
   SCENE_TIMEOUT_MS: decimal(2300),
+  // 清明上河図：江戸編 — 即興のひとこと (server/src/edo-talk.ts). Uses the TokenStars key;
+  // EDO_TALK_MODEL_ID empty turns it off.
+  EDO_TALK_MODEL_ID: z.string().default('gpt-6-luna'),
+  EDO_TALK_TIMEOUT_MS: decimal(9000),
+  EDO_TALK_PER_VISITOR: decimal(40),
+  EDO_TALK_DAILY: decimal(3000),
   /** Three caps: per invite per day, the whole site per day, and the project in total. */
   SCENE_DAILY_PER_INVITE: decimal(60),
   SCENE_DAILY_BUDGET_JPY: decimal(300),

@@ -15,6 +15,8 @@ export interface Choice {
   effects?: Effect[];
   /** Opens the sketch for this subject (spec §9 一頁目). */
   sketch?: Subject;
+  /** Stays to talk a little (即興のひとこと, ui/Talk.tsx). */
+  talk?: boolean;
   /** Opens a short game; on success the dialogue goes on at `next` (spec §10). */
   game?: 'wrap' | 'tea' | 'tenugui';
 }
@@ -318,6 +320,11 @@ export const NODES: Record<string, DialogueNode> = {
     lines: [{ by: 'kisuke', text: '手拭い、無事に戻ったってね。今度来たら、一杯おごるよ。' }],
   },
 };
+
+// After a story, the person can be talked with a little more (即興のひとこと).
+for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done']) {
+  NODES[id].choices = [{ label: '少し話す', talk: true }];
+}
 
 /** Where each finished story is replayed from in 回想. */
 export const RECALL_START: Record<string, string> = {

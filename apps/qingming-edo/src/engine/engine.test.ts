@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
+import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
 import { characterById, HOTSPOTS, PAGES, questById, questOfPage, SCENE_W } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
@@ -250,6 +251,22 @@ describe('回想', () => {
   it('extra pages belong to their story', () => {
     expect(questOfPage('p02-dougu-b')).toBe('dougu');
     expect(questOfPage('p01-kaze-b')).toBe('kaze');
+  });
+});
+
+describe('即興のひとこと', () => {
+  it('every person you can stay with has a scripted line for each topic and a goodbye', () => {
+    for (const n of Object.values(NODES))
+      for (const c of n.choices ?? [])
+        if (c.talk) {
+          const who = n.lines.find((l) => l.by !== 'narration')!.by;
+          for (const t of TALK_TOPICS) expect(FALLBACK[who]?.[t.id], `${who} ${t.id}`).toBeTruthy();
+          expect(TALK_CLOSE[who], who).toBeTruthy();
+        }
+  });
+  it('talk is offered only once a story is done, never while asking for help', () => {
+    expect(NODES['seita.first'].choices?.some((c) => c.talk)).toBeFalsy();
+    expect(NODES['seita.done'].choices?.some((c) => c.talk)).toBe(true);
   });
 });
 
