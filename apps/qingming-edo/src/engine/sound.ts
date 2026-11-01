@@ -59,7 +59,8 @@ class SoundEngine {
 
   unlock(): void {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended' && !document.hidden) void this.ctx.resume();
+      // 'suspended', or 'interrupted' on iOS after a call or another app's audio
+      this.resume();
       return;
     }
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -84,12 +85,18 @@ class SoundEngine {
     comp.threshold.value = -12;
     comp.ratio.value = 6;
     master.connect(comp).connect(ctx.destination);
-    const mk = () => {
+    // each bus starts at its saved level, before anything plays: a save set to 切
+    // stays silent from the first moment (a GainNode starts at 1 otherwise)
+    const mk = (k: keyof SoundLevels) => {
       const g = ctx.createGain();
+      g.gain.value = this.levels[k] ** 2;
       g.connect(master);
       return g;
     };
-    this.bus = { ambient: mk(), ui: mk(), music: mk() };
+    this.bus = { ambient: mk('ambient'), ui: mk('ui'), music: mk('music') };
+    ctx.onstatechange = () => {
+      if (ctx.state !== 'running' && ctx.state !== 'closed') this.resume();
+    };
     this.noiseBuf = this.makeNoise(ctx);
     this.buildBeds(ctx);
     this.apply();
@@ -415,10 +422,17 @@ class SoundEngine {
     for (const k of ['ambient', 'ui', 'music'] as const) this.bus[k].gain.setTargetAtTime(this.levels[k] ** 2, t, 0.05);
   }
 
+  /** Asks a stopped context to run again; a refusal (no gesture yet) waits for the next touch. */
+  private resume(): void {
+    const ctx = this.ctx;
+    if (!ctx || ctx.state === 'running' || ctx.state === 'closed' || document.hidden) return;
+    ctx.resume().catch(() => {});
+  }
+
   private onVisibility = () => {
     if (!this.ctx) return;
-    if (document.hidden) void this.ctx.suspend();
-    else void this.ctx.resume();
+    if (document.hidden) this.ctx.suspend().catch(() => {});
+    else this.resume();
   };
 }
 

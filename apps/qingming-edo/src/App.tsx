@@ -80,11 +80,11 @@ export function App() {
   // 音: nothing until the first touch or key; levels and time of day follow the save
   useEffect(() => {
     const go = () => sound.unlock();
-    window.addEventListener('pointerdown', go, true);
-    window.addEventListener('keydown', go, true);
+    // WebKit counts the end of a touch (pointerup / touchend) as the user gesture
+    const events = ['pointerdown', 'pointerup', 'touchend', 'keydown'] as const;
+    for (const e of events) window.addEventListener(e, go, true);
     return () => {
-      window.removeEventListener('pointerdown', go, true);
-      window.removeEventListener('keydown', go, true);
+      for (const e of events) window.removeEventListener(e, go, true);
     };
   }, []);
   const levels = levelsOf(save.settings);
