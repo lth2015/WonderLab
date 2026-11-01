@@ -1,5 +1,5 @@
 import type { QuestState, SaveData } from '../contract';
-import { PAGES } from '../content/world';
+import { GUIDE_STOPS, PAGES } from '../content/world';
 
 // 試遊の記録 (spec 計測: 入場、初回の有効操作、小話の開始と完了、絵巻帳の閲覧、
 // 保存の試行と結果、再訪、エラー). The same event names and fields as the China
@@ -23,6 +23,8 @@ type Events = {
   share_result: { method: Method; result: 'invoked' | 'cancelled' | 'copied' | 'unavailable' | 'failed' };
   revisit: { has_progress: boolean };
   error: { code: ErrorCode };
+  /** 通りの案内: a stop chosen (not a story step, not a first interaction). */
+  guide_stop_selected: { stop_id: string };
 };
 export type StudyEvent = { event_id: string; session_id: string; schema_version: 1; occurred_at: string; elapsed_ms: number; environment: string; world_id: 'qingming-edo'; build_id: string; type: keyof Events; [key: string]: unknown };
 
@@ -41,6 +43,7 @@ const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
   share_attempted: { page_id: page, method: inList(['system', 'system_link', 'link']) },
   share_result: { method: inList(['system', 'system_link', 'link']), result: inList(['invoked', 'cancelled', 'copied', 'unavailable', 'failed']) },
   revisit: { has_progress: (v) => typeof v === 'boolean' },
+  guide_stop_selected: { stop_id: inList(GUIDE_STOPS.map((g) => g.id)) },
   error: { code: inList(['save_read_failed', 'save_write_failed', 'save_import_failed', 'postcard_export_failed', 'audio_failed', 'unexpected_error']) },
 };
 const randomId = () => globalThis.crypto?.randomUUID?.() ?? 'event-' + Date.now() + '-' + Math.random().toString(36).slice(2);

@@ -3,10 +3,10 @@ import type { TimeChoice } from './time';
 import { PAGES, type PageId, type CharacterId } from './content';
 
 export const SAVE_KEY = 'ww:qingming-china:save:v1';
-export type QuestId = 'paper' | 'boat' | 'purse' | 'harbor' | 'gate';
+export type QuestId = 'paper' | 'boat' | 'purse' | 'harbor' | 'gate' | 'countryside';
 type Quest = { status: QuestStatus; step: number };
 export interface GameState {
-  schemaVersion: 1; worldId: 'qingming-china'; saveVersion: 3; updatedAt: string;
+  schemaVersion: 1; worldId: 'qingming-china'; saveVersion: 4; updatedAt: string;
   started: boolean; wallet: number; journal: PageId[]; claimed: QuestId[];
   progress: { quests: Record<QuestId, Quest>; ropes: number[]; clues: string[]; visited: CharacterId[]; tea: boolean; route: 'deliver' | 'observe' | null; favorite: PageId | null; purchases: string[]; observations: string[]; designs: Partial<Record<PageId, { close: boolean; decoration: string }>> };
   settings: { timeChoice?: TimeChoice; reduced: boolean; largeText: boolean; hints: boolean; sound: boolean; ambience: number; effects: number };
@@ -23,12 +23,14 @@ export type Action =
   | { type: 'HARBOR_CLEAR'; move: 'basket' | 'sacks' | 'wait' } | { type: 'HARBOR_SKETCH' }
   | { type: 'GATE_TALK' } | { type: 'GATE_LANDMARK'; landmark: 'silk' | 'camels' | 'ferry' }
   | { type: 'GATE_WAIT'; place: 'eaves' | 'caravan' | 'wander' } | { type: 'GATE_SKETCH' }
+  | { type: 'COUNTRYSIDE_TALK' } | { type: 'COUNTRYSIDE_SIGNAL'; signal: 'wave' | 'rush' | 'leave' }
+  | { type: 'COUNTRYSIDE_BOARD'; plan: 'steady' | 'jump' | 'midriver' } | { type: 'COUNTRYSIDE_SKETCH' }
   | { type: 'DEPART' } | { type: 'BUY'; item: 'tea' | 'bookmark' }
   | { type: 'SETTINGS'; settings: Partial<GameState['settings']> } | { type: 'REPLAY'; quest: QuestId };
 
 export function initialState(): GameState {
-  return { schemaVersion: 1, worldId: 'qingming-china', saveVersion: 3, updatedAt: new Date().toISOString(), started: false,
-    wallet: 60, journal: [], claimed: [], progress: { quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 }, harbor: { status: 'unseen', step: 0 }, gate: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
+  return { schemaVersion: 1, worldId: 'qingming-china', saveVersion: 4, updatedAt: new Date().toISOString(), started: false,
+    wallet: 60, journal: [], claimed: [], progress: { quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 }, harbor: { status: 'unseen', step: 0 }, gate: { status: 'unseen', step: 0 }, countryside: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
     settings: { timeChoice: 'auto', reduced: false, largeText: false, hints: true, sound: false, ambience: 0.3, effects: 0.4 } };
 }
 function addPage(s: GameState, id: PageId) { if (!s.journal.includes(id)) s.journal.push(id); }
@@ -75,6 +77,10 @@ export function reduceGame(state: GameState, action: Action): GameState {
     case 'GATE_LANDMARK': if (q.gate.step === 1 && action.landmark === 'silk') q.gate.step = 2; break;
     case 'GATE_WAIT': if (q.gate.step === 2 && action.place === 'eaves') { q.gate.step = 3; q.gate.status = 'ready'; } break;
     case 'GATE_SKETCH': if (q.gate.step === 3) { q.gate.step = 4; complete(s, 'gate', 0); addPage(s, 'gate-meeting'); } break;
+    case 'COUNTRYSIDE_TALK': if (q.countryside.step === 0) { q.countryside.step = 1; q.countryside.status = 'active'; } break;
+    case 'COUNTRYSIDE_SIGNAL': if (q.countryside.step === 1 && action.signal === 'wave') q.countryside.step = 2; break;
+    case 'COUNTRYSIDE_BOARD': if (q.countryside.step === 2 && action.plan === 'steady') { q.countryside.step = 3; q.countryside.status = 'ready'; } break;
+    case 'COUNTRYSIDE_SKETCH': if (q.countryside.step === 3) { q.countryside.step = 4; complete(s, 'countryside', 0); addPage(s, 'ferry-neighbor'); } break;
     case 'TEA': if (action.selections[0] === 0 && action.selections[1] === 2) { p.tea = true; addPage(s, 'tea-seat'); } break;
     case 'OBSERVE': if (!p.observations.includes(action.id)) p.observations.push(action.id); if (action.page) addPage(s, action.page); break;
     case 'FAVORITE': if (s.journal.includes(action.page)) { p.favorite = action.page; addPage(s, 'master'); } break;
@@ -98,8 +104,8 @@ export function boatSummary(journal: readonly PageId[]): string {
   if(delivered)return '你理好绳索、认出货签，随阿成把新茶送到了何娘手里。';
   return '你理好绳索、认出货签，站在岸边看周伯与阿成接过这一船日常。';
 }
-const questIds: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate'];
-const questSteps: Record<QuestId,number> = { paper: 2, boat: 3, purse: 4, harbor: 4, gate: 4 };
+const questIds: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate', 'countryside'];
+const questSteps: Record<QuestId,number> = { paper: 2, boat: 3, purse: 4, harbor: 4, gate: 4, countryside: 4 };
 const characterIds = ['liu', 'zhou', 'cheng', 'he', 'chen', 'shen'];
 const statuses = ['unseen', 'discovered', 'active', 'ready', 'complete', 'replay'];
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string');
@@ -122,7 +128,13 @@ export function parseSave(raw: string): GameState {
       v.progress.quests.gate = { status: 'unseen', step: 0 };
     v.saveVersion = 3;
   }
-  if (!isSaveEnvelope(v, 'qingming-china') || v.saveVersion !== 3) throw new Error('这份存档不属于汴河拾光，或版本暂不支持。');
+  // Preserve all v3 pages, claims and time settings; add only the untouched countryside story.
+  if (v?.saveVersion === 3 && v?.worldId === 'qingming-china') {
+    if (v.progress?.quests && typeof v.progress.quests === 'object' && !Object.hasOwn(v.progress.quests, 'countryside'))
+      v.progress.quests.countryside = { status: 'unseen', step: 0 };
+    v.saveVersion = 4;
+  }
+  if (!isSaveEnvelope(v, 'qingming-china') || v.saveVersion !== 4) throw new Error('这份存档不属于汴河拾光，或版本暂不支持。');
   const s = v as GameState;
   const p = s.progress;
   if (!Object.hasOwn(s.settings, 'timeChoice')) s.settings.timeChoice = 'auto';
@@ -141,7 +153,7 @@ export function parseSave(raw: string): GameState {
     throw new Error('存档内容不完整，原来的进度已保留。');
   }
   // Reject inconsistent completion ledgers, including saves that could reissue rewards.
-  if (new Set(s.claimed).size !== s.claimed.length || s.claimed.includes('harbor') !== s.journal.includes('harbor-space') || s.claimed.includes('gate') !== s.journal.includes('gate-meeting') || !questIds.every(id => {
+  if (new Set(s.claimed).size !== s.claimed.length || s.claimed.includes('harbor') !== s.journal.includes('harbor-space') || s.claimed.includes('gate') !== s.journal.includes('gate-meeting') || s.claimed.includes('countryside') !== s.journal.includes('ferry-neighbor') || !questIds.every(id => {
     const quest = p.quests[id]; const max = questSteps[id];
     return (quest.status !== 'complete' || (s.claimed.includes(id) && quest.step === max)) &&
       (quest.step !== max || (quest.status === 'complete' && s.claimed.includes(id))) &&

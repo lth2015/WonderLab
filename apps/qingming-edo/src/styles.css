@@ -914,6 +914,39 @@ button[aria-pressed='true'] {
   cursor: pointer;
 }
 
+/* 通りの案内 (近くのこと) */
+.guide {
+  margin: 12px 0;
+}
+.guide summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.guide-stops {
+  display: grid;
+  /* sized in em: two columns at normal text, one at 150% */
+  grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr));
+  gap: 8px;
+}
+.guide-stops button {
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.guide-stops button small {
+  font-size: 0.8em;
+  opacity: 0.75;
+}
+.guide-stops button[aria-current='location'] {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
 /* 難語 (spec §8): a pressable word, and its note under the line */
 .sheet button.term,
 button.term {
