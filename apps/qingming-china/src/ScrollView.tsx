@@ -3,7 +3,7 @@ import { CHARACTERS, ENVIRONMENT, type CharacterId } from './content';
 import { Icon } from './Art';
 import type { GameState } from './game';
 import { PaintedLandscape } from './PaintedArt';
-import { PERSON_HEIGHT, WORLD_HEIGHT, WORLD_WIDTH, personPosition, pickHotspot, sceneAt, type HitTarget } from './layout';
+import { ORIGIN, PERSON_HEIGHT, ROLL_MAX, ROLL_MIN, ROLL_WIDTH, WORLD_HEIGHT, personPosition, pickHotspot, regionAt, sceneAt, type HitTarget } from './layout';
 
 export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked }: {
   game: GameState; center: number; setCenter: (x: number) => void;
@@ -20,8 +20,8 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
     return () => observer.disconnect();
   }, []);
   const scale = Math.max(.28, size.height / WORLD_HEIGHT);
-  const half = Math.min(WORLD_WIDTH / 2, size.width / scale / 2);
-  const bound = (x: number) => Math.min(WORLD_WIDTH-half, Math.max(half, x));
+  const half = Math.min(ROLL_WIDTH / 2, size.width / scale / 2);
+  const bound = (x: number) => Math.min(ROLL_MAX-half, Math.max(ROLL_MIN+half, x));
   const actual = bound(center);
   const scene = sceneAt(center);
   const move = (x: number) => setCenter(bound(x));
@@ -30,7 +30,7 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
   const hit = (e: MouseEvent, own: HitTarget) => {
     let t = own;
     const r = strip.current?.getBoundingClientRect();
-    if (e.detail > 0 && r) t = pickHotspot((e.clientX - r.left) / scale, (e.clientY - r.top) / scale, game, scale) ?? own;
+    if (e.detail > 0 && r) t = pickHotspot((e.clientX - r.left) / scale - ORIGIN, (e.clientY - r.top) / scale, game, scale) ?? own;
     if (t.kind === 'person') onPerson(t.id); else onEnvironment(t.id);
   };
   return <div ref={ref} className={`scroll-view${dragging?' dragging':''}`} data-scene={scene}>
@@ -50,26 +50,26 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
       onPointerUp={() => { gesture.current=null; setDragging(false); }}
       onPointerCancel={() => { gesture.current=null; setDragging(false); }}
       onClickCapture={e=>{ if(suppress.current) { e.stopPropagation(); e.preventDefault(); suppress.current=false; } }}>
-      <div ref={strip} className="world-strip" style={{ width: WORLD_WIDTH*scale, height: WORLD_HEIGHT*scale, transform: `translate3d(${size.width/2-actual*scale}px, ${Math.min(0,(size.height-WORLD_HEIGHT*scale)/2)}px, 0)`, '--world-scale': scale } as CSSProperties}>
-        <PaintedLandscape state={game} feedback={feedback}/>
+      <div ref={strip} className="world-strip" style={{ width: ROLL_WIDTH*scale, height: WORLD_HEIGHT*scale, transform: `translate3d(${size.width/2-(actual+ORIGIN)*scale}px, ${Math.min(0,(size.height-WORLD_HEIGHT*scale)/2)}px, 0)`, '--world-scale': scale } as CSSProperties}>
+        <PaintedLandscape state={game} feedback={feedback} center={actual} viewHalf={half}/>
         {game.started && <div className="hotspots">
           {(Object.keys(CHARACTERS) as CharacterId[]).map(id => {
             const c=CHARACTERS[id];
             const {x,y}=personPosition(id,game);
             const featured=(scene==='paper'&&id==='liu')||(scene==='bridge'&&id==='zhou')||(scene==='tea'&&id==='he');
-            return <button key={id} className={`person-hotspot ${featured?'featured':''}`} style={{ left:x*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={e=>hit(e,{kind:'person',id})} aria-label={`与${c.name}交谈，${c.role}`}>
+            return <button key={id} className={`person-hotspot ${featured?'featured':''}`} style={{ left:(x+ORIGIN)*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={e=>hit(e,{kind:'person',id})} aria-label={`与${c.name}交谈，${c.role}`}>
               <span className="person-label"><span className="conversation-mark">···</span>{c.name}</span><span className="person-ring"/>
             </button>;
           })}
-          {ENVIRONMENT.map(env => <button key={env.id} className={`environment-hotspot ${feedback===env.id?'activated':''}`} style={{left:env.x*scale,top:env.y*scale}} onClick={e=>hit(e,{kind:'environment',id:env.id})} aria-label={env.label}><span className="environment-dot"/><span className="environment-label">{env.label}</span></button>)}
+          {ENVIRONMENT.map(env => <button key={env.id} className={`environment-hotspot ${feedback===env.id?'activated':''}`} style={{left:(env.x+ORIGIN)*scale,top:env.y*scale}} onClick={e=>hit(e,{kind:'environment',id:env.id})} aria-label={env.label}><span className="environment-dot"/><span className="environment-label">{env.label}</span></button>)}
         </div>}
       </div>
     </div>
     <div className="paper-edge top"/><div className="paper-edge bottom"/>
     {game.started && <>
-      <button className="pan-button pan-left" aria-label="往虹桥桥头" onClick={()=>move(actual-500)} disabled={actual<=half+1}><Icon name="back"/></button>
-      <button className="pan-button pan-right" aria-label="往河东纸铺" onClick={()=>move(actual+500)} disabled={actual>=WORLD_WIDTH-half-1}><Icon name="arrow"/></button>
-      <div className="scene-caption"><span className="scene-seal">汴京</span><div><small>沿河慢行 · 随处可停</small><p>{scene==='paper'?'河东 · 柳家纸铺':scene==='bridge'?'虹桥 · 汴河渡口':'桥畔 · 何记茶坊'}</p></div></div>
+      <button className="pan-button pan-left" aria-label="往左：虹桥与城门" onClick={()=>move(actual-800)} disabled={actual<=ROLL_MIN+half+1}><Icon name="back"/></button>
+      <button className="pan-button pan-right" aria-label="往右：纸铺与郊野" onClick={()=>move(actual+800)} disabled={actual>=ROLL_MAX-half-1}><Icon name="arrow"/></button>
+      <div className="scene-caption"><span className="scene-seal">汴京</span><div><small>沿河慢行 · 随处可停</small><p>{regionAt(actual).area} · {regionAt(actual).place}</p></div></div>
       <div className="scroll-guide" aria-hidden="true"><span>←</span> 拖动画卷，寻一段人间烟火 <span>→</span></div>
     </>}
   </div>;

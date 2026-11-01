@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { boatSummary, initialState, parseSave, reduceGame, type Action, type GameState } from './game';
-import { PERSON_HEIGHT, personPosition, pickHotspot } from './layout';
+import { CHAPTERS, PERSON_HEIGHT, REGIONS, ROLL_MAX, ROLL_MIN, TILE, TILES, personPosition, pickHotspot, sceneAt } from './layout';
+import { CHARACTERS } from './content';
 import { PAGES } from './content';
 import { isSaveEnvelope } from '../../../packages/scroll-contracts';
 
@@ -59,5 +60,19 @@ describe('审查修复',()=>{
       expect(pickHotspot(he.x,he.y-PERSON_HEIGHT*.48,g,scale)).toEqual({kind:'person',id:'he'});
     }
     expect(pickHotspot(10,10,g,1)).toBeNull();
+  });
+});
+
+describe('长卷布局',()=>{
+  it('区域首尾相接，覆盖整卷；章节都指向区域',()=>{
+    const sorted=[...REGIONS].sort((a,b)=>a.from-b.from);
+    expect(sorted[0].from).toBe(ROLL_MIN);expect(sorted[sorted.length-1].to).toBe(ROLL_MAX);
+    for(let i=1;i<sorted.length;i++)expect(sorted[i].from).toBe(sorted[i-1].to);
+    for(const c of CHAPTERS)expect(sceneAt(c.x)).toBe(c.id);
+    expect(ROLL_MAX-ROLL_MIN).toBe(TILE*TILES);
+  });
+  it('原画段的人物与场景判定不变',()=>{
+    for(const c of Object.values(CHARACTERS))expect(sceneAt(c.x)).toBe(c.scene);
+    expect(sceneAt(ROLL_MIN)).toBe('lanes');expect(sceneAt(ROLL_MAX-1)).toBe('ferry');
   });
 });
