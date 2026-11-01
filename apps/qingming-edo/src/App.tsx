@@ -350,7 +350,8 @@ export function App() {
   };
 
   // 通りの案内: close the panel, bring the stop to the middle, and hand the keyboard to the street
-  const visitStop = (x: number) => {
+  const visitStop = (id: string, x: number) => {
+    study.emit('guide_stop_selected', { stop_id: id });
     setPanel(null);
     setHint(null);
     street.current?.focus(x);
@@ -617,7 +618,7 @@ export function App() {
               {(() => {
                 const here = nearestStop();
                 return GUIDE_STOPS.map((g) => (
-                  <button type="button" key={g.id} aria-current={here === g.id ? 'location' : undefined} onClick={() => visitStop(g.x)}>
+                  <button type="button" key={g.id} aria-current={here === g.id ? 'location' : undefined} onClick={() => visitStop(g.id, g.x)}>
                     <span>{g.name}</span>
                     <small>{g.note}</small>
                   </button>

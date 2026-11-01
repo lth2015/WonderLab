@@ -366,8 +366,9 @@ export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);
 /**
  * 通りの案内 (Codex review L02): stops along the whole roll, right (the bridge)
  * to left (the quiet end), for players who cannot drag far, or use a keyboard.
- * x is the camera centre in scene units. Provisional: Codex, who painted the
- * fourteen sections, is fixing the final names and places.
+ * x is the camera centre in scene units (already mirrored). Final names and
+ * places by Codex, who painted the fourteen sections: every story place and
+ * every sketch place has a stop (docs/handoff/edo-guide-stops-2026-11-01 on collab).
  */
 export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[] = [
   { id: 'bridge', name: '日本橋', note: '橋と荷舟のいる水辺', x: 13420 },
