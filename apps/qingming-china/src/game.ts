@@ -2,10 +2,10 @@ import { isSaveEnvelope, type QuestStatus } from '../../../packages/scroll-contr
 import { PAGES, type PageId, type CharacterId } from './content';
 
 export const SAVE_KEY = 'ww:qingming-china:save:v1';
-export type QuestId = 'paper' | 'boat' | 'purse';
+export type QuestId = 'paper' | 'boat' | 'purse' | 'harbor';
 type Quest = { status: QuestStatus; step: number };
 export interface GameState {
-  schemaVersion: 1; worldId: 'qingming-china'; saveVersion: 1; updatedAt: string;
+  schemaVersion: 1; worldId: 'qingming-china'; saveVersion: 2; updatedAt: string;
   started: boolean; wallet: number; journal: PageId[]; claimed: QuestId[];
   progress: { quests: Record<QuestId, Quest>; ropes: number[]; clues: string[]; visited: CharacterId[]; tea: boolean; route: 'deliver' | 'observe' | null; favorite: PageId | null; purchases: string[]; observations: string[]; designs: Partial<Record<PageId, { close: boolean; decoration: string }>> };
   settings: { reduced: boolean; largeText: boolean; hints: boolean; sound: boolean; ambience: number; effects: number };
@@ -18,12 +18,14 @@ export type Action =
   | { type: 'EXAMINE_PURSE' } | { type: 'ASK'; who: 'he' | 'cheng' }
   | { type: 'RETURN_PURSE'; who: CharacterId } | { type: 'TEA'; selections: number[] }
   | { type: 'OBSERVE'; id: string; page?: PageId } | { type: 'FAVORITE'; page: PageId }
+  | { type: 'HARBOR_TALK' } | { type: 'HARBOR_PLACE'; place: 'eaves' | 'gangplank' | 'door' }
+  | { type: 'HARBOR_CLEAR'; move: 'basket' | 'sacks' | 'wait' } | { type: 'HARBOR_SKETCH' }
   | { type: 'DEPART' } | { type: 'BUY'; item: 'tea' | 'bookmark' }
   | { type: 'SETTINGS'; settings: Partial<GameState['settings']> } | { type: 'REPLAY'; quest: QuestId };
 
 export function initialState(): GameState {
-  return { schemaVersion: 1, worldId: 'qingming-china', saveVersion: 1, updatedAt: new Date().toISOString(), started: false,
-    wallet: 60, journal: [], claimed: [], progress: { quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
+  return { schemaVersion: 1, worldId: 'qingming-china', saveVersion: 2, updatedAt: new Date().toISOString(), started: false,
+    wallet: 60, journal: [], claimed: [], progress: { quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 }, harbor: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
     settings: { reduced: false, largeText: false, hints: true, sound: false, ambience: 0.3, effects: 0.4 } };
 }
 function addPage(s: GameState, id: PageId) { if (!s.journal.includes(id)) s.journal.push(id); }
@@ -62,6 +64,10 @@ export function reduceGame(state: GameState, action: Action): GameState {
       if (p.clues.length === 2) { q.purse.step = 3; q.purse.status = 'ready'; }
     } break;
     case 'RETURN_PURSE': if (q.purse.step === 3 && action.who === 'chen') { q.purse.step = 4; complete(s, 'purse', 18); addPage(s, 'purse'); } break;
+    case 'HARBOR_TALK': if (q.harbor.step === 0) { q.harbor.step = 1; q.harbor.status = 'active'; } break;
+    case 'HARBOR_PLACE': if (q.harbor.step === 1 && action.place === 'eaves') q.harbor.step = 2; break;
+    case 'HARBOR_CLEAR': if (q.harbor.step === 2 && action.move === 'basket') { q.harbor.step = 3; q.harbor.status = 'ready'; } break;
+    case 'HARBOR_SKETCH': if (q.harbor.step === 3) { q.harbor.step = 4; complete(s, 'harbor', 0); addPage(s, 'harbor-space'); } break;
     case 'TEA': if (action.selections[0] === 0 && action.selections[1] === 2) { p.tea = true; addPage(s, 'tea-seat'); } break;
     case 'OBSERVE': if (!p.observations.includes(action.id)) p.observations.push(action.id); if (action.page) addPage(s, action.page); break;
     case 'FAVORITE': if (s.journal.includes(action.page)) { p.favorite = action.page; addPage(s, 'master'); } break;
@@ -85,7 +91,8 @@ export function boatSummary(journal: readonly PageId[]): string {
   if(delivered)return '你理好绳索、认出货签，随阿成把新茶送到了何娘手里。';
   return '你理好绳索、认出货签，站在岸边看周伯与阿成接过这一船日常。';
 }
-const questIds: QuestId[] = ['paper', 'boat', 'purse'];
+const questIds: QuestId[] = ['paper', 'boat', 'purse', 'harbor'];
+const questSteps: Record<QuestId,number> = { paper: 2, boat: 3, purse: 4, harbor: 4 };
 const characterIds = ['liu', 'zhou', 'cheng', 'he', 'chen', 'shen'];
 const statuses = ['unseen', 'discovered', 'active', 'ready', 'complete', 'replay'];
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string');
@@ -96,13 +103,19 @@ export function parseSave(raw: string): GameState {
     v.saveVersion = 1;
     v.settings = { ...v.settings, ambience: 0.3, effects: 0.4 };
   }
-  if (!isSaveEnvelope(v, 'qingming-china') || v.saveVersion !== 1) throw new Error('这份存档不属于汴河拾光，或版本暂不支持。');
+  // Existing v1 saves gain only the new, untouched harbor story; original progress stays intact.
+  if (v?.saveVersion === 1 && v?.worldId === 'qingming-china') {
+    if (v.progress?.quests && typeof v.progress.quests === 'object' && !Object.hasOwn(v.progress.quests, 'harbor'))
+      v.progress.quests.harbor = { status: 'unseen', step: 0 };
+    v.saveVersion = 2;
+  }
+  if (!isSaveEnvelope(v, 'qingming-china') || v.saveVersion !== 2) throw new Error('这份存档不属于汴河拾光，或版本暂不支持。');
   const s = v as GameState;
   const p = s.progress;
   if (!Object.prototype.hasOwnProperty.call(p, 'designs')) p.designs = {};
   if (typeof s.started !== 'boolean' || !strings(s.claimed) || !s.claimed.every(x => questIds.includes(x)) ||
     !s.journal.every(id => PAGES.some(page => page.id === id)) || new Set(s.journal).size !== s.journal.length ||
-    !p.quests || !questIds.every(id => p.quests[id] && statuses.includes(p.quests[id].status) && Number.isInteger(p.quests[id].step) && p.quests[id].step >= 0 && p.quests[id].step <= ({ paper: 2, boat: 3, purse: 4 }[id])) ||
+    !p.quests || !questIds.every(id => p.quests[id] && statuses.includes(p.quests[id].status) && Number.isInteger(p.quests[id].step) && p.quests[id].step >= 0 && p.quests[id].step <= questSteps[id]) ||
     !Array.isArray(p.ropes) || !p.ropes.every(n => [0, 1, 2].includes(n)) || new Set(p.ropes).size !== p.ropes.length ||
     !strings(p.clues) || !p.clues.every(x => ['he', 'cheng'].includes(x)) || new Set(p.clues).size !== p.clues.length ||
     !strings(p.visited) || !p.visited.every(x => characterIds.includes(x)) || typeof p.tea !== 'boolean' ||
@@ -114,8 +127,8 @@ export function parseSave(raw: string): GameState {
     throw new Error('存档内容不完整，原来的进度已保留。');
   }
   // Reject inconsistent completion ledgers, including saves that could reissue rewards.
-  if (new Set(s.claimed).size !== s.claimed.length || !questIds.every(id => {
-    const quest = p.quests[id]; const max = { paper: 2, boat: 3, purse: 4 }[id];
+  if (new Set(s.claimed).size !== s.claimed.length || s.claimed.includes('harbor') !== s.journal.includes('harbor-space') || !questIds.every(id => {
+    const quest = p.quests[id]; const max = questSteps[id];
     return (quest.status !== 'complete' || (s.claimed.includes(id) && quest.step === max)) &&
       (quest.step !== max || (quest.status === 'complete' && s.claimed.includes(id))) &&
       (!s.claimed.includes(id) || ['complete', 'replay', 'active', 'ready'].includes(quest.status));

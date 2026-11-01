@@ -1,7 +1,7 @@
 import type { ScrollWorld } from '../../../packages/scroll-contracts';
 
 export const WORLD: ScrollWorld = {
-  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.2.0', defaultLocale: 'zh-CN',
+  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.3.0', defaultLocale: 'zh-CN',
   scenes: [
     { id: 'bridge', bounds: { x: 0, y: 0, width: 1800, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'water' },
     { id: 'tea', bounds: { x: 1800, y: 0, width: 850, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'tea' },
@@ -31,6 +31,7 @@ export const PAGES = [
   { id: 'market', title: '檐下一缕香', subtitle: '街巷偶得', caption: '炭火正红，壶口生烟。市井的热闹，也藏在一盏茶还没喝完的工夫里。', art: 'market', color: '#a27b55' },
   { id: 'master', title: '画里有故人', subtitle: '与师父谈画', caption: '我把亲历的一页递给师父。他说：先记住一个人，画便有了温度。', art: 'brush', color: '#727665' },
   { id: 'departure', title: '今日汴河', subtitle: '留一页给自己', caption: '走过这段河岸，我把实际发生的相遇收进画册。繁华很远，也很近。', art: 'landscape', color: '#7d8b81' },
+  { id: 'harbor-space', title: '半步相让', subtitle: '货港相遇', caption: '我和杜叔把空箩收在墙边，给后来的人留出一处落担的空地。码头上让出的半步，也能安放一肩辛苦。', art: 'harbor', color: '#7c8264' },
 ] as const;
 export const ENVIRONMENT = [
   { id: 'willow', x: 3400, y: 250, label: '拂一拂柳枝', text: '柳梢拂过水面，落下一点新绿。', page: 'willow' },
@@ -49,7 +50,7 @@ export const ENVIRONMENT = [
   { id: 'dye', x: -3350, y: 560, label: '看看染坊晾布', text: '靛青与赭色的长布垂在竿上，风一过，像一道道水波。' },
   { id: 'restaurant', x: -1765, y: 450, label: '看看正店楼上', text: '楼上的客人推杯换盏，跑堂托着菜，在栏边穿来穿去。' },
   { id: 'washing', x: 3880, y: 840, label: '看看浣衣的妇人', text: '石阶上，妇人把衣裳在水里摆了又摆，水纹一圈圈荡开。' },
-  { id: 'grain', x: 5350, y: 560, label: '看看扛粮的脚夫', text: '脚夫弓着背，把一袋袋粮食从船上扛进仓里，账房在一旁记数。' },
+  { id: 'grain', x: 5350, y: 560, label: '与货港脚夫交谈', text: '脚夫弓着背，把一袋袋粮食从船上扛进仓里，账房在一旁记数。' },
   { id: 'boatyard', x: 6500, y: 480, label: '看看船坞', text: '新船的骨架立在木架上，木匠敲着木钉，刨花落了一地。' },
   { id: 'inn', x: 7850, y: 620, label: '看看临水的客店', text: '客人倚着栏杆喝茶，门口拴着的骡子甩了甩尾巴。' },
   { id: 'mill', x: 9050, y: 800, label: '看看水磨', text: '水车慢慢转着，水从叶片上哗哗落下，磨房里传出石磨的声响。' },
