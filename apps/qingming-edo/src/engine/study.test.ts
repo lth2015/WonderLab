@@ -46,4 +46,10 @@ describe('試遊の記録 (same schema as the China work)', () => {
     expect(hasPlayableProgress(newSave())).toBe(false);
     expect(hasPlayableProgress(apply(newSave(), [{ type: 'setFlag', flag: 'met_seita' }]))).toBe(true);
   });
+  it('a guide stop is recorded by its fixed id only, and is not a first interaction', () => {
+    const r = createStudy('test', 'b1');
+    expect(r.emit('guide_stop_selected', { stop_id: 'cooper' })).toBe(true);
+    expect(r.emit('guide_stop_selected', { stop_id: 'somewhere else' })).toBe(false);
+    expect(r.snapshot().events.map((e) => e.type)).toEqual(['guide_stop_selected']);
+  });
 });

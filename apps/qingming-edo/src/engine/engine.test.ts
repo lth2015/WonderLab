@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
-import { characterById, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
+import { characterById, GUIDE_STOPS, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
@@ -545,5 +545,27 @@ describe('Codex review fixes (F01, F02)', () => {
     const r2 = load({ getItem: (k) => ok.get(k) ?? null, setItem: (k, v) => void ok.set(k, v) });
     expect(r2.kind).toBe('corrupt');
     if (r2.kind === 'corrupt') expect(ok.get(r2.backupKey)).toBe('{broken');
+  });
+});
+
+describe('通りの案内', () => {
+  it('frames story places and every sketch anchor inside a 340-unit phone view', () => {
+    const subjects = [...['seita', 'sokichi', 'kisuke', 'oharu', 'kinji'], ...SKETCHES.map(k => k.spots[0])];
+    for (const id of subjects) {
+      const spot = HOTSPOTS.find(h => h.targetId === id);
+      expect(spot, id).toBeDefined();
+      expect(GUIDE_STOPS.some(g => Math.abs(g.x - spot!.anchor.x) <= 170), id).toBe(true);
+    }
+    expect(GUIDE_STOPS[0].x).toBeGreaterThan(13000);
+    expect(GUIDE_STOPS.at(-1)!.x).toBeLessThan(1000);
+  });
+  it('stops run right to left inside the scene, each once', () => {
+    expect(new Set(GUIDE_STOPS.map((g) => g.id)).size).toBe(GUIDE_STOPS.length);
+    for (let i = 1; i < GUIDE_STOPS.length; i++) expect(GUIDE_STOPS[i].x).toBeLessThan(GUIDE_STOPS[i - 1].x);
+    for (const g of GUIDE_STOPS) {
+      expect(g.x).toBeGreaterThanOrEqual(0);
+      expect(g.x).toBeLessThanOrEqual(SCENE_W);
+      expect([...g.note].length).toBeLessThanOrEqual(20);
+    }
   });
 });

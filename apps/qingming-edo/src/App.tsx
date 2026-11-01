@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, AMBIENT_LABEL, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
+import { AMBIENT, AMBIENT_LABEL, GUIDE_STOPS, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
@@ -349,6 +349,23 @@ export function App() {
     return !!k && k.spots[0] === targetId && questState(save, 'kaze') === 'complete' && !save.journal.pages.some((p) => p.pageId === sketchPageId(k.id));
   };
 
+  // 通りの案内: close the panel, bring the stop to the middle, and hand the keyboard to the street
+  const visitStop = (id: string, x: number) => {
+    study.emit('guide_stop_selected', { stop_id: id });
+    setPanel(null);
+    setHint(null);
+    street.current?.focus(x);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('.street')?.focus({ preventScroll: true }));
+  };
+  const nearestStop = () => {
+    const cam = Number(document.querySelector<HTMLElement>('.street')?.dataset.cam);
+    const w = document.querySelector<HTMLElement>('.street')?.getBoundingClientRect().width ?? 0;
+    const scale = Number(document.querySelector<HTMLElement>('.street')?.dataset.scale) || 1;
+    if (!Number.isFinite(cam)) return null;
+    const mid = cam + w / scale / 2;
+    return GUIDE_STOPS.reduce((a, b) => (Math.abs(b.x - mid) < Math.abs(a.x - mid) ? b : a)).id;
+  };
+
   const goTo = (spotId: string, open: boolean) => {
     const spot = HOTSPOTS.find((h) => h.id === spotId);
     if (!spot) return;
@@ -594,6 +611,21 @@ export function App() {
               ))}
             </ul>
           )}
+          <details className="guide">
+            <summary>通りの案内</summary>
+            <p className="small">橋のたもとから町はずれの川端まで。行きたいところを選ぶと、その場所へ通りが動きます。</p>
+            <nav aria-label="通りの案内" className="guide-stops">
+              {(() => {
+                const here = nearestStop();
+                return GUIDE_STOPS.map((g) => (
+                  <button type="button" key={g.id} aria-current={here === g.id ? 'location' : undefined} onClick={() => visitStop(g.id, g.x)}>
+                    <span>{g.name}</span>
+                    <small>{g.note}</small>
+                  </button>
+                ));
+              })()}
+            </nav>
+          </details>
           <h3>この通りの人と物</h3>
           <ul className="list compact">
             {spots
