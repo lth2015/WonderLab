@@ -2,7 +2,7 @@ import type { SoundLevels, TimeOfDay } from '../contract';
 
 // 音 (spec: 音と音楽). Everything is made here with WebAudio, from noise and
 // simple tones: no recorded sound, so nothing to license. Footsteps, the
-// street's murmur, water, birds, paper and tools come first; the music is a few
+// water, birds, paper and tools come first; the music is a few
 // plucked notes now and then, with long silence between (余白).
 //
 // - Nothing sounds until the player has touched the page (browsers require it,
@@ -13,7 +13,7 @@ import type { SoundLevels, TimeOfDay } from '../contract';
 //   accompanies something shown on screen, so the game is whole without sound.
 // - When the tab is hidden the context is suspended.
 
-export const DEFAULT_LEVELS: SoundLevels = { ambient: 0.6, ui: 0.6, music: 0.35 };
+export const DEFAULT_LEVELS: SoundLevels = { ambient: 0.35, ui: 0.6, music: 0.35 };
 export const LEVEL_STEPS = [0, 0.35, 0.6, 1] as const;
 
 export type Cue = 'tap' | 'turn' | 'react' | 'page' | 'coin' | 'open' | 'close';
@@ -43,13 +43,13 @@ type Ctx = AudioContext;
 class SoundEngine {
   private ctx: Ctx | null = null;
   private bus: { ambient: GainNode; ui: GainNode; music: GainNode } | null = null;
-  private murmur: GainNode | null = null;
   private water: GainNode | null = null;
   private wind: GainNode | null = null;
   private levels: SoundLevels = DEFAULT_LEVELS;
   private x = 12505;
   private tod: TimeOfDay = 'morning';
-  private timers: number[] = [];
+  private timers = new Set<number>();
+  private nextAmbientAt = 0;
   private noiseBuf: AudioBuffer | null = null;
 
   /** True once a context exists (after the first gesture, where WebAudio is available). */
@@ -119,13 +119,12 @@ class SoundEngine {
   place(x: number, now = false): void {
     this.x = x;
     const ctx = this.ctx;
-    if (!ctx || !this.murmur || !this.water || !this.wind) return;
+    if (!ctx || !this.water || !this.wind) return;
     const t = ctx.currentTime;
     const eve = this.tod === 'evening' ? 0.6 : this.tod === 'noon' ? 1.1 : 0.85;
     const k = now ? 0.01 : 0.6;
-    this.murmur.gain.setTargetAtTime(0.34 * busyAt(x) * eve, t, k);
-    this.water.gain.setTargetAtTime(0.45 * waterAt(x), t, k);
-    this.wind.gain.setTargetAtTime(x < 3000 ? 0.09 : 0.05, t, k);
+    this.water.gain.setTargetAtTime(0.12 * waterAt(x) * eve, t, k);
+    this.wind.gain.setTargetAtTime(x < 3000 ? 0.008 : 0.005, t, k);
   }
 
   cue(c: Cue): void {
@@ -165,25 +164,13 @@ class SoundEngine {
 
   private buildBeds(ctx: Ctx): void {
     const bus = this.bus!.ambient;
-    // the street's murmur: brown-ish noise, voice band, slowly breathing
-    this.murmur = ctx.createGain();
-    this.murmur.gain.value = 0;
-    const m = this.loop(ctx);
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.value = 420;
-    bp.Q.value = 0.7;
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 1100;
-    m.connect(bp).connect(lp).connect(this.lfo(ctx, 0.07, 0.35)).connect(this.murmur).connect(bus);
     // water: low noise with a slow lap
     this.water = ctx.createGain();
     this.water.gain.value = 0;
     const w = this.loop(ctx);
     const wl = ctx.createBiquadFilter();
     wl.type = 'lowpass';
-    wl.frequency.value = 700;
+    wl.frequency.value = 480;
     const wh = ctx.createBiquadFilter();
     wh.type = 'highpass';
     wh.frequency.value = 120;
@@ -195,11 +182,11 @@ class SoundEngine {
     const nb = ctx.createBiquadFilter();
     nb.type = 'bandpass';
     nb.Q.value = 1.4;
-    nb.frequency.value = 1500;
+    nb.frequency.value = 900;
     const sweep = ctx.createOscillator();
     sweep.frequency.value = 0.05;
     const depth = ctx.createGain();
-    depth.gain.value = 700;
+    depth.gain.value = 240;
     sweep.connect(depth).connect(nb.frequency);
     sweep.start();
     n.connect(nb).connect(this.lfo(ctx, 0.11, 0.6)).connect(this.wind).connect(bus);
@@ -209,41 +196,36 @@ class SoundEngine {
   private schedule(): void {
     const every = (min: number, max: number, fn: () => void) => {
       const go = () => {
-        this.timers.push(window.setTimeout(() => {
-          if (this.ctx?.state === 'running') fn();
+        const id = window.setTimeout(() => {
+          this.timers.delete(id);
+          if (this.ctx?.state === 'running' && !document.hidden) fn();
           go();
-        }, min + Math.random() * (max - min)));
+        }, min + Math.random() * (max - min));
+        this.timers.add(id);
       };
       go();
     };
     // geta on the street: a pair of steps, more where it is busy
-    every(900, 2600, () => {
-      if (this.levels.ambient <= 0 || Math.random() > busyAt(this.x)) return;
+    every(6500, 14000, () => {
+      if (this.levels.ambient <= 0 || Math.random() > busyAt(this.x) * 0.45 || !this.takeAmbientSlot()) return;
       const t = this.ctx!.currentTime;
       const pan = Math.random() * 1.6 - 0.8;
-      const steps = 2 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < steps; i++) this.step(t + i * (0.32 + Math.random() * 0.06), pan, 0.05 + Math.random() * 0.04);
+      const steps = 2;
+      for (let i = 0; i < steps; i++) this.step(t + i * (0.32 + Math.random() * 0.06), pan, 0.015 + Math.random() * 0.01);
     });
     // sparrows: mostly in the morning, near trees and the garden
-    every(3000, 9000, () => {
+    every(15000, 28000, () => {
       if (this.levels.ambient <= 0) return;
       const chance = (this.tod === 'morning' ? 0.8 : this.tod === 'noon' ? 0.4 : 0.15) * (this.x < 3000 || this.x > 12800 ? 1 : 0.6);
-      if (Math.random() > chance) return;
+      if (Math.random() > chance || !this.takeAmbientSlot()) return;
       const t = this.ctx!.currentTime;
-      const n = 1 + Math.floor(Math.random() * 3);
+      const n = 1;
       for (let i = 0; i < n; i++) this.chirp(t + i * 0.13, 3800 + Math.random() * 900);
     });
-    // far voices: calls from up and down the street, never words (Codex research:
-    // no call of 1805 Nihonbashi is recorded); busier in the morning
-    every(4000, 12000, () => {
-      if (this.levels.ambient <= 0) return;
-      const chance = busyAt(this.x) * (this.tod === 'morning' ? 0.9 : this.tod === 'noon' ? 0.6 : 0.3);
-      if (Math.random() > chance) return;
-      this.farCall();
-    });
+    // No automatic synthetic calls: their formants read as a constant crowd buzz.
     // music: a few notes, then a long rest
-    every(18000, 42000, () => {
-      if (this.levels.music <= 0) return;
+    every(45000, 80000, () => {
+      if (this.levels.music <= 0 || !this.takeAmbientSlot()) return;
       this.phrase();
     });
   }
@@ -257,6 +239,7 @@ class SoundEngine {
     const ctx = this.ctx;
     if (!ctx || !this.bus || this.levels.ambient <= 0 || ctx.state !== 'running') return false;
     const t = ctx.currentTime + 0.05;
+    this.nextAmbientAt = Math.max(this.nextAmbientAt, t + 14);
     const far = ctx.createBiquadFilter();
     far.type = 'lowpass';
     far.frequency.value = 900;
@@ -287,67 +270,21 @@ class SoundEngine {
     return true;
   }
 
-  /** A street call far off: two to four voiced syllables through vowel-like formants, no words. */
-  private farCall(): void {
-    const ctx = this.ctx!;
-    const t0 = ctx.currentTime + 0.05;
-    const f0 = Math.random() < 0.5 ? 140 + Math.random() * 30 : 210 + Math.random() * 40;
-    const n = 2 + Math.floor(Math.random() * 3);
-    const pan = this.pan(Math.random() * 1.6 - 0.8);
-    const far = ctx.createBiquadFilter();
-    far.type = 'lowpass';
-    far.frequency.value = 1700;
-    const vol = ctx.createGain();
-    vol.gain.value = 0.035 + Math.random() * 0.02;
-    far.connect(vol).connect(pan).connect(this.bus!.ambient);
-    let t = t0;
-    for (let i = 0; i < n; i++) {
-      const last = i === n - 1;
-      const dur = last ? 0.45 + Math.random() * 0.35 : 0.16 + Math.random() * 0.14;
-      const o = ctx.createOscillator();
-      o.type = 'sawtooth';
-      // the call rises through the syllables, and the last one is drawn out and falls
-      const f = f0 * (1 + i * 0.06);
-      o.frequency.setValueAtTime(f, t);
-      o.frequency.linearRampToValueAtTime(last ? f * 0.82 : f * 1.04, t + dur);
-      const env = ctx.createGain();
-      env.gain.setValueAtTime(0, t);
-      env.gain.linearRampToValueAtTime(1, t + 0.03);
-      env.gain.setValueAtTime(1, t + dur * 0.7);
-      env.gain.linearRampToValueAtTime(0, t + dur);
-      // two formants, a different vowel each syllable
-      const [f1, f2] = [
-        [750, 1200],
-        [500, 900],
-        [400, 1900],
-        [650, 1500],
-      ][Math.floor(Math.random() * 4)];
-      for (const [fc, q, a] of [
-        [f1, 6, 1],
-        [f2, 8, 0.5],
-      ] as const) {
-        const bp = ctx.createBiquadFilter();
-        bp.type = 'bandpass';
-        bp.frequency.value = fc;
-        bp.Q.value = q;
-        const ga = ctx.createGain();
-        ga.gain.value = a;
-        o.connect(bp).connect(ga).connect(env);
-      }
-      env.connect(far);
-      o.start(t);
-      o.stop(t + dur + 0.05);
-      t += dur + 0.04 + Math.random() * 0.06;
-    }
+  /** Leave a quiet gap between foreground ambience, including after a bell. */
+  private takeAmbientSlot(): boolean {
+    const t = this.ctx!.currentTime;
+    if (t < this.nextAmbientAt) return false;
+    this.nextAmbientAt = t + 8;
+    return true;
   }
 
   private phrase(): void {
     const ctx = this.ctx!;
-    const n = 3 + Math.floor(Math.random() * 3);
+    const n = 2 + Math.floor(Math.random() * 2);
     let i = 2 + Math.floor(Math.random() * 4);
     let t = ctx.currentTime + 0.1;
     for (let k = 0; k < n; k++) {
-      this.pluck(this.bus!.music, t, YO[i], 0.16 - k * 0.015);
+      this.pluck(this.bus!.music, t, YO[i], 0.07 - k * 0.01);
       i = Math.max(0, Math.min(YO.length - 1, i + [-2, -1, -1, 1, 1, 2][Math.floor(Math.random() * 6)]));
       t += [0.45, 0.6, 0.9, 1.2][Math.floor(Math.random() * 4)];
     }
@@ -479,7 +416,7 @@ class SoundEngine {
     o.frequency.exponentialRampToValueAtTime(f * 0.9, t + 0.08);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.035, t + 0.01);
+    g.gain.linearRampToValueAtTime(0.012, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
     const p = this.pan(Math.random() * 1.4 - 0.7);
     o.connect(g).connect(p).connect(this.bus!.ambient);
@@ -520,7 +457,13 @@ class SoundEngine {
     if (!this.ctx || !this.bus) return;
     const t = this.ctx.currentTime;
     // perceived loudness: square the slider
-    for (const k of ['ambient', 'ui', 'music'] as const) this.bus[k].gain.setTargetAtTime(this.levels[k] ** 2, t, 0.05);
+    for (const k of ['ambient', 'ui', 'music'] as const) {
+      const gain = this.bus[k].gain;
+      if (this.levels[k] === 0) {
+        gain.cancelScheduledValues(t);
+        gain.setValueAtTime(0, t);
+      } else gain.setTargetAtTime(this.levels[k] ** 2, t, 0.05);
+    }
   }
 
   /** Asks a stopped context to run again; a refusal (no gesture yet) waits for the next touch. */

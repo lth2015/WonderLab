@@ -7,7 +7,7 @@
 //     and the scroll reads right to left (Codex README: mirror the whole roll)
 //  4. cut into 1000-unit sections street-0 … street-13 (missing ones are skipped),
 //     plus gridded previews in world units for anchoring
-const sharp = require('/home/user/wonderlab/node_modules/sharp');
+const sharp = require('sharp');
 const fs = require('fs');
 const S = process.argv[2];
 const OUT = process.argv[3];
@@ -131,6 +131,29 @@ function seam(left, right, ow) {
     }
     console.log(report.slice(-4).join('\n'));
   }
+  // rectangle patches (Codex seam-10-11-v3 style): a crop of a generated image placed at
+  // runtime (mirrored) pixel coordinates; hard left/right ends, a few px of feather top/bottom
+  const rdir = `${S}/cx/rects`;
+  const detailedSections = new Set();
+  // Apply checked-in runtime repairs last, so a normal rebuild retains them.
+  for (const dir of [rdir, __dirname]) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir).filter((f) => dir === __dirname ? f.endsWith('.rect.json') : f.endsWith('.json'))) {
+      const r = JSON.parse(fs.readFileSync(`${dir}/${f}`, 'utf8'));
+      const { data: pd } = await sharp(`${dir}/${r.image}`).removeAlpha().extract({ left: r.src.x, top: r.src.y, width: r.src.w, height: r.src.h }).resize(r.dst.w, r.dst.h, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+      if (![r.dst.x, r.dst.y, r.dst.w, r.dst.h].every(Number.isInteger) || r.dst.x < 0 || r.dst.y < 0 || r.dst.w <= 0 || r.dst.h <= 0 || r.dst.x + r.dst.w > W || r.dst.y + r.dst.h > H) throw new Error(`invalid rectangle ${f}`);
+      if (dir === __dirname) for (let k = Math.floor(r.dst.x / (1000 * PX)); k <= Math.floor((r.dst.x + r.dst.w - 1) / (1000 * PX)); k++) detailedSections.add(k);
+      const fe = r.featherY ?? 0;
+      for (let y = 0; y < r.dst.h; y++) {
+        const t = fe ? Math.min(1, (y + 0.5) / fe, (r.dst.h - y - 0.5) / fe) : 1;
+        for (let x = 0; x < r.dst.w; x++) {
+          const o = ((r.dst.y + y) * W + r.dst.x + x) * 3, i = (y * r.dst.w + x) * 3;
+          for (let c = 0; c < 3; c++) mir[o + c] = Math.round(mir[o + c] * (1 - t) + pd[i + c] * t);
+        }
+      }
+      console.log(`rect patch ${f} at px ${r.dst.x},${r.dst.y} ${r.dst.w}×${r.dst.h}`);
+    }
+  }
   await sharp(mir, { raw: { width: W, height: H, channels: 3 } }).png().toFile(`${S}/cx/runtime-full.png`);
   const mfilled = Uint8Array.from(filled).reverse();
   fs.mkdirSync(OUT, { recursive: true });
@@ -142,7 +165,7 @@ function seam(left, right, ow) {
     let have = 0;
     for (let i = x; i < x + SEC; i++) have += mfilled[i];
     if (have < SEC * 0.98) continue; // a section not painted yet
-    await sharp(mir, { raw: { width: W, height: H, channels: 3 } }).extract({ left: x, top: 0, width: SEC, height: H }).webp({ quality: 82 }).toFile(`${OUT}/street-${k}.webp`);
+    await sharp(mir, { raw: { width: W, height: H, channels: 3 } }).extract({ left: x, top: 0, width: SEC, height: H }).webp({ quality: detailedSections.has(k) ? 94 : 82 }).toFile(`${OUT}/street-${k}.webp`);
     made.push(k);
     // gridded preview, 1 px per unit
     const sec = await sharp(mir, { raw: { width: W, height: H, channels: 3 } }).extract({ left: x, top: 0, width: SEC, height: H }).resize(1000, 700).png().toBuffer();
