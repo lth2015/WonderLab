@@ -1,0 +1,16 @@
+[
+  {
+    "base": "root",
+    "png_download": true,
+    "save_version": 4,
+    "wallet": 60,
+    "asset_errors": []
+  },
+  {
+    "base": "/qingming/",
+    "png_download": true,
+    "save_version": 4,
+    "wallet": 60,
+    "asset_errors": []
+  }
+]
