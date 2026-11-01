@@ -25,6 +25,8 @@
 
 两个运行 WebP 合计约152KiB，只在接近水磨段请求，不增加首屏图片下载。逐个文件的实际字节/哈希、轮心/透视参数、处理记录见 `materials.json`。生成提示见 `prompts.md`，总台账已更新 `docs/painted-worlds/china-assets.md`。没有整张替换长卷瓦片，没有通过拉大图片声称原生高清。
 
+生成原始PNG、完整提示和材料清单已保存到美术分支 `codex/painted-worlds-art@25b631a` 的 `docs/painted-worlds/art/china-by-codex/watermill-v1/`。运行分支只用两个WebP，**不要把整个美术分支合进main**。透明轮是参考原轮风格重建的完整旋转件，包含原图被前架遮挡的区域；并非声称逐像素无损抠出了原轮。
+
 ## 验证
 
 - 中国65测试、江户83测试通过；root typecheck、独立中国 build 与三作联合 build 通过；diff检查通过。
