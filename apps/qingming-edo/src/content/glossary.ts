@@ -10,18 +10,23 @@ export interface GlossEntry {
 }
 
 export const GLOSSARY: GlossEntry[] = [
-  { term: '番頭', reading: 'ばんとう', note: '店の奉公人をまとめ、商いを任された人。' },
-  { term: '文鎮', reading: 'ぶんちん', note: '紙が動かないように、上に置く重し。' },
-  { term: '振売り', reading: 'ふりうり', note: '品を担いで町を歩き、声をかけて売る商い。' },
-  { term: '天秤棒', reading: 'てんびんぼう', note: '両端に荷を下げ、肩で担ぐ長い棒。' },
-  { term: '暖簾', reading: 'のれん', note: '店先にかける布。店の顔でもある。' },
-  { term: '絵巻', reading: 'えまき', note: '横に長い紙に、場面を続けて描いた絵。' },
-  { term: '団子', reading: 'だんご', note: '米の粉を丸めて蒸した菓子。' },
-  { term: '煎餅', reading: 'せんべい', note: '米の生地を焼いた、かための菓子。' },
-  { term: 'ご隠居', reading: 'ごいんきょ', note: '家の仕事を譲り、ゆったり暮らす年配の人。' },
-  { term: '砥石', reading: 'といし', note: '刃物を研ぐための石。' },
-  { term: '手拭い', reading: 'てぬぐい', note: '汗をふいたり頭に巻いたりする、木綿の布。' },
-  { term: '文', reading: 'もん', note: 'この町で使うお金の単位（遊びの中の値段）。' },
+  { term: '番頭', reading: 'ばんとう', note: '店の仕事や、そこで働く人を取りまとめる人。' },
+  { term: '文鎮', reading: 'ぶんちん', note: '紙が風で動かないように、上に置く重し。' },
+  { term: '振売り', reading: 'ふりうり', note: '品物を持って町を歩き、売って回る人や商い。' },
+  { term: '天秤棒', reading: 'てんびんぼう', note: '両端に荷を下げ、肩に担いで運ぶための棒。' },
+  { term: '暖簾', reading: 'のれん', note: '店の入口などにつるす、切れ目のある布。' },
+  { term: '絵巻', reading: 'えまき', note: '絵や文を横につなぎ、巻いて収めるもの。' },
+  { term: '団子', reading: 'だんご', note: '米の粉などを丸めて作る菓子。' },
+  { term: '煎餅', reading: 'せんべい', note: '穀物の粉などを薄くのばして焼く菓子。' },
+  { term: 'ご隠居', reading: 'ごいんきょ', note: '家業などを後の人に任せ、一線を退いた人。' },
+  { term: '砥石', reading: 'といし', note: '刃物の刃を整え、切れ味を戻すための石。' },
+  { term: '手拭い', reading: 'てぬぐい', note: '汗をぬぐうなどに使う、細長い布。' },
+  { term: '文', reading: 'もん', note: '江戸のお金の単位。この町の金額は遊びの調整値。' },
+  { term: '紺屋', reading: 'こうや', note: '藍などで布を染める仕事や、その店。' },
+  { term: '藍甕', reading: 'あいがめ', note: '藍染めに使う液を入れておく、大きなかめ。' },
+  { term: '茶店', reading: 'ちゃみせ', note: '茶や菓子を出し、ひと休みできる店。' },
+  { term: 'お使い', reading: 'おつかい', note: '頼まれた品物や言付けを届けること。' },
+  { term: '河岸', reading: 'かし', note: '川沿いで舟を着け、荷を上げ下ろしする場所。' },
 ];
 
 /** The terms in a line, longest first so 「天秤棒」 wins over shorter overlaps. */
