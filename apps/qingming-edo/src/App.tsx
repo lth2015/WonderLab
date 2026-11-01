@@ -8,6 +8,7 @@ import { entryFor, nearby, visibleSpots } from './engine/story';
 import { reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
 import { hasPlayableProgress, observeProgress, study } from './engine/study';
+import { SESSION_MODE } from './engine/session';
 import { Street, type StreetApi } from './scene/Street';
 import { Journal, SCENE_ID } from './ui/Journal';
 import { Settings } from './ui/Settings';
@@ -124,7 +125,8 @@ export function App() {
       }
     })();
     study.emit('world_entered', { source: viaLink ? 'journal' : 'direct' }, 'world-entered');
-    if (boot.kind === 'loaded' && hasPlayableProgress(boot.save)) study.emit('revisit', { has_progress: true }, 'revisit');
+    // 試遊会: a reload is the facilitator's, not a return visit
+    if (!SESSION_MODE && boot.kind === 'loaded' && hasPlayableProgress(boot.save)) study.emit('revisit', { has_progress: true }, 'revisit');
     if (boot.kind === 'corrupt' || boot.kind === 'unbacked') study.emit('error', { code: 'save_read_failed' }, 'error-save-read');
     const unexpected = () => study.emit('error', { code: 'unexpected_error' }, 'error-unexpected');
     window.addEventListener('error', unexpected);
@@ -419,6 +421,7 @@ export function App() {
     <div className="app">
       <header className="top">
         <span className="place">日本橋北詰</span>
+        {SESSION_MODE && <span className="session-badge">試遊会</span>}
         {reached.length > 1 ? (
           <button type="button" className="time ghost" aria-expanded={timeMenu} onClick={() => setTimeMenu((m) => !m)}>
             {TIMES.find((t) => t.id === tod)!.label}

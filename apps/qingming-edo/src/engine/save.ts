@@ -2,11 +2,15 @@ import type { SaveData } from '../contract';
 import { SCHEMA_VERSION, WORLD_ID } from '../contract';
 import { SAVE_VERSION, newSave } from './state';
 import { TITLE_STYLE_IDS, validJournalEntry } from '../content/world';
+import { SESSION_MODE } from './session';
 
 // Storage stays inside this work's namespace (spec §16): ww:qingming-edo:*.
 // Nothing here reads, writes or clears another work's keys.
 export const KEY_PREFIX = `ww:${WORLD_ID}:`;
-export const SAVE_KEY = `${KEY_PREFIX}save`;
+// 試遊会 (?session=1) plays on its own key and never touches the real save.
+export const SAVE_KEY = `${KEY_PREFIX}save${SESSION_MODE ? ':session' : ''}`;
+/** The playtest log of a 試遊会 player, kept across a reload (engine/study.ts). */
+export const SESSION_STUDY_KEY = `${KEY_PREFIX}study:session`;
 
 export type LoadResult =
   | { kind: 'fresh'; save: SaveData }

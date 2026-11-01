@@ -14,7 +14,7 @@
 ## 准备
 
 - 手机（iPhone Safari、Android Chrome 各至少一台为佳）。
-- 链接：江户 `https://want.world/edo/?session=1`（试玩会模式，见下），中国 `https://want.world/qingming/?session=1`（中国模式需本 PR 部署后使用；部署前仍每位手动「重新入画」）。
+- 链接：江户 `https://want.world/edo/?session=1`（试玩会模式，见下），中国 `https://want.world/qingming/?session=1`。
 - 每位试玩者一行观察表（`observation-sheet.csv`）。
 - 不录屏、不记名字。编号用 P01、P02……
 
