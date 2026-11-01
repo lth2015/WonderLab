@@ -16,6 +16,7 @@ import { Wrap } from './ui/Wrap';
 import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
 import { Talk } from './ui/Talk';
+import { Glossed } from './ui/Glossed';
 import { useModalFocus } from './ui/modalFocus';
 import { TALK_STORIES } from './content/talkStories';
 import { posesFor } from './scene/painted';
@@ -517,7 +518,7 @@ export function App() {
               <small>{ROLES[line.by]}</small>
             </p>
           )}
-          <p className={line.by === 'narration' ? 'narration' : 'said'}>{line.text}</p>
+          <Glossed className={line.by === 'narration' ? 'narration' : 'said'} text={line.text} />
           {atLast && node.choices ? (
             <div className="choices">
               {node.choices.map((c, i) => (

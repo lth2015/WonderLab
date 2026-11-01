@@ -1,3 +1,4 @@
+import { Glossed } from './Glossed';
 import { useEffect, useRef, useState } from 'react';
 import { characterById, ROLES } from '../content/world';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS, TALK_TURNS, type TalkTopic } from '../content/talk';
@@ -94,7 +95,7 @@ export function Talk({ who, done, onClose }: { who: string; done: string[]; onCl
           {said ? (
             <>
               {said.live && <p className="improv-tag">即興のひとこと</p>}
-              <p className="said">{said.text}</p>
+              <Glossed className="said" text={said.text} />
             </>
           ) : (
             <p className="narration">何について話そう。</p>
