@@ -370,14 +370,14 @@ export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);
  * fourteen sections, is fixing the final names and places.
  */
 export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[] = [
-  { id: 'bridge', name: '日本橋', note: '擬宝珠の橋と、荷を積んだ舟', x: 13300 },
-  { id: 'aoba', name: '青葉屋の店先', note: '紙屋と、道具屋くれ竹', x: 12400 },
-  { id: 'teahouse', name: '茶店「喜の字」', note: '湯気の立つ茶店', x: 11500 },
-  { id: 'well', name: '小路の井戸', note: '井戸と、塀ごしの梅', x: 10450 },
-  { id: 'cloth', name: '布屋', note: '反物と、染め布の幟', x: 9150 },
-  { id: 'rice', name: '米屋の前', note: '米俵の店先', x: 7600 },
-  { id: 'kashi', name: '堀の河岸', note: '荷揚げと、小さな舟', x: 5800 },
-  { id: 'dye', name: '紺屋と桶屋', note: '藍甕と、桶の店先', x: 3800 },
-  { id: 'garden', name: '水辺の庭', note: '池と梅の庭', x: 1500 },
-  { id: 'end', name: '町はずれの川端', note: '大きな柳と縁台', x: 500 },
+  { id: 'bridge', name: '日本橋', note: '橋と荷舟のいる水辺', x: 13420 },
+  { id: 'aoba', name: '青葉屋の店先', note: '清太と宗吉のいる紙屋', x: 12510 },
+  { id: 'teahouse', name: '茶店「喜の字」', note: '喜助とお春のいる茶店', x: 11530 },
+  { id: 'well', name: '小路の井戸', note: '井戸と塀越しの梅', x: 10550 },
+  { id: 'rice', name: '米屋の前', note: '米俵のそばで金次に会う', x: 7560 },
+  { id: 'kashi', name: '堀の河岸', note: '小舟と杭の並ぶ堀沿い', x: 5350 },
+  { id: 'cooper', name: '桶屋の店先', note: '桶の並ぶ手仕事の店先', x: 4250 },
+  { id: 'dye', name: '紺屋の干し場', note: '藍甕と布の干し場', x: 3250 },
+  { id: 'garden', name: '水辺の庭', note: '池と庭木を眺める', x: 1120 },
+  { id: 'end', name: '町はずれの川端', note: '柳の下の縁台でひと休み', x: 450 },
 ];

@@ -549,6 +549,16 @@ describe('Codex review fixes (F01, F02)', () => {
 });
 
 describe('通りの案内', () => {
+  it('frames story places and every sketch anchor inside a 340-unit phone view', () => {
+    const subjects = [...['seita', 'sokichi', 'kisuke', 'oharu', 'kinji'], ...SKETCHES.map(k => k.spots[0])];
+    for (const id of subjects) {
+      const spot = HOTSPOTS.find(h => h.targetId === id);
+      expect(spot, id).toBeDefined();
+      expect(GUIDE_STOPS.some(g => Math.abs(g.x - spot!.anchor.x) <= 170), id).toBe(true);
+    }
+    expect(GUIDE_STOPS[0].x).toBeGreaterThan(13000);
+    expect(GUIDE_STOPS.at(-1)!.x).toBeLessThan(1000);
+  });
   it('stops run right to left inside the scene, each once', () => {
     expect(new Set(GUIDE_STOPS.map((g) => g.id)).size).toBe(GUIDE_STOPS.length);
     for (let i = 1; i < GUIDE_STOPS.length; i++) expect(GUIDE_STOPS[i].x).toBeLessThan(GUIDE_STOPS[i - 1].x);
