@@ -99,3 +99,17 @@ describe('音 (review fixes from Codex, PR127)', () => {
     expect(ctx.resumeCalls).toBe(2);
   });
 });
+
+describe('時の鐘', () => {
+  it('rings only when the street sound is on and the context runs', async () => {
+    const sound = await freshSound();
+    expect(sound.timeBell()).toBe(false); // nothing before the first gesture
+    sound.setLevels({ ambient: 0, ui: 0.6, music: 0.35 });
+    sound.unlock();
+    expect(sound.timeBell()).toBe(false);
+    sound.setLevels({ ambient: 0.6, ui: 0.6, music: 0.35 });
+    expect(sound.timeBell()).toBe(true);
+    FakeContext.made[0].state = 'suspended';
+    expect(sound.timeBell()).toBe(false);
+  });
+});

@@ -891,15 +891,14 @@ button[aria-pressed='true'] {
 .stage .layer {
   transition: filter 900ms var(--ease);
 }
+/* 朝・夕: fitted to Codex's time studies of the key painting (time-studies-v1),
+   sky left out of the fit; CSS filters stay on the GPU. See docs/painted-worlds/qingming-edo/README.md §7.2 */
 .tod-morning .layer {
-  filter: brightness(1.03) saturate(0.95);
+  filter: saturate(0.7) hue-rotate(6deg) brightness(1.05) contrast(1.09);
 }
 .tod-noon .layer {
   filter: brightness(1.06) saturate(1.05) contrast(1.02);
 }
 .tod-evening .layer {
-  filter: sepia(0.28) saturate(1.1) brightness(0.93) hue-rotate(-8deg);
-}
-.tod-evening .layer:first-child {
-  filter: sepia(0.5) saturate(1.4) brightness(0.92) hue-rotate(-14deg);
+  filter: sepia(0.28) saturate(1.03) hue-rotate(-3deg) brightness(0.85) contrast(1.15);
 }

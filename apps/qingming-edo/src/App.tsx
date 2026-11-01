@@ -18,6 +18,9 @@ import { Talk } from './ui/Talk';
 import { TALK_STORIES } from './content/talkStories';
 import { posesFor } from './scene/painted';
 
+/** Shown whenever the time bell is rung, so the event is there without sound too. */
+const BELL_LINE = '石町のほうから、時の鐘が遠く聞こえてくる。';
+
 type Panel = 'journal' | 'items' | 'nearby' | 'settings' | null;
 const IDLE_MS = 8000; // spec §6
 
@@ -304,10 +307,18 @@ export function App() {
   // when a story's end moves the day on, say so once
   const lastTime = useRef(tod);
   useEffect(() => {
-    if (lastTime.current !== tod && save.settings.timeChoice === 'auto' && reached.indexOf(tod) > reached.indexOf(lastTime.current)) {
+    if (lastTime.current === tod) return;
+    const lines: string[] = [];
+    if (save.settings.timeChoice === 'auto' && reached.indexOf(tod) > reached.indexOf(lastTime.current)) {
       const line = TIMES.find((t) => t.id === tod)!.arrive;
-      if (line) setTimeout(() => setToast(line), 600);
+      if (line) lines.push(line);
     }
+    // 石町の時の鐘 marks the arrival of 朝 and 夕, once, from far off (shown as words too)
+    if (tod === 'morning' || tod === 'evening') {
+      sound.timeBell();
+      lines.push(BELL_LINE);
+    }
+    if (lines.length) setTimeout(() => setToast(lines.join('　')), 600);
     lastTime.current = tod;
   }, [tod]);
   const node = dialogue ? NODES[dialogue.node] : null;
