@@ -1,56 +1,71 @@
 import { useId, useState } from 'react';
+import { Waterwheel } from './Waterwheel';
 
 const art = (file: string) => `${import.meta.env.BASE_URL}art/china/${file}`;
 /** Pixel coordinates in scroll-16; keep the exact tile projection and overlap. */
 export const MILL = { tileX: 8400, scaleX: 1201 / 1024, scaleY: 1200 / 1024, left: 8940, right: 9340 };
+const streams = [
+  'M719 518 C734 546 749 588 751 618 S750 682 742 718 Q736 756 731 789',
+  'M729 517 C744 550 760 597 762 632 S756 701 753 735 L759 794',
+  'M739 523 C750 548 768 598 770 636 S762 710 771 761 L777 792',
+];
 
 /** Mounted near the mill only. Failed/unfinished layers leave the original painting intact. */
-export function Watermill({ running }: { running: boolean }) {
+export function Watermill({ running, reduced }: { running: boolean; reduced: boolean }) {
   const id = useId().replace(/:/g, '');
   const [loaded, setLoaded] = useState(0);
   const [failed, setFailed] = useState(false);
-  const ready = loaded === 3 && !failed;
+  const ready = loaded === 15 && !failed;
   const load = (bit: number) => setLoaded(value => value | bit);
   return <g className={`watermill ${running && ready ? 'mill-running' : 'mill-paused'}`} data-ready={ready} aria-hidden="true"
     transform={`translate(${MILL.tileX} 0) scale(${MILL.scaleX} ${MILL.scaleY})`} pointerEvents="none">
     <defs>
       <clipPath id={`${id}-front`}>
-        {/* Original bearing, posts, trough and near rail sit in front of the rotor. */}
-        <path d="M596 602 Q616 595 623 613 L627 627 L612 634 L594 624 Z M589 624 L631 630 L632 642 L588 636 Z M532 647 L628 657 L630 670 L532 660 Z M537 658 L550 660 L548 778 L537 776 Z M617 668 L631 670 L631 785 L618 786 Z M548 711 L619 724 L620 738 L548 725 Z M615 746 L649 723 L653 730 L626 751 Z M530 653 L470 699 L474 706 L539 662 Z M648 489 L691 485 L753 507 L752 518 L688 499 L648 501 Z"/>
+        {/* Bearing blocks and posts keep their original pixels; the blurred old hub is excluded. */}
+        <path d="M589 624 L631 630 L632 642 L588 636 Z M532 647 L628 657 L630 670 L532 660 Z M537 658 L550 660 L548 778 L537 776 Z M617 668 L631 670 L631 785 L618 786 Z M548 711 L619 724 L620 738 L548 725 Z M615 746 L649 723 L653 730 L626 751 Z M530 653 L470 699 L474 706 L539 662 Z M648 489 L691 485 L753 507 L752 518 L688 499 L648 501 Z"/>
+        <ellipse cx={605} cy={615} rx={8.5} ry={9.5}/>
       </clipPath>
-      <clipPath id={`${id}-fall`}>
-        <path d="M697 518 Q720 550 728 590 Q747 658 728 722 L708 789 Q750 806 788 790 Q774 760 777 719 Q796 629 760 552 L739 510 Z"/>
-      </clipPath>
-      <pattern id={`${id}-water`} width="23" height="44" patternUnits="userSpaceOnUse">
-        <path d="M3 -8 Q-1 3 5 13 T4 34 M15 9 Q22 20 16 31 T17 52" fill="none" stroke="#e9e8d6" strokeWidth="1.3" opacity=".48"/>
-        <path d="M10 -3 L13 10 M8 28 L9 37 M21 6 L20 17" fill="none" stroke="#8c9b8d" strokeWidth=".8" opacity=".38"/>
+      <linearGradient id={`${id}-waterline`} x1="0" y1="762" x2="0" y2="787" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stopColor="white"/><stop offset=".3" stopColor="white"/><stop offset="1" stopColor="black"/>
+      </linearGradient>
+      <mask id={`${id}-immersed`} maskUnits="userSpaceOnUse" x="440" y="430" width="380" height="390">
+        <rect x="440" y="430" width="380" height="390" fill={`url(#${id}-waterline)`}/>
+      </mask>
+      <mask id={`${id}-rivulets`} maskUnits="userSpaceOnUse" x="690" y="505" width="110" height="300">
+        {streams.map((d,i) => <path key={d} d={d} fill="none" stroke="white" strokeWidth={18-i*4} opacity={.82-i*.1}/>)}
+      </mask>
+      <pattern id={`${id}-waterpaint`} width="18" height="144" patternUnits="userSpaceOnUse">
+        <image href={art('watermill/fall-texture-v2.webp')} width="18" height="144" onLoad={() => load(4)} onError={() => setFailed(true)}/>
       </pattern>
     </defs>
     <g opacity={ready ? 1 : 0}>
       <image href={art('watermill/backplate-v1.webp')} x={464} y={456} width={340} height={356} onLoad={() => load(1)} onError={() => setFailed(true)}/>
-      {/* Perspective S · R · S⁻¹: placement never shares the animated transform. */}
-      <g transform="translate(605 615)">
-        <g transform="scale(.85 1)">
-          <g className="mill-rotor">
-            <g transform={`scale(${1 / .85} 1)`}>
-              <image href={art('watermill/rotor-v1.webp')} x={-136} y={-160} width={272} height={320} onLoad={() => load(2)} onError={() => setFailed(true)}/>
-            </g>
-          </g>
-        </g>
+      <ellipse cx={620} cy={778} rx={73} ry={6} fill="#354037" opacity=".16"/>
+      <g mask={`url(#${id}-immersed)`}>
+        <ellipse cx={624} cy={615} rx={132} ry={158} fill="none" stroke="#343526" strokeWidth={5} opacity=".15"/>
+        <Waterwheel face={art('watermill/face-v2.webp')} buckets={art('watermill/buckets-v2.webp')} running={running && ready} reduced={reduced} onLoad={() => load(2)} onBucketsLoad={() => load(8)} onError={() => setFailed(true)}/>
+        {/* Wet timber stays on the receiving side instead of rotating a painted highlight. */}
+        <path d="M718 520 A139 163 0 0 1 686 748" fill="none" stroke="#213c32" strokeWidth={11} opacity=".11"/>
       </g>
-      <g clipPath={`url(#${id}-front)`}>
+      <g clipPath={`url(#${id}-front)`} data-layer="fixed-frame">
         <image href={art('scroll/scroll-16.webp')} width={1024} height={1024}/>
       </g>
-      {/* The painted fall is retained; a masked, downward texture moves over it. */}
-      <g clipPath={`url(#${id}-fall)`}>
-        <image href={art('scroll/scroll-16.webp')} width={1024} height={1024}/>
-        <g className="mill-current"><rect x={685} y={462} width={120} height={400} fill={`url(#${id}-water)`}/></g>
+      {/* Painted water fibers move inside fixed, irregular rivulets; no uniform dashed stripes. */}
+      <g mask={`url(#${id}-rivulets)`}>
+        <image href={art('scroll/scroll-16.webp')} width={1024} height={1024} opacity=".35"/>
+        <g className="mill-current" opacity=".78"><rect x={690} y={350} width={110} height={600} fill={`url(#${id}-waterpaint)`}/></g>
+        <g className="mill-current mill-current-fine" opacity=".35"><rect x={690} y={350} width={110} height={600} fill={`url(#${id}-waterpaint)`}/></g>
       </g>
-      <g className="mill-spray" fill="none" stroke="#dedfcf" strokeWidth="1.2" strokeLinecap="round">
-        <path d="M722 791 Q715 780 710 786 M736 792 Q738 779 742 781 M752 790 Q762 781 766 789 M774 794 Q783 786 787 792"/>
+      <g className="mill-spray" fill="none" stroke="#d8dfca" strokeWidth=".9" strokeLinecap="round">
+        <path d="M725 791q-4-6-7-3m14 8q-1-8 3-9m10 8q5-8 8-4m11 5q5-7 10-2 M593 777q-4-6-7-2m22 6q5-7 9-3m12 0q4-4 7-1"/>
       </g>
-      <g className="mill-ripple" fill="none" stroke="#d6dac8" strokeWidth="1">
-        <ellipse cx={743} cy={804} rx={44} ry={7}/><ellipse cx={726} cy={813} rx={30} ry={4}/>
+      <g fill="#d8e0cb" opacity=".32">
+        <ellipse cx={733} cy={796} rx={2.8} ry={.8}/><ellipse cx={744} cy={794} rx={1.5} ry={.65}/><ellipse cx={756} cy={799} rx={3} ry={.7}/><ellipse cx={769} cy={797} rx={1.7} ry={.8}/><ellipse cx={780} cy={800} rx={2} ry={.65}/>
+      </g>
+      <g fill="none" stroke="#ced6c1" strokeWidth=".8">
+        <path className="mill-ripple" d="M709 800q13-4 24-1m6 2q23-2 43 1m-64 6q22 3 39 0"/>
+        <path className="mill-ripple mill-ripple-late" d="M699 808q12-3 20 0m8 4q23 3 50-1"/>
+        <path className="mill-ripple mill-ripple-wheel" d="M571 783q16-4 29-1m6 3q18 4 42-1m-56 5q17 3 32 0"/>
       </g>
     </g>
   </g>;

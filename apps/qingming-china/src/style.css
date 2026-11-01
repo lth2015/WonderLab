@@ -71,11 +71,17 @@
 
 /* Watermill: clockwise on the falling-water side; no frame-by-frame React work. */
 .mill-rotor{transform-origin:0 0;animation:mill-turn 28s linear infinite}
-.mill-current{animation:mill-flow 1.15s linear infinite}
+.mill-current{animation:mill-flow 2.8s linear infinite}
+.mill-current-fine{animation-duration:2.2s;animation-delay:-1.1s}
 .mill-spray{opacity:.26;animation:mill-splash 1.6s ease-in-out infinite alternate}
 .mill-ripple{transform-box:fill-box;transform-origin:center;opacity:.2;animation:mill-ring 3.4s ease-out infinite}
 .mill-paused .mill-rotor,.mill-paused .mill-current,.mill-paused .mill-spray,.mill-paused .mill-ripple{animation-play-state:paused}
 @keyframes mill-turn{to{transform:rotate(360deg)}}
-@keyframes mill-flow{to{transform:translateY(44px)}}
-@keyframes mill-splash{to{opacity:.42}}
+@keyframes mill-flow{to{transform:translateY(144px)}}
+@keyframes mill-splash{to{opacity:.34}}
 @keyframes mill-ring{from{transform:scale(.85);opacity:.22}to{transform:scale(1.15);opacity:.04}}
+
+.mill-ripple-late{animation-delay:-1.3s;animation-duration:4.1s}
+.mill-ripple-wheel{animation-delay:-.7s;animation-duration:2.8s}
+.mill-rear-rotation{transform-origin:0 0;animation:mill-turn 28s linear infinite}
+.mill-paused .mill-rear-rotation{animation-play-state:paused}
