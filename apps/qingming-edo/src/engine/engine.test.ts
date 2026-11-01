@@ -516,3 +516,34 @@ describe('絵巻帳が一冊に', () => {
     expect(JSON.stringify(NODES['sokichi.full'])).not.toMatch(/grant|reward/);
   });
 });
+
+describe('Codex review fixes (F01, F02)', () => {
+  const withPages = (pages: unknown[]) => JSON.stringify({ ...newSave(), journal: { pages } });
+  const page = (pageId: string, compositionId: string, titleStyle = 'plain') => ({ pageId, compositionId, titleStyle, madeAt: '2026-11-01T00:00:00Z' });
+  it('F01: a page this version does not know is refused on import, the current save kept', () => {
+    expect(importText(withPages([page('unknown-page', 'unknown-composition')])).ok).toBe(false);
+    expect(importText(withPages([page('p01-kaze', 'dougu-deliver')])).ok).toBe(false); // wrong composition for the page
+    expect(importText(withPages([page('p-sk-boat', 'sketch-well-noon')])).ok).toBe(false); // sketch of another place
+    expect(importText(withPages([page('p01-kaze', 'kaze-hands-near'), page('p01-kaze', 'kaze-street-wide')])).ok).toBe(false); // twice
+  });
+  it('F01: known pages load, and an unknown title slip falls back to plain', () => {
+    const r = importText(withPages([page('p01-kaze', 'kaze-hands-near', 'gold'), page('p-sk-boat', 'sketch-boat-evening'), page('p02-dougu-b', 'dougu-entrust')]));
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.save.journal.pages.map((p) => p.titleStyle)).toEqual(['plain', 'plain', 'plain']);
+  });
+  it('F02: when the backup of an unreadable save cannot be written, the original is not called kept', () => {
+    const data = new Map<string, string>([[SAVE_KEY, '{broken']]);
+    const full = { getItem: (k: string) => data.get(k) ?? null, setItem: () => { throw new DOMException('full', 'QuotaExceededError'); } };
+    const r = load(full);
+    expect(r.kind).toBe('unbacked');
+    if (r.kind === 'unbacked') expect(r.original).toBe('{broken');
+    // a store that silently drops the write is treated the same
+    const silent = { getItem: (k: string) => data.get(k) ?? null, setItem: () => {} };
+    expect(load(silent).kind).toBe('unbacked');
+    // and a working store backs it up as before
+    const ok = new Map<string, string>([[SAVE_KEY, '{broken']]);
+    const r2 = load({ getItem: (k) => ok.get(k) ?? null, setItem: (k, v) => void ok.set(k, v) });
+    expect(r2.kind).toBe('corrupt');
+    if (r2.kind === 'corrupt') expect(ok.get(r2.backupKey)).toBe('{broken');
+  });
+});

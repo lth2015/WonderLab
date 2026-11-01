@@ -348,3 +348,17 @@ export function parseKaze(compositionId: string): { subject: Subject; framing: F
   const m = /^kaze-(hands|shopfront|street)-(near|wide)$/.exec(compositionId);
   return m ? { subject: m[1] as Subject, framing: m[2] as Framing } : null;
 }
+
+/**
+ * A journal entry this version can draw: a known page, a composition that page
+ * can have, used by save loading/import (spec §16: a bad record is refused, the
+ * current one kept). Codex review F01.
+ */
+export function validJournalEntry(pageId: string, compositionId: string): boolean {
+  if (pageId === 'p01-kaze' || pageId === 'p01-kaze-b') return parseKaze(compositionId) !== null;
+  if (pageId === 'p02-dougu' || pageId === 'p02-dougu-b') return compositionId === 'dougu-deliver' || compositionId === 'dougu-entrust';
+  if (pageId === 'p03-tenugui') return compositionId === 'tenugui-return';
+  const sk = parseSketch(compositionId);
+  return !!sk && sketchPageId(sk.sketch.id) === pageId;
+}
+export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);

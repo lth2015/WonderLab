@@ -20,7 +20,12 @@ export function Settings({
   onReplace,
   onClose,
   onToast,
+  unreadable,
+  onAllowOverwrite,
 }: {
+  /** The original text of a save that could not be read or backed up (review F02). */
+  unreadable?: string | null;
+  onAllowOverwrite?(): void;
   save: SaveData;
   onChange(s: SaveData): void;
   onReplace(s: SaveData): void;
@@ -89,6 +94,31 @@ export function Settings({
       </fieldset>
 
       <h3>記録</h3>
+      {unreadable && (
+        <div className="recall-box" role="group" aria-label="読めなかった記録">
+          <p className="small">この端末に、読めなかった記録が残っています。保存の空きがなく退避できなかったため、この画面では上書きしていません。</p>
+          <div className="row">
+            <button
+              type="button"
+              onClick={() => {
+                const url = URL.createObjectURL(new Blob([unreadable], { type: 'application/json' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'qingming-edo-yomenakatta-kiroku.json';
+                document.body.append(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+              }}
+            >
+              読めなかった記録を書き出す
+            </button>
+            <button type="button" onClick={() => onAllowOverwrite?.()}>
+              上書きして、ここで保存を始める
+            </button>
+          </div>
+        </div>
+      )}
       <p className="small">記録はこの端末のブラウザーにだけ保存されます。別の端末や別のアドレスへは自動では移りません。</p>
       <div className="row">
         <button type="button" onClick={exportSave}>

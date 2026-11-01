@@ -31,6 +31,8 @@ export interface PageArtProps {
 }
 
 export function PageArt({ scene, titleStyle, title, place, credit, idPrefix = 'pg' }: PageArtProps) {
+  title = title ?? '';
+  place = place ?? '';
   const slip = SLIP[titleStyle] ?? SLIP.plain;
   const clip = `${idPrefix}-clip`;
   return (

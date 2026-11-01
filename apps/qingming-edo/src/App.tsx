@@ -15,6 +15,7 @@ import { Wrap } from './ui/Wrap';
 import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
 import { Talk } from './ui/Talk';
+import { useModalFocus } from './ui/modalFocus';
 import { TALK_STORIES } from './content/talkStories';
 import { posesFor } from './scene/painted';
 
@@ -47,15 +48,23 @@ export function App() {
   const [boot] = useState<LoadResult>(() => load(storage() ?? memoryStore));
   const [save, setSaveRaw] = useState<SaveData>(boot.save);
   const saveRef = useRef(save);
-  // A save from a newer version is left untouched (engine/save.ts).
-  const writable = useRef(boot.kind !== 'newer');
+  // A save from a newer version is left untouched (engine/save.ts), and so is an
+  // unreadable one whose backup could not be written, until the player chooses.
+  const writable = useRef(boot.kind !== 'newer' && boot.kind !== 'unbacked');
+  const [unreadable, setUnreadable] = useState<string | null>(boot.kind === 'unbacked' ? boot.original : null);
+  // storage that refuses writes: say so once, and point to the export (spec §16, review V04)
+  const saveFailedSaid = useRef(false);
+  const toastRef = useRef<(t: string) => void>(() => {});
   const setSave = useCallback((next: SaveData) => {
     // the ref moves at once: two writes in one tick (a "met" flag, then the
     // dialogue's own effects) must build on each other, not on the last render
     saveRef.current = next;
     setSaveRaw(next);
     // Recorded as soon as progress is decided (spec §19 保存).
-    if (writable.current) persist(storage() ?? memoryStore, next);
+    if (writable.current && !persist(storage() ?? memoryStore, next) && !saveFailedSaid.current) {
+      saveFailedSaid.current = true;
+      toastRef.current('この端末に記録を保存できませんでした。続けて遊べますが、閉じると消えます。設定の「記録を書き出す」で残せます。');
+    }
   }, []);
 
   const commit = useCallback((effects: Effect[]) => setSave(apply(saveRef.current, effects)), [setSave]);
@@ -72,12 +81,15 @@ export function App() {
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
       ? '記録が読めなかったため、元の記録を退避して最初から始めます。'
+      : boot.kind === 'unbacked'
+        ? '記録が読めず、退避もできませんでした。元の記録はそのまま残し、この画面では保存しません。設定で書き出せます。'
       : boot.kind === 'newer'
         ? '新しい版の記録が見つかりました。その記録は書き換えず、この画面では保存しません。'
         : unknownScene()
           ? 'リンクの場面は見つかりませんでした。日本橋北詰の通りから始めます。'
           : null,
   );
+  toastRef.current = setToast;
   const [reacting, setReacting] = useState<Set<string>>(new Set());
   const [hint, setHint] = useState<string | null>(null);
   const dismissedHint = useRef<string | null>(null);
@@ -86,6 +98,9 @@ export function App() {
 
   const reduceMotion = save.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const busy = !!(dialogue || candidates || sketch || game || panel || talk);
+  // panels hold the keyboard while open; Escape closes the menu panels (journal,
+  // items, nearby, settings). Games and the sketch close with their own buttons.
+  useModalFocus(panel ?? (sketch ? `sketch-${sketch}` : game ? `game-${game.id}` : null), panel ? () => setPanel(null) : null);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--text-scale', String(save.settings.textScale));
@@ -579,7 +594,15 @@ export function App() {
         <Settings
           save={save}
           onChange={setSave}
+          unreadable={unreadable}
+          onAllowOverwrite={() => {
+            writable.current = true;
+            setUnreadable(null);
+            setSave(saveRef.current);
+            setToast('この端末で、新しい記録の保存を始めました。');
+          }}
           onReplace={(s) => {
+            setUnreadable(null);
             writable.current = true;
             setSave(s);
           }}

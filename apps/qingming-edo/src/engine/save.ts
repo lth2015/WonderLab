@@ -1,6 +1,7 @@
 import type { SaveData } from '../contract';
 import { SCHEMA_VERSION, WORLD_ID } from '../contract';
 import { SAVE_VERSION, newSave } from './state';
+import { TITLE_STYLE_IDS, validJournalEntry } from '../content/world';
 
 // Storage stays inside this work's namespace (spec §16): ww:qingming-edo:*.
 // Nothing here reads, writes or clears another work's keys.
@@ -12,6 +13,12 @@ export type LoadResult =
   | { kind: 'loaded'; save: SaveData }
   /** Unreadable: the original was kept under backupKey and play starts fresh. */
   | { kind: 'corrupt'; save: SaveData; backupKey: string }
+  /**
+   * Unreadable, and the backup could not be written (storage full): the original
+   * is left in place and this session must not write over it until the player
+   * chooses to (Codex review F02). `original` lets them download it first.
+   */
+  | { kind: 'unbacked'; save: SaveData; original: string }
   /** Written by a newer version: kept untouched, and this session does not write over it. */
   | { kind: 'newer'; save: SaveData };
 
@@ -47,7 +54,14 @@ export function migrate(raw: unknown): SaveData | 'newer' {
   for (const v of Object.values(p.quests)) if (!QUEST_STATES.has(v as string)) throw new Error('bad quest state');
   if (!w || !Number.isInteger(w.balanceMinor) || w.balanceMinor < 0 || !isStrArr(w.grantedRewardIds)) throw new Error('bad wallet');
   if (!j || !Array.isArray(j.pages)) throw new Error('bad journal');
-  for (const pg of j.pages) if (typeof pg?.pageId !== 'string' || typeof pg?.compositionId !== 'string') throw new Error('bad page');
+  // only pages this version knows, each once, with a composition it can draw (Codex review F01)
+  const seen = new Set<string>();
+  for (const pg of j.pages) {
+    if (typeof pg?.pageId !== 'string' || typeof pg?.compositionId !== 'string') throw new Error('bad page');
+    if (!validJournalEntry(pg.pageId, pg.compositionId)) throw new Error(`unknown page ${pg.pageId}`);
+    if (seen.has(pg.pageId)) throw new Error(`page twice ${pg.pageId}`);
+    seen.add(pg.pageId);
+  }
   const st = (r.settings ?? {}) as Partial<SaveData['settings']>;
   return {
     ...base,
@@ -55,7 +69,14 @@ export function migrate(raw: unknown): SaveData | 'newer' {
     updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : base.updatedAt,
     progress: { quests: { ...p.quests }, flags: [...p.flags], familiarity: { ...(p.familiarity ?? {}) } },
     wallet: { currencyId: 'mon', balanceMinor: w.balanceMinor, grantedRewardIds: [...w.grantedRewardIds] },
-    journal: { pages: j.pages.map((x) => ({ ...x })) },
+    journal: {
+      pages: j.pages.map((x) => ({
+        pageId: x.pageId,
+        compositionId: x.compositionId,
+        titleStyle: TITLE_STYLE_IDS.includes(x.titleStyle) ? x.titleStyle : 'plain',
+        madeAt: typeof x.madeAt === 'string' ? x.madeAt : base.updatedAt,
+      })),
+    },
     settings: {
       reduceMotion: st.reduceMotion === true,
       textScale: st.textScale === 1.25 || st.textScale === 1.5 ? st.textScale : 1,
@@ -86,8 +107,10 @@ export function load(store: Store, now = new Date()): LoadResult {
     const backupKey = `${KEY_PREFIX}save-corrupt-${now.getTime()}`;
     try {
       store.setItem(backupKey, text);
+      // only call it kept once it reads back the same
+      if (store.getItem(backupKey) !== text) throw new Error('backup not kept');
     } catch {
-      /* nothing more we can do; the original key is left as it was */
+      return { kind: 'unbacked', save: newSave(now), original: text };
     }
     return { kind: 'corrupt', save: newSave(now), backupKey };
   }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JournalEntry, SaveData } from '../contract';
-import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage } from '../content/world';
+import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage, validJournalEntry } from '../content/world';
 import { TIMES } from '../engine/time';
 import { replayable } from '../engine/story';
 import { PageArt, pageToPng } from '../scene/PageArt';
@@ -60,7 +60,8 @@ const RECALL_NOTE: Record<string, string> = {
 export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void }) {
   const [open, setOpen] = useState<JournalEntry | null>(null);
   const big = useRef<HTMLDivElement>(null);
-  const pages = save.journal.pages;
+  // a page this version cannot draw is left out rather than breaking the book (review F01)
+  const pages = save.journal.pages.filter((p) => validJournalEntry(p.pageId, p.compositionId));
 
   // The page image is made as soon as a page is opened, so the share sheet can be
   // opened straight from the tap (iOS drops the gesture during a slow await).
@@ -126,8 +127,13 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
     if (!open) return;
     const data: ShareData = { title: '日本橋、ひと頁', text: `「${PAGE_TITLES[open.pageId]}」 — ${CREDIT}`, url: workLink() };
     if (ready) {
-      const file = new File([ready], fileName, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) data.files = [file];
+      // a probe that throws means "no files here": share the link instead (review F04)
+      try {
+        const file = new File([ready], fileName, { type: 'image/png' });
+        if (navigator.canShare?.({ files: [file] })) data.files = [file];
+      } catch {
+        /* link only */
+      }
     }
     try {
       await navigator.share(data);
