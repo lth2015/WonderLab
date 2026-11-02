@@ -113,6 +113,58 @@ function Idle({ n, children }: { n: number; children: React.ReactNode }) {
   );
 }
 
+/**
+ * 町の気配 (owner's demo feedback 「场景简单」): small things that happen by themselves —
+ * light on the water, a few sparrows crossing, steam over the tea kettle, a plum petal.
+ * Quiet on purpose; drawn only for the sections in view; nothing with 動きを減らす.
+ */
+const WATER_ZONES = [
+  { x0: 13520, x1: 13950, y0: 470, y1: 690 }, // the river under the bridge (clear of the moored boat)
+  { x0: 13250, x1: 13520, y0: 655, y1: 690 }, // below the boat
+  { x0: 14050, x1: 14450, y0: 480, y1: 690 }, // under the bridge, far side
+  { x0: 14700, x1: 15700, y0: 615, y1: 695 }, // along the quay
+  { x0: 15700, x1: 15950, y0: 400, y1: 600 }, // the open water past the quay
+  { x0: 5050, x1: 5550, y0: 300, y1: 390 }, // the moat by the jetty
+  { x0: 6050, x1: 6380, y0: 285, y1: 370 }, // the moat between the houses
+  { x0: 1030, x1: 1220, y0: 370, y1: 440 }, // the garden pond
+];
+const FLOCKS = [1500, 4500, 7800, 10900, 13600, 15600]; // where a few sparrows cross, now and then
+const PETALS = [{ x: 10660, y: 250 }, { x: 1910, y: 330 }];
+const STEAM = { x: 11571, y: 392 };
+
+function AmbientLife({ sections }: { sections: [number, number] }) {
+  const inView = (x0: number, x1: number) => near(x0, sections) || near(x1, sections);
+  const r = (i: number, a: number, b: number) => a + (((i * 61 + 17) % 97) / 97) * (b - a); // fixed spread
+  return (
+    <g className="life" aria-hidden="true" pointerEvents="none">
+      {WATER_ZONES.filter((z) => inView(z.x0, z.x1)).map((z, zi) => {
+        const n = Math.max(4, Math.round(((z.x1 - z.x0) * (z.y1 - z.y0)) / 9000));
+        return (
+          <g key={`w${zi}`} stroke="#ffffff" strokeLinecap="round">
+            {Array.from({ length: n }, (_, i) => {
+              const x = r(i + zi * 7, z.x0, z.x1 - 30);
+              const y = r(i * 3 + zi, z.y0, z.y1);
+              return <path key={i} className="shimmer" d={`M ${x} ${y} h ${r(i + 5, 24, 50)}`} strokeWidth={2.6} style={{ animationDelay: `${-r(i + zi, 0, 5)}s`, animationDuration: `${r(i + 2, 3.5, 6)}s` }} />;
+            })}
+          </g>
+        );
+      })}
+      {FLOCKS.filter((x) => inView(x - 700, x + 700)).map((x, fi) => (
+        <g key={`f${x}`} className="flock" style={{ animationDelay: `${-fi * 7}s`, animationDuration: `${24 + fi * 3}s` }}>
+          {[0, 1, 2].map((i) => (
+            <path key={i} className="wing" d={`M ${x + 600 + i * 16} ${110 + fi * 9 + (i % 2) * 8} q 3 -3 5 0 q 2 -3 5 0`} fill="none" stroke="#3b3326" strokeWidth={1.2} strokeLinecap="round" style={{ animationDelay: `${i * 0.08}s` }} />
+          ))}
+        </g>
+      ))}
+      {inView(STEAM.x - 50, STEAM.x + 50) &&
+        [0, 1, 2].map((i) => <circle key={`s${i}`} className="steam-wisp" cx={STEAM.x + (i - 1) * 4} cy={STEAM.y} r={4 + i} fill="#fffdf6" style={{ animationDelay: `${i * 1.2}s` }} />)}
+      {PETALS.filter((p) => inView(p.x - 100, p.x + 100)).map((p, pi) =>
+        [0, 1].map((i) => <ellipse key={`p${pi}${i}`} className="petal" cx={p.x + (i ? 30 : -20)} cy={p.y} rx={2.4} ry={1.3} fill="#e7b9c2" style={{ animationDelay: `${-(pi * 3 + i * 4.5)}s` }} />),
+      )}
+    </g>
+  );
+}
+
 /** A tap on a thing: something small and visible happens there for a moment. */
 function ReactionFx({ kind, x, y, w, h }: { kind: Reaction; x: number; y: number; w: number; h: number }) {
   const cx = x + w / 2;
@@ -270,6 +322,7 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
         ),
       )}
 
+      <AmbientLife sections={sections} />
       {glints.map((g) => (
         <g key={g.id}>
           <ellipse className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 4} ry={g.h / 2 + 4} fill="#fff8e0" />

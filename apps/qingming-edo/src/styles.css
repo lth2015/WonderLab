@@ -1393,3 +1393,60 @@ button.term[aria-expanded="true"] {
 .street[data-still='yes'] .walker-bob {
   animation-play-state: paused;
 }
+
+/* 町の気配: things that happen by themselves (quiet; nothing with 動きを減らす) */
+.shimmer {
+  opacity: 0;
+  animation: shimmer 4.5s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  30%, 55% { opacity: 0.95; }
+  85% { opacity: 0; transform: translateX(10px); }
+}
+.flock {
+  opacity: 0;
+  animation: flock 26s linear infinite;
+}
+@keyframes flock {
+  0% { opacity: 0; transform: translate(0, 0); }
+  2% { opacity: 0.85; }
+  30% { opacity: 0.85; }
+  33% { opacity: 0; transform: translate(-1300px, -50px); }
+  100% { opacity: 0; transform: translate(-1300px, -50px); }
+}
+.wing {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wing 0.28s ease-in-out infinite alternate;
+}
+@keyframes wing {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.35); }
+}
+.steam-wisp {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: steam-wisp 3.6s ease-out infinite;
+}
+@keyframes steam-wisp {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  25% { opacity: 0.32; }
+  100% { opacity: 0; transform: translateY(-34px) scale(1.5); }
+}
+.petal {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: petal 9s ease-in infinite;
+}
+@keyframes petal {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  5% { opacity: 0.9; }
+  40% { opacity: 0.9; transform: translate(-22px, 80px) rotate(220deg); }
+  45%, 100% { opacity: 0; transform: translate(-24px, 90px) rotate(240deg); }
+}
+.rm .life {
+  display: none;
+}
