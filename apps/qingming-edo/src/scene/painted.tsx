@@ -1,3 +1,4 @@
+import type React from 'react';
 // 精絵 — the street painted by Codex (codex/painted-worlds-art,
 // docs/painted-worlds/art/edo-by-codex/), joined and mirrored by Claude so the
 // bridge is on the right and the scroll reads right to left. Scene units: 14
@@ -11,7 +12,7 @@
 import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import SIZES from '../assets/art/sizes.json';
-import { parseSketch, SCENE_W } from '../content/world';
+import { parseSketch, SCENE_W, type Reaction } from '../content/world';
 
 const URLS = import.meta.glob('../assets/art/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
 const url = (name: string) => {
@@ -86,6 +87,79 @@ export const PROPS: { id: SpriteId; x: number; y: number; flip?: boolean }[] = [
   { id: 'props-cart', x: 3010, y: 640 }, // over the 11|12 join (unmirrored), curbs at two heights
 ];
 
+/**
+ * 町が動く (owner's demo feedback: 「人不能动」): each passer-by strolls back and forth
+ * along their own stretch of road, first the way they face (the art faces left unless
+ * flipped), turning at each end. Slow on purpose: about 22 units a second.
+ */
+export function walkOf(c: { x: number; flip: boolean }, i: number): { dx: number; dur: number; delay: number } {
+  const length = 300 + ((i * 47) % 130); // 300–430 units
+  const dx = c.flip ? length : -length;
+  const dur = (2 * length) / 22; // there and back
+  return { dx, dur, delay: -((i * 7.3) % dur) };
+}
+
+/** A tap on a thing: something small and visible happens there for a moment. */
+function ReactionFx({ kind, x, y, w, h }: { kind: Reaction; x: number; y: number; w: number; h: number }) {
+  const cx = x + w / 2;
+  const n = [0, 1, 2, 3, 4, 5];
+  const many = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const v = (i: number, a: number, b: number) => a + ((i * 37) % 100) / 100 * (b - a); // fixed spread, no randomness
+  const style = (vars: Record<string, string | number>) => vars as unknown as React.CSSProperties;
+  switch (kind) {
+    case 'leaves':
+    case 'petals':
+      return (
+        <g className="fx" aria-hidden="true">
+          {n.map((i) => (
+            <ellipse key={i} className="fx-fall" cx={x + v(i, 0.15, 0.85) * w} cy={y + v(i + 3, 0.15, 0.5) * h} rx={kind === 'petals' ? 2.6 : 3.4} ry={1.5} fill={kind === 'petals' ? '#e7b9c2' : '#8f9e5e'} style={style({ '--dx': `${v(i, -26, 26)}px`, '--dy': `${v(i + 1, 50, 90)}px`, animationDelay: `${i * 0.07}s` })} />
+          ))}
+        </g>
+      );
+    case 'wind':
+      return (
+        <g className="fx" aria-hidden="true" fill="none" stroke="#fffaf0" strokeWidth={2} strokeLinecap="round">
+          {[0.3, 0.5, 0.7].map((k, i) => (
+            <path key={i} className="fx-wind" pathLength={1} d={`M ${x - 20} ${y + k * h} q ${w * 0.3} -10 ${w * 0.6} 0 t ${w * 0.6} 0`} style={style({ animationDelay: `${i * 0.12}s` })} />
+          ))}
+        </g>
+      );
+    case 'ripple':
+      return (
+        <g className="fx" aria-hidden="true" fill="none" stroke="#f4f1e4" strokeWidth={1.6}>
+          {[0, 1, 2].map((i) => (
+            <ellipse key={i} className="fx-ring" cx={cx} cy={y + h * 0.8} rx={Math.min(w, 160) * 0.25} ry={Math.min(w, 160) * 0.07} style={style({ animationDelay: `${i * 0.25}s` })} />
+          ))}
+        </g>
+      );
+    case 'steam':
+      return (
+        <g className="fx" aria-hidden="true" fill="#fffdf6">
+          {[0, 1, 2].map((i) => (
+            <circle key={i} className="fx-rise" cx={cx + (i - 1) * 6} cy={y + h * 0.3} r={6 + i * 2} style={style({ animationDelay: `${i * 0.18}s` })} />
+          ))}
+        </g>
+      );
+    case 'birds':
+      return (
+        <g className="fx" aria-hidden="true" fill="none" stroke="#3b3326" strokeWidth={1.4} strokeLinecap="round">
+          {[0, 1, 2].map((i) => (
+            <path key={i} className="fx-fly" d={`M ${cx - 5 + i * 9} ${y + h * 0.4 + i * 6} q 3 -3 5 0 q 2 -3 5 0`} style={style({ '--dx': `${(i - 1) * 30 + 15}px`, animationDelay: `${i * 0.1}s` })} />
+          ))}
+        </g>
+      );
+    case 'dust':
+    case 'bubbles':
+      return (
+        <g className="fx" aria-hidden="true" fill={kind === 'bubbles' ? '#4d6282' : '#d9c9a3'}>
+          {many.map((i) => (
+            <circle key={i} className={kind === 'bubbles' ? 'fx-bubble' : 'fx-dust'} cx={cx + v(i, -0.35, 0.35) * w} cy={y + h * (kind === 'bubbles' ? 0.45 : 0.85)} r={kind === 'bubbles' ? 2.8 : 2.6} style={style({ '--dx': `${v(i, -30, 30)}px`, '--dy': `${-v(i + 2, 14, 34)}px`, animationDelay: `${i * 0.04}s` })} />
+          ))}
+        </g>
+      );
+  }
+}
+
 /** Each person's pose follows the story (spec §8 五状態). */
 export interface Poses {
   seita: 'press' | 'bow' | 'stand';
@@ -150,7 +224,7 @@ export interface PaintedProps {
   /** Only sections in [from, to] are drawn (and so fetched): the scroll loads by section. */
   sections: [number, number];
   /** Ambient reactions on the painting: a soft glint where it was touched. */
-  glints: { id: string; x: number; y: number; w: number; h: number }[];
+  glints: { id: string; x: number; y: number; w: number; h: number; reaction?: Reaction }[];
 }
 
 const near = (x: number, [from, to]: [number, number]) => x >= from * 1000 - 120 && x <= (to + 1) * 1000 + 120;
@@ -166,15 +240,28 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
       )}
 
       {glints.map((g) => (
-        <ellipse key={g.id} className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 4} ry={g.h / 2 + 4} fill="#fff8e0" />
+        <g key={g.id}>
+          <ellipse className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 4} ry={g.h / 2 + 4} fill="#fff8e0" />
+          {g.reaction && <ReactionFx kind={g.reaction} {...g} />}
+        </g>
       ))}
 
       {PROPS.filter((c) => near(c.x, sections)).map((c) => (
         <Sprite key={`${c.id}-${c.x}`} {...c} />
       ))}
-      {CROWD.filter((c) => near(c.x, sections)).map((c) => (
-        <Sprite key={`${c.id}-${c.x}`} {...c} />
-      ))}
+      {CROWD.filter((c, i) => near(c.x, sections) || near(c.x + walkOf(c, i).dx, sections)).map((c) => {
+        const w = walkOf(c, CROWD.indexOf(c));
+        // placement stays in attributes; only the inner groups are animated (lesson of #157)
+        return (
+          <g key={`${c.id}-${c.x}`} className="walker" style={{ '--dx': `${w.dx}px`, '--dur': `${w.dur}s`, animationDelay: `${w.delay}s` } as React.CSSProperties}>
+            <g className="walker-face" style={{ animationDelay: `${w.delay}s` } as React.CSSProperties}>
+              <g className="walker-bob">
+                <Sprite {...c} />
+              </g>
+            </g>
+          </g>
+        );
+      })}
       <Sprite id={poses.kinji} {...SPOTS.kinji} />
       <Sprite id={poses.kisuke} {...SPOTS.kisuke} />
       <Sprite id={poses.oharu} {...SPOTS.oharu} />

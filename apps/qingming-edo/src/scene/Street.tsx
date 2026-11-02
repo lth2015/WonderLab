@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import type { HotspotDef } from '../contract';
-import { SCENE, SCENE_H, SCENE_W } from '../content/world';
+import { AMBIENT_REACTION, SCENE, SCENE_H, SCENE_W } from '../content/world';
 import { clampCamera, isDrag, resolveTap } from '../engine/hit';
 import { PaintedStreet, SCENE_X0, SECTIONS, type Poses } from './painted';
 
@@ -370,7 +370,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
             sections={sections}
             glints={spots
               .filter((h) => h.kind === 'ambient' && reacting.has(h.targetId))
-              .map((h) => ({ id: h.id, ...h.hitArea }))}
+              .map((h) => ({ id: h.id, ...h.hitArea, reaction: AMBIENT_REACTION[h.targetId] }))}
           />
           {cueSpot && <ellipse key={`cue-${cue!.key}`} className="cue-ring" {...ringAt(cueSpot)} />}
           {ripple && <circle key={ripple.k} className="tap-ripple" cx={ripple.x} cy={ripple.y} r={16 / scale} />}

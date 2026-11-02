@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createStudy } from '../engine/study';
 import { COMMENT, COMMENT_BY_COMPOSITION, PLACE, RECALL_NOTE } from './pageText';
 import { ENTRIES, NODES, RECALL_START } from './script';
-import { AMBIENT, AMBIENT_LABEL, characterById, HOTSPOTS, PAGE_TITLES, PAGES, QUESTS, ROLES, SCENE, SCENE_W, SUBJECTS, validJournalEntry } from './world';
+import { AMBIENT, AMBIENT_LABEL, AMBIENT_REACTION, characterById, HOTSPOTS, PAGE_TITLES, PAGES, QUESTS, ROLES, SCENE, SCENE_W, SUBJECTS, validJournalEntry } from './world';
 import SIZES from '../assets/art/sizes.json';
 
 // 新しい場面・小話の登録 (roadmap #158 item 3): what adding a place or a story has to
@@ -51,6 +51,7 @@ describe('every person and thing on the street is complete', () => {
     for (const h of HOTSPOTS.filter((x) => x.kind === 'ambient')) {
       expect(AMBIENT[h.targetId], `AMBIENT ${h.targetId}`).toBeTruthy();
       expect(AMBIENT_LABEL[h.targetId], `AMBIENT_LABEL ${h.targetId}`).toBeTruthy();
+      expect(AMBIENT_REACTION[h.targetId], `AMBIENT_REACTION ${h.targetId} (what a tap visibly does)`).toBeTruthy();
     }
   });
   it('every tap area is inside the scene', () => {

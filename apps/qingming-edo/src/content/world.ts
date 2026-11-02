@@ -123,6 +123,24 @@ export const WORLD: WorldDef = {
   scenes: [SCENE],
 };
 
+/**
+ * What a tap on a thing in the painting visibly does (roadmap #158 1A, owner's demo
+ * feedback 2026-11-02: 「交互太少、場景簡単」). Drawn over the painting for ~1.4 s;
+ * nothing moves with 動きを減らす.
+ */
+export type Reaction = 'leaves' | 'petals' | 'wind' | 'ripple' | 'steam' | 'birds' | 'dust' | 'bubbles';
+export const AMBIENT_REACTION: Record<string, Reaction> = {
+  'willow': 'leaves', 'willow2': 'leaves', 'willow-end': 'leaves', 'kashi-willow': 'leaves',
+  'plum': 'petals', 'plum2': 'petals', 'flowers': 'petals',
+  'noren-aoba': 'wind', 'noren-kure': 'wind', 'cloth-banner': 'wind', 'banner': 'wind', 'dye-cloth': 'wind', 'cloth-shop': 'wind',
+  'river': 'ripple', 'pond': 'ripple', 'jetty': 'ripple', 'boat': 'ripple', 'well': 'ripple',
+  'kashi-boats': 'ripple', 'kashi-steps': 'ripple', 'kashi-reeds': 'ripple',
+  'steam': 'steam',
+  'giboshi': 'birds', 'lantern': 'birds', 'garden': 'birds', 'bench': 'birds', 'timber': 'birds',
+  'barrel': 'dust', 'cart': 'dust', 'ricebales': 'dust', 'pottery': 'dust', 'cooper': 'dust', 'cargo': 'dust', 'kashi-baskets': 'dust',
+  'dye-vats': 'bubbles',
+};
+
 /** Short captions for ambient reactions; read aloud too (sound is optional, spec §13). */
 export const AMBIENT_LABEL: Record<string, string> = {
   'willow': '川端の柳',
