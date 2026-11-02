@@ -9,6 +9,7 @@ import { reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
 import { hasPlayableProgress, observeProgress, study } from './engine/study';
 import { SESSION_MODE } from './engine/session';
+import { useSystemReducedMotion } from './ui/useSystemReducedMotion';
 import { Street, type StreetApi } from './scene/Street';
 import { Journal, SCENE_ID } from './ui/Journal';
 import { Settings } from './ui/Settings';
@@ -111,7 +112,8 @@ export function App() {
   const street = useRef<StreetApi>(null);
   const lastActivity = useRef(performance.now());
 
-  const reduceMotion = save.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const systemReduced = useSystemReducedMotion();
+  const reduceMotion = save.settings.reduceMotion || systemReduced;
   const busy = !!(dialogue || candidates || sketch || game || panel || talk);
   // panels hold the keyboard while open; Escape closes the menu panels (journal,
   // items, nearby, settings). Games and the sketch close with their own buttons.
