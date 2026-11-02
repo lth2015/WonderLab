@@ -99,6 +99,20 @@ export function walkOf(c: { x: number; flip: boolean }, i: number): { dx: number
   return { dx, dur, delay: -((i * 7.3) % dur) };
 }
 
+/**
+ * The people of the stories are not cut-outs (owner's demo feedback: 「人不能动」): a slow
+ * breath, each at their own pace. Only this wrapper is animated; the sprite keeps its
+ * placement attributes.
+ */
+function Idle({ n, children }: { n: number; children: React.ReactNode }) {
+  const style = { animationDuration: `${3.4 + (n % 4) * 0.45}s`, animationDelay: `${-n * 0.9}s` } as React.CSSProperties;
+  return (
+    <g className="idle" style={style}>
+      {children}
+    </g>
+  );
+}
+
 /** A tap on a thing: something small and visible happens there for a moment. */
 function ReactionFx({ kind, x, y, w, h }: { kind: Reaction; x: number; y: number; w: number; h: number }) {
   const cx = x + w / 2;
@@ -262,17 +276,41 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
           </g>
         );
       })}
-      <Sprite id={poses.kinji} {...SPOTS.kinji} />
-      <Sprite id={poses.kisuke} {...SPOTS.kisuke} />
-      <Sprite id={poses.oharu} {...SPOTS.oharu} />
-      <Sprite id={poses.okon} {...SPOTS.okon} />
+      <Idle n={0}>
+        <Sprite id={poses.kinji} {...SPOTS.kinji} />
+      </Idle>
+      <Idle n={1}>
+        <Sprite id={poses.kisuke} {...SPOTS.kisuke} />
+      </Idle>
+      <Idle n={2}>
+        <Sprite id={poses.oharu} {...SPOTS.oharu} />
+      </Idle>
+      <Idle n={3}>
+        <Sprite id={poses.okon} {...SPOTS.okon} />
+      </Idle>
       {poses.seita === 'press' && <Sprite id="seita-press" {...SPOTS.seitaKneel} className="fret" />}
       {poses.seita === 'press' && <LooseSheets />}
-      {poses.seita === 'bow' && <Sprite id="seita-bow" {...SPOTS.seitaKneel} />}
-      {poses.seita === 'stand' && <Sprite id="seita-stand" {...SPOTS.seitaStand} />}
-      <Sprite id={poses.sokichi} {...SPOTS.sokichi} />
-      <Sprite id={poses.omatsu} {...SPOTS.omatsu} />
-      {poses.kame && <Sprite id={poses.kame.id} {...(poses.kame.at === 'hide' ? SPOTS.kameHide : SPOTS.kameHome)} />}
+      {poses.seita === 'bow' && (
+        <Idle n={7}>
+          <Sprite id="seita-bow" {...SPOTS.seitaKneel} />
+        </Idle>
+      )}
+      {poses.seita === 'stand' && (
+        <Idle n={8}>
+          <Sprite id="seita-stand" {...SPOTS.seitaStand} />
+        </Idle>
+      )}
+      <Idle n={4}>
+        <Sprite id={poses.sokichi} {...SPOTS.sokichi} />
+      </Idle>
+      <Idle n={5}>
+        <Sprite id={poses.omatsu} {...SPOTS.omatsu} />
+      </Idle>
+      {poses.kame && (
+        <Idle n={6}>
+          <Sprite id={poses.kame.id} {...(poses.kame.at === 'hide' ? SPOTS.kameHide : SPOTS.kameHome)} />
+        </Idle>
+      )}
     </g>
   );
 }

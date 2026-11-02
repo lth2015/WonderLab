@@ -1372,3 +1372,18 @@ button.term[aria-expanded="true"] {
 .rm .fx {
   display: none;
 }
+
+/* the people of the stories breathe (owner's demo feedback: 「人不能动」) */
+.idle {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: idle-breath 3.6s ease-in-out infinite;
+}
+@keyframes idle-breath {
+  0%, 100% { transform: scale(1, 1); }
+  45% { transform: scale(1.006, 1.018); }
+  70% { transform: scale(1.003, 1.008) rotate(0.35deg); }
+}
+.rm .idle {
+  animation: none !important;
+}
