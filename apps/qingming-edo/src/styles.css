@@ -1068,3 +1068,37 @@ button.term[aria-expanded="true"] {
   0% { opacity: 0.5; }
   100% { opacity: 0; }
 }
+
+/* 長巻を画にする */
+.scroll-export fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0.5rem 0 1rem;
+}
+.scroll-export label.check {
+  align-items: flex-start;
+  margin: 0.4rem 0;
+}
+.scroll-export label.check small {
+  display: block;
+  opacity: 0.75;
+}
+.scroll-export progress {
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+}
+.scroll-parts {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 1rem;
+}
+.scroll-parts li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.4rem 0;
+}
+.scroll-parts small {
+  opacity: 0.7;
+}

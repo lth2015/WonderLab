@@ -70,20 +70,29 @@ export function PageArt({ scene, titleStyle, title, place, credit, idPrefix = 'p
 
 /** Turns a rendered page SVG into a PNG blob at 2× (1200 × 1600). */
 /** An SVG drawn as an image cannot fetch what it links to: inline every <image> first. */
-async function inlineImages(svg: SVGSVGElement): Promise<SVGSVGElement> {
+export async function inlineImages(svg: SVGSVGElement, cache?: Map<string, Promise<string>>): Promise<SVGSVGElement> {
   const copy = svg.cloneNode(true) as SVGSVGElement;
+  const toDataUrl = async (href: string) => {
+    const res = await fetch(href);
+    if (!res.ok) throw new Error(`image ${res.status}`);
+    const blob = await res.blob();
+    return new Promise<string>((ok, fail) => {
+      const r = new FileReader();
+      r.onload = () => ok(String(r.result));
+      r.onerror = () => fail(r.error);
+      r.readAsDataURL(blob);
+    });
+  };
   await Promise.all(
     [...copy.querySelectorAll('image')].map(async (img) => {
       const href = img.getAttribute('href') ?? img.getAttribute('xlink:href');
       if (!href || href.startsWith('data:')) return;
-      const blob = await (await fetch(href)).blob();
-      const url = await new Promise<string>((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(String(r.result));
-        r.onerror = () => rej(r.error);
-        r.readAsDataURL(blob);
-      });
-      img.setAttribute('href', url);
+      let url = cache?.get(href);
+      if (!url) {
+        url = toDataUrl(href);
+        cache?.set(href, url);
+      }
+      img.setAttribute('href', await url);
     }),
   );
   return copy;

@@ -7,6 +7,7 @@ import { replayable } from '../engine/story';
 import { PageArt, pageToPng } from '../scene/PageArt';
 import { PaintedPageScene } from '../scene/painted';
 
+import { ScrollExport } from './ScrollExport';
 // 絵巻帳 (spec §6, §10, §18): only what actually happened. A page, once made,
 // stays even if the save dialog is closed. Saving the clear image is free.
 
@@ -60,6 +61,7 @@ const RECALL_NOTE: Record<string, string> = {
 
 export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void }) {
   const [open, setOpen] = useState<JournalEntry | null>(null);
+  const [scroll, setScroll] = useState(false);
   const big = useRef<HTMLDivElement>(null);
   // a page this version cannot draw is left out rather than breaking the book (review F01)
   const pages = save.journal.pages.filter((p) => validJournalEntry(p.pageId, p.compositionId));
@@ -203,6 +205,15 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
     );
   }
 
+  if (scroll) {
+    return (
+      <div className="panel" role="dialog" aria-labelledby="journal-h">
+        <h2 id="journal-h">絵巻帳</h2>
+        <ScrollExport save={save} onBack={() => setScroll(false)} onToast={onToast} />
+      </div>
+    );
+  }
+
   return (
     <div className="panel" role="dialog" aria-labelledby="journal-h">
       <h2 id="journal-h">絵巻帳</h2>
@@ -228,6 +239,9 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
         })}
       </ul>
       {pages.length === 0 && <p>まだ白い頁ばかりです。町で誰かと出会うと、ここに一頁が残ります。</p>}
+      <button type="button" onClick={() => setScroll(true)}>
+        長巻を画にする
+      </button>
       <button type="button" className="primary" onClick={onClose}>
         町に戻る
       </button>
