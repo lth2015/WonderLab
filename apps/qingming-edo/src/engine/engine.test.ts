@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
-import { characterById, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
+import { characterById, GUIDE_STOPS, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
@@ -514,5 +514,58 @@ describe('絵巻帳が一冊に', () => {
     expect(entryFor('sokichi', s)).toBe('sokichi.full.again');
     expect(nearby(s).some((n) => n.id === 'book')).toBe(false);
     expect(JSON.stringify(NODES['sokichi.full'])).not.toMatch(/grant|reward/);
+  });
+});
+
+describe('Codex review fixes (F01, F02)', () => {
+  const withPages = (pages: unknown[]) => JSON.stringify({ ...newSave(), journal: { pages } });
+  const page = (pageId: string, compositionId: string, titleStyle = 'plain') => ({ pageId, compositionId, titleStyle, madeAt: '2026-11-01T00:00:00Z' });
+  it('F01: a page this version does not know is refused on import, the current save kept', () => {
+    expect(importText(withPages([page('unknown-page', 'unknown-composition')])).ok).toBe(false);
+    expect(importText(withPages([page('p01-kaze', 'dougu-deliver')])).ok).toBe(false); // wrong composition for the page
+    expect(importText(withPages([page('p-sk-boat', 'sketch-well-noon')])).ok).toBe(false); // sketch of another place
+    expect(importText(withPages([page('p01-kaze', 'kaze-hands-near'), page('p01-kaze', 'kaze-street-wide')])).ok).toBe(false); // twice
+  });
+  it('F01: known pages load, and an unknown title slip falls back to plain', () => {
+    const r = importText(withPages([page('p01-kaze', 'kaze-hands-near', 'gold'), page('p-sk-boat', 'sketch-boat-evening'), page('p02-dougu-b', 'dougu-entrust')]));
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.save.journal.pages.map((p) => p.titleStyle)).toEqual(['plain', 'plain', 'plain']);
+  });
+  it('F02: when the backup of an unreadable save cannot be written, the original is not called kept', () => {
+    const data = new Map<string, string>([[SAVE_KEY, '{broken']]);
+    const full = { getItem: (k: string) => data.get(k) ?? null, setItem: () => { throw new DOMException('full', 'QuotaExceededError'); } };
+    const r = load(full);
+    expect(r.kind).toBe('unbacked');
+    if (r.kind === 'unbacked') expect(r.original).toBe('{broken');
+    // a store that silently drops the write is treated the same
+    const silent = { getItem: (k: string) => data.get(k) ?? null, setItem: () => {} };
+    expect(load(silent).kind).toBe('unbacked');
+    // and a working store backs it up as before
+    const ok = new Map<string, string>([[SAVE_KEY, '{broken']]);
+    const r2 = load({ getItem: (k) => ok.get(k) ?? null, setItem: (k, v) => void ok.set(k, v) });
+    expect(r2.kind).toBe('corrupt');
+    if (r2.kind === 'corrupt') expect(ok.get(r2.backupKey)).toBe('{broken');
+  });
+});
+
+describe('通りの案内', () => {
+  it('frames story places and every sketch anchor inside a 340-unit phone view', () => {
+    const subjects = [...['seita', 'sokichi', 'kisuke', 'oharu', 'kinji'], ...SKETCHES.map(k => k.spots[0])];
+    for (const id of subjects) {
+      const spot = HOTSPOTS.find(h => h.targetId === id);
+      expect(spot, id).toBeDefined();
+      expect(GUIDE_STOPS.some(g => Math.abs(g.x - spot!.anchor.x) <= 170), id).toBe(true);
+    }
+    expect(GUIDE_STOPS[0].x).toBeGreaterThan(13000);
+    expect(GUIDE_STOPS.at(-1)!.x).toBeLessThan(1000);
+  });
+  it('stops run right to left inside the scene, each once', () => {
+    expect(new Set(GUIDE_STOPS.map((g) => g.id)).size).toBe(GUIDE_STOPS.length);
+    for (let i = 1; i < GUIDE_STOPS.length; i++) expect(GUIDE_STOPS[i].x).toBeLessThan(GUIDE_STOPS[i - 1].x);
+    for (const g of GUIDE_STOPS) {
+      expect(g.x).toBeGreaterThanOrEqual(0);
+      expect(g.x).toBeLessThanOrEqual(SCENE_W);
+      expect([...g.note].length).toBeLessThanOrEqual(20);
+    }
   });
 });

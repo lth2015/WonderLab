@@ -1,0 +1,10 @@
+{
+  "url": "local production /edo/?session=1",
+  "samples": 49,
+  "cycles": 2,
+  "max_x_delta_px": 0.0,
+  "max_y_delta_px": 4.99090576171875,
+  "all_frames_in_view": true,
+  "page_errors": [],
+  "http_errors": []
+}

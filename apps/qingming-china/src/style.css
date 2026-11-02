@@ -50,3 +50,38 @@
 .gate-note { border: 1px solid #c6c1a8; padding: 20px; margin: 16px 0 24px; background: #eee7d5; color: #586d52; font-size: var(--body-size); line-height: 1.9; }
 .gate-note p { margin: 10px 0; }
 .gate-note small { display: block; text-align: right; }
+
+.time-button { min-height:44px; cursor:pointer; border-bottom:1px solid #a8ac93; }
+.time-button:hover { color:#50664a; }
+.time-choices { display:grid; gap:12px; margin:20px 0; }
+.time-choices button { justify-content:flex-start; }
+.time-choices button[aria-pressed=true] { border-color:#667c5b; background:#dce2cd; }
+.time-choices button:disabled { opacity:.6; cursor:default; }
+.playtest-records summary { cursor:pointer; min-height:44px; display:flex; align-items:center; font-size:var(--body-size); }
+.playtest-records p { margin:12px 0; font-size:var(--body-size); line-height:1.8; }
+
+.countryside-conversation blockquote { margin:0; }
+@media(max-width:500px) { .large-text .countryside-conversation > img { height:150px; width:104px; } }
+
+.session-badge { position:absolute; top:12px; left:18px; z-index:5; background:#eee7d5; border:1px solid #9ba58c; padding:4px 10px; font-size:12px; color:#52674b; pointer-events:none; }
+.session-panel { margin-bottom:24px; padding:18px; border:1px solid #a8b097; background:#e3e8d2; }
+.session-panel h3 { font-size:var(--body-size); }
+.session-panel p { font-size:var(--body-size); line-height:1.8; margin:12px 0; }
+.session-panel .button-row { flex-wrap:wrap; }
+
+/* Watermill: clockwise on the falling-water side; no frame-by-frame React work. */
+.mill-rotor{transform-origin:0 0;animation:mill-turn 28s linear infinite}
+.mill-current{animation:mill-flow 2.8s linear infinite}
+.mill-current-fine{animation-duration:2.2s;animation-delay:-1.1s}
+.mill-spray{opacity:.26;animation:mill-splash 1.6s ease-in-out infinite alternate}
+.mill-ripple{transform-box:fill-box;transform-origin:center;opacity:.2;animation:mill-ring 3.4s ease-out infinite}
+.mill-paused .mill-rotor,.mill-paused .mill-current,.mill-paused .mill-spray,.mill-paused .mill-ripple{animation-play-state:paused}
+@keyframes mill-turn{to{transform:rotate(360deg)}}
+@keyframes mill-flow{to{transform:translateY(144px)}}
+@keyframes mill-splash{to{opacity:.34}}
+@keyframes mill-ring{from{transform:scale(.85);opacity:.22}to{transform:scale(1.15);opacity:.04}}
+
+.mill-ripple-late{animation-delay:-1.3s;animation-duration:4.1s}
+.mill-ripple-wheel{animation-delay:-.7s;animation-duration:2.8s}
+.mill-rear-rotation{transform-origin:0 0;animation:mill-turn 28s linear infinite}
+.mill-paused .mill-rear-rotation{animation-play-state:paused}

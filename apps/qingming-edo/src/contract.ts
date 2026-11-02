@@ -143,6 +143,8 @@ export interface Settings {
   timeChoice?: TimeChoice;
   /** 0–1 each; absent in saves made before sound existed (the defaults apply). */
   sound?: SoundLevels;
+  /** Sound is on only once the player has turned it on (spec §4: 音は別途本人が有効にする). */
+  soundOn?: boolean;
 }
 
 export interface SoundLevels {

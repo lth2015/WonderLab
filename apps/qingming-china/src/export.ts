@@ -2,9 +2,8 @@ import { PAGES, type PageId } from './content';
 import type { GameState } from './game';
 
 export function downloadFile(blob: Blob, name: string) {
-  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;
-  document.body.append(a);
-  try { a.click(); } finally { a.remove(); setTimeout(()=>URL.revokeObjectURL(url),3000); }
+  // the link must be in the document, or some browsers drop the file name
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, max: number, line=52) {
   let row='';let yy=y;
@@ -30,8 +29,8 @@ export async function createPostcard(game: GameState, id: PageId, art: SVGSVGEle
   ctx.font='28px serif';ctx.fillStyle='#92846b';ctx.fillText((game.progress.designs[id]?.decoration??page.subtitle)+'  /  原创故事画页',124,1170);
   ctx.font='36px serif';ctx.fillStyle='#5e6554';wrapText(ctx,page.caption,124,1280,1180,65);
   ctx.fillStyle='#a34e3c';ctx.fillRect(120,1555,75,92);ctx.fillStyle='#f1e6ce';ctx.font='30px serif';ctx.fillText('拾',142,1590);ctx.fillText('光',142,1627);
-  ctx.fillStyle='#8b826b';ctx.font='26px serif';ctx.fillText(`今日记下 ${game.journal.length} 页 · ${game.claimed.length} 段相遇`,230,1610);
-  ctx.font='23px serif';ctx.fillText('一河烟火，众人相成。',230,1652);
+  // 送给朋友的图不写进度与统计（所有者，路线 #158 1B）：只留一句落款
+  ctx.fillStyle='#8b826b';ctx.font='26px serif';ctx.fillText('一河烟火，众人相成。',230,1612);
   const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('保存图片失败，请重试。')),'image/png'));
   return { blob, name: `汴河拾光-${page.title}.png` };
 }

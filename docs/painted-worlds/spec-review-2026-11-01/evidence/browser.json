@@ -1,0 +1,47 @@
+{
+  "edo_dialog_focus": {
+    "after_open": {
+      "tag": "BUTTON",
+      "text": "設定",
+      "inside": false
+    },
+    "after_tab": {
+      "tag": "DIV",
+      "text": "",
+      "inside": false
+    },
+    "escape_leaves_dialog_open": true
+  },
+  "edo_unknown_page": {
+    "import_accepted": true,
+    "errors": [
+      "title is not iterable",
+      "title is not iterable",
+      "title is not iterable"
+    ],
+    "root_empty": true
+  },
+  "edo_backup_failure": {
+    "original": "{synthetic-corrupt",
+    "original_replaced": true,
+    "backup_keys": []
+  },
+  "narrow": {
+    "china-360": {
+      "text_percent": 150,
+      "no_document_horizontal_overflow": true
+    },
+    "china-390": {
+      "text_percent": 150,
+      "no_document_horizontal_overflow": true
+    },
+    "edo-360": {
+      "text_percent": 150,
+      "no_document_horizontal_overflow": true
+    },
+    "edo-390": {
+      "text_percent": 150,
+      "no_document_horizontal_overflow": true
+    }
+  }
+}

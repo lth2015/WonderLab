@@ -1,0 +1,21 @@
+[
+  {
+    "base": "http://127.0.0.1:5176/",
+    "loaded_layers": true,
+    "wheel_rotates": true,
+    "system_reduced_motion_stops_all": true,
+    "wallet": 60,
+    "errors": []
+  },
+  {
+    "base": "http://127.0.0.1:5177/qingming/",
+    "loaded_layers": true,
+    "wheel_rotates": true,
+    "system_reduced_motion_stops_all": true,
+    "wallet": 60,
+    "errors": []
+  },
+  {
+    "canvas_denied_static_fallback": true
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "frames": 42,
+  "checked_bucket_quads": 469,
+  "fixed_projection_ellipse": true,
+  "fixed_depth_19_minus5": true,
+  "atlas_pixels": [
+    1260,
+    1704
+  ],
+  "decoded_rgba_bytes": 8588160
+}

@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, AMBIENT_LABEL, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
+import { AMBIENT, AMBIENT_LABEL, GUIDE_STOPS, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
 import { reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
+import { hasPlayableProgress, observeProgress, study } from './engine/study';
+import { SESSION_MODE } from './engine/session';
+import { useSystemReducedMotion } from './ui/useSystemReducedMotion';
 import { Street, type StreetApi } from './scene/Street';
 import { Journal, SCENE_ID } from './ui/Journal';
 import { Settings } from './ui/Settings';
@@ -15,6 +18,8 @@ import { Wrap } from './ui/Wrap';
 import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
 import { Talk } from './ui/Talk';
+import { Glossed } from './ui/Glossed';
+import { useModalFocus } from './ui/modalFocus';
 import { TALK_STORIES } from './content/talkStories';
 import { posesFor } from './scene/painted';
 
@@ -47,15 +52,28 @@ export function App() {
   const [boot] = useState<LoadResult>(() => load(storage() ?? memoryStore));
   const [save, setSaveRaw] = useState<SaveData>(boot.save);
   const saveRef = useRef(save);
-  // A save from a newer version is left untouched (engine/save.ts).
-  const writable = useRef(boot.kind !== 'newer');
-  const setSave = useCallback((next: SaveData) => {
+  // A save from a newer version is left untouched (engine/save.ts), and so is an
+  // unreadable one whose backup could not be written, until the player chooses.
+  const writable = useRef(boot.kind !== 'newer' && boot.kind !== 'unbacked');
+  const [unreadable, setUnreadable] = useState<string | null>(boot.kind === 'unbacked' ? boot.original : null);
+  // storage that refuses writes: say so once, and point to the export (spec §16, review V04)
+  const saveFailedSaid = useRef(false);
+  const toastRef = useRef<(t: string) => void>(() => {});
+  const setSave = useCallback((next: SaveData, observe = true) => {
+    // 試遊の記録: the player's own steps only; an imported or reset save is not "played"
+    if (observe) observeProgress(saveRef.current, next);
     // the ref moves at once: two writes in one tick (a "met" flag, then the
     // dialogue's own effects) must build on each other, not on the last render
     saveRef.current = next;
     setSaveRaw(next);
     // Recorded as soon as progress is decided (spec §19 保存).
-    if (writable.current) persist(storage() ?? memoryStore, next);
+    // no storage at all (blocked, private mode) counts as a failed save too (review V04)
+    const store = storage();
+    if (writable.current && (!store || !persist(store, next)) && !saveFailedSaid.current) {
+      saveFailedSaid.current = true;
+      study.emit('error', { code: 'save_write_failed' }, 'error-save-write');
+      toastRef.current('この端末に記録を保存できませんでした。続けて遊べますが、閉じると消えます。設定の「記録を書き出す」で残せます。');
+    }
   }, []);
 
   const commit = useCallback((effects: Effect[]) => setSave(apply(saveRef.current, effects)), [setSave]);
@@ -72,25 +90,61 @@ export function App() {
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
       ? '記録が読めなかったため、元の記録を退避して最初から始めます。'
+      : boot.kind === 'unbacked'
+        ? '記録が読めず、退避もできませんでした。元の記録はそのまま残し、この画面では保存しません。設定で書き出せます。'
       : boot.kind === 'newer'
         ? '新しい版の記録が見つかりました。その記録は書き換えず、この画面では保存しません。'
         : unknownScene()
           ? 'リンクの場面は見つかりませんでした。日本橋北詰の通りから始めます。'
           : null,
   );
+  toastRef.current = setToast;
   const [reacting, setReacting] = useState<Set<string>>(new Set());
   const [hint, setHint] = useState<string | null>(null);
+  // 様子を見る: the ring under the person stays a moment, then goes (spec §7)
+  const [cue, setCue] = useState<{ spotId: string; key: number } | null>(null);
+  useEffect(() => {
+    if (!cue) return;
+    const t = setTimeout(() => setCue(null), 2600);
+    return () => clearTimeout(t);
+  }, [cue]);
   const dismissedHint = useRef<string | null>(null);
   const street = useRef<StreetApi>(null);
   const lastActivity = useRef(performance.now());
 
-  const reduceMotion = save.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const systemReduced = useSystemReducedMotion();
+  const reduceMotion = save.settings.reduceMotion || systemReduced;
   const busy = !!(dialogue || candidates || sketch || game || panel || talk);
+  // panels hold the keyboard while open; Escape closes the menu panels (journal,
+  // items, nearby, settings). Games and the sketch close with their own buttons.
+  useModalFocus(panel ?? (sketch ? `sketch-${sketch}` : game ? `game-${game.id}` : null), panel ? () => setPanel(null) : null);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--text-scale', String(save.settings.textScale));
     document.documentElement.classList.toggle('rm', reduceMotion);
   }, [save.settings.textScale, reduceMotion]);
+
+  // 試遊の記録: arrival, a return with progress, and a save that could not be read
+  useEffect(() => {
+    const viaLink = (() => {
+      try {
+        return new URLSearchParams(location.search).has('scene');
+      } catch {
+        return false;
+      }
+    })();
+    study.emit('world_entered', { source: viaLink ? 'journal' : 'direct' }, 'world-entered');
+    // 試遊会: a reload is the facilitator's, not a return visit
+    if (!SESSION_MODE && boot.kind === 'loaded' && hasPlayableProgress(boot.save)) study.emit('revisit', { has_progress: true }, 'revisit');
+    if (boot.kind === 'corrupt' || boot.kind === 'unbacked') study.emit('error', { code: 'save_read_failed' }, 'error-save-read');
+    const unexpected = () => study.emit('error', { code: 'unexpected_error' }, 'error-unexpected');
+    window.addEventListener('error', unexpected);
+    window.addEventListener('unhandledrejection', unexpected);
+    return () => {
+      window.removeEventListener('error', unexpected);
+      window.removeEventListener('unhandledrejection', unexpected);
+    };
+  }, []);
 
   // 音: nothing until the first touch or key; levels and time of day follow the save
   useEffect(() => {
@@ -102,6 +156,14 @@ export function App() {
       for (const e of events) window.removeEventListener(e, go, true);
     };
   }, []);
+  const soundOn = save.settings.soundOn === true;
+  useEffect(() => sound.setEnabled(soundOn), [soundOn]);
+  const toggleSound = () => {
+    const on = !soundOn;
+    setSave({ ...saveRef.current, settings: { ...saveRef.current.settings, soundOn: on }, updatedAt: new Date().toISOString() }, false);
+    sound.setEnabled(on);
+    if (on) sound.unlock(); // this press is the gesture
+  };
   const levels = levelsOf(save.settings);
   useEffect(() => sound.setLevels(levels), [levels.ambient, levels.ui, levels.music]);
   // a page made and coins received each have their sound, beside what the screen shows
@@ -114,6 +176,9 @@ export function App() {
     if (balance > was.balance) setTimeout(() => sound.cue('coin'), pageCount > was.pageCount ? 700 : 0);
     lastCounts.current = { pageCount, balance };
   }, [pageCount, balance]);
+  useEffect(() => {
+    if (panel === 'journal') study.emit('journal_opened', { page_count: saveRef.current.journal.pages.length });
+  }, [panel]);
   const sheetOpen = !!(panel || sketch || game);
   const lastSheet = useRef(sheetOpen);
   useEffect(() => {
@@ -174,6 +239,7 @@ export function App() {
       setHint(null);
       if (spot.kind === 'ambient') {
         sound.cue('react');
+        study.emit('first_interaction_completed', { interaction_id: 'observation', elapsed_ms: study.elapsed() }, 'first-interaction');
         const id = spot.targetId;
         setReacting((r) => new Set(r).add(id));
         setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), 1400);
@@ -303,6 +369,23 @@ export function App() {
     return !!k && k.spots[0] === targetId && questState(save, 'kaze') === 'complete' && !save.journal.pages.some((p) => p.pageId === sketchPageId(k.id));
   };
 
+  // 通りの案内: close the panel, bring the stop to the middle, and hand the keyboard to the street
+  const visitStop = (id: string, x: number) => {
+    study.emit('guide_stop_selected', { stop_id: id });
+    setPanel(null);
+    setHint(null);
+    street.current?.focus(x);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('.street')?.focus({ preventScroll: true }));
+  };
+  const nearestStop = () => {
+    const cam = Number(document.querySelector<HTMLElement>('.street')?.dataset.cam);
+    const w = document.querySelector<HTMLElement>('.street')?.getBoundingClientRect().width ?? 0;
+    const scale = Number(document.querySelector<HTMLElement>('.street')?.dataset.scale) || 1;
+    if (!Number.isFinite(cam)) return null;
+    const mid = cam + w / scale / 2;
+    return GUIDE_STOPS.reduce((a, b) => (Math.abs(b.x - mid) < Math.abs(a.x - mid) ? b : a)).id;
+  };
+
   const goTo = (spotId: string, open: boolean) => {
     const spot = HOTSPOTS.find((h) => h.id === spotId);
     if (!spot) return;
@@ -347,6 +430,7 @@ export function App() {
     <div className="app">
       <header className="top">
         <span className="place">日本橋北詰</span>
+        {SESSION_MODE && <span className="session-badge">試遊会</span>}
         {reached.length > 1 ? (
           <button type="button" className="time ghost" aria-expanded={timeMenu} onClick={() => setTimeMenu((m) => !m)}>
             {TIMES.find((t) => t.id === tod)!.label}
@@ -374,6 +458,9 @@ export function App() {
             ))}
           </div>
         )}
+        <button type="button" className="ghost sound-toggle" aria-pressed={soundOn} onClick={toggleSound} aria-label={soundOn ? '音を止める' : '音を出す'} title={soundOn ? '音を止める' : '音を出す'}>
+          <span aria-hidden="true">♪</span>
+        </button>
         <button type="button" className="ghost" onClick={() => setPanel('settings')}>
           設定
         </button>
@@ -390,6 +477,7 @@ export function App() {
           talking={!!(dialogue || candidates || talk)}
           zoomed={zoomed}
           onTap={onTap}
+          cue={cue}
           onActivity={activity}
           onCamera={(x) => sound.place(x)}
         />
@@ -401,6 +489,7 @@ export function App() {
               日本橋、ひと頁
             </h1>
             <p>絵師の見習いとして、春の日本橋をしばらく歩きます。</p>
+            <p className="small">音ははじめは出ません。右上の「♪」で出せます。</p>
             <button
               type="button"
               className="primary"
@@ -424,8 +513,15 @@ export function App() {
         {hint && !busy && (
           <div className="hint" role="status">
             <span>{nb.find((n) => n.id === hint)?.text}</span>
-            <button type="button" onClick={() => goTo(nb.find((n) => n.id === hint)!.spotId, false)}>
-              場所を見る
+            <button
+              type="button"
+              onClick={() => {
+                const spotId = nb.find((n) => n.id === hint)!.spotId;
+                goTo(spotId, false);
+                setCue({ spotId, key: performance.now() });
+              }}
+            >
+              様子を見る
             </button>
             <button
               type="button"
@@ -471,7 +567,7 @@ export function App() {
               <small>{ROLES[line.by]}</small>
             </p>
           )}
-          <p className={line.by === 'narration' ? 'narration' : 'said'}>{line.text}</p>
+          <Glossed className={line.by === 'narration' ? 'narration' : 'said'} text={line.text} />
           {atLast && node.choices ? (
             <div className="choices">
               {node.choices.map((c, i) => (
@@ -548,6 +644,21 @@ export function App() {
               ))}
             </ul>
           )}
+          <details className="guide">
+            <summary>通りの案内</summary>
+            <p className="small">橋のたもとから町はずれの川端まで。行きたいところを選ぶと、その場所へ通りが動きます。</p>
+            <nav aria-label="通りの案内" className="guide-stops">
+              {(() => {
+                const here = nearestStop();
+                return GUIDE_STOPS.map((g) => (
+                  <button type="button" key={g.id} aria-current={here === g.id ? 'location' : undefined} onClick={() => visitStop(g.id, g.x)}>
+                    <span>{g.name}</span>
+                    <small>{g.note}</small>
+                  </button>
+                ));
+              })()}
+            </nav>
+          </details>
           <h3>この通りの人と物</h3>
           <ul className="list compact">
             {spots
@@ -579,9 +690,17 @@ export function App() {
         <Settings
           save={save}
           onChange={setSave}
-          onReplace={(s) => {
+          unreadable={unreadable}
+          onAllowOverwrite={() => {
             writable.current = true;
-            setSave(s);
+            setUnreadable(null);
+            setSave(saveRef.current, false);
+            setToast('この端末で、新しい記録の保存を始めました。');
+          }}
+          onReplace={(s) => {
+            setUnreadable(null);
+            writable.current = true;
+            setSave(s, false);
           }}
           onClose={() => setPanel(null)}
           onToast={setToast}

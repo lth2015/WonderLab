@@ -1,0 +1,122 @@
+[
+  {
+    "ms": 0,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(1, 0, 0, 1, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 0)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 0,
+    "bucketSignature": 844618489,
+    "rearMatrix": "matrix(1, 0, 0, 1, 0, 0)"
+  },
+  {
+    "ms": 350,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(0.996917, 0.0784591, -0.0784591, 0.996917, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 18)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 10,
+    "bucketSignature": 3864389716,
+    "rearMatrix": "matrix(0.996917, 0.0784591, -0.0784591, 0.996917, 0, 0)"
+  },
+  {
+    "ms": 900,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(0.979675, 0.200589, -0.200589, 0.979675, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 46.2857)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 27,
+    "bucketSignature": 1192659143,
+    "rearMatrix": "matrix(0.979675, 0.200589, -0.200589, 0.979675, 0, 0)"
+  },
+  {
+    "ms": 1370,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(0.953115, 0.302608, -0.302608, 0.953115, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 70.4571)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 41,
+    "bucketSignature": 3521131868,
+    "rearMatrix": "matrix(0.953115, 0.302608, -0.302608, 0.953115, 0, 0)"
+  },
+  {
+    "ms": 1400,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(0.951057, 0.309017, -0.309017, 0.951057, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 72)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 0,
+    "bucketSignature": 844618489,
+    "rearMatrix": "matrix(0.951057, 0.309017, -0.309017, 0.951057, 0, 0)"
+  },
+  {
+    "ms": 3500,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 36)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 21,
+    "bucketSignature": 2930424579,
+    "rearMatrix": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)"
+  },
+  {
+    "ms": 7000,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(0, 1, -1, 0, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 72)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 0,
+    "bucketSignature": 844618489,
+    "rearMatrix": "matrix(0, 1, -1, 0, 0, 0)"
+  },
+  {
+    "ms": 14000,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(-1, 0, 0, -1, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 0)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 0,
+    "bucketSignature": 844618489,
+    "rearMatrix": "matrix(-1, 0, 0, -1, 0, 0)"
+  },
+  {
+    "ms": 21000,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(0, -1, 1, 0, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 72)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 0,
+    "bucketSignature": 844618489,
+    "rearMatrix": "matrix(0, -1, 1, 0, 0, 0)"
+  },
+  {
+    "ms": 28000,
+    "pivotX": 228.1638509114582,
+    "pivotY": 482.19140625,
+    "rotorMatrix": "matrix(1, 0, 0, 1, 0, 0)",
+    "flowMatrix": "matrix(1, 0, 0, 1, 0, 0)",
+    "frontX": -166.8330078125,
+    "frontY": 81,
+    "bucketFrame": 0,
+    "bucketSignature": 844618489,
+    "rearMatrix": "matrix(1, 0, 0, 1, 0, 0)"
+  }
+]

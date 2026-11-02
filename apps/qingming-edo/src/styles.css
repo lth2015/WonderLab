@@ -466,7 +466,7 @@ button[aria-pressed='true'] {
 }
 @keyframes flap {
   to {
-    transform: skewX(-14deg) scaleY(0.82);
+    transform: scaleY(0.92);
   }
 }
 .noren {
@@ -901,4 +901,223 @@ button[aria-pressed='true'] {
 }
 .tod-evening .layer {
   filter: sepia(0.28) saturate(1.03) hue-rotate(-3deg) brightness(0.85) contrast(1.15);
+}
+
+/* 試遊の記録とプライバシー (Settings) */
+.playtest {
+  margin: 12px 0;
+}
+.playtest summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* 通りの案内 (近くのこと) */
+.guide {
+  margin: 12px 0;
+}
+.guide summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.guide-stops {
+  display: grid;
+  /* sized in em: two columns at normal text, one at 150% */
+  grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr));
+  gap: 8px;
+}
+.guide-stops button {
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.guide-stops button small {
+  font-size: 0.8em;
+  opacity: 0.75;
+}
+.guide-stops button[aria-current='location'] {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+/* 難語 (spec §8): a pressable word, and its note under the line */
+.sheet button.term,
+button.term {
+  display: inline;
+  min-height: 0;
+  min-width: 0;
+  border-radius: 2px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+  cursor: help;
+}
+.sheet button.term[aria-expanded="true"],
+button.term[aria-expanded="true"] {
+  text-decoration-style: solid;
+  background: rgba(196, 160, 80, 0.18);
+}
+.term-note {
+  margin: 4px 0 8px;
+  padding: 6px 10px;
+  border-left: 3px solid currentColor;
+  font-size: 0.92em;
+  line-height: 1.6;
+}
+.term-note b {
+  margin-right: 0.5em;
+}
+.term-note small {
+  font-weight: normal;
+}
+
+/* 音は本人が有効にする: a small ♪ in the top bar, struck through while off */
+.top > * {
+  white-space: nowrap;
+}
+.top .sound-toggle {
+  margin-left: auto;
+  min-width: 44px;
+  padding: 4px 10px;
+  font-size: 1.35em;
+  text-decoration: none;
+}
+.top .sound-toggle + .ghost {
+  margin-left: 0;
+}
+.top .sound-toggle[aria-pressed='false'] span {
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+/* 試遊会 (?session=1) */
+.top .session-badge {
+  flex: none;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0.25em 0.45em;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.session-box {
+  border: 1px dashed currentColor;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin: 0 0 1rem;
+}
+.session-box h3 {
+  margin-top: 0;
+}
+
+/* 様子を見る: a soft ink ring under the person, for a moment only (spec §7) */
+.cue-ring {
+  fill: rgba(255, 238, 180, 0.45);
+  stroke: #3b3326;
+  stroke-width: 4;
+  stroke-dasharray: 9 6;
+  opacity: 0;
+  pointer-events: none;
+  animation: cue-ring 2.6s ease-in-out forwards;
+}
+@keyframes cue-ring {
+  0% { opacity: 0; }
+  12%, 42%, 72% { opacity: 0.95; }
+  27%, 57% { opacity: 0.45; }
+  85% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+/* a tap on nothing: a small ripple of ink where the finger was */
+.tap-ripple {
+  fill: none;
+  stroke: #3b3326;
+  stroke-width: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tap-ripple 0.45s ease-out forwards;
+}
+@keyframes tap-ripple {
+  0% { opacity: 0.55; transform: scale(0.4); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+.rm .cue-ring {
+  animation: none;
+  opacity: 0.9;
+}
+.rm .tap-ripple {
+  animation: tap-ripple-still 0.45s ease-out forwards;
+}
+@keyframes tap-ripple-still {
+  0% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+/* 長巻を画にする */
+.scroll-export fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0.5rem 0 1rem;
+}
+.scroll-export label.check {
+  align-items: flex-start;
+  margin: 0.4rem 0;
+}
+.scroll-export label.check small {
+  display: block;
+  opacity: 0.75;
+}
+.scroll-export progress {
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+}
+.scroll-parts {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 1rem;
+}
+.scroll-parts li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.4rem 0;
+}
+.scroll-parts small {
+  opacity: 0.7;
+}
+
+/* 贈る画 */
+.gift {
+  margin: 0.75rem 0;
+}
+.gift summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.gift .seg {
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+.gift-lines label.check {
+  align-items: flex-start;
+  margin: 0.35rem 0;
 }

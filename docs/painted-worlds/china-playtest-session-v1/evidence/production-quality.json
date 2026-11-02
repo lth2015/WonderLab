@@ -1,0 +1,27 @@
+{
+  "builds": [
+    {
+      "base": "http://127.0.0.1:5176/",
+      "touch_drag_does_not_open_person": true,
+      "story_locks_world": true,
+      "rotation_keeps_step": true,
+      "background_return_keeps_step": true,
+      "fresh_page_resumes_story_and_player": true,
+      "complete_once_wallet": 72,
+      "normal_mode_isolated": true
+    },
+    {
+      "base": "http://127.0.0.1:5177/qingming/",
+      "touch_drag_does_not_open_person": true,
+      "story_locks_world": true,
+      "rotation_keeps_step": true,
+      "background_return_keeps_step": true,
+      "fresh_page_resumes_story_and_player": true,
+      "complete_once_wallet": 72,
+      "normal_mode_isolated": true
+    }
+  ],
+  "page_errors": [],
+  "http_errors": [],
+  "device": "headless Chromium touch emulation; not physical iPhone/Android"
+}

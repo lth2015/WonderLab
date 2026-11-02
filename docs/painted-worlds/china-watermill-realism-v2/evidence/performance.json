@@ -1,0 +1,27 @@
+{
+  "local_production_drag": [
+    {
+      "width": 390,
+      "cpu_throttle": 4,
+      "duration_s": 18.42,
+      "frames": 1106,
+      "median_ms": 16.7,
+      "p95_ms": 16.8,
+      "max_ms": 33.5,
+      "no_initial_mill_requests": true,
+      "page_errors": []
+    },
+    {
+      "width": 1280,
+      "cpu_throttle": 1,
+      "duration_s": 10.6,
+      "frames": 628,
+      "median_ms": 16.7,
+      "p95_ms": 16.7,
+      "max_ms": 33.4,
+      "no_initial_mill_requests": true,
+      "page_errors": []
+    }
+  ],
+  "limitation": "Headless Chromium in a cloud executor; not physical phone performance or live deployment proof."
+}

@@ -348,3 +348,37 @@ export function parseKaze(compositionId: string): { subject: Subject; framing: F
   const m = /^kaze-(hands|shopfront|street)-(near|wide)$/.exec(compositionId);
   return m ? { subject: m[1] as Subject, framing: m[2] as Framing } : null;
 }
+
+/**
+ * A journal entry this version can draw: a known page, a composition that page
+ * can have, used by save loading/import (spec §16: a bad record is refused, the
+ * current one kept). Codex review F01.
+ */
+export function validJournalEntry(pageId: string, compositionId: string): boolean {
+  if (pageId === 'p01-kaze' || pageId === 'p01-kaze-b') return parseKaze(compositionId) !== null;
+  if (pageId === 'p02-dougu' || pageId === 'p02-dougu-b') return compositionId === 'dougu-deliver' || compositionId === 'dougu-entrust';
+  if (pageId === 'p03-tenugui') return compositionId === 'tenugui-return';
+  const sk = parseSketch(compositionId);
+  return !!sk && sketchPageId(sk.sketch.id) === pageId;
+}
+export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);
+
+/**
+ * 通りの案内 (Codex review L02): stops along the whole roll, right (the bridge)
+ * to left (the quiet end), for players who cannot drag far, or use a keyboard.
+ * x is the camera centre in scene units (already mirrored). Final names and
+ * places by Codex, who painted the fourteen sections: every story place and
+ * every sketch place has a stop (docs/handoff/edo-guide-stops-2026-11-01 on collab).
+ */
+export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[] = [
+  { id: 'bridge', name: '日本橋', note: '橋と荷舟のいる水辺', x: 13420 },
+  { id: 'aoba', name: '青葉屋の店先', note: '清太と宗吉のいる紙屋', x: 12510 },
+  { id: 'teahouse', name: '茶店「喜の字」', note: '喜助とお春のいる茶店', x: 11530 },
+  { id: 'well', name: '小路の井戸', note: '井戸と塀越しの梅', x: 10550 },
+  { id: 'rice', name: '米屋の前', note: '米俵のそばで金次に会う', x: 7560 },
+  { id: 'kashi', name: '堀の河岸', note: '小舟と杭の並ぶ堀沿い', x: 5350 },
+  { id: 'cooper', name: '桶屋の店先', note: '桶の並ぶ手仕事の店先', x: 4250 },
+  { id: 'dye', name: '紺屋の干し場', note: '藍甕と布の干し場', x: 3250 },
+  { id: 'garden', name: '水辺の庭', note: '池と庭木を眺める', x: 1120 },
+  { id: 'end', name: '町はずれの川端', note: '柳の下の縁台でひと休み', x: 450 },
+];

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "session_id": "bb01890f-7183-48bb-8a00-7f0a0433fb00",
+  "environment": "development",
+  "world_id": "qingming-china",
+  "build_id": "unversioned",
+  "dropped": 0,
+  "events": [
+    {
+      "event_id": "90d6ed81-0f6b-4531-99ef-81bdcef667e0",
+      "session_id": "bb01890f-7183-48bb-8a00-7f0a0433fb00",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T08:56:14.448Z",
+      "elapsed_ms": 47,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "world_entered",
+      "source": "journal"
+    },
+    {
+      "event_id": "238ecb63-1623-4b7f-8016-532311791e85",
+      "session_id": "bb01890f-7183-48bb-8a00-7f0a0433fb00",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T08:56:14.448Z",
+      "elapsed_ms": 47,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "revisit",
+      "has_progress": true
+    },
+    {
+      "event_id": "37c8c3cf-a982-409f-9585-fece8e1a78cb",
+      "session_id": "bb01890f-7183-48bb-8a00-7f0a0433fb00",
+      "schema_version": 1,
+      "occurred_at": "2026-11-01T08:56:14.913Z",
+      "elapsed_ms": 513,
+      "environment": "development",
+      "world_id": "qingming-china",
+      "build_id": "unversioned",
+      "type": "error",
+      "code": "save_import_failed"
+    }
+  ]
+}

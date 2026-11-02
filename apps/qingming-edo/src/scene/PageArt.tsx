@@ -1,5 +1,6 @@
 import type React from 'react';
 import { INK, MINCHO, PAPER, VText, WASH } from './art';
+import { wrapNote } from '../content/gift';
 
 // 絵巻頁 (spec §10 写生): the player picks subject, framing and title slip;
 // the page is a composed cut from the painted street, so drawing skill never matters.
@@ -28,13 +29,17 @@ export interface PageArtProps {
   /** Small work name in the corner (spec §18): never covering the picture. */
   credit?: string;
   idPrefix?: string;
+  /** 贈る画: a word for a friend, in place of the place line (content/gift.ts). */
+  note?: string;
 }
 
-export function PageArt({ scene, titleStyle, title, place, credit, idPrefix = 'pg' }: PageArtProps) {
+export function PageArt({ scene, titleStyle, title, place, credit, idPrefix = 'pg', note }: PageArtProps) {
+  title = title ?? '';
+  place = place ?? '';
   const slip = SLIP[titleStyle] ?? SLIP.plain;
   const clip = `${idPrefix}-clip`;
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${PAGE_W} ${PAGE_H}`} width={PAGE_W} height={PAGE_H} role="img" aria-label={`${title}　${place}`}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${PAGE_W} ${PAGE_H}`} width={PAGE_W} height={PAGE_H} role="img" aria-label={note ? `${title}　${note}` : `${title}　${place}`}>
       <rect width={PAGE_W} height={PAGE_H} fill={PAPER} />
       <rect x={24} y={24} width={PAGE_W - 48} height={PAGE_H - 48} fill="none" stroke={INK} strokeWidth={1.2} opacity={0.5} />
       <defs>
@@ -49,9 +54,17 @@ export function PageArt({ scene, titleStyle, title, place, credit, idPrefix = 'p
       {/* 題箋 */}
       <rect x={PAGE_W - 108} y={56} width={52} height={[...title].length * 34 + 30} fill={slip.fill} stroke={INK} strokeWidth={1.2} />
       <VText x={PAGE_W - 82} y={66} text={title} size={28} fill={slip.text} gap={1.2} />
-      <text x={60} y={PAGE_H - 64} fontSize={20} fill={INK} fontFamily={MINCHO} letterSpacing={2}>
-        {place}
-      </text>
+      {note ? (
+        wrapNote(note).map((line, i, all) => (
+          <text key={i} x={60} y={PAGE_H - (all.length > 1 ? 82 : 66) + i * 26} fontSize={18} fill={INK} fontFamily={MINCHO} letterSpacing={1}>
+            {line}
+          </text>
+        ))
+      ) : (
+        <text x={60} y={PAGE_H - 64} fontSize={20} fill={INK} fontFamily={MINCHO} letterSpacing={2}>
+          {place}
+        </text>
+      )}
       {/* 落款 */}
       <rect x={PAGE_W - 92} y={PAGE_H - 92} width={36} height={36} fill="none" stroke={WASH.vermilion} strokeWidth={3} />
       <text x={PAGE_W - 74} y={PAGE_H - 68} fontSize={16} fill={WASH.vermilion} textAnchor="middle" fontFamily={MINCHO}>
@@ -68,20 +81,29 @@ export function PageArt({ scene, titleStyle, title, place, credit, idPrefix = 'p
 
 /** Turns a rendered page SVG into a PNG blob at 2× (1200 × 1600). */
 /** An SVG drawn as an image cannot fetch what it links to: inline every <image> first. */
-async function inlineImages(svg: SVGSVGElement): Promise<SVGSVGElement> {
+export async function inlineImages(svg: SVGSVGElement, cache?: Map<string, Promise<string>>): Promise<SVGSVGElement> {
   const copy = svg.cloneNode(true) as SVGSVGElement;
+  const toDataUrl = async (href: string) => {
+    const res = await fetch(href);
+    if (!res.ok) throw new Error(`image ${res.status}`);
+    const blob = await res.blob();
+    return new Promise<string>((ok, fail) => {
+      const r = new FileReader();
+      r.onload = () => ok(String(r.result));
+      r.onerror = () => fail(r.error);
+      r.readAsDataURL(blob);
+    });
+  };
   await Promise.all(
     [...copy.querySelectorAll('image')].map(async (img) => {
       const href = img.getAttribute('href') ?? img.getAttribute('xlink:href');
       if (!href || href.startsWith('data:')) return;
-      const blob = await (await fetch(href)).blob();
-      const url = await new Promise<string>((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(String(r.result));
-        r.onerror = () => rej(r.error);
-        r.readAsDataURL(blob);
-      });
-      img.setAttribute('href', url);
+      let url = cache?.get(href);
+      if (!url) {
+        url = toDataUrl(href);
+        cache?.set(href, url);
+      }
+      img.setAttribute('href', await url);
     }),
   );
   return copy;
