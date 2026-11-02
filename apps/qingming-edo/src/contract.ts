@@ -34,7 +34,9 @@ export type Condition =
   | { flag: string }
   | { quest: string; is: QuestState | QuestState[] }
   /** The journal holds at least this many pages. */
-  | { pagesAtLeast: number };
+  | { pagesAtLeast: number }
+  /** The time of day shown now (engine/time.ts timeOf): 夕暮れの灯 happens in the evening. */
+  | { time: TimeOfDay | TimeOfDay[] };
 
 /** Spec §9: 未発見、発見済み、進行中、提出待ち、完了、回想可能. */
 export type QuestState = 'undiscovered' | 'discovered' | 'active' | 'ready' | 'complete';
