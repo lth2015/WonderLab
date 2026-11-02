@@ -87,7 +87,7 @@ export function PaintedLandscape({ state, feedback, center, viewHalf }: { state:
     </mask></defs>
     <RollTiles center={center} viewHalf={viewHalf}/>
     {center + viewHalf > MILL.left - TILE && center - viewHalf < MILL.right + TILE &&
-      <Watermill running={center + viewHalf > MILL.left && center - viewHalf < MILL.right}/>}
+      <Watermill running={center + viewHalf > MILL.left && center - viewHalf < MILL.right} reduced={state.settings.reduced}/>}
     <g className="river-traffic">
       <PaintedBoat kind="small" x={610} y={784} width={270}/>
       <PaintedBoat kind="trader" x={470} y={1100} width={520}/>

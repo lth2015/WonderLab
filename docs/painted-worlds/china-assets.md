@@ -23,3 +23,9 @@
 | 水纹、水花、涟漪 | `src/Watermill.tsx` 原创 SVG pattern/path/ellipse | 遮罩内向下流动；减少动态静止、离开视野暂停；没有录音、远端图片或第三方纹理 |
 
 运行坐标、生成来源、文件哈希、裁片和预处理见 [水磨材料记录](china-watermill-v1/materials.json)，验证见 [水磨接入说明](china-watermill-v1/README.md)。新位图仅接近水磨段时加载，未加入首屏预载。
+
+### 水磨真实感 v2
+
+新增 `watermill/face-v2.webp`（原画风格参考的透明轮面）与 `fall-texture-v2.webp`（同风格细碎落水），均由内置imagegen生成。木纹小样 `woodgrain-v2.webp` 取自新轮面，仅用于离线生成；`buckets-v2.webp` 是原创投影代码把20个木斗绘成42帧的透明图集，运行时用小画布播放。继续复用v1局部后景，原v1轮盘保留作历史兼容但不再请求。
+
+实际材料/哈希、来源和处理见 [v2材料记录](china-watermill-realism-v2/materials.json)；投影、图集生成和验证见 [v2接入说明](china-watermill-realism-v2/README.md)。没有使用第三方照片或把新版称为原轮的逐像素无损抠图。
