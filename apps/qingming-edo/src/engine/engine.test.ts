@@ -498,7 +498,7 @@ describe('町の写生', () => {
     expect(nearby(newSave()).some((n) => n.id === 'sketches')).toBe(false);
     let s = done();
     // make room: the other stories are finished too
-    s = apply(s, [{ type: 'setFlag', flag: 'paper_pressed' }, ...['dougu', 'tenugui', 'fumi', 'kashi'].flatMap((q) => questById.get(q)!.completionEffects)]);
+    s = apply(s, [{ type: 'setFlag', flag: 'paper_pressed' }, ...['dougu', 'tenugui', 'fumi', 'kashi', 'hashi'].flatMap((q) => questById.get(q)!.completionEffects)]);
     expect(nearby(s).find((n) => n.id === 'sketches')?.spotId).toBe('a-boat');
     s = addPage(s, { pageId: sketchPageId('boat'), compositionId: 'sketch-boat-noon', titleStyle: 'plain', madeAt: new Date().toISOString() });
     expect(nearby(s).find((n) => n.id === 'sketches')?.text).toContain('あと6か所');
@@ -795,6 +795,50 @@ describe('朝の藍 (morning: find three indigo things)', () => {
       expect(s.journal.pages.find((p) => p.pageId === 'p07-ai')?.compositionId).toBe(comp);
       expect(s.progress.familiarity.sokichi?.events).toContain('ai');
       expect(entryFor('sokichi', s)).toBe('sokichi.done');
+    }
+  });
+});
+
+describe('橋のたもと (invite four, draw everyone)', () => {
+  const ready = () =>
+    apply(afterKaze(), ['dougu', 'tenugui', 'fumi', 'kashi'].flatMap((q) => [{ type: 'setFlag', flag: q === 'fumi' ? 'fumi_send' : q === 'kashi' ? 'kashi_now' : `${q}_x` } as Effect, ...questById.get(q)!.completionEffects]));
+
+  it('宗吉 asks only when the four stories are done', () => {
+    expect(entryFor('sokichi', afterKaze())).not.toBe('sokichi.hashi.ask');
+    const three = apply(afterKaze(), ['dougu', 'tenugui', 'kashi'].flatMap((q) => questById.get(q)!.completionEffects));
+    expect(entryFor('sokichi', three)).not.toBe('sokichi.hashi.ask');
+    expect(entryFor('sokichi', ready())).toBe('sokichi.hashi.ask');
+    expect(nearby(ready()).some((n) => n.id === 'hashi')).toBe(true);
+  });
+
+  it('each of the four is invited once, then 宗吉 gathers everyone', () => {
+    let s = open(open(ready(), 'sokichi.hashi.ask'), 'sokichi.hashi.go');
+    expect(entryFor('sokichi', s)).toBe('sokichi.hashi.waiting');
+    // nearest first: from the far bank, おまつ
+    expect(nearby(s, 14700).find((n) => n.id === 'hashi-invite')?.spotId).toBe('h-omatsu');
+    expect(nearby(s).find((n) => n.id === 'hashi-invite')?.text).toContain('あと4人');
+    for (const who of ['okon', 'kisuke', 'omatsu', 'ihei']) {
+      expect(entryFor(who, s)).toBe(`${who}.hashi`);
+      s = open(s, `${who}.hashi`);
+      expect(entryFor(who, s)).not.toBe(`${who}.hashi`);
+    }
+    expect(nearby(s).find((n) => n.id === 'hashi-done')?.spotId).toBe('h-sokichi');
+    expect(entryFor('sokichi', s)).toBe('sokichi.hashi.gather');
+  });
+
+  it('either picture leaves its own page, pays nothing, and the four remember', () => {
+    for (const [end, comp] of [['hashi.with', 'hashi-with'], ['hashi.side', 'hashi-side']] as const) {
+      let s = open(open(ready(), 'sokichi.hashi.ask'), 'sokichi.hashi.go');
+      for (const who of ['okon', 'kisuke', 'omatsu', 'ihei']) s = open(s, `${who}.hashi`);
+      const money = s.wallet.balanceMinor;
+      s = open(open(s, 'sokichi.hashi.gather'), end);
+      expect(questState(s, 'hashi')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money);
+      expect(s.journal.pages.find((p) => p.pageId === 'p08-hashi')?.compositionId).toBe(comp);
+      for (const who of ['sokichi', 'okon', 'kisuke', 'omatsu', 'ihei']) expect(s.progress.familiarity[who]?.events).toContain('hashi');
+      expect(entryFor('sokichi', s)).toBe('sokichi.hashi.after');
+      expect(entryFor('okon', s)).not.toBe('okon.hashi');
+      expect(nearby(s).some((n) => n.id.startsWith('hashi'))).toBe(false);
     }
   });
 });

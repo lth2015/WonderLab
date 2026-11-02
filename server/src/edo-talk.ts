@@ -10,7 +10,7 @@ import type { ChatMessage } from './tokenstars.js';
 
 export const TALK_TOPICS = ['today', 'work', 'earlier'] as const;
 export type TalkTopic = (typeof TALK_TOPICS)[number];
-export const TALK_STORIES = ['kaze', 'dougu', 'tenugui', 'kashi', 'fumi'] as const;
+export const TALK_STORIES = ['kaze', 'dougu', 'tenugui', 'kashi', 'fumi', 'hashi'] as const;
 export type TalkStory = (typeof TALK_STORIES)[number];
 
 interface Persona {
@@ -28,6 +28,7 @@ export const PERSONAS: Record<string, Persona> = {
     work: '漉き上がった紙を店先にならべ、番頭さんに叱られないよう気を配っている。',
     memories: {
       kaze: '今朝、風で店先の紙が飛びかけたとき、この見習いが文鎮で押さえてくれた。',
+      hashi: '橋のたもとの空き地で、この見習いが町の皆を一枚の絵に描いた。自分も皆といっしょに描かれた。',
     },
   },
   okon: {
@@ -37,6 +38,7 @@ export const PERSONAS: Record<string, Persona> = {
     memories: {
       kaze: '見習いが青葉屋の紙を押さえるところを見ていた。',
       dougu: '金次の父の代からの弁当箱を塗り直し、見習いといっしょに印の布で包んで返した。',
+      hashi: 'この見習いに誘われて、金次も連れて橋のたもとへ行き、町の皆と一枚の絵に描かれた。',
     },
   },
   kinji: {
@@ -45,6 +47,7 @@ export const PERSONAS: Record<string, Persona> = {
     work: '朝の商いをすませ、米屋の前でひと休みしている。',
     memories: {
       dougu: '父の代からの弁当箱がきれいに塗り直されて戻ってきた。届けてくれたのはこの見習いか、使いのお春。',
+      hashi: 'お紺に呼ばれて橋のたもとへ行き、あの弁当箱を持って、町の皆と一枚の絵に描かれた。描いたのはこの見習い。',
     },
   },
   kisuke: {
@@ -53,6 +56,7 @@ export const PERSONAS: Record<string, Persona> = {
     work: '朝から茶を出し、通りの往来をながめている。',
     memories: {
       tenugui: '見習いが茶を運ぶのを手伝い、忘れ物の手拭いの持ち主をいっしょに見つけた。',
+      hashi: 'この見習いに誘われて、茶を持って橋のたもとへ行き、皆と一枚の絵に描かれた。',
     },
   },
   oharu: {
@@ -62,6 +66,7 @@ export const PERSONAS: Record<string, Persona> = {
     memories: {
       dougu: 'お紺に頼まれて、金次に包みを届けたことがある。',
       tenugui: 'ご隠居の、亡くなったおかみさんが染めた手拭いを、見習いが見つけてくれた。',
+      hashi: '喜助に声をかけられて、橋のたもとで皆と一枚の絵に描かれた。',
     },
   },
   sokichi: {
@@ -72,6 +77,7 @@ export const PERSONAS: Record<string, Persona> = {
       kaze: '見習いが絵巻帳の最初の一頁を描いた。',
       dougu: '見習いが道具を届ける一頁を描いた。',
       tenugui: '見習いが手拭いの一件を一頁に残した。',
+      hashi: '見習いが、手を貸した町の人たちを橋のたもとに集めて、一枚に描いた。',
     },
   },
   omatsu: {
@@ -80,6 +86,7 @@ export const PERSONAS: Record<string, Persona> = {
     work: '日本橋の向こう岸の河岸で、朝の舟から上がる魚を売っている。',
     memories: {
       kashi: '孫の亀吉が舟の荷揚げを見に行って見えなくなったとき、この見習いが見つけてくれた。亀吉の父も昔は舟の荷を揚げていた。',
+      hashi: 'この見習いに誘われて、亀吉と橋のたもとへ行き、町の皆と一枚の絵に描かれた。',
     },
   },
   ihei: {
@@ -88,6 +95,7 @@ export const PERSONAS: Record<string, Persona> = {
     work: 'そろばんの包みを抱えて、両替屋と得意先のあいだを行き来している。',
     memories: {
       fumi: '郷の母への文を米屋の前で落とし、この見習いが拾って届けてくれた。商いがうまくいかないことまで書いてしまい、出しそびれていた。',
+      hashi: 'この見習いに誘われて、橋のたもとで町の皆と一枚の絵に描かれた。母への次の文に書くつもりだ。',
     },
   },
 };

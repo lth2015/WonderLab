@@ -37,13 +37,21 @@ export interface Nearby {
 const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
 /** The stories someone is waiting to ask about (not yet under way). */
-const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai']);
+const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi']);
 
 /**
  * `here`: the scene x at the middle of the view. With five stories there are more
  * offers than the three places in the list, so the ones nearest to the player come
  * first; what is already under way always stays at the top.
  */
+/** 橋のたもと: whom 宗吉 asks the player to invite, and the story that made each a friend. */
+const HASHI_PEOPLE = [
+  { id: 'okon', name: 'お紺', spot: 'h-okon', quest: 'dougu' },
+  { id: 'kisuke', name: '喜助', spot: 'h-kisuke', quest: 'tenugui' },
+  { id: 'ihei', name: '伊兵衛', spot: 'h-ihei', quest: 'fumi' },
+  { id: 'omatsu', name: 'おまつ', spot: 'h-omatsu', quest: 'kashi' },
+] as const;
+
 export function nearby(s: SaveData, here?: number): Nearby[] {
   const out: Nearby[] = [];
   if (s.journal.pages.length >= PAGE_SLOTS && !hasFlag(s, 'book_full')) out.push({ id: 'book', text: '一冊になった絵巻帳を、宗吉に見せる', spotId: 'h-sokichi' });
@@ -99,6 +107,16 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
     if (hasFlag(s, 'kashi_found')) out.push({ id: 'kashi-home', text: '亀吉を、おまつのところへ連れて帰る', spotId: 'h-kame-hidden' });
     else if (hasFlag(s, 'kashi_search')) out.push({ id: 'kashi-search', text: '亀吉を探す。舟の荷揚げを眺めるのが好きらしい', spotId: 'a-kashi-boats' });
     else out.push({ id: 'kashi', text: '橋の向こうの河岸で、おまつが誰かを呼んでいる', spotId: 'h-omatsu' });
+  }
+  // 橋のたもと: once the four have their pages; then the people not yet invited, nearest first
+  const hashi = questState(s, 'hashi');
+  if (hashi !== 'complete' && HASHI_PEOPLE.every((p) => questState(s, p.quest) === 'complete')) {
+    const xAt = (spot: string) => HOTSPOTS.find((h) => h.id === spot)?.anchor.x ?? 0;
+    const left = HASHI_PEOPLE.filter((p) => !hasFlag(s, `hashi_${p.id}`));
+    if (here !== undefined) left.sort((p, q) => Math.abs(xAt(p.spot) - here) - Math.abs(xAt(q.spot) - here));
+    if (hasFlag(s, 'hashi_ask') && left.length === 0) out.push({ id: 'hashi-done', text: '皆に声をかけ終えた。橋のたもとの宗吉のところへ', spotId: 'h-sokichi' });
+    else if (hasFlag(s, 'hashi_ask')) out.push({ id: 'hashi-invite', text: `橋のたもとへ来てもらうよう声をかける（あと${left.length}人）。${left.map((p) => p.name).join('、')}`, spotId: left[0].spot });
+    else out.push({ id: 'hashi', text: '宗吉が、絵巻帳をめくりながら何か考えている', spotId: 'h-sokichi' });
   }
   // 町の写生: the next place not yet drawn, walking from the bridge
   if (questState(s, 'kaze') === 'complete') {

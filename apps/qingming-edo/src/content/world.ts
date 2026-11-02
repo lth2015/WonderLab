@@ -374,6 +374,30 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
+  {
+    // 八頁目：橋のたもと. Invite the four people the player helped, then draw them all by the bridge. No money.
+    id: 'hashi',
+    prerequisites: [
+      { quest: 'dougu', is: 'complete' },
+      { quest: 'tenugui', is: 'complete' },
+      { quest: 'kashi', is: 'complete' },
+      { quest: 'fumi', is: 'complete' },
+    ],
+    steps: [
+      { id: 'ask', doneWhen: { flag: 'hashi_ask' } },
+      { id: 'invite', doneWhen: { all: [{ flag: 'hashi_okon' }, { flag: 'hashi_kisuke' }, { flag: 'hashi_omatsu' }, { flag: 'hashi_ihei' }] } },
+      { id: 'draw', doneWhen: { any: [{ flag: 'hashi_with' }, { flag: 'hashi_side' }] } },
+    ],
+    completionEffects: [
+      { type: 'familiarity', characterId: 'sokichi', eventId: 'hashi' },
+      { type: 'familiarity', characterId: 'okon', eventId: 'hashi' },
+      { type: 'familiarity', characterId: 'kisuke', eventId: 'hashi' },
+      { type: 'familiarity', characterId: 'omatsu', eventId: 'hashi' },
+      { type: 'familiarity', characterId: 'ihei', eventId: 'hashi' },
+      { type: 'questState', quest: 'hashi', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
@@ -402,8 +426,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending
-export const PAGE_SLOTS = 20;
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so does 橋のたもと
+export const PAGE_SLOTS = 22;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -420,6 +444,8 @@ export const PAGES: PageDef[] = [
   { id: 'p06-yube-b', triggerId: 'yube', compositionId: 'yube-{tell|watch}', captionId: 'yube', sourceRefs: [] },
   { id: 'p07-ai', triggerId: 'ai', compositionId: 'ai-{vat|cloth}', captionId: 'ai', sourceRefs: [] },
   { id: 'p07-ai-b', triggerId: 'ai', compositionId: 'ai-{vat|cloth}', captionId: 'ai', sourceRefs: [] },
+  { id: 'p08-hashi', triggerId: 'hashi', compositionId: 'hashi-{with|side}', captionId: 'hashi', sourceRefs: [] },
+  { id: 'p08-hashi-b', triggerId: 'hashi', compositionId: 'hashi-{with|side}', captionId: 'hashi', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -436,6 +462,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p06-yube-b': '夕暮れの灯（もう一つの宵）',
   'p07-ai': '朝の藍',
   'p07-ai-b': '朝の藍（もう一つの藍）',
+  'p08-hashi': '橋のたもと',
+  'p08-hashi-b': '橋のたもと（もう一枚）',
 };
 
 /**
@@ -537,6 +565,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p05-fumi' || pageId === 'p05-fumi-b') return compositionId === 'fumi-send' || compositionId === 'fumi-rewrite';
   if (pageId === 'p06-yube' || pageId === 'p06-yube-b') return compositionId === 'yube-tell' || compositionId === 'yube-watch';
   if (pageId === 'p07-ai' || pageId === 'p07-ai-b') return compositionId === 'ai-vat' || compositionId === 'ai-cloth';
+  if (pageId === 'p08-hashi' || pageId === 'p08-hashi-b') return compositionId === 'hashi-with' || compositionId === 'hashi-side';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }
