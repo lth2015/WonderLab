@@ -242,7 +242,8 @@ export function App() {
         study.emit('first_interaction_completed', { interaction_id: 'observation', elapsed_ms: study.elapsed() }, 'first-interaction');
         const id = spot.targetId;
         setReacting((r) => new Set(r).add(id));
-        setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), 1400);
+        // a passer-by spoken to stands still while the word is read
+        setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), spot.walker ? 3200 : 1400);
         // 町の写生: after the first page, some places can be drawn (once each)
         const k = sketchOfSpot(id);
         const cur = saveRef.current;
@@ -692,7 +693,7 @@ export function App() {
                 </li>
               ))}
             {spots
-              .filter((s) => s.kind === 'ambient')
+              .filter((s) => s.kind === 'ambient' && !s.walker)
               .map((s) => (
                 <li key={s.id}>
                   <button type="button" onClick={() => goTo(s.id, true)}>
