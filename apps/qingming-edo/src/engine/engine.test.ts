@@ -746,3 +746,14 @@ describe('夕暮れの灯 (evening: light three lamps)', () => {
     }
   });
 });
+
+describe('朝・昼・夕 everyday words', () => {
+  it('a person greets differently in the morning and the evening, and closes like the base word', () => {
+    let s = open(open(afterKaze(), 'okon.wrapped'), 'okon.entrust');
+    s = apply(s, [{ type: 'setFlag', flag: 'okon_seen_done' }]);
+    const at = (t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+    expect(entryFor('okon', at('noon'))).toBe('okon.again');
+    expect(entryFor('okon', at('morning'))).toBe('okon.again@morning');
+    expect(NODES['okon.again@morning'].lines[0].text).toContain('朝');
+  });
+});

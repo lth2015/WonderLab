@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, AMBIENT_LABEL, GUIDE_STOPS, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
+import { AMBIENT, AMBIENT_LABEL, ambientText, GUIDE_STOPS, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
@@ -247,7 +247,7 @@ export function App() {
         const k = sketchOfSpot(id);
         const cur = saveRef.current;
         if (k && questState(cur, 'kaze') === 'complete' && !cur.journal.pages.some((p) => p.pageId === sketchPageId(k.id))) return openNode(`sk.${k.id}`);
-        setToast(AMBIENT[id] ?? null);
+        setToast(ambientText(id, timeOf(cur)) ?? null);
         return;
       }
       sound.cue('tap');
@@ -276,7 +276,7 @@ export function App() {
       setDialogue(null);
       return;
     }
-    if (dialogue && ON_CLOSE[dialogue.node]) commit(ON_CLOSE[dialogue.node]);
+    if (dialogue && ON_CLOSE[baseNode(dialogue.node)]) commit(ON_CLOSE[baseNode(dialogue.node)]);
     setDialogue(null);
   };
 
@@ -309,7 +309,7 @@ export function App() {
     if (c.effects && !recallRef.current) commit(c.effects);
     if (c.talk) {
       const n = NODES[dialogue!.node];
-      if (ON_CLOSE[dialogue!.node]) commit(ON_CLOSE[dialogue!.node]);
+      if (ON_CLOSE[baseNode(dialogue!.node)]) commit(ON_CLOSE[baseNode(dialogue!.node)]);
       setDialogue(null);
       setTalk(n.lines.find((l) => l.by !== 'narration')?.by ?? null);
       return;
@@ -744,6 +744,9 @@ export function App() {
     </div>
   );
 }
+
+/** `okon.again@evening` → `okon.again`: a time-of-day word closes like its base node. */
+const baseNode = (id: string) => id.split('@')[0];
 
 /** The lines a node shows; in 回想 the ones about being paid are left out. */
 function linesOf(n: (typeof NODES)[string], inRecall: boolean) {

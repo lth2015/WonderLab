@@ -137,6 +137,34 @@ export const WORLD: WorldDef = {
   scenes: [SCENE],
 };
 
+/** Some things read differently in the morning and the evening (owner: 多开发内容). */
+export const AMBIENT_AT: Partial<Record<'morning' | 'evening', Record<string, string>>> = {
+  morning: {
+    'willow': '朝露をふくんだ柳の葉が、ときどききらりと光る。',
+    'river': '朝もやの向こうを、堀の水がゆっくり流れていく。',
+    'steam': '朝いちばんの湯が、勢いよく湯気を立てている。',
+    'pond': '朝の池に、薄い霧がかかっている。',
+    'well': '井戸端で、朝の水を汲む音がつづいている。',
+    'kashi-boats': '一番舟が着いたらしい。籠がつぎつぎに岸へ渡されていく。',
+  },
+  evening: {
+    'willow': '夕風に、柳の枝が長い影を落としている。',
+    'river': '堀の水面に、夕焼けの色がにじんでいる。',
+    'boat': '荷を下ろした舟が、静かに岸につながれている。',
+    'giboshi': '擬宝珠が、夕日を受けて鈍く光っている。',
+    'noren-aoba': '青葉屋の暖簾が、もうすぐしまわれる。',
+    'steam': '夕方の茶釜は、湯気が少し細い。',
+    'well': '井戸端に、夕餉の水を汲む桶が並んでいる。',
+    'pond': '池の水面に、一番星が映っている。',
+    'bench': '縁台に座ると、川風が少し冷たい。',
+    'kashi-boats': '戻ってきた舟が、岸に並んで揺れている。',
+    'kashi-steps': '石段の下で、夕方の水がひたひたと鳴る。',
+  },
+};
+export function ambientText(id: string, time: 'morning' | 'noon' | 'evening'): string | undefined {
+  return (time !== 'noon' && AMBIENT_AT[time]?.[id]) || AMBIENT[id];
+}
+
 /**
  * What a tap on a thing in the painting visibly does (roadmap #158 1A, owner's demo
  * feedback 2026-11-02: 「交互太少、場景簡単」). Drawn over the painting for ~1.4 s;

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createStudy } from '../engine/study';
 import { COMMENT, COMMENT_BY_COMPOSITION, PLACE, RECALL_NOTE } from './pageText';
 import { ENTRIES, NODES, RECALL_START } from './script';
-import { AMBIENT, AMBIENT_LABEL, AMBIENT_REACTION, characterById, HOTSPOTS, PAGE_TITLES, PAGES, QUESTS, ROLES, SCENE, SCENE_W, SUBJECTS, validJournalEntry } from './world';
+import { AMBIENT, AMBIENT_AT, AMBIENT_LABEL, AMBIENT_REACTION, ambientText, characterById, HOTSPOTS, PAGE_TITLES, PAGES, QUESTS, ROLES, SCENE, SCENE_W, SUBJECTS, validJournalEntry } from './world';
 import SIZES from '../assets/art/sizes.json';
 
 // 新しい場面・小話の登録 (roadmap #158 item 3): what adding a place or a story has to
@@ -67,5 +67,30 @@ describe('the painting covers the scene', () => {
     expect(SCENE.sections.length * 1000).toBe(SCENE_W);
     for (const s of SCENE.sections) expect(existsSync(new URL(`../assets/art/street-${s.id.slice(1)}.webp`, import.meta.url)), s.id).toBe(true);
     for (const id of Object.keys(SIZES)) expect(existsSync(new URL(`../assets/art/${id}.webp`, import.meta.url)), id).toBe(true);
+  });
+});
+
+describe('朝・昼・夕 words', () => {
+  const timed = Object.keys(NODES).filter((id) => id.includes('@'));
+  it('every time-of-day word has its base, the same speaker and the same choices', () => {
+    expect(timed.length).toBeGreaterThan(10);
+    for (const id of timed) {
+      const [base, t] = id.split('@');
+      expect(['morning', 'evening']).toContain(t);
+      const b = NODES[base];
+      expect(b, `base of ${id}`).toBeDefined();
+      expect(NODES[id].lines[0].by).toBe(b.lines[0].by);
+      expect(NODES[id].choices).toEqual(b.choices);
+      expect(NODES[id].effects ?? []).toEqual(b.effects ?? []);
+    }
+  });
+  it('things have a morning and an evening word only where the plain one exists', () => {
+    for (const t of ['morning', 'evening'] as const) {
+      for (const id of Object.keys(AMBIENT_AT[t] ?? {})) {
+        expect(AMBIENT[id], id).toBeTruthy();
+        expect(ambientText(id, t)).toBe(AMBIENT_AT[t]![id]);
+        expect(ambientText(id, 'noon')).toBe(AMBIENT[id]);
+      }
+    }
   });
 });
