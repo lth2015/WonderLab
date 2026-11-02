@@ -75,6 +75,16 @@ export const HOTSPOTS: HotspotDef[] = [
   // 母への文: the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
   { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
   { id: 'h-ihei', targetId: 'ihei', kind: 'character', anchor: { x: 8040, y: 565 }, hitArea: { x: 8023, y: 520, w: 34, h: 90 }, priority: 6, visibleWhen: iheiMet, walker: 'crowd1-merchant' },
+  // 通りすがりの人 (demo feedback 「交互太少、人不能动」): the walking passers-by say a word when
+  // tapped, and stop for a moment. The area follows the walker as drawn (Street live()); the
+  // static one is where each starts (scene/painted.tsx CROWD); who is out when matches outAt there.
+  { id: 'a-pass-samurai', targetId: 'pass-samurai', kind: 'ambient', anchor: { x: 880, y: 567 }, hitArea: { x: 863, y: 522, w: 34, h: 90 }, priority: 4, walker: 'crowd2-samurai' },
+  { id: 'a-pass-elder', targetId: 'pass-elder', kind: 'ambient', anchor: { x: 2300, y: 565 }, hitArea: { x: 2283, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-elder', visibleWhen: { time: 'noon' } },
+  { id: 'a-pass-monk', targetId: 'pass-monk', kind: 'ambient', anchor: { x: 3750, y: 563 }, hitArea: { x: 3733, y: 518, w: 34, h: 90 }, priority: 4, walker: 'crowd1-monk' },
+  { id: 'a-pass-fishmonger', targetId: 'pass-fishmonger', kind: 'ambient', anchor: { x: 5650, y: 565 }, hitArea: { x: 5633, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-fishmonger', visibleWhen: { not: { time: 'evening' } } },
+  { id: 'a-pass-apprentice', targetId: 'pass-apprentice', kind: 'ambient', anchor: { x: 9550, y: 569 }, hitArea: { x: 9533, y: 524, w: 34, h: 90 }, priority: 4, walker: 'crowd2-apprentice', visibleWhen: { not: { time: 'evening' } } },
+  { id: 'a-pass-parasol', targetId: 'pass-parasol', kind: 'ambient', anchor: { x: 10780, y: 565 }, hitArea: { x: 10763, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd1-parasol' },
+  { id: 'a-pass-porter', targetId: 'pass-porter', kind: 'ambient', anchor: { x: 12300, y: 579 }, hitArea: { x: 12283, y: 534, w: 34, h: 90 }, priority: 4, walker: 'crowd1-porter', visibleWhen: { time: 'noon' } },
   // 朝の藍: three indigo things along the roll (over the ambient spots, while looking)
   { id: 'h-ai1', targetId: 'ai1', kind: 'prop', anchor: { x: 12140, y: 387 }, hitArea: { x: 12000, y: 360, w: 280, h: 55 }, priority: 8, visibleWhen: aiToFind(1) },
   { id: 'h-ai2', targetId: 'ai2', kind: 'prop', anchor: { x: 3285, y: 435 }, hitArea: { x: 3200, y: 390, w: 170, h: 90 }, priority: 8, visibleWhen: aiToFind(2) },
@@ -152,6 +162,11 @@ export const AMBIENT_AT: Partial<Record<'morning' | 'evening', Record<string, st
     'pond': '朝の池に、薄い霧がかかっている。',
     'well': '井戸端で、朝の水を汲む音がつづいている。',
     'kashi-boats': '一番舟が着いたらしい。籠がつぎつぎに岸へ渡されていく。',
+    'pass-samurai': '武士が朝の空を見上げた。「よい日和だ。お勤めの前に、少し歩こう」',
+    'pass-monk': '朝の托鉢の僧が、鈴をひとつ鳴らして通り過ぎた。',
+    'pass-fishmonger': '魚売りが籠をかついで駆けていく。「朝のうちに売り切らなきゃ！」',
+    'pass-apprentice': '丁稚が眠そうな目で使いに出ていく。「朝いちばんのお使いだ」',
+    'pass-parasol': '日傘の娘が、朝の光をよけて歩いていく。「今日は芝居見物なの」',
   },
   evening: {
     'willow': '夕風に、柳の枝が長い影を落としている。',
@@ -165,6 +180,9 @@ export const AMBIENT_AT: Partial<Record<'morning' | 'evening', Record<string, st
     'bench': '縁台に座ると、川風が少し冷たい。',
     'kashi-boats': '戻ってきた舟が、岸に並んで揺れている。',
     'kashi-steps': '石段の下で、夕方の水がひたひたと鳴る。',
+    'pass-samurai': '武士が家路を急いでいる。「日が落ちる前に、屋敷へ戻らねば」',
+    'pass-monk': '僧が夕日に手を合わせて、寺のほうへ歩いていく。',
+    'pass-parasol': '娘が傘をたたみながら笑った。「もう日傘はいらないわね」',
   },
 };
 export function ambientText(id: string, time: 'morning' | 'noon' | 'evening'): string | undefined {
@@ -191,6 +209,13 @@ export const AMBIENT_REACTION: Record<string, Reaction> = {
 
 /** Short captions for ambient reactions; read aloud too (sound is optional, spec §13). */
 export const AMBIENT_LABEL: Record<string, string> = {
+  'pass-samurai': '通りがかりの武士',
+  'pass-elder': '杖をついたご隠居',
+  'pass-monk': '托鉢の僧',
+  'pass-fishmonger': '魚売り',
+  'pass-apprentice': '使いの丁稚',
+  'pass-parasol': '日傘の娘',
+  'pass-porter': '荷を運ぶ人足',
   'willow': '川端の柳',
   'kashi-willow': '向こう岸の柳',
   'kashi-steps': '河岸の石段',
@@ -228,6 +253,13 @@ export const AMBIENT_LABEL: Record<string, string> = {
   'pond': '庭の池',
 };
 export const AMBIENT: Record<string, string> = {
+  'pass-samurai': '武士が足を止めた。「江戸の町は、何度歩いても飽きぬな」',
+  'pass-elder': 'ご隠居がつぶやいた。「わしの若いころは、この通りもまだ狭かったのう」',
+  'pass-monk': '托鉢の僧が、静かに頭を下げて通り過ぎた。',
+  'pass-fishmonger': '魚売りが声を張った。「鯵だよ、活きのいい鯵だよ！」',
+  'pass-apprentice': '丁稚が包みを抱えて小走りに行く。「急げ、急げ。番頭さんに叱られる」',
+  'pass-parasol': '日傘の娘が、くるりと傘を回した。「いいお天気ですね」',
+  'pass-porter': '人足が額の汗をぬぐった。「この荷が済んだら、ひと休みだ」',
   'kashi-willow': '橋のたもとの柳が、川風にゆれている。',
   'kashi-steps': '水際まで石段が下りている。舟から上がる人の足が、ここで乾く。',
   'kashi-baskets': '空の籠と樽が積んである。もうすぐ、これが魚でいっぱいになる。',

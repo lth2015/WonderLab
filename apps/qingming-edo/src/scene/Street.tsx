@@ -381,8 +381,9 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
             poses={poses}
             sections={sections}
             glints={spots
-              .filter((h) => h.kind === 'ambient' && reacting.has(h.targetId))
+              .filter((h) => h.kind === 'ambient' && !h.walker && reacting.has(h.targetId))
               .map((h) => ({ id: h.id, ...h.hitArea, reaction: AMBIENT_REACTION[h.targetId] }))}
+            stopped={spots.filter((h) => h.walker && h.kind === 'ambient' && reacting.has(h.targetId)).map((h) => h.walker!)}
           />
           {cueSpot && <ellipse key={`cue-${cue!.key}`} className="cue-ring" {...ringAt(cueSpot)} />}
           {ripple && <circle key={ripple.k} className="tap-ripple" cx={ripple.x} cy={ripple.y} r={16 / scale} />}

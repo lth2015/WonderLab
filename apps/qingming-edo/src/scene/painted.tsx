@@ -199,7 +199,7 @@ function StreetLamp({ x, y, painted, lit, glow }: { x: number; y: number; painte
 }
 
 /** 朝 quieter, 昼 everyone, 夕 going home: who is out (the clerk of 母への文 always is). */
-function outAt(tod: 'morning' | 'noon' | 'evening', id: string, i: number): boolean {
+export function outAt(tod: 'morning' | 'noon' | 'evening', id: string, i: number): boolean {
   if (id === 'crowd1-merchant' || tod === 'noon') return true;
   return tod === 'morning' ? i % 3 !== 1 : i % 2 === 0;
 }
@@ -401,11 +401,13 @@ export interface PaintedProps {
   sections: [number, number];
   /** Ambient reactions on the painting: a soft glint where it was touched. */
   glints: { id: string; x: number; y: number; w: number; h: number; reaction?: Reaction }[];
+  /** Passers-by who were just spoken to: they stop where they are for a moment. */
+  stopped?: string[];
 }
 
 const near = (x: number, [from, to]: [number, number]) => x >= from * 1000 - 120 && x <= (to + 1) * 1000 + 120;
 
-export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
+export function PaintedStreet({ poses, sections, glints, stopped = [] }: PaintedProps) {
   return (
     <g>
       <defs>
@@ -439,7 +441,7 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
         const w = walkOf(c, CROWD.indexOf(c));
         // placement stays in attributes; only the inner groups are animated (lesson of #157)
         return (
-          <g key={`${c.id}-${c.x}`} className="walker" data-walker={c.id} style={{ '--dx': `${w.dx}px`, '--dur': `${w.dur}s`, animationDelay: `${w.delay}s` } as React.CSSProperties}>
+          <g key={`${c.id}-${c.x}`} className={stopped.includes(c.id) ? 'walker stopped' : 'walker'} data-walker={c.id} style={{ '--dx': `${w.dx}px`, '--dur': `${w.dur}s`, animationDelay: `${w.delay}s` } as React.CSSProperties}>
             <g className="walker-face" style={{ animationDelay: `${w.delay}s` } as React.CSSProperties}>
               <g className="walker-bob">
                 <Sprite {...c} />

@@ -51,7 +51,8 @@ describe('every person and thing on the street is complete', () => {
     for (const h of HOTSPOTS.filter((x) => x.kind === 'ambient')) {
       expect(AMBIENT[h.targetId], `AMBIENT ${h.targetId}`).toBeTruthy();
       expect(AMBIENT_LABEL[h.targetId], `AMBIENT_LABEL ${h.targetId}`).toBeTruthy();
-      expect(AMBIENT_REACTION[h.targetId], `AMBIENT_REACTION ${h.targetId} (what a tap visibly does)`).toBeTruthy();
+      // a passer-by's reaction is to stop walking (scene/painted.tsx `stopped`)
+      if (!h.walker) expect(AMBIENT_REACTION[h.targetId], `AMBIENT_REACTION ${h.targetId} (what a tap visibly does)`).toBeTruthy();
     }
   });
   it('every tap area is inside the scene', () => {

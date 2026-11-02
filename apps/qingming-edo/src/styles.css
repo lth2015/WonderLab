@@ -1387,7 +1387,10 @@ button.term[aria-expanded="true"] {
 .rm .idle {
   animation: none !important;
 }
-/* while a dialogue, game or panel holds the screen, the passers-by wait too */
+/* while a dialogue, game or panel holds the screen, the passers-by wait too; one just spoken to stops a moment */
+.walker.stopped,
+.walker.stopped .walker-face,
+.walker.stopped .walker-bob,
 .street[data-still='yes'] .walker,
 .street[data-still='yes'] .walker-face,
 .street[data-still='yes'] .walker-bob {
