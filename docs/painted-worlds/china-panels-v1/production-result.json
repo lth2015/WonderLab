@@ -1,0 +1,18 @@
+[
+  {
+    "url": "http://127.0.0.1:5186/",
+    "large_settings_one_screen": true,
+    "fixed_page_actions": true,
+    "postcard_download_png": true,
+    "gift_and_return_focus": true,
+    "page_errors": []
+  },
+  {
+    "url": "http://127.0.0.1:5187/qingming/",
+    "large_settings_one_screen": true,
+    "fixed_page_actions": true,
+    "postcard_download_png": true,
+    "gift_and_return_focus": true,
+    "page_errors": []
+  }
+]
