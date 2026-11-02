@@ -21,6 +21,7 @@ export type Cue = 'tap' | 'turn' | 'react' | 'page' | 'coin' | 'open' | 'close';
 /** Where water can be heard, in scene units: centre, reach, loudness. */
 const WATER = [
   { x: 13300, r: 1100, g: 1 }, // the river under the bridge
+  { x: 15200, r: 1200, g: 0.9 }, // along the far bank's quay (河岸の朝)
   { x: 6000, r: 1300, g: 0.8 }, // the canal bank and jetty
   { x: 1125, r: 600, g: 0.35 }, // the garden pond
 ];

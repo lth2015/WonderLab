@@ -1,0 +1,47 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+const [BASE, out, ending] = process.argv.slice(2);
+(async () => {
+  const b = await chromium.launch();
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto(BASE); await p.evaluate((v) => localStorage.setItem('ww:qingming-edo:save', v), fs.readFileSync('save-done.json', 'utf8'));
+  await p.reload(); await p.waitForTimeout(500);
+  await p.getByRole('button', { name: /絵巻/ }).first().click(); await p.waitForTimeout(400);
+  const near = async () => { await p.getByRole('button', { name: '近くのこと' }).click(); await p.waitForTimeout(200); const t = await p.locator('.panel li, .panel button').allInnerTexts(); await p.keyboard.press('Escape'); return t.filter((x) => /おまつ|亀吉/.test(x)); };
+  console.log('nearby before:', JSON.stringify(await near()));
+  await p.getByRole('button', { name: '近くのこと' }).click(); await p.locator('.guide summary').click();
+  await p.locator('.guide-stops').getByRole('button', { name: /^向こう岸の河岸/ }).click(); await p.waitForTimeout(700);
+  await p.screenshot({ path: `${out}/1-arrive.png` });
+  const st = p.locator('.street');
+  const tap = async (x, y) => { const bb = await st.boundingBox(); const cam = +(await st.getAttribute('data-cam')), sc = +(await st.getAttribute('data-scale')), top = +(await st.getAttribute('data-top')); await p.mouse.click(bb.x + (x - cam) * sc, bb.y + (y - top) * sc); };
+  const lines = async () => { const out = []; for (let i = 0; i < 10; i++) { const d = p.locator('.dialogue'); if (!(await d.count())) break; out.push((await d.innerText()).split('\n').filter(Boolean).slice(0, 3).join(' / ')); const btns = await d.locator('button').allInnerTexts(); if (btns.some((t) => /^(次へ|閉じる)$/.test(t)) && btns.length === 1) await d.getByRole('button', { name: /^(次へ|閉じる)$/ }).click(); else return { out, btns }; await p.waitForTimeout(150); } return { out, btns: [] }; };
+  await tap(14700, 412); await p.waitForTimeout(300);
+  let r = await lines(); console.log('omatsu:', r.out.join(' || '), '| choices', r.btns.join(','));
+  await p.getByRole('button', { name: '探してみる' }).click(); await p.waitForTimeout(200);
+  r = await lines(); console.log('search:', r.out.join(' || '));
+  if (await p.locator('.dialogue').count()) await p.locator('.dialogue').getByRole('button').last().click();
+  await p.waitForTimeout(300);
+  console.log('nearby during search:', JSON.stringify(await near()));
+  // pan to the barrels and look
+  await p.evaluate(() => {}); 
+  const drag = async (dx) => { const bb = await st.boundingBox(); await p.mouse.move(bb.x + bb.width / 2, bb.y + 300); await p.mouse.down(); await p.mouse.move(bb.x + bb.width / 2 + dx, bb.y + 300, { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(400); };
+  for (let i = 0; i < 12; i++) { const bb = await st.boundingBox(); const cam = +(await st.getAttribute('data-cam')), sc = +(await st.getAttribute('data-scale')); const sx = (15482 - cam) * sc; if (sx > 60 && sx < bb.width - 60) break; await st.focus(); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(250); }
+  await p.screenshot({ path: `${out}/2-search.png` });
+  await tap(15482, 455); await p.waitForTimeout(300);
+  r = await lines(); console.log('found:', r.out.join(' || '), '| choices', r.btns.join(','));
+  await p.getByRole('button', { name: ending === 'watch' ? '荷揚げを一緒に見てから帰る' : 'すぐ連れて帰る' }).click(); await p.waitForTimeout(200);
+  r = await lines(); console.log('ending:', r.out.join(' || '));
+  if (await p.locator('.dialogue').count()) await p.locator('.dialogue').getByRole('button').last().click();
+  await p.waitForTimeout(400);
+  const s = await p.evaluate(() => JSON.parse(localStorage.getItem('ww:qingming-edo:save')));
+  console.log('kashi', s.progress.quests.kashi, '| wallet', s.wallet.balanceMinor, '| pages', s.journal.pages.map((x) => x.compositionId).filter((c) => c.startsWith('kashi')), '| familiarity', JSON.stringify({ o: s.progress.familiarity.omatsu, k: s.progress.familiarity.kamekichi }));
+  await p.getByRole('button', { name: '近くのこと' }).click(); await p.locator('.guide summary').click().catch(() => {});
+  await p.locator('.guide-stops').getByRole('button', { name: /^向こう岸の河岸/ }).click(); await p.waitForTimeout(600);
+  await p.screenshot({ path: `${out}/3-after.png` });
+  await p.getByRole('button', { name: '絵巻帳' }).click(); await p.waitForTimeout(300);
+  await p.getByRole('button', { name: '河岸の朝を開く' }).click(); await p.waitForTimeout(700);
+  await p.locator('.page-big').screenshot({ path: `${out}/4-page-${ending}.png` });
+  console.log('journal count:', await p.locator('.panel .small').first().innerText().catch(() => ''), '| errors', errs);
+  await b.close();
+})();

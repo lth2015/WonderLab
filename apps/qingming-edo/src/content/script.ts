@@ -337,6 +337,99 @@ export const NODES: Record<string, DialogueNode> = {
   },
 };
 
+// 四頁目：河岸の朝 (roadmap #158 item 4). Across the bridge, a new place and a new way
+// to take part: look for someone in the painting itself. Either ending completes it.
+const KASHI_DONE: Effect[] = [{ type: 'setFlag', flag: 'kashi_found' }];
+Object.assign(NODES, {
+  'omatsu.first': {
+    effects: [{ type: 'setFlag', flag: 'met_omatsu' }],
+    lines: [
+      { by: 'omatsu', text: 'おや、橋を渡ってきたのかい。こっちの河岸は、朝がいちばん忙しくてねえ。' },
+      { by: 'omatsu', text: '舟が着くたびに、籠が上がって、声が飛び交う。年寄りには目が回るよ。' },
+    ],
+  },
+  'omatsu.ask': {
+    effects: [{ type: 'setFlag', flag: 'met_omatsu' }, { type: 'questState', quest: 'kashi', state: 'discovered' }],
+    lines: [
+      { by: 'omatsu', text: '亀吉！ 亀吉やい！ ……あら、ごめんなさいね。人違いだ。' },
+      { by: 'omatsu', text: '孫の亀吉が、さっきから見えなくてね。この目じゃ、遠くの子の顔がわからないのさ。' },
+      { by: 'omatsu', text: '舟が着く朝は、決まってどこかへ潜りこんで荷揚げを眺めてるんだよ。見つけてやってくれるかい。' },
+    ],
+    choices: [
+      { label: '探してみる', next: 'omatsu.search' },
+      { label: '今は町を見て回りたい', next: 'omatsu.declined' },
+    ],
+  },
+  'omatsu.declined': {
+    effects: [{ type: 'setFlag', flag: 'kashi_declined' }],
+    lines: [{ by: 'omatsu', text: 'そうかい。まあ、お腹がすけば戻ってくる子だからね。' }],
+  },
+  'omatsu.ask.again': {
+    lines: [{ by: 'omatsu', text: '亀吉は、まだ戻らなくてねえ。……探してくれるかい。' }],
+    choices: [
+      { label: '探してみる', next: 'omatsu.search' },
+      { label: 'もう少し町を見てくる', next: 'omatsu.declined' },
+    ],
+  },
+  'omatsu.search': {
+    effects: [{ type: 'setFlag', flag: 'kashi_search' }, { type: 'questState', quest: 'kashi', state: 'active' }],
+    recallNext: 'kame.found',
+    lines: [
+      { by: 'omatsu', text: '茶色の着物の、八つの男の子だよ。小さいから、物の陰に隠れたら見えやしない。' },
+      { by: 'narration', text: '河岸を見渡してみよう。舟のあたり、籠や樽の陰に、小さな姿が隠れているかもしれない。' },
+    ],
+  },
+  'omatsu.searching': {
+    lines: [{ by: 'omatsu', text: '舟のほうかねえ、樽のほうかねえ。あの子は、荷揚げが好きでね。' }],
+  },
+  'kame.found': {
+    effects: KASHI_DONE,
+    lines: [
+      { by: 'kamekichi', text: 'わっ！ ……見つかっちまった。' },
+      { by: 'kamekichi', text: '今朝は、大きな舟が着くんだ。荷揚げするとこ、いっぺん近くで見たかったんだよ。' },
+      { by: 'narration', text: '向こうの舟から、籠がひとつ、またひとつと岸へ渡されていく。' },
+    ],
+    choices: [
+      { label: 'すぐ連れて帰る', next: 'kame.now' },
+      { label: '荷揚げを一緒に見てから帰る', next: 'kame.watch' },
+    ],
+  },
+  'kame.now': {
+    effects: [{ type: 'setFlag', flag: 'kashi_now' }, { type: 'familiarity', characterId: 'kamekichi', eventId: 'kashi' }, ...questById.get('kashi')!.completionEffects],
+    page: { pageId: 'p04-kashi', compositionId: 'kashi-now' },
+    lines: [
+      { by: 'narration', text: '亀吉の手を引いて、おまつのところへ戻った。' },
+      { by: 'omatsu', text: '亀吉！ ……まったく、心配させて。' },
+      { by: 'kamekichi', text: 'ごめんよ、ばあちゃん。' },
+      { by: 'omatsu', text: '顔が見えなくてもね、声を聞けば、すぐにわかるんだよ。……ありがとうね。' },
+      { by: 'omatsu', text: '少しだけど、取っといておくれ。', reward: true },
+      { by: 'narration', text: '二十文を受け取った。絵巻帳に、四頁目が残った。', reward: true },
+    ],
+  },
+  'kame.watch': {
+    effects: [{ type: 'setFlag', flag: 'kashi_watched' }, { type: 'familiarity', characterId: 'kamekichi', eventId: 'kashi' }, ...questById.get('kashi')!.completionEffects],
+    page: { pageId: 'p04-kashi', compositionId: 'kashi-watch' },
+    lines: [
+      { by: 'narration', text: '二人で樽の陰にしゃがんで、荷揚げをしばらく眺めた。亀吉は、籠が渡るたびに小さく声を上げた。' },
+      { by: 'narration', text: '最後の籠が岸に上がると、亀吉は自分から立ち上がった。二人で、おまつのところへ戻った。' },
+      { by: 'omatsu', text: 'おや、二人して。……荷揚げを見てたのかい。' },
+      { by: 'omatsu', text: 'この子の父親もね、昔はああして舟から荷を揚げていたんだよ。' },
+      { by: 'kamekichi', text: 'おいらも、大きくなったら舟に乗るんだ。' },
+      { by: 'omatsu', text: '……ありがとうね。少しだけど、取っといておくれ。', reward: true },
+      { by: 'narration', text: '二十文を受け取った。絵巻帳に、四頁目が残った。', reward: true },
+    ],
+  },
+  'omatsu.done': {
+    lines: [{ by: 'omatsu', text: '亀吉は、すっかり舟の手伝いのつもりさ。邪魔にならないといいけどねえ。' }],
+  },
+  'omatsu.done.watch': {
+    lines: [{ by: 'omatsu', text: 'あの子、帰ってから荷揚げの話ばかりでね。父親の話も、少ししてやったよ。' }],
+  },
+  'kame.done': {
+    lines: [{ by: 'kamekichi', text: 'また来たのかい！ 次の舟が着いたら、一緒に見ようぜ。' }],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -362,6 +455,7 @@ export const RECALL_START: Record<string, string> = {
   kaze: 'kaze.pressed',
   dougu: 'okon.ask',
   tenugui: 'oharu.ask',
+  kashi: 'omatsu.ask',
 };
 
 /** Which node a person opens with: the first rule that holds (spec §8 五状態). */
@@ -413,6 +507,18 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { all: [{ quest: 'kaze', is: 'complete' }, { flag: 'tenugui_declined' }] }, node: 'oharu.ask.again' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'oharu.ask' },
     { node: 'oharu.first' },
+  ],
+  omatsu: [
+    { when: { flag: 'kashi_watched' }, node: 'omatsu.done.watch' },
+    { when: { quest: 'kashi', is: 'complete' }, node: 'omatsu.done' },
+    { when: { flag: 'kashi_search' }, node: 'omatsu.searching' },
+    { when: { all: [{ quest: 'kaze', is: 'complete' }, { flag: 'kashi_declined' }] }, node: 'omatsu.ask.again' },
+    { when: { quest: 'kaze', is: 'complete' }, node: 'omatsu.ask' },
+    { node: 'omatsu.first' },
+  ],
+  kamekichi: [
+    { when: { quest: 'kashi', is: 'complete' }, node: 'kame.done' },
+    { node: 'kame.found' },
   ],
   // the papers themselves: one tap helps (spec §6 10〜30秒)
   papers: [{ node: 'kaze.pressed' }],

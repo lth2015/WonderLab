@@ -56,6 +56,13 @@ export function nearby(s: SaveData): Nearby[] {
     if (!hasFlag(s, 'met_oharu')) out.push({ id: 'oharu', text: '茶店の前で、お春が何かを探している', spotId: 'h-oharu' });
   }
   if (!hasFlag(s, 'met_kinji')) out.push({ id: 'kinji', text: '天秤棒の振売りが、商いから戻ってきた', spotId: 'h-kinji' });
+  // 河岸の朝: across the bridge. The search hint points at the boats, never at 亀吉 himself.
+  const kashi = questState(s, 'kashi');
+  if (questState(s, 'kaze') === 'complete' && kashi !== 'complete') {
+    if (hasFlag(s, 'kashi_found')) out.push({ id: 'kashi-home', text: '亀吉を、おまつのところへ連れて帰る', spotId: 'h-kame-hidden' });
+    else if (hasFlag(s, 'kashi_search')) out.push({ id: 'kashi-search', text: '亀吉を探す。舟の荷揚げを眺めるのが好きらしい', spotId: 'a-kashi-boats' });
+    else out.push({ id: 'kashi', text: '橋の向こうの河岸で、おまつが誰かを呼んでいる', spotId: 'h-omatsu' });
+  }
   // 町の写生: the next place not yet drawn, walking from the bridge
   if (questState(s, 'kaze') === 'complete') {
     const left = SKETCHES.filter((k) => !s.journal.pages.some((p) => p.pageId === sketchPageId(k.id)));

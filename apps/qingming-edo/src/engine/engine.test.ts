@@ -327,7 +327,13 @@ describe('script integrity', () => {
   });
 
   it('children never get anything but a script (spec §8)', () => {
-    for (const c of characterById.values()) expect(c.isChild).toBe(false); // none yet; revisit when one is added
+    const children = [...characterById.values()].filter((c) => c.isChild).map((c) => c.id);
+    expect(children).toEqual(['kamekichi']); // 亀吉 (河岸の朝)
+    for (const id of children) {
+      // no generated talk: no 「少し話す」 on any node the child opens, and no talk lines at all
+      for (const rule of ENTRIES[id]) expect(NODES[rule.node].choices?.some((c) => c.talk) ?? false).toBe(false);
+      expect(FALLBACK[id]).toBeUndefined();
+    }
   });
 });
 
@@ -567,5 +573,79 @@ describe('通りの案内', () => {
       expect(g.x).toBeLessThanOrEqual(SCENE_W);
       expect([...g.note].length).toBeLessThanOrEqual(20);
     }
+  });
+});
+
+describe('河岸の朝 (across the bridge)', () => {
+  const asked = () => open(open(afterKaze(), 'omatsu.ask'), 'omatsu.search');
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('おまつ only asks once 風のいたずら is done; before, she just says hello', () => {
+    expect(entryFor('omatsu', newSave())).toBe('omatsu.first');
+    expect(entryFor('omatsu', afterKaze())).toBe('omatsu.ask');
+    expect(nearby(afterKaze()).some((n) => n.id === 'kashi' && n.spotId === 'h-omatsu')).toBe(true);
+    let s = open(open(afterKaze(), 'omatsu.ask'), 'omatsu.declined');
+    expect(entryFor('omatsu', s)).toBe('omatsu.ask.again');
+    expect(questState(s, 'kashi')).toBe('discovered');
+  });
+
+  it('亀吉 can be found only while he is being looked for, and the hint points at the boats, not at him', () => {
+    expect(spot(afterKaze(), 'h-kame-hidden')).toBe(false);
+    const s = asked();
+    expect(spot(s, 'h-kame-hidden')).toBe(true);
+    expect(spot(s, 'h-kame')).toBe(false);
+    expect(questState(s, 'kashi')).toBe('active');
+    const hint = nearby(s).find((n) => n.id === 'kashi-search');
+    expect(hint?.spotId).toBe('a-kashi-boats');
+    expect(entryFor('kamekichi', s)).toBe('kame.found');
+    expect(entryFor('omatsu', s)).toBe('omatsu.searching');
+  });
+
+  it('bringing him straight back: 20文 once, a page, and he stands by おまつ', () => {
+    let s = open(open(asked(), 'kame.found'), 'kame.now');
+    expect(questState(s, 'kashi')).toBe('complete');
+    expect(s.wallet.balanceMinor).toBe(72 + 20);
+    expect(s.journal.pages.find((p) => p.pageId === 'p04-kashi')?.compositionId).toBe('kashi-now');
+    expect(s.progress.familiarity.omatsu?.level).toBe(1);
+    expect(s.progress.familiarity.kamekichi?.level).toBe(1);
+    expect(spot(s, 'h-kame-hidden')).toBe(false);
+    expect(spot(s, 'h-kame')).toBe(true);
+    s = open(s, 'kame.now'); // again: nothing more
+    expect(s.wallet.balanceMinor).toBe(92);
+    expect(s.journal.pages.filter((p) => p.pageId.startsWith('p04'))).toHaveLength(1);
+    expect(entryFor('omatsu', s)).toBe('omatsu.done');
+    expect(entryFor('kamekichi', s)).toBe('kame.done');
+  });
+
+  it('watching the unloading first: the same 20文, the other page, and おまつ remembers it', () => {
+    const s = open(open(asked(), 'kame.found'), 'kame.watch');
+    expect(s.wallet.balanceMinor).toBe(92);
+    expect(s.journal.pages.find((p) => p.pageId === 'p04-kashi')?.compositionId).toBe('kashi-watch');
+    expect(entryFor('omatsu', s)).toBe('omatsu.done.watch');
+  });
+
+  it('closing the dialogue at the choice keeps him findable; the hint says to take him home', () => {
+    const s = open(asked(), 'kame.found');
+    expect(questState(s, 'kashi')).toBe('active');
+    expect(entryFor('kamekichi', s)).toBe('kame.found');
+    expect(nearby(s).find((n) => n.id === 'kashi-home')?.spotId).toBe('h-kame-hidden');
+  });
+
+  it('回想 leaves the other ending as one more page, paying nothing', () => {
+    let s = open(open(asked(), 'kame.found'), 'kame.now');
+    s = addRecallPage(s, 'p04-kashi', 'kashi-watch');
+    expect(s.journal.pages.find((p) => p.pageId === 'p04-kashi-b')?.compositionId).toBe('kashi-watch');
+    expect(s.wallet.balanceMinor).toBe(92);
+    expect(RECALL_START.kashi).toBe('omatsu.ask');
+    expect(NODES['omatsu.search'].recallNext).toBe('kame.found');
+  });
+
+  it('everything across the bridge is inside the scene, and the book now holds every page', () => {
+    for (const h of HOTSPOTS.filter((h) => h.id.includes('kame') || h.id.includes('omatsu') || h.id.includes('kashi'))) {
+      expect(h.hitArea.x).toBeGreaterThan(14000);
+      expect(h.hitArea.x + h.hitArea.w).toBeLessThanOrEqual(SCENE_W);
+    }
+    expect(PAGES.length).toBe(PAGE_SLOTS);
+    expect(PAGE_TITLES['p04-kashi']).toBe('河岸の朝');
   });
 });

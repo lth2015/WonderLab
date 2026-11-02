@@ -23,12 +23,16 @@ const PLACE: Record<string, string> = {
   'dougu-deliver': '日本橋・朝　米屋の前',
   'dougu-entrust': '日本橋・朝　くれ竹の店先',
   'tenugui-return': '日本橋・朝　茶店「喜の字」の前',
+  'kashi-now': '日本橋・朝　向こう岸の河岸',
+  'kashi-watch': '日本橋・朝　河岸の樽の陰',
 };
 /** 宗吉's word on a page, by its composition (or, for 一頁目, its subject). */
 const COMMENT_BY_COMPOSITION: Record<string, string> = {
   'dougu-deliver': '渡した手と、受け取った手。その間にあるものが描けている。',
   'dougu-entrust': '届けた者は描かれていない。だが、託した人の思いは残っている。',
   'tenugui-return': '探していたのは布ではなかったな。布にしみた、人の朝だ。',
+  'kashi-now': '見えない目で、声だけで孫を見つける。その顔を、よく描いた。',
+  'kashi-watch': '急がずに隣で見ていたな。待つことも、手助けのうちだ。',
 };
 
 function comment(entry: JournalEntry): string | null {
@@ -58,6 +62,7 @@ const RECALL_NOTE: Record<string, string> = {
   kaze: '別のものを描けば、もう一枚の頁が残ります。',
   dougu: 'もう一つの届け方を選べば、別の朝の頁が残ります。',
   tenugui: 'あの朝のことを、もう一度たどります。',
+  kashi: 'もう一つの帰り方を選べば、別の頁が残ります。',
 };
 
 export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void }) {

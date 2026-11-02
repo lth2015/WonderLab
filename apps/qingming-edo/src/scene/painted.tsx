@@ -1,7 +1,9 @@
 // 精絵 — the street painted by Codex (codex/painted-worlds-art,
 // docs/painted-worlds/art/edo-by-codex/), joined and mirrored by Claude so the
 // bridge is on the right and the scroll reads right to left. Scene units: 14
-// sections of 1000 × 700 at x 0–14000; the distant town is in the painting.
+// sections of 1000 × 700 at x 0–14000, and since roadmap #158 item 4 two more
+// (14000–16000) across the bridge, painted by Claude from section 13 rightwards
+// (docs/painted-worlds/art/edo/kashi-v1/); the distant town is in the painting.
 //
 // People are separate transparent images: a pose changes with the story
 // without repainting the street, and passers-by are placed, not painted in.
@@ -18,8 +20,8 @@ const url = (name: string) => {
   return u;
 };
 
-/** 14 sections of 1000 units (style decision #14); a section not yet painted is null. */
-export const SECTIONS = 14;
+/** 16 sections of 1000 units (style decision #14; 14–15 are the far bank, roadmap #158 item 4). */
+export const SECTIONS = 16;
 export const STREET: (string | null)[] = Array.from({ length: SECTIONS }, (_, k) => URLS[`../assets/art/street-${k}.webp`] ?? null);
 /** The left end the camera may reach: the first painted section. */
 export const SCENE_X0 = STREET.findIndex(Boolean) * 1000;
@@ -52,6 +54,10 @@ export const SPOTS = {
   kisuke: { x: 11650, y: 546 }, // at the tea house front
   oharu: { x: 11400, y: 582 }, // in the street before the tea house
   kinji: { x: 7480, y: 572 }, // resting before the rice shop
+  // across the bridge (河岸の朝): the quay is further back, so its people are drawn smaller
+  omatsu: { x: 14700, y: 448 }, // before the first quay sheds
+  kameHide: { x: 15482, y: 468 }, // crouched by the barrels at the far sheds
+  kameHome: { x: 14748, y: 452 }, // beside his grandmother, once found
 };
 
 /**
@@ -88,12 +94,16 @@ export interface Poses {
   kisuke: SpriteId;
   oharu: SpriteId;
   kinji: SpriteId;
+  omatsu: SpriteId;
+  /** null: not in the picture (before he is looked for). */
+  kame: { id: SpriteId; at: 'hide' | 'home' } | null;
 }
 
 export function posesFor(s: SaveData): Poses {
   const pressed = hasFlag(s, 'paper_pressed');
   const kazeDone = questState(s, 'kaze') === 'complete';
   const dougu = questState(s, 'dougu');
+  const kashiDone = questState(s, 'kashi') === 'complete';
   return {
     seita: kazeDone ? 'stand' : pressed ? 'bow' : 'press',
     sokichi: kazeDone ? 'sokichi-nod' : pressed ? 'sokichi-point' : 'sokichi-hold',
@@ -102,6 +112,13 @@ export function posesFor(s: SaveData): Poses {
     kisuke: questState(s, 'tenugui') === 'complete' ? 'kisuke-bow' : hasFlag(s, 'tenugui_asked') && !hasFlag(s, 'tenugui_clue') ? 'kisuke-pour' : 'kisuke-teapot',
     oharu: questState(s, 'tenugui') === 'complete' ? 'oharu-found' : hasFlag(s, 'tenugui_asked') || hasFlag(s, 'dougu_entrusted') ? 'oharu-ask' : 'oharu-search',
     kinji: hasFlag(s, 'dougu_by_hand') ? 'kinji-nod' : 'kinji-rest',
+    // sitting at her stall; looking round for 亀吉 once he is missed; smiling when he is home
+    omatsu: kashiDone ? 'omatsu-smile' : kazeDone ? 'omatsu-look' : 'omatsu-sit',
+    kame: kashiDone
+      ? { id: hasFlag(s, 'kashi_watched') ? 'kame-point' : 'kame-shy', at: 'home' }
+      : hasFlag(s, 'kashi_search')
+        ? { id: 'kame-hide', at: 'hide' }
+        : null,
   };
 }
 
@@ -167,6 +184,8 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
       {poses.seita === 'bow' && <Sprite id="seita-bow" {...SPOTS.seitaKneel} />}
       {poses.seita === 'stand' && <Sprite id="seita-stand" {...SPOTS.seitaStand} />}
       <Sprite id={poses.sokichi} {...SPOTS.sokichi} />
+      <Sprite id={poses.omatsu} {...SPOTS.omatsu} />
+      {poses.kame && <Sprite id={poses.kame.id} {...(poses.kame.at === 'hide' ? SPOTS.kameHide : SPOTS.kameHome)} />}
     </g>
   );
 }
@@ -235,6 +254,24 @@ export function PaintedPageScene({ composition }: { composition: string }) {
             { id: 'kisuke-bow' as SpriteId, ...SPOTS.kisuke },
             { id: 'oharu-found' as SpriteId, ...SPOTS.oharu },
           ],
+        }
+      : composition === 'kashi-now'
+      ? {
+          x0: SPOTS.omatsu.x - 150,
+          y0: 230,
+          w: 300,
+          people: [
+            { id: 'omatsu-smile' as SpriteId, ...SPOTS.omatsu },
+            { id: 'kame-shy' as SpriteId, ...SPOTS.kameHome },
+          ],
+        }
+      : composition === 'kashi-watch'
+      ? {
+          // the two of them by the barrels, the boats below
+          x0: SPOTS.kameHide.x - 210,
+          y0: 260,
+          w: 330,
+          people: [{ id: 'kame-point' as SpriteId, ...SPOTS.kameHide }],
         }
       : composition === 'dougu-deliver'
       ? { x0: SPOTS.kinji.x - 165, y0: 240, w: 330, people: [{ id: 'kinji-nod' as SpriteId, ...SPOTS.kinji }] }

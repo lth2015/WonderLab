@@ -1,5 +1,5 @@
 import type { QuestState, SaveData } from '../contract';
-import { GUIDE_STOPS, PAGES } from '../content/world';
+import { GUIDE_STOPS, PAGE_SLOTS, PAGES } from '../content/world';
 import { SESSION_STUDY_KEY } from './save';
 import { SESSION_MODE } from './session';
 
@@ -12,7 +12,7 @@ import { SESSION_MODE } from './session';
 // 試遊会 (?session=1) alone keeps it in this browser under
 // ww:qingming-edo:study:session until 「次の方へ」 (engine/session.ts).
 
-export type QuestId = 'kaze' | 'dougu' | 'tenugui';
+export type QuestId = 'kaze' | 'dougu' | 'tenugui' | 'kashi';
 type Method = 'system' | 'system_link' | 'link';
 export type ErrorCode = 'save_read_failed' | 'save_write_failed' | 'save_import_failed' | 'postcard_export_failed' | 'audio_failed' | 'unexpected_error';
 type Events = {
@@ -32,7 +32,7 @@ type Events = {
 };
 export type StudyEvent = { event_id: string; session_id: string; schema_version: 1; occurred_at: string; elapsed_ms: number; environment: string; world_id: 'qingming-edo'; build_id: string; type: keyof Events; [key: string]: unknown };
 
-const QUESTS: QuestId[] = ['kaze', 'dougu', 'tenugui'];
+const QUESTS: QuestId[] = ['kaze', 'dougu', 'tenugui', 'kashi'];
 const inList = (xs: readonly unknown[]) => (v: unknown) => xs.includes(v);
 const nonNegative = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
 const page = inList(PAGES.map((p) => p.id));
@@ -41,7 +41,7 @@ const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
   first_interaction_completed: { interaction_id: inList([...QUESTS, 'observation']), elapsed_ms: nonNegative },
   story_started: { story_id: inList(QUESTS) },
   story_completed: { story_id: inList(QUESTS), first_completion: (v) => typeof v === 'boolean' },
-  journal_opened: { page_count: (v) => nonNegative(v) && (v as number) <= 12 },
+  journal_opened: { page_count: (v) => nonNegative(v) && (v as number) <= PAGE_SLOTS },
   journal_export_attempted: { page_id: page, export_type: inList(['png']) },
   journal_export_completed: { page_id: page, export_type: inList(['png']), stage: inList(['download_requested']) },
   share_attempted: { page_id: page, method: inList(['system', 'system_link', 'link']) },
