@@ -127,3 +127,43 @@
 .gift-actions .button-row+.button-row{margin-top:6px}
 .gift-actions .primary-button,.gift-actions .secondary-button{padding:10px 14px}
 .gift-link-options{margin:10px 0;font-size:.9rem}
+
+/* Keep return actions in view while only the content of a long sheet scrolls. */
+.sheet[open]{display:flex;flex-direction:column;overflow:hidden;max-height:90svh}
+.sheet-head{flex:0 0 auto;position:relative;background:var(--paper)}
+.sheet-content{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.dialog-notice{position:relative;top:auto;flex:0 0 auto}
+.sheet-foot{flex:0 0 auto;position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);padding:10px 30px max(10px,env(safe-area-inset-bottom));text-align:center;z-index:2}
+.sheet-foot>.text-button{width:100%}
+.sheet-foot .button-row{margin:0;gap:10px;align-items:center}
+.sheet-foot .text-button{flex-basis:100%}
+.sheet-foot .primary-button,.sheet-foot .secondary-button{padding:10px 14px}
+.sheet-content{padding-top:16px;padding-bottom:16px}
+.settings-fold{margin:0;border-bottom:1px solid var(--line)}
+.settings-fold>summary,.album-waiting>summary,.page-caption>summary{display:list-item;cursor:pointer;min-height:44px;padding:10px 0;font-size:var(--body-size);line-height:1.5}
+.settings-fold>summary{padding:8px 0;line-height:1.35}
+.settings-fold>p{margin:10px 0}
+.settings-fold .button-row{margin:12px 0}
+.settings-fold .settings-bottom{margin:0 0 10px;padding:0;border:0}
+.session-panel.settings-fold{margin-bottom:10px;padding:0 12px}
+.settings-list>label{padding:5px 0}
+.album-waiting{margin-top:16px;border-top:1px solid var(--line)}
+.album-waiting>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.album-waiting button{min-height:48px;padding:10px;text-align:left;border:1px solid var(--line);line-height:1.6}
+.album-waiting small{display:block;color:var(--muted)}
+.sheet:has(.postcard) .postcard-art>.journal-art{max-height:22svh;width:100%}
+.sheet:has(.postcard) .postcard{padding-bottom:16px}
+.page-caption{text-align:left;margin-top:8px}
+.album-card .album-art>.journal-art{max-height:16svh}
+.sheet:has(.album-grid) .panel-bottom{padding-top:12px;margin-top:12px}
+.nearby-list{margin-top:10px}
+.nearby-list>button{min-height:80px;padding:8px 0}
+.nearby-list h3{margin:4px 0}
+.scroll-tour,.text-route{margin-top:6px;padding-top:4px}
+.scroll-tour>summary,.text-route>summary{min-height:44px;padding:10px 0}
+@media(max-width:760px){
+  .sheet-foot{padding-left:22px;padding-right:22px}
+  .sheet-foot .button-row>.primary-button{min-width:0}
+  .album-grid{gap:14px}
+  .album-intro{margin-bottom:16px}
+}
