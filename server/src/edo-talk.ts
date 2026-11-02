@@ -10,7 +10,7 @@ import type { ChatMessage } from './tokenstars.js';
 
 export const TALK_TOPICS = ['today', 'work', 'earlier'] as const;
 export type TalkTopic = (typeof TALK_TOPICS)[number];
-export const TALK_STORIES = ['kaze', 'dougu', 'tenugui'] as const;
+export const TALK_STORIES = ['kaze', 'dougu', 'tenugui', 'kashi', 'fumi'] as const;
 export type TalkStory = (typeof TALK_STORIES)[number];
 
 interface Persona {
@@ -72,6 +72,22 @@ export const PERSONAS: Record<string, Persona> = {
       kaze: '見習いが絵巻帳の最初の一頁を描いた。',
       dougu: '見習いが道具を届ける一頁を描いた。',
       tenugui: '見習いが手拭いの一件を一頁に残した。',
+    },
+  },
+  omatsu: {
+    who: '河岸の魚売り、おまつ。六十すぎ。目が少し弱い。孫の亀吉と暮らす。',
+    voice: '世話焼きで、ぽんぽんと物を言うが、根はやさしい。下町の言葉。',
+    work: '日本橋の向こう岸の河岸で、朝の舟から上がる魚を売っている。',
+    memories: {
+      kashi: '孫の亀吉が舟の荷揚げを見に行って見えなくなったとき、この見習いが見つけてくれた。亀吉の父も昔は舟の荷を揚げていた。',
+    },
+  },
+  ihei: {
+    who: '両替屋の手代、伊兵衛。三十すぎ。郷に母がいる。',
+    voice: 'まじめで遠慮がち。ていねいな商人言葉。',
+    work: 'そろばんの包みを抱えて、両替屋と得意先のあいだを行き来している。',
+    memories: {
+      fumi: '郷の母への文を米屋の前で落とし、この見習いが拾って届けてくれた。商いがうまくいかないことまで書いてしまい、出しそびれていた。',
     },
   },
 };
