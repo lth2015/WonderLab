@@ -478,6 +478,7 @@ export function App() {
           zoomed={zoomed}
           onTap={onTap}
           cue={cue}
+          dragHint={!hasPlayableProgress(save)}
           onActivity={activity}
           onCamera={(x) => sound.place(x)}
         />

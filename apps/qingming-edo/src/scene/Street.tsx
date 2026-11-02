@@ -25,6 +25,8 @@ export interface StreetProps {
   onActivity(): void;
   /** 様子を見る: a soft ink ring under one spot for a moment (spec §7: never a standing marker). */
   cue?: { spotId: string; key: number } | null;
+  /** A new player: show once that the street moves, until the first drag (roadmap #158 1A). */
+  dragHint?: boolean;
   /** The scene x at the middle of the view, whenever it moves (for the sound). */
   onCamera?(x: number): void;
 }
@@ -45,7 +47,26 @@ function topFor(zoom: number, s: number, h: number): number {
 const ZOOM = 2;
 const ZOOM_FOCUS_Y = 470;
 
-export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera, cue }: StreetProps) {
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera, cue, dragHint }: StreetProps) {
+  // the street moves: told once, a moment after arriving, gone at the first drag
+  const [dragged, setDragged] = useState(false);
+  const [hintShown, setHintShown] = useState(false);
+  useEffect(() => {
+    if (!dragHint || dragged) return;
+    const show = setTimeout(() => setHintShown(true), 2200);
+    // said once is enough: it goes by itself after a while
+    const done = setTimeout(() => setDragged(true), 2200 + 8000);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(done);
+    };
+  }, [dragHint, dragged]);
+  // a dialogue, game or panel takes the screen: the street stops where it is
+  useEffect(() => {
+    if (!interactive) cancelAnimationFrame(anim.current);
+  }, [interactive]);
+  // a mouse over something that can be opened: a pointing hand and a faint ring (never on touch)
+  const [hover, setHover] = useState<string | null>(null);
   // a tap that found nothing still gets an answer: a small ink ripple where the finger was
   const [ripple, setRipple] = useState<{ x: number; y: number; k: number } | null>(null);
   useEffect(() => {
@@ -129,6 +150,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     const target = zoomed ? ZOOM : 1;
     if (target === zoomNow.current) return;
     cancelAnimationFrame(zoomAnim.current);
+    cancelAnimationFrame(anim.current); // a glide must not carry over into (or out of) the close-up
     const { w, h } = size.current;
     const s0 = size.current.scale;
     const top0 = top.current;
@@ -181,7 +203,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   );
 
   // ---------------------------------------------------------------- input
-  const drag = useRef<{ id: number; x0: number; y0: number; cam0: number; dragging: boolean } | null>(null);
+  const drag = useRef<{ id: number; x0: number; y0: number; cam0: number; dragging: boolean; trail: { t: number; x: number }[] } | null>(null);
 
   const toScene = (clientX: number, clientY: number) => {
     const r = box.current!.getBoundingClientRect();
@@ -193,22 +215,58 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     onActivity();
     if (!interactive || drag.current) return;
     cancelAnimationFrame(anim.current);
-    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, cam0: cam.current ?? 0, dragging: false };
+    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, cam0: cam.current ?? 0, dragging: false, trail: [{ t: e.timeStamp, x: e.clientX }] };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
-    if (!d || d.id !== e.pointerId) return;
+    if (!d || d.id !== e.pointerId) {
+      if (e.pointerType === 'mouse' && interactive) {
+        const p = toScene(e.clientX, e.clientY);
+        const id = resolveTap(spots, p.x, p.y, size.current.scale)[0]?.id ?? null;
+        setHover((h) => (h === id ? h : id));
+      }
+      return;
+    }
     const dx = e.clientX - d.x0;
-    if (!d.dragging && isDrag(dx, e.clientY - d.y0)) d.dragging = true;
+    if (!d.dragging && isDrag(dx, e.clientY - d.y0)) {
+      d.dragging = true;
+      setDragged(true);
+      setHover(null);
+    }
+    d.trail.push({ t: e.timeStamp, x: e.clientX });
+    if (d.trail.length > 6) d.trail.shift();
     // The finger and the street move together, in the same direction (spec §7).
     if (d.dragging) setCam(d.cam0 - dx / size.current.scale);
+  };
+  /** After a flick the street glides on a little and slows (not with 動きを減らす). */
+  const glide = (d: NonNullable<typeof drag.current>, t: number) => {
+    const recent = d.trail.filter((p) => t - p.t < 90);
+    if (reduceMotion || recent.length < 2) return;
+    const a = recent[0];
+    const b = recent[recent.length - 1];
+    if (b.t - a.t < 8) return;
+    let v = -((b.x - a.x) / (b.t - a.t)) / size.current.scale; // scene units per ms
+    if (Math.abs(v) < 0.15) return;
+    v = Math.max(-2.2, Math.min(2.2, v));
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(32, now - last);
+      last = now;
+      const before = cam.current ?? 0;
+      setCam(before + v * dt);
+      v *= Math.exp(-dt / 160);
+      // stop when slow, or held at either end
+      if (Math.abs(v) > 0.02 && cam.current !== before) anim.current = requestAnimationFrame(step);
+    };
+    anim.current = requestAnimationFrame(step);
   };
   const onPointerUp = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
-    if (d.dragging || !interactive) return;
+    if (d.dragging) return glide(d, e.timeStamp);
+    if (!interactive) return;
     const p = toScene(e.clientX, e.clientY);
     const hits = resolveTap(spots, p.x, p.y, size.current.scale);
     if (!hits.length) setRipple({ x: p.x, y: p.y, k: performance.now() });
@@ -217,9 +275,11 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   const onPointerCancel = () => {
     drag.current = null;
   };
+  const onPointerLeave = () => setHover(null);
   const onWheel = (e: React.WheelEvent) => {
     if (!interactive) return;
     onActivity();
+    setDragged(true);
     setCam((cam.current ?? 0) + (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) / size.current.scale);
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -227,6 +287,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       onActivity();
       e.preventDefault();
+      setDragged(true);
       setCam((cam.current ?? 0) + (e.key === 'ArrowLeft' ? -160 : 160));
     }
   };
@@ -240,6 +301,15 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   );
 
   const cueSpot = cue ? spots.find((h) => h.id === cue.spotId) : undefined;
+  /** Where a ring goes under a spot: under a person's feet (a wide tap area, like 清太's with his papers, is not where he stands). */
+  const ringAt = (h: HotspotDef) => {
+    const bottom = h.hitArea.y + h.hitArea.h - 6;
+    const person = h.kind !== 'ambient';
+    const r = Math.max((person ? Math.min(h.hitArea.w, 60) : h.hitArea.w) / 2 + 8, 28);
+    return { cx: person ? h.anchor.x : h.hitArea.x + h.hitArea.w / 2, cy: person ? Math.min(bottom, h.anchor.y + 45) : bottom, rx: r, ry: r * 0.3 };
+  };
+  const hoverSpot = hover && interactive && !cueSpot ? spots.find((h) => h.id === hover) : undefined;
+  const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const layerStyle = (w: number): React.CSSProperties => ({ width: w, height: SCENE_H, transformOrigin: '0 0' });
 
   return (
@@ -253,6 +323,8 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onPointerLeave={onPointerLeave}
+      data-hover={hover && interactive ? 'yes' : undefined}
       onWheel={onWheel}
       onKeyDown={onKeyDown}
       data-scale={scale.toFixed(3)}
@@ -275,17 +347,9 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
               .filter((h) => h.kind === 'ambient' && reacting.has(h.targetId))
               .map((h) => ({ id: h.id, ...h.hitArea }))}
           />
-          {cueSpot && (
-            <ellipse
-              key={`cue-${cue!.key}`}
-              className="cue-ring"
-              cx={cueSpot.hitArea.x + cueSpot.hitArea.w / 2}
-              cy={cueSpot.hitArea.y + cueSpot.hitArea.h - 6}
-              rx={Math.max(cueSpot.hitArea.w / 2 + 10, 34)}
-              ry={Math.max(cueSpot.hitArea.w / 2 + 10, 34) * 0.3}
-            />
-          )}
+          {cueSpot && <ellipse key={`cue-${cue!.key}`} className="cue-ring" {...ringAt(cueSpot)} />}
           {ripple && <circle key={ripple.k} className="tap-ripple" cx={ripple.x} cy={ripple.y} r={16 / scale} />}
+          {hoverSpot && <ellipse className="hover-ring" {...ringAt(hoverSpot)} />}
         </svg>
       </div>
 
@@ -304,6 +368,13 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
         </svg>
       </div>
       </div>
+      {dragHint && hintShown && !dragged && interactive && !cue && (
+        <p className="drag-hint" aria-hidden="true">
+          <span>←</span>
+          {coarse ? '指で通りを左右に動かせます' : 'ドラッグや ← → キーで通りを動かせます'}
+          <span>→</span>
+        </p>
+      )}
     </div>
   );
 }
