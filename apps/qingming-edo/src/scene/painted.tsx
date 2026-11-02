@@ -532,6 +532,27 @@ const KAZE_VIEWS: Record<string, { x0: number; y0: number; w: number; people: Pe
 };
 
 /**
+ * 八頁目 (橋のたもと): everyone the player helped, on the open ground before the bridge,
+ * two rows (the back row higher up the road). 宗吉 at the end, if the player asked him in.
+ */
+function hashiGroup(withMaster: boolean): Person[] {
+  const back: Person[] = [
+    { id: 'seita-stand', x: 12720, y: 505 },
+    { id: 'okon-bow', x: 12765, y: 507 },
+    { id: 'kinji-nod', x: 12818, y: 505 },
+    { id: 'oharu-found', x: 12872, y: 507 },
+    { id: 'kisuke-teapot', x: 12928, y: 505 },
+  ];
+  const front: Person[] = [
+    { id: 'omatsu-smile', x: 12700, y: 566 },
+    { id: 'kame-shy', x: 12736, y: 568 },
+    { id: 'crowd1-merchant', x: 12800, y: 566 },
+    ...(withMaster ? [{ id: 'sokichi-nod' as SpriteId, x: 12862, y: 562 }] : []),
+  ];
+  return [...back, ...front];
+}
+
+/**
  * A page cut from the painted street: the world rectangle starting at
  * (x0, y0), w units wide, fills the page's picture area (40, 40, 520 × 660
  * in PageArt), with the people of that moment on it.
@@ -553,6 +574,8 @@ export function PaintedPageScene({ composition }: { composition: string }) {
             { id: 'oharu-found' as SpriteId, ...SPOTS.oharu },
           ],
         }
+      : composition === 'hashi-with' || composition === 'hashi-side'
+      ? { x0: 12620, y0: 190, w: 400, people: hashiGroup(composition === 'hashi-with') }
       : composition === 'ai-vat'
       ? { x0: 3130, y0: 205, w: 300, people: [] }
       : composition === 'ai-cloth'

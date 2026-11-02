@@ -618,6 +618,89 @@ Object.assign(NODES, {
   },
 } satisfies Record<string, DialogueNode>);
 
+// 八頁目：橋のたもと (owner: 多开发内容; demo feedback 「剧情太少」). When the four people
+// the player helped have their pages, 宗吉 asks for one picture of them all: invite four
+// of them along the roll, then everyone gathers by the bridge and the player chooses the picture.
+const INVITE = (flag: string, lines: Line[]): DialogueNode => ({ effects: [{ type: 'setFlag', flag }], lines });
+Object.assign(NODES, {
+  'sokichi.hashi.ask': {
+    effects: [{ type: 'questState', quest: 'hashi', state: 'discovered' }],
+    lines: [
+      { by: 'sokichi', text: '絵巻帳も、ずいぶん厚くなったな。頁をめくるたびに、お前が手を貸した人の顔がある。' },
+      { by: 'sokichi', text: '最後に、その人たちを一枚に描いてみろ。お紺、喜助、おまつ、伊兵衛。橋のたもとへ来てもらうよう、声をかけてこい。' },
+    ],
+    choices: [
+      { label: '声をかけに行く', next: 'sokichi.hashi.go' },
+      { label: 'またにする', next: 'sokichi.hashi.later' },
+    ],
+  },
+  'sokichi.hashi.later': {
+    effects: [{ type: 'setFlag', flag: 'hashi_declined' }],
+    lines: [{ by: 'sokichi', text: 'そうか。皆、どこへも行かん。描く気になったら言え。' }],
+  },
+  'sokichi.hashi.go': {
+    effects: [{ type: 'setFlag', flag: 'hashi_ask' }, { type: 'questState', quest: 'hashi', state: 'active' }],
+    recallNext: 'sokichi.hashi.gather',
+    lines: [{ by: 'narration', text: '四人に声をかけて回ろう。道具屋と茶店、米屋のあたりの往来、それに橋の向こうの河岸だ。' }],
+  },
+  'sokichi.hashi.waiting': {
+    lines: [{ by: 'sokichi', text: 'まだ声をかけていない人がいるな。急がんでいい。皆がそろってからだ。' }],
+  },
+  'okon.hashi': INVITE('hashi_okon', [
+    { by: 'okon', text: 'あたしを絵に？ 照れるねえ。……いいよ、店はちょいと清太さんに見ててもらう。' },
+    { by: 'okon', text: '金次も呼んどくよ。あの弁当箱を持たせてね。' },
+  ]),
+  'kisuke.hashi': INVITE('hashi_kisuke', [
+    { by: 'kisuke', text: '皆で一枚か。それなら茶を一つ持っていこう。絵の中でも、湯気くらいは立てたいからな。' },
+    { by: 'kisuke', text: 'お春ちゃんにも声をかけておくよ。あの子は、こういうのが好きだ。' },
+  ]),
+  'omatsu.hashi': INVITE('hashi_omatsu', [
+    { by: 'omatsu', text: 'あたしなんか描いたって、魚のにおいしかしないよ。……でも、亀吉が喜ぶね。' },
+    { by: 'kamekichi', text: 'おいらも行く！ 橋のたもとからなら、舟がよく見えるもんな！' },
+  ]),
+  'ihei.hashi': INVITE('hashi_ihei', [
+    { by: 'ihei', text: 'わたしでよければ。……母への次の文に、その絵のことを書けますね。' },
+    { by: 'ihei', text: '得意先を一つ回ったら、すぐに参ります。' },
+  ]),
+  'sokichi.hashi.gather': {
+    lines: [
+      { by: 'narration', text: '昼すぎ、橋のたもとの空き地に、一人、また一人と人が集まってきた。' },
+      { by: 'okon', text: 'ほら金次、もっと寄りな。弁当箱、見えるように持って。' },
+      { by: 'kinji', text: 'こ、こうかい？ 絵に描かれるなんて、生まれて初めてだよ。' },
+      { by: 'kisuke', text: '茶が冷めないうちに頼むよ。' },
+      { by: 'oharu', text: '手拭い、ちゃんと首に巻いてきました。' },
+      { by: 'kamekichi', text: 'ばあちゃん、まっすぐ立って！' },
+      { by: 'omatsu', text: '見えなくたって、立つくらいはできるよ。' },
+      { by: 'ihei', text: '清太さん、紙が飛ばないように押さえていてくださいね。' },
+      { by: 'seita', text: '今日は風がありませんから。……たぶん。' },
+      { by: 'sokichi', text: 'さて。どう描く。' },
+    ],
+    choices: [
+      { label: '師匠も皆の中に描く', next: 'hashi.with' },
+      { label: '師匠の隣に立って、皆を描く', next: 'hashi.side' },
+    ],
+  },
+  'hashi.with': {
+    effects: [{ type: 'setFlag', flag: 'hashi_with' }, ...questById.get('hashi')!.completionEffects],
+    page: { pageId: 'p08-hashi', compositionId: 'hashi-with' },
+    lines: [
+      { by: 'narration', text: '「師匠も入ってください」と言うと、宗吉は少し困った顔をして、皆の端に立った。' },
+      { by: 'sokichi', text: '……描かれるのは、慣れんな。だが、悪くない。絵巻帳に、八頁目が残ったな。' },
+    ],
+  },
+  'hashi.side': {
+    effects: [{ type: 'setFlag', flag: 'hashi_side' }, ...questById.get('hashi')!.completionEffects],
+    page: { pageId: 'p08-hashi', compositionId: 'hashi-side' },
+    lines: [
+      { by: 'narration', text: '宗吉の隣に立って、皆を見渡した。筆を走らせるあいだ、誰も動かなかった。' },
+      { by: 'sokichi', text: 'いい町だろう。お前が歩いて、手を貸した町だ。……八頁目、確かに見た。' },
+    ],
+  },
+  'sokichi.hashi.after': {
+    lines: [{ by: 'sokichi', text: 'あの一枚は、ときどき見返せ。描いた人たちは、明日もまた同じ通りにいる。' }],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -634,7 +717,7 @@ for (const k of SKETCHES) {
 }
 
 // After a story, the person can be talked with a little more (即興のひとこと).
-for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again', 'omatsu.done', 'omatsu.done.watch', 'ihei.done.send', 'ihei.done.rewrite']) {
+for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again', 'omatsu.done', 'omatsu.done.watch', 'ihei.done.send', 'ihei.done.rewrite', 'sokichi.hashi.after']) {
   NODES[id].choices = [{ label: '少し話す', talk: true }];
 }
 
@@ -697,7 +780,11 @@ export const RECALL_START: Record<string, string> = {
   fumi: 'fumi.found',
   yube: 'kisuke.yube.ask',
   ai: 'sokichi.ai.ask',
+  hashi: 'sokichi.hashi.ask',
 };
+
+/** 橋のたもと can be asked for once the four people it gathers each have their page. */
+const HASHI_READY: Condition = { all: (['dougu', 'tenugui', 'kashi', 'fumi'] as const).map((quest) => ({ quest, is: 'complete' as const })) };
 
 /** Which node a person opens with: the first rule that holds (spec §8 五状態). */
 export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
@@ -714,14 +801,20 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { all: [{ flag: 'ai_seen1' }, { flag: 'ai_seen2' }, { flag: 'ai_seen3' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.found' },
     { when: { all: [{ flag: 'ai_look' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.waiting' },
     { when: { all: [{ time: 'morning' }, { quest: 'kaze', is: 'complete' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.ask' },
+    // 橋のたもと: everyone invited, then waiting, then the ask (before the full book, which needs its page)
+    { when: { all: [{ flag: 'hashi_okon' }, { flag: 'hashi_kisuke' }, { flag: 'hashi_omatsu' }, { flag: 'hashi_ihei' }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.gather' },
+    { when: { all: [{ flag: 'hashi_ask' }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.waiting' },
+    { when: { all: [HASHI_READY, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.ask' },
     { when: { flag: 'book_full' }, node: 'sokichi.full.again' },
     { when: { pagesAtLeast: PAGE_SLOTS }, node: 'sokichi.full' },
+    { when: { quest: 'hashi', is: 'complete' }, node: 'sokichi.hashi.after' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'sokichi.done' },
     { when: { flag: 'kaze_page' }, node: 'kaze.reward' },
     { when: { flag: 'paper_pressed' }, node: 'sokichi.ask' },
     { node: 'sokichi.first' },
   ],
   okon: [
+    { when: { all: [{ flag: 'hashi_ask' }, { not: { flag: 'hashi_okon' } }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'okon.hashi' },
     { when: { all: [{ quest: 'dougu', is: 'complete' }, { flag: 'okon_seen_done' }] }, node: 'okon.again' },
     { when: { quest: 'dougu', is: 'complete' }, node: 'okon.done' },
     { when: { flag: 'dougu_carry' }, node: 'okon.carrying' },
@@ -737,6 +830,7 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
   lamp2: [{ node: 'yube.light2' }],
   lamp3: [{ node: 'yube.light3' }],
   kisuke: [
+    { when: { all: [{ flag: 'hashi_ask' }, { not: { flag: 'hashi_kisuke' } }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'kisuke.hashi' },
     // 夕暮れの灯 (evening only); his other words at other times
     { when: { all: [{ quest: 'yube', is: 'complete' }, { time: 'evening' }] }, node: 'kisuke.yube.after' },
     { when: { all: [{ flag: 'yube_lit1' }, { flag: 'yube_lit2' }, { flag: 'yube_lit3' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.done' },
@@ -765,6 +859,7 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { node: 'oharu.first' },
   ],
   omatsu: [
+    { when: { all: [{ flag: 'hashi_ask' }, { not: { flag: 'hashi_omatsu' } }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'omatsu.hashi' },
     { when: { flag: 'kashi_watched' }, node: 'omatsu.done.watch' },
     { when: { quest: 'kashi', is: 'complete' }, node: 'omatsu.done' },
     { when: { flag: 'kashi_search' }, node: 'omatsu.searching' },
@@ -774,6 +869,7 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
   ],
   fumi: [{ node: 'fumi.found' }],
   ihei: [
+    { when: { all: [{ flag: 'hashi_ask' }, { not: { flag: 'hashi_ihei' } }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'ihei.hashi' },
     { when: { flag: 'fumi_send' }, node: 'ihei.done.send' },
     { when: { flag: 'fumi_rewrite' }, node: 'ihei.done.rewrite' },
     { node: 'ihei.receive' },
