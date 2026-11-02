@@ -291,9 +291,17 @@ describe('朝・昼・夕', () => {
     expect(timeOf({ ...s, settings: { ...s.settings, timeChoice: 'evening' } })).toBe('noon');
     expect(reachedTimes(all3())).toEqual(['morning', 'noon', 'evening']);
   });
-  it('no story waits on the time of day', () => {
-    // every entry rule reads flags and quests only, never the time
-    expect(JSON.stringify(ENTRIES)).not.toMatch(/morning|noon|evening|timeChoice/);
+  it('no story can be missed because of the time of day (spec §11)', () => {
+    // A rule may name a time only for a story whose prerequisites already unlock that time
+    // (夕暮れの灯 needs いつもの道具 and あの人の手拭い, which open 夕), so the player can always
+    // switch to it from the time menu; and 「近くのこと」 says so when another time is shown.
+    const timed = Object.entries(ENTRIES).filter(([, rules]) => JSON.stringify(rules).match(/"time"/));
+    expect(timed.map(([who]) => who)).toEqual(['kisuke']);
+    expect(JSON.stringify(ENTRIES)).not.toMatch(/morning|noon|timeChoice/);
+    expect(reachedTimes(all3())).toContain('evening');
+    const shownMorning = apply(all3(), [{ type: 'setFlag', flag: 'yube_fire' }]);
+    const m = { ...shownMorning, settings: { ...shownMorning.settings, timeChoice: 'morning' as const } };
+    expect(nearby(m).find((n) => n.id === 'yube-light')?.text).toContain('夕方になったら');
   });
   it('an old save without a time choice loads as auto', () => {
     const old = { ...newSave(), settings: { reduceMotion: false, textScale: 1 } };
@@ -691,5 +699,50 @@ describe('母への文 (catch a walking man)', () => {
     expect(nearby(s, 7900).map((n) => n.id)).toContain('fumi');
     expect(nearby(s, 14700).map((n) => n.id)).toContain('kashi');
     expect(nearby(s, 14700).map((n) => n.id)).not.toContain('fumi');
+  });
+});
+
+describe('夕暮れの灯 (evening: light three lamps)', () => {
+  const evening = () => {
+    const s = afterKaze();
+    return apply(s, [...questById.get('dougu')!.completionEffects, ...questById.get('tenugui')!.completionEffects]);
+  };
+  const at = (s: SaveData, t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('喜助 asks in the evening only, and only once 夕 is open', () => {
+    expect(entryFor('kisuke', afterKaze())).not.toBe('kisuke.yube.ask');
+    expect(entryFor('kisuke', evening())).toBe('kisuke.yube.ask'); // auto shows the latest time: 夕
+    expect(entryFor('kisuke', at(evening(), 'morning'))).not.toBe('kisuke.yube.ask');
+    expect(nearby(at(evening(), 'morning')).find((n) => n.id === 'yube')?.text).toContain('「夕」');
+  });
+
+  it('a lamp can be lit only with the flame, in the evening, and once', () => {
+    let s = evening();
+    expect(spot(s, 'h-lamp2')).toBe(false);
+    s = open(open(s, 'kisuke.yube.ask'), 'kisuke.yube.fire');
+    expect(spot(s, 'h-lamp2')).toBe(true);
+    expect(spot(at(s, 'noon'), 'h-lamp2')).toBe(false);
+    expect(nearby(s, 7800).find((n) => n.id === 'yube-light')?.text).toContain('あと3つ');
+    s = open(s, 'yube.light2');
+    expect(spot(s, 'h-lamp2')).toBe(false);
+    expect(nearby(s).find((n) => n.id === 'yube-light')?.text).toContain('あと2つ');
+  });
+
+  it('all three lit, either way of ending pays 14文 once and leaves its page', () => {
+    for (const [end, comp] of [['yube.tell', 'yube-tell'], ['yube.watch', 'yube-watch']] as const) {
+      let s = open(open(evening(), 'kisuke.yube.ask'), 'kisuke.yube.fire');
+      for (const n of [1, 2, 3]) s = open(s, `yube.light${n}`);
+      expect(entryFor('kisuke', s)).toBe('kisuke.yube.done');
+      const before = s.wallet.balanceMinor;
+      s = open(open(s, 'kisuke.yube.done'), end);
+      expect(questState(s, 'yube')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(before + 14);
+      expect(s.journal.pages.find((p) => p.pageId === 'p06-yube')?.compositionId).toBe(comp);
+      s = open(s, end);
+      expect(s.wallet.balanceMinor).toBe(before + 14);
+      expect(entryFor('kisuke', s)).toBe('kisuke.yube.after');
+      expect(entryFor('kisuke', at(s, 'noon'))).toBe('kisuke.done3'); // his day-time words again
+    }
   });
 });

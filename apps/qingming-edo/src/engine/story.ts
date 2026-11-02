@@ -2,6 +2,7 @@ import type { HotspotDef, SaveData } from '../contract';
 import { ENTRIES } from '../content/script';
 import { HOTSPOTS, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from '../content/world';
 import { hasFlag, questState, test } from './state';
+import { timeOf } from './time';
 
 /** The node a person (or prop) opens with now. */
 export function entryFor(targetId: string, s: SaveData): string | null {
@@ -33,7 +34,7 @@ export interface Nearby {
 const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
 /** The stories someone is waiting to ask about (not yet under way). */
-const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi']);
+const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube']);
 
 /**
  * `here`: the scene x at the middle of the view. With five stories there are more
@@ -64,6 +65,16 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
     if (!hasFlag(s, 'met_oharu')) out.push({ id: 'oharu', text: '茶店の前で、お春が何かを探している', spotId: 'h-oharu' });
   }
   if (!hasFlag(s, 'met_kinji')) out.push({ id: 'kinji', text: '天秤棒の振売りが、商いから戻ってきた', spotId: 'h-kinji' });
+  // 夕暮れの灯: in the evening; then the lamps not yet lit, nearest first
+  const yube = questState(s, 'yube');
+  const evening = timeOf(s) === 'evening';
+  if (yube !== 'complete' && questState(s, 'dougu') === 'complete' && questState(s, 'tenugui') === 'complete') {
+    const left = [1, 2, 3].filter((n) => !hasFlag(s, `yube_lit${n}`));
+    if (hasFlag(s, 'yube_fire') && left.length === 0) out.push({ id: 'yube-done', text: '三つの灯がともった。茶店の喜助に知らせる', spotId: 'h-kisuke' });
+    else if (hasFlag(s, 'yube_fire')) out.push({ id: 'yube-light', text: evening ? `提灯に火を入れて回る（あと${left.length}つ）` : '夕方になったら、提灯に火を入れて回る', spotId: evening ? `h-lamp${left[0]}` : 'h-kisuke' });
+    else if (evening) out.push({ id: 'yube', text: '茶店の喜助が、暗くなる通りを気にしている', spotId: 'h-kisuke' });
+    else out.push({ id: 'yube', text: '夕方の茶店で、喜助が何か頼みたそうにしている（上の時刻で「夕」に）', spotId: 'h-kisuke' });
+  }
   // 母への文: the letter, then the man walking with his abacus
   if (questState(s, 'kaze') === 'complete' && questState(s, 'fumi') !== 'complete') {
     if (hasFlag(s, 'fumi_carry')) out.push({ id: 'fumi-carry', text: '文の持ち主に追いつく。そろばんの包みを抱えて歩いている', spotId: 'h-ihei' });

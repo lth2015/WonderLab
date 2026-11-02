@@ -484,6 +484,80 @@ Object.assign(NODES, {
   },
 } satisfies Record<string, DialogueNode>);
 
+// 六頁目：夕暮れの灯. Only in the evening: carry the flame and light three lamps along the street.
+const LIGHT = (n: number, place: string): DialogueNode => ({
+  effects: [{ type: 'setFlag', flag: `yube_lit${n}` }],
+  lines: [
+    { by: 'narration', text: '火種を寄せると、紙の中に小さな火がゆらりと立った。' },
+    { by: 'narration', text: place },
+  ],
+});
+Object.assign(NODES, {
+  'kisuke.yube.ask': {
+    effects: [{ type: 'questState', quest: 'yube', state: 'discovered' }],
+    lines: [
+      { by: 'kisuke', text: 'おや、もう夕方か。……困ったね。灯をともして回る作爺さんが、今朝腰を痛めちまって。' },
+      { by: 'kisuke', text: '橋のたもとの石灯籠、米屋の前、堀の桟橋。あの三つに火がないと、帰りの人が足元に困る。' },
+      { by: 'kisuke', text: 'この火種を持って、点けて回ってくれないかい。' },
+    ],
+    choices: [
+      { label: '点けて回る', next: 'kisuke.yube.fire' },
+      { label: 'また後で', next: 'kisuke.yube.later' },
+    ],
+  },
+  'kisuke.yube.later': {
+    effects: [{ type: 'setFlag', flag: 'yube_declined' }],
+    lines: [{ by: 'kisuke', text: 'そうかい。日が落ちきる前に、気が向いたら頼むよ。' }],
+  },
+  'kisuke.yube.fire': {
+    effects: [{ type: 'setFlag', flag: 'yube_fire' }, { type: 'questState', quest: 'yube', state: 'active' }],
+    recallNext: 'kisuke.yube.done',
+    lines: [
+      { by: 'kisuke', text: '風に気をつけてな。灯ってのは、点けて回る順番なんかどうでもいい。全部に火が入ればいいのさ。' },
+      { by: 'narration', text: '小さな火種を受け取った。通りは、もう夕方の色だ。' },
+    ],
+  },
+  'kisuke.yube.waiting': {
+    lines: [{ by: 'kisuke', text: '石灯籠と、米屋の前と、堀の桟橋だよ。暗くなる前に頼む。' }],
+  },
+  'yube.light1': LIGHT(1, '橋を渡ってくる人の足元が、ほんのり明るくなった。'),
+  'yube.light2': LIGHT(2, '米屋の前を、天秤棒の影がひとつ、灯の下を通り過ぎていく。'),
+  'yube.light3': LIGHT(3, '桟橋の水面に、灯がひとつ揺れて映った。'),
+  'kisuke.yube.done': {
+    lines: [
+      { by: 'kisuke', text: '三つとも点けてくれたかい。……ほら、ここからでも橋の灯が見える。' },
+      { by: 'kisuke', text: '作爺さんはね、毎晩あれを点けて回って、もう三十年になる。' },
+    ],
+    choices: [
+      { label: '作爺さんに知らせに行く', next: 'yube.tell' },
+      { label: 'ここで灯を眺めていく', next: 'yube.watch' },
+    ],
+  },
+  'yube.tell': {
+    effects: [{ type: 'setFlag', flag: 'yube_tell' }, ...questById.get('yube')!.completionEffects],
+    page: { pageId: 'p06-yube', compositionId: 'yube-tell' },
+    lines: [
+      { by: 'narration', text: '茶店の裏の長屋で、作爺さんは布団の上から身を起こした。' },
+      { by: 'narration', text: '「そうかい、三つとも点けてくれたかい」と、作爺さんは何度もうなずいた。' },
+      { by: 'kisuke', text: '作爺さんから、これを渡してくれって。手間賃だそうだ。', reward: true },
+      { by: 'narration', text: '十四文を受け取った。絵巻帳に、六頁目が残った。', reward: true },
+    ],
+  },
+  'yube.watch': {
+    effects: [{ type: 'setFlag', flag: 'yube_watch' }, ...questById.get('yube')!.completionEffects],
+    page: { pageId: 'p06-yube', compositionId: 'yube-watch' },
+    lines: [
+      { by: 'narration', text: '喜助が、湯気の立つ茶を縁台に置いた。通りの灯が、ひとつずつ遠くまで続いている。' },
+      { by: 'kisuke', text: '灯ってのは、点けた人には見えないもんだと、作爺さんがよく言ってた。……今夜は、あんたが見る番だ。' },
+      { by: 'kisuke', text: 'これは作爺さんの分の手間賃だ。取っといてくれ。', reward: true },
+      { by: 'narration', text: '十四文を受け取った。絵巻帳に、六頁目が残った。', reward: true },
+    ],
+  },
+  'kisuke.yube.after': {
+    lines: [{ by: 'kisuke', text: '今夜も灯が入ってるね。作爺さんも、もうじき起きられるそうだ。' }],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -511,6 +585,7 @@ export const RECALL_START: Record<string, string> = {
   tenugui: 'oharu.ask',
   kashi: 'omatsu.ask',
   fumi: 'fumi.found',
+  yube: 'kisuke.yube.ask',
 };
 
 /** Which node a person opens with: the first rule that holds (spec §8 五状態). */
@@ -540,7 +615,15 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { quest: 'kaze', is: 'complete' }, node: 'okon.ask' },
     { node: 'okon.first' },
   ],
+  lamp1: [{ node: 'yube.light1' }],
+  lamp2: [{ node: 'yube.light2' }],
+  lamp3: [{ node: 'yube.light3' }],
   kisuke: [
+    // 夕暮れの灯 (evening only); his other words at other times
+    { when: { all: [{ quest: 'yube', is: 'complete' }, { time: 'evening' }] }, node: 'kisuke.yube.after' },
+    { when: { all: [{ flag: 'yube_lit1' }, { flag: 'yube_lit2' }, { flag: 'yube_lit3' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.done' },
+    { when: { all: [{ flag: 'yube_fire' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.waiting' },
+    { when: { all: [{ time: 'evening' }, { quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.ask' },
     { when: { quest: 'tenugui', is: 'complete' }, node: 'kisuke.done3' },
     { when: { flag: 'tenugui_found' }, node: 'kisuke.waiting3' },
     { when: { flag: 'tenugui_clue' }, node: 'kisuke.compare' },

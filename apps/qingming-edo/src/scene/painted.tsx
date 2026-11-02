@@ -166,6 +166,38 @@ function AmbientLife({ sections }: { sections: [number, number] }) {
   );
 }
 
+/**
+ * 夕暮れの灯: the stone lantern in the painting, and two street lamps (辻行灯) drawn here,
+ * on posts at the road's edge. Unlit by day and until lit; lit, every evening after.
+ */
+export const STREET_LAMPS = [
+  { x: 12745, y: 372, painted: true }, // the stone lantern's fire box
+  { x: 7790, y: 604, painted: false }, // before the rice shop (foot of the post)
+  { x: 5480, y: 524, painted: false }, // at the moat jetty
+];
+function StreetLamp({ x, y, painted, lit, glow }: { x: number; y: number; painted: boolean; lit: boolean; glow: boolean }) {
+  const paper = lit ? '#ffe39a' : '#ddd5bf';
+  return (
+    <g aria-hidden="true">
+      {!painted && (
+        <>
+          <ellipse cx={x} cy={y} rx={9} ry={2} fill="#3c2d1e" opacity={0.18} />
+          <rect x={x - 1.6} y={y - 58} width={3.2} height={58} fill="#5a4630" />
+          <rect x={x - 9} y={y - 82} width={18} height={24} fill={paper} stroke="#4a3a28" strokeWidth={1} />
+          <path d={`M ${x - 9} ${y - 70} h 18 M ${x} ${y - 82} v 24`} stroke="#4a3a28" strokeWidth={0.6} />
+          <path d={`M ${x - 12} ${y - 82} L ${x} ${y - 90} L ${x + 12} ${y - 82} Z`} fill="#3d3328" />
+        </>
+      )}
+      {lit && glow && (
+        <>
+          <ellipse className="lamp-street" cx={x} cy={painted ? y : y - 70} rx={painted ? 34 : 48} ry={painted ? 30 : 40} fill="url(#lamp-glow-street)" />
+          <ellipse cx={x} cy={painted ? y : y - 69} rx={painted ? 4 : 3} ry={painted ? 5 : 4.5} fill="#fff4cf" opacity={0.95} />
+        </>
+      )}
+    </g>
+  );
+}
+
 /** 朝 quieter, 昼 everyone, 夕 going home: who is out (the clerk of 母への文 always is). */
 function outAt(tod: 'morning' | 'noon' | 'evening', id: string, i: number): boolean {
   if (id === 'crowd1-merchant' || tod === 'noon') return true;
@@ -174,7 +206,6 @@ function outAt(tod: 'morning' | 'noon' | 'evening', id: string, i: number): bool
 
 /** 夕: lamps lit in the shop fronts and the stone lantern (scene units, read off the painting). */
 const LAMPS: { x: number; y: number; r: number }[] = [
-  { x: 12745, y: 372, r: 12 }, // the stone lantern by the bridge
   { x: 12470, y: 430, r: 70 }, // 青葉屋
   { x: 12140, y: 430, r: 60 }, // くれ竹
   { x: 11570, y: 415, r: 60 }, // 茶店「喜の字」
@@ -297,6 +328,8 @@ export interface Poses {
   fumi: boolean;
   /** 朝・昼・夕: how many people are out, morning mist, lamps lit in the evening. */
   tod: 'morning' | 'noon' | 'evening';
+  /** 夕暮れの灯: which of the three lamps have been lit (they stay lit every evening after). */
+  lit: [boolean, boolean, boolean];
 }
 
 export function posesFor(s: SaveData): Poses {
@@ -321,6 +354,7 @@ export function posesFor(s: SaveData): Poses {
         : null,
     fumi: kazeDone && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
     tod: timeOf(s),
+    lit: [1, 2, 3].map((n) => hasFlag(s, `yube_lit${n}`)) as [boolean, boolean, boolean],
   };
 }
 
@@ -374,6 +408,13 @@ const near = (x: number, [from, to]: [number, number]) => x >= from * 1000 - 120
 export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
   return (
     <g>
+      <defs>
+        <radialGradient id="lamp-glow-street">
+          <stop offset="0" stopColor="#ffd98a" stopOpacity={0.9} />
+          <stop offset="0.45" stopColor="#ffbf63" stopOpacity={0.45} />
+          <stop offset="1" stopColor="#ffb057" stopOpacity={0} />
+        </radialGradient>
+      </defs>
       {STREET.map((href, k) =>
         !href || k < sections[0] || k > sections[1] ? null : (
           // a hair of overlap hides the seam that sub-pixel rounding would show
@@ -383,6 +424,7 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
 
       <AmbientLife sections={sections} />
       <TimeOfDayLayer tod={poses.tod} sections={sections} />
+      {STREET_LAMPS.map((l, i) => (near(l.x, sections) ? <StreetLamp key={i} {...l} lit={poses.lit[i] && poses.tod === 'evening'} glow={poses.tod === 'evening'} /> : null))}
       {glints.map((g) => (
         <g key={g.id}>
           <ellipse className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 4} ry={g.h / 2 + 4} fill="#fff8e0" />
@@ -511,7 +553,11 @@ export function PaintedPageScene({ composition }: { composition: string }) {
             { id: 'oharu-found' as SpriteId, ...SPOTS.oharu },
           ],
         }
-      : composition === 'fumi-send' || composition === 'fumi-rewrite'
+      : composition === 'yube-tell'
+      ? { x0: 12560, y0: 250, w: 360, people: [{ id: 'sokichi-nod' as SpriteId, ...SPOTS.sokichi }] }
+      : composition === 'yube-watch'
+      ? { x0: SPOTS.kisuke.x - 170, y0: 250, w: 340, people: [{ id: 'kisuke-pour' as SpriteId, ...SPOTS.kisuke }] }
+            : composition === 'fumi-send' || composition === 'fumi-rewrite'
       ? {
           // the clerk with his letter by the rice shop; the rewrite page stands further back
           x0: composition === 'fumi-send' ? 7830 : 7740,
@@ -551,18 +597,30 @@ export function PaintedPageScene({ composition }: { composition: string }) {
   const k = 520 / view.w;
   const first = Math.floor(view.x0 / 1000);
   // the time it was drawn, as a colour matrix inside the SVG (so a saved PNG keeps it)
-  const tint = sk ? PAGE_TINT[sk.tod] : null;
+  // 夕暮れの灯 is always an evening page; sketches keep the time they were drawn
+  const pageTod: 'morning' | 'noon' | 'evening' | null = sk ? sk.tod : composition.startsWith('yube-') ? 'evening' : null;
+  const tint = pageTod ? PAGE_TINT[pageTod] : null;
   return (
-    <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`} filter={tint ? `url(#page-tint-${sk!.tod})` : undefined}>
+    <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`} filter={tint ? `url(#page-tint-${pageTod})` : undefined}>
       {tint && (
-        <filter id={`page-tint-${sk!.tod}`} colorInterpolationFilters="sRGB">
+        <filter id={`page-tint-${pageTod}`} colorInterpolationFilters="sRGB">
           <feColorMatrix type="matrix" values={tint} />
         </filter>
+      )}
+      {composition.startsWith('yube-') && (
+        <defs>
+          <radialGradient id="lamp-glow-street">
+            <stop offset="0" stopColor="#ffd98a" stopOpacity={0.9} />
+            <stop offset="0.45" stopColor="#ffbf63" stopOpacity={0.45} />
+            <stop offset="1" stopColor="#ffb057" stopOpacity={0} />
+          </radialGradient>
+        </defs>
       )}
       <rect x={view.x0 - 10} y={view.y0 - 10} width={view.w + 20} height={700} fill="#e1cfa6" />
       {STREET.map((href, i) =>
         !href || i < first || i > first + 1 ? null : <image key={i} href={href!} x={i * 1000} y={0} width={1000} height={700} preserveAspectRatio="none" />,
       )}
+      {composition.startsWith('yube-') && STREET_LAMPS.map((l, i) => <StreetLamp key={i} {...l} lit glow />)}
       {view.people.map((p) => (
         <Sprite key={p.id} id={p.id} x={p.x} y={p.y} flip={p.flip} />
       ))}

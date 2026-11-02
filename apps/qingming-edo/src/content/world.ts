@@ -48,6 +48,8 @@ const kameHome: Condition = { quest: 'kashi', is: 'complete' };
 // 母への文: the letter lies on the road once 風のいたずら is done; 伊兵衛 can be caught while it is carried
 const letterOnRoad: Condition = { all: [{ quest: 'kaze', is: 'complete' }, { not: { flag: 'fumi_carry' } }, { not: { quest: 'fumi', is: 'complete' } }] };
 const iheiMet: Condition = { any: [{ flag: 'fumi_carry' }, { quest: 'fumi', is: 'complete' }] };
+// 夕暮れの灯: a lamp can be lit while the flame is carried, in the evening, until it is lit
+const lampToLight = (n: number): Condition => ({ all: [{ flag: 'yube_fire' }, { time: 'evening' }, { not: { flag: `yube_lit${n}` } }] });
 
 // Read off the gridded painting (docs/painted-worlds/art/edo/README.md); people
 // stand where scene/painted.tsx SPOTS puts their feet.
@@ -71,6 +73,10 @@ export const HOTSPOTS: HotspotDef[] = [
   // 母への文: the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
   { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
   { id: 'h-ihei', targetId: 'ihei', kind: 'character', anchor: { x: 8040, y: 565 }, hitArea: { x: 8023, y: 520, w: 34, h: 90 }, priority: 6, visibleWhen: iheiMet, walker: 'crowd1-merchant' },
+  // 夕暮れの灯: the stone lantern by the bridge, and two street lamps (scene/painted.tsx STREET_LAMPS)
+  { id: 'h-lamp1', targetId: 'lamp1', kind: 'prop', anchor: { x: 12745, y: 400 }, hitArea: { x: 12722, y: 350, w: 46, h: 110 }, priority: 8, visibleWhen: lampToLight(1) },
+  { id: 'h-lamp2', targetId: 'lamp2', kind: 'prop', anchor: { x: 7790, y: 560 }, hitArea: { x: 7774, y: 520, w: 32, h: 84 }, priority: 8, visibleWhen: lampToLight(2) },
+  { id: 'h-lamp3', targetId: 'lamp3', kind: 'prop', anchor: { x: 5480, y: 480 }, hitArea: { x: 5464, y: 440, w: 32, h: 84 }, priority: 8, visibleWhen: lampToLight(3) },
   // the first help: one tap on the blowing papers (spec §9 一頁目)
   { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 12420, y: 522 }, hitArea: { x: 12378, y: 504, w: 90, h: 40 }, priority: 8, visibleWhen: notPressed },
   // ambient reactions on things in the painting (spec §5: 8 or more)
@@ -303,6 +309,22 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
+  {
+    // 六頁目：夕暮れの灯. In the evening only: walk the street lighting three lamps.
+    id: 'yube',
+    prerequisites: [{ quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }],
+    steps: [
+      { id: 'fire', doneWhen: { flag: 'yube_fire' } },
+      { id: 'light', doneWhen: { all: [{ flag: 'yube_lit1' }, { flag: 'yube_lit2' }, { flag: 'yube_lit3' }] } },
+      { id: 'end', doneWhen: { any: [{ flag: 'yube_tell' }, { flag: 'yube_watch' }] } },
+    ],
+    completionEffects: [
+      { type: 'grant', rewardId: 'yube', amountMinor: 14 },
+      { type: 'familiarity', characterId: 'kisuke', eventId: 'yube' },
+      { type: 'questState', quest: 'yube', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
@@ -331,8 +353,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4) and 母への文 each add a page and its other ending
-export const PAGE_SLOTS = 16;
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文 and 夕暮れの灯 each add a page and its other ending
+export const PAGE_SLOTS = 18;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -345,6 +367,8 @@ export const PAGES: PageDef[] = [
   { id: 'p04-kashi-b', triggerId: 'kashi', compositionId: 'kashi-{now|watch}', captionId: 'kashi', sourceRefs: [] },
   { id: 'p05-fumi', triggerId: 'fumi', compositionId: 'fumi-{send|rewrite}', captionId: 'fumi', sourceRefs: [] },
   { id: 'p05-fumi-b', triggerId: 'fumi', compositionId: 'fumi-{send|rewrite}', captionId: 'fumi', sourceRefs: [] },
+  { id: 'p06-yube', triggerId: 'yube', compositionId: 'yube-{tell|watch}', captionId: 'yube', sourceRefs: [] },
+  { id: 'p06-yube-b', triggerId: 'yube', compositionId: 'yube-{tell|watch}', captionId: 'yube', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -357,6 +381,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p04-kashi-b': '河岸の朝（もう一つの帰り道）',
   'p05-fumi': '母への文',
   'p05-fumi-b': '母への文（もう一つの返事）',
+  'p06-yube': '夕暮れの灯',
+  'p06-yube-b': '夕暮れの灯（もう一つの宵）',
 };
 
 /**
@@ -456,6 +482,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p03-tenugui') return compositionId === 'tenugui-return';
   if (pageId === 'p04-kashi' || pageId === 'p04-kashi-b') return compositionId === 'kashi-now' || compositionId === 'kashi-watch';
   if (pageId === 'p05-fumi' || pageId === 'p05-fumi-b') return compositionId === 'fumi-send' || compositionId === 'fumi-rewrite';
+  if (pageId === 'p06-yube' || pageId === 'p06-yube-b') return compositionId === 'yube-tell' || compositionId === 'yube-watch';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }

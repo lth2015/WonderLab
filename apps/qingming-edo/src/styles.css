@@ -1474,3 +1474,11 @@ button.term[aria-expanded="true"] {
 .rm .mist {
   animation: none !important;
 }
+/* 夕暮れの灯: a lit street lamp has to read as lit at a glance */
+.lamp-street {
+  opacity: 0.95;
+  animation: lamp 3.2s ease-in-out infinite;
+}
+.rm .lamp-street {
+  animation: none !important;
+}
