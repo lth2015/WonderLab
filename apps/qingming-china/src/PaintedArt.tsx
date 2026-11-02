@@ -123,3 +123,6 @@ export function PaintedLandscape({ state, feedback, center, viewHalf }: { state:
     </g>
   </svg>;
 }
+
+// Static journal compositions reuse the same painted props without mounting the live scroll.
+export { Prop as PaintedProp };

@@ -1,0 +1,21 @@
+{
+  "real_story_to_gift": true,
+  "stale_render_ignored": true,
+  "preview_download_and_native_share_identical": true,
+  "native_cancel_quiet": true,
+  "throwing_canShare_safe": true,
+  "manual_link_strips_private_query": true,
+  "game_save_unchanged": true,
+  "all_15_scene_choices_render": true,
+  "widths": [
+    360,
+    390,
+    1280
+  ],
+  "large_text_150_percent": true,
+  "fixed_actions_visible_in_all_steps": true,
+  "keyboard_focus_and_escape": true,
+  "failed_asset_retry_recovers": true,
+  "page_errors": [],
+  "limits": "Headless Chromium; real native share UI and physical devices not verified."
+}
