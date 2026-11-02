@@ -49,6 +49,8 @@ const kameHome: Condition = { quest: 'kashi', is: 'complete' };
 const letterOnRoad: Condition = { all: [{ quest: 'kaze', is: 'complete' }, { not: { flag: 'fumi_carry' } }, { not: { quest: 'fumi', is: 'complete' } }] };
 const iheiMet: Condition = { any: [{ flag: 'fumi_carry' }, { quest: 'fumi', is: 'complete' }] };
 // 夕暮れの灯: a lamp can be lit while the flame is carried, in the evening, until it is lit
+// 朝の藍: an indigo thing can be found while looking, in the morning, until it is found
+const aiToFind = (n: number): Condition => ({ all: [{ flag: 'ai_look' }, { time: 'morning' }, { not: { flag: `ai_seen${n}` } }] });
 const lampToLight = (n: number): Condition => ({ all: [{ flag: 'yube_fire' }, { time: 'evening' }, { not: { flag: `yube_lit${n}` } }] });
 
 // Read off the gridded painting (docs/painted-worlds/art/edo/README.md); people
@@ -73,6 +75,10 @@ export const HOTSPOTS: HotspotDef[] = [
   // 母への文: the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
   { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
   { id: 'h-ihei', targetId: 'ihei', kind: 'character', anchor: { x: 8040, y: 565 }, hitArea: { x: 8023, y: 520, w: 34, h: 90 }, priority: 6, visibleWhen: iheiMet, walker: 'crowd1-merchant' },
+  // 朝の藍: three indigo things along the roll (over the ambient spots, while looking)
+  { id: 'h-ai1', targetId: 'ai1', kind: 'prop', anchor: { x: 12140, y: 387 }, hitArea: { x: 12000, y: 360, w: 280, h: 55 }, priority: 8, visibleWhen: aiToFind(1) },
+  { id: 'h-ai2', targetId: 'ai2', kind: 'prop', anchor: { x: 3285, y: 435 }, hitArea: { x: 3200, y: 390, w: 170, h: 90 }, priority: 8, visibleWhen: aiToFind(2) },
+  { id: 'h-ai3', targetId: 'ai3', kind: 'prop', anchor: { x: 3225, y: 320 }, hitArea: { x: 3050, y: 240, w: 350, h: 150 }, priority: 8, visibleWhen: aiToFind(3) },
   // 夕暮れの灯: the stone lantern by the bridge, and two street lamps (scene/painted.tsx STREET_LAMPS)
   { id: 'h-lamp1', targetId: 'lamp1', kind: 'prop', anchor: { x: 12745, y: 400 }, hitArea: { x: 12722, y: 350, w: 46, h: 110 }, priority: 8, visibleWhen: lampToLight(1) },
   { id: 'h-lamp2', targetId: 'lamp2', kind: 'prop', anchor: { x: 7790, y: 560 }, hitArea: { x: 7774, y: 520, w: 32, h: 84 }, priority: 8, visibleWhen: lampToLight(2) },
@@ -353,6 +359,21 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
+  {
+    // 七頁目：朝の藍. In the morning only: 宗吉's lesson — find three indigo things, then paint one. No money: a lesson.
+    id: 'ai',
+    prerequisites: [{ quest: 'kaze', is: 'complete' }],
+    steps: [
+      { id: 'look', doneWhen: { flag: 'ai_look' } },
+      { id: 'find', doneWhen: { all: [{ flag: 'ai_seen1' }, { flag: 'ai_seen2' }, { flag: 'ai_seen3' }] } },
+      { id: 'paint', doneWhen: { any: [{ flag: 'ai_vat' }, { flag: 'ai_cloth' }] } },
+    ],
+    completionEffects: [
+      { type: 'familiarity', characterId: 'sokichi', eventId: 'ai' },
+      { type: 'questState', quest: 'ai', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
@@ -381,8 +402,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文 and 夕暮れの灯 each add a page and its other ending
-export const PAGE_SLOTS = 18;
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending
+export const PAGE_SLOTS = 20;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -397,6 +418,8 @@ export const PAGES: PageDef[] = [
   { id: 'p05-fumi-b', triggerId: 'fumi', compositionId: 'fumi-{send|rewrite}', captionId: 'fumi', sourceRefs: [] },
   { id: 'p06-yube', triggerId: 'yube', compositionId: 'yube-{tell|watch}', captionId: 'yube', sourceRefs: [] },
   { id: 'p06-yube-b', triggerId: 'yube', compositionId: 'yube-{tell|watch}', captionId: 'yube', sourceRefs: [] },
+  { id: 'p07-ai', triggerId: 'ai', compositionId: 'ai-{vat|cloth}', captionId: 'ai', sourceRefs: [] },
+  { id: 'p07-ai-b', triggerId: 'ai', compositionId: 'ai-{vat|cloth}', captionId: 'ai', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -411,6 +434,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p05-fumi-b': '母への文（もう一つの返事）',
   'p06-yube': '夕暮れの灯',
   'p06-yube-b': '夕暮れの灯（もう一つの宵）',
+  'p07-ai': '朝の藍',
+  'p07-ai-b': '朝の藍（もう一つの藍）',
 };
 
 /**
@@ -511,6 +536,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p04-kashi' || pageId === 'p04-kashi-b') return compositionId === 'kashi-now' || compositionId === 'kashi-watch';
   if (pageId === 'p05-fumi' || pageId === 'p05-fumi-b') return compositionId === 'fumi-send' || compositionId === 'fumi-rewrite';
   if (pageId === 'p06-yube' || pageId === 'p06-yube-b') return compositionId === 'yube-tell' || compositionId === 'yube-watch';
+  if (pageId === 'p07-ai' || pageId === 'p07-ai-b') return compositionId === 'ai-vat' || compositionId === 'ai-cloth';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }

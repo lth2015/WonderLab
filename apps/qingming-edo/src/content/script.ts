@@ -558,6 +558,66 @@ Object.assign(NODES, {
   },
 } satisfies Record<string, DialogueNode>);
 
+// 七頁目：朝の藍. Morning only: 宗吉 sends the player to find three indigo things.
+const SEEN = (n: number, what: string): DialogueNode => ({
+  effects: [{ type: 'setFlag', flag: `ai_seen${n}` }],
+  lines: [{ by: 'narration', text: what }],
+});
+Object.assign(NODES, {
+  'sokichi.ai.ask': {
+    effects: [{ type: 'questState', quest: 'ai', state: 'discovered' }],
+    lines: [
+      { by: 'sokichi', text: '朝の光でしか見えない色がある。藍だ。昼になると、どれも同じ紺に沈んでしまう。' },
+      { by: 'sokichi', text: '町の藍を三つ、見つけてこい。暖簾か、甕か、布か。見つけたら、どれを描くか決めろ。' },
+    ],
+    choices: [
+      { label: '藍を探しに行く', next: 'sokichi.ai.look' },
+      { label: 'またにする', next: 'sokichi.ai.later' },
+    ],
+  },
+  'sokichi.ai.later': {
+    effects: [{ type: 'setFlag', flag: 'ai_declined' }],
+    lines: [{ by: 'sokichi', text: 'そうか。朝はまた来る。急ぐことはない。' }],
+  },
+  'sokichi.ai.look': {
+    effects: [{ type: 'setFlag', flag: 'ai_look' }, { type: 'questState', quest: 'ai', state: 'active' }],
+    recallNext: 'sokichi.ai.found',
+    lines: [{ by: 'narration', text: '朝の通りを見渡す。藍の色は、どこにあるだろう。' }],
+  },
+  'sokichi.ai.waiting': {
+    lines: [{ by: 'sokichi', text: '藍は、近くで見るより、少し離れて見たほうがよくわかる。' }],
+  },
+  'ai.seen1': SEEN(1, 'くれ竹の暖簾は、朝の光の中で、深い藍が少し紫がかって見える。一つ目の藍だ。'),
+  'ai.seen2': SEEN(2, '藍甕のふちに、青い泡が浮いている。甕の底は、ほとんど黒に近い藍だ。'),
+  'ai.seen3': SEEN(3, '干し場の布は、何度も浸けた濃い藍から、空のような薄い藍まで並んでいる。'),
+  'sokichi.ai.found': {
+    lines: [
+      { by: 'sokichi', text: '三つとも見てきたか。同じ藍でも、ずいぶん違っただろう。' },
+      { by: 'sokichi', text: 'では、どれを描く。深いほうか、明るいほうか。' },
+    ],
+    choices: [
+      { label: '藍甕の深い藍を描く', next: 'ai.vat' },
+      { label: '干し場の明るい藍を描く', next: 'ai.cloth' },
+    ],
+  },
+  'ai.vat': {
+    effects: [{ type: 'setFlag', flag: 'ai_vat' }, ...questById.get('ai')!.completionEffects],
+    page: { pageId: 'p07-ai', compositionId: 'ai-vat' },
+    lines: [
+      { by: 'narration', text: '甕のふちと、泡と、底の暗さを、何度も筆を重ねて描いた。' },
+      { by: 'sokichi', text: '深い色は、急いでは出ない。……絵巻帳に、七頁目が残ったな。' },
+    ],
+  },
+  'ai.cloth': {
+    effects: [{ type: 'setFlag', flag: 'ai_cloth' }, ...questById.get('ai')!.completionEffects],
+    page: { pageId: 'p07-ai', compositionId: 'ai-cloth' },
+    lines: [
+      { by: 'narration', text: '風に揺れる布を、濃いものから薄いものへ、順に描いた。' },
+      { by: 'sokichi', text: '明るい藍は、乾いた時間の色だ。……絵巻帳に、七頁目が残ったな。' },
+    ],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -636,6 +696,7 @@ export const RECALL_START: Record<string, string> = {
   kashi: 'omatsu.ask',
   fumi: 'fumi.found',
   yube: 'kisuke.yube.ask',
+  ai: 'sokichi.ai.ask',
 };
 
 /** Which node a person opens with: the first rule that holds (spec §8 五状態). */
@@ -649,6 +710,10 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { node: 'seita.first' },
   ],
   sokichi: [
+    // 朝の藍 first: an old save may have filled the twelve-page book already
+    { when: { all: [{ flag: 'ai_seen1' }, { flag: 'ai_seen2' }, { flag: 'ai_seen3' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.found' },
+    { when: { all: [{ flag: 'ai_look' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.waiting' },
+    { when: { all: [{ time: 'morning' }, { quest: 'kaze', is: 'complete' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.ask' },
     { when: { flag: 'book_full' }, node: 'sokichi.full.again' },
     { when: { pagesAtLeast: PAGE_SLOTS }, node: 'sokichi.full' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'sokichi.done' },
@@ -665,6 +730,9 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { quest: 'kaze', is: 'complete' }, node: 'okon.ask' },
     { node: 'okon.first' },
   ],
+  ai1: [{ node: 'ai.seen1' }],
+  ai2: [{ node: 'ai.seen2' }],
+  ai3: [{ node: 'ai.seen3' }],
   lamp1: [{ node: 'yube.light1' }],
   lamp2: [{ node: 'yube.light2' }],
   lamp3: [{ node: 'yube.light3' }],
