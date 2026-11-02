@@ -65,6 +65,8 @@ spec:
             objectAlias: LEGAL_ENTITY_CONTACT
           - path: CATALOGUE_JSON
             objectAlias: CATALOGUE_JSON
+          - path: TOKENSTARS_API_KEY
+            objectAlias: TOKENSTARS_API_KEY
   secretObjects:
     - secretName: wonderlab-api-runtime
       type: Opaque
@@ -119,6 +121,7 @@ data:
   RUN_WORKER: "false"
   PUBLIC_WEB_URL: "https://want.world"
   PUBLIC_API_URL: "https://want.world"
+  TOKENSTARS_MODEL_ID: "gemini-2.5-flash"
   DATABASE_SSL: "true"
   # Non-sensitive values are supplied through reviewed configuration. Secret
   # values and database identities are injected externally after IAM review.
@@ -175,7 +178,7 @@ spec:
                 GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REDIRECT_URI GOOGLE_SESSION_SECRET \
                 STRIPE_API_VERSION STRIPE_PRICE_ID_INK_10 STRIPE_PRICE_ID_INK_MONTH \
                 STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET \
-                LEGAL_ENTITY_NAME LEGAL_ENTITY_CONTACT CATALOGUE_JSON; do
+                LEGAL_ENTITY_NAME LEGAL_ENTITY_CONTACT CATALOGUE_JSON TOKENSTARS_API_KEY; do
                 export "$key=$(cat "$API_RUNTIME_SECRET_DIR/$key")"
               done
               exec ./node_modules/.bin/tsx --tsconfig server/tsconfig.json server/src/index.ts
