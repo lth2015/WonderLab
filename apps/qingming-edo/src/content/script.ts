@@ -430,6 +430,60 @@ Object.assign(NODES, {
   },
 } satisfies Record<string, DialogueNode>);
 
+// 五頁目：母への文. A new way to take part: catch a man walking down the street.
+Object.assign(NODES, {
+  'fumi.found': {
+    lines: [
+      { by: 'narration', text: '米屋の前の道に、折りたたんだ文が落ちている。表には「母上様」とだけ書いてある。' },
+      { by: 'narration', text: 'さっきそろばんを抱えて通り過ぎた商人のものだろうか。' },
+    ],
+    choices: [
+      { label: '拾って追いかける', next: 'fumi.carry' },
+      { label: 'そのままにしておく' },
+    ],
+  },
+  'fumi.carry': {
+    effects: [{ type: 'setFlag', flag: 'fumi_carry' }, { type: 'questState', quest: 'fumi', state: 'active' }],
+    recallNext: 'ihei.receive',
+    lines: [{ by: 'narration', text: '文を拾った。そろばんの包みを抱えた男が、通りをゆっくり歩いていく。追いついて、声をかけよう。' }],
+  },
+  'ihei.receive': {
+    lines: [
+      { by: 'ihei', text: 'おや、それは……わたしの文だ。落としたのに気づかなかった。' },
+      { by: 'ihei', text: '郷の母に書いたものでね。もう三月も出しそびれている。' },
+      { by: 'ihei', text: '書いてはみたが、商いがうまくいかないことまで書いてしまった。心配させるだけかと思うと、どうもね。' },
+    ],
+    choices: [
+      { label: 'そのまま出したほうがいい', next: 'ihei.send' },
+      { label: '書き直してから出せばいい', next: 'ihei.rewrite' },
+    ],
+  },
+  'ihei.send': {
+    effects: [{ type: 'setFlag', flag: 'fumi_send' }, ...questById.get('fumi')!.completionEffects],
+    page: { pageId: 'p05-fumi', compositionId: 'fumi-send' },
+    lines: [
+      { by: 'ihei', text: '……そうだな。隠したところで、母にはわかる。そういう人だ。' },
+      { by: 'ihei', text: '今日のうちに飛脚に頼もう。拾ってくれて、ありがとう。これは礼だ。', reward: true },
+      { by: 'narration', text: '十六文を受け取った。絵巻帳に、五頁目が残った。', reward: true },
+    ],
+  },
+  'ihei.rewrite': {
+    effects: [{ type: 'setFlag', flag: 'fumi_rewrite' }, ...questById.get('fumi')!.completionEffects],
+    page: { pageId: 'p05-fumi', compositionId: 'fumi-rewrite' },
+    lines: [
+      { by: 'ihei', text: 'なるほど。春の町のことでも書き足そうか。橋のたもとの柳が、もう青いとか。' },
+      { by: 'ihei', text: 'あんたに拾ってもらった話も、書いておこう。少ないが、礼だよ。', reward: true },
+      { by: 'narration', text: '十六文を受け取った。絵巻帳に、五頁目が残った。', reward: true },
+    ],
+  },
+  'ihei.done.send': {
+    lines: [{ by: 'ihei', text: '飛脚に頼んできたよ。返事が来たら、またこの道を通るさ。' }],
+  },
+  'ihei.done.rewrite': {
+    lines: [{ by: 'ihei', text: '書き直しているところだ。柳のことを書いたら、少し長くなってしまってね。' }],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -456,6 +510,7 @@ export const RECALL_START: Record<string, string> = {
   dougu: 'okon.ask',
   tenugui: 'oharu.ask',
   kashi: 'omatsu.ask',
+  fumi: 'fumi.found',
 };
 
 /** Which node a person opens with: the first rule that holds (spec §8 五状態). */
@@ -515,6 +570,12 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { all: [{ quest: 'kaze', is: 'complete' }, { flag: 'kashi_declined' }] }, node: 'omatsu.ask.again' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'omatsu.ask' },
     { node: 'omatsu.first' },
+  ],
+  fumi: [{ node: 'fumi.found' }],
+  ihei: [
+    { when: { flag: 'fumi_send' }, node: 'ihei.done.send' },
+    { when: { flag: 'fumi_rewrite' }, node: 'ihei.done.rewrite' },
+    { node: 'ihei.receive' },
   ],
   kamekichi: [
     { when: { quest: 'kashi', is: 'complete' }, node: 'kame.done' },

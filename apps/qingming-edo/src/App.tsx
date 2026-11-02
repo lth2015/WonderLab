@@ -348,7 +348,14 @@ export function App() {
   };
 
   // ---------------------------------------------------------------- idle hint
-  const nb = useMemo(() => nearby(save), [save]);
+  // 「近くのこと」 near where the player is: read the camera when the list is (re)made
+  const camMid = () => {
+    const el = document.querySelector<HTMLElement>('.street');
+    const cam = Number(el?.dataset.cam);
+    const scale = Number(el?.dataset.scale) || 1;
+    return Number.isFinite(cam) && el ? cam + el.getBoundingClientRect().width / scale / 2 : undefined;
+  };
+  const nb = useMemo(() => nearby(save, camMid()), [save, panel]); // eslint-disable-line react-hooks/exhaustive-deps
   const activity = useCallback(() => {
     lastActivity.current = performance.now();
     setHint(null);

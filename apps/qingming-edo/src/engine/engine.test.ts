@@ -487,7 +487,7 @@ describe('町の写生', () => {
     expect(nearby(newSave()).some((n) => n.id === 'sketches')).toBe(false);
     let s = done();
     // make room: the other stories are finished too
-    s = apply(s, [...questById.get('dougu')!.completionEffects, ...questById.get('tenugui')!.completionEffects]);
+    s = apply(s, [{ type: 'setFlag', flag: 'paper_pressed' }, ...['dougu', 'tenugui', 'fumi', 'kashi'].flatMap((q) => questById.get(q)!.completionEffects)]);
     expect(nearby(s).find((n) => n.id === 'sketches')?.spotId).toBe('a-boat');
     s = addPage(s, { pageId: sketchPageId('boat'), compositionId: 'sketch-boat-noon', titleStyle: 'plain', madeAt: new Date().toISOString() });
     expect(nearby(s).find((n) => n.id === 'sketches')?.text).toContain('あと6か所');
@@ -583,7 +583,7 @@ describe('河岸の朝 (across the bridge)', () => {
   it('おまつ only asks once 風のいたずら is done; before, she just says hello', () => {
     expect(entryFor('omatsu', newSave())).toBe('omatsu.first');
     expect(entryFor('omatsu', afterKaze())).toBe('omatsu.ask');
-    expect(nearby(afterKaze()).some((n) => n.id === 'kashi' && n.spotId === 'h-omatsu')).toBe(true);
+    expect(nearby(afterKaze(), 14700).some((n) => n.id === 'kashi' && n.spotId === 'h-omatsu')).toBe(true); // standing on the far bank
     let s = open(open(afterKaze(), 'omatsu.ask'), 'omatsu.declined');
     expect(entryFor('omatsu', s)).toBe('omatsu.ask.again');
     expect(questState(s, 'kashi')).toBe('discovered');
@@ -595,7 +595,7 @@ describe('河岸の朝 (across the bridge)', () => {
     expect(spot(s, 'h-kame-hidden')).toBe(true);
     expect(spot(s, 'h-kame')).toBe(false);
     expect(questState(s, 'kashi')).toBe('active');
-    const hint = nearby(s).find((n) => n.id === 'kashi-search');
+    const hint = nearby(s, 14700).find((n) => n.id === 'kashi-search');
     expect(hint?.spotId).toBe('a-kashi-boats');
     expect(entryFor('kamekichi', s)).toBe('kame.found');
     expect(entryFor('omatsu', s)).toBe('omatsu.searching');
@@ -628,7 +628,7 @@ describe('河岸の朝 (across the bridge)', () => {
     const s = open(asked(), 'kame.found');
     expect(questState(s, 'kashi')).toBe('active');
     expect(entryFor('kamekichi', s)).toBe('kame.found');
-    expect(nearby(s).find((n) => n.id === 'kashi-home')?.spotId).toBe('h-kame-hidden');
+    expect(nearby(s, 14700).find((n) => n.id === 'kashi-home')?.spotId).toBe('h-kame-hidden');
   });
 
   it('回想 leaves the other ending as one more page, paying nothing', () => {
@@ -647,5 +647,49 @@ describe('河岸の朝 (across the bridge)', () => {
     }
     expect(PAGES.length).toBe(PAGE_SLOTS);
     expect(PAGE_TITLES['p04-kashi']).toBe('河岸の朝');
+  });
+});
+
+describe('母への文 (catch a walking man)', () => {
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+  const carrying = () => open(open(afterKaze(), 'fumi.found'), 'fumi.carry');
+
+  it('the letter lies on the road only after 風のいたずら, and 伊兵衛 can be stopped only while it is carried', () => {
+    expect(spot(newSave(), 'h-fumi')).toBe(false);
+    expect(spot(afterKaze(), 'h-fumi')).toBe(true);
+    expect(spot(afterKaze(), 'h-ihei')).toBe(false);
+    const s = carrying();
+    expect(spot(s, 'h-fumi')).toBe(false);
+    expect(spot(s, 'h-ihei')).toBe(true);
+    expect(questState(s, 'fumi')).toBe('active');
+    expect(HOTSPOTS.find((h) => h.id === 'h-ihei')?.walker).toBe('crowd1-merchant');
+    expect(nearby(s, 7900)[0]).toMatchObject({ id: 'fumi-carry', spotId: 'h-ihei' });
+  });
+
+  it('either word pays 16文 once and leaves its own page', () => {
+    for (const [end, comp] of [['ihei.send', 'fumi-send'], ['ihei.rewrite', 'fumi-rewrite']] as const) {
+      let s = open(open(carrying(), 'ihei.receive'), end);
+      expect(questState(s, 'fumi')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(72 + 16);
+      expect(s.journal.pages.find((p) => p.pageId === 'p05-fumi')?.compositionId).toBe(comp);
+      s = open(s, end);
+      expect(s.wallet.balanceMinor).toBe(88);
+      expect(spot(s, 'h-ihei')).toBe(true); // he still walks by, and remembers
+      expect(entryFor('ihei', s)).toBe(end === 'ihei.send' ? 'ihei.done.send' : 'ihei.done.rewrite');
+    }
+  });
+
+  it('回想 adds the other word as one more page, paying nothing', () => {
+    let s = open(open(carrying(), 'ihei.receive'), 'ihei.send');
+    s = addRecallPage(s, 'p05-fumi', 'fumi-rewrite');
+    expect(s.journal.pages.find((p) => p.pageId === 'p05-fumi-b')?.compositionId).toBe('fumi-rewrite');
+    expect(s.wallet.balanceMinor).toBe(88);
+  });
+
+  it('「近くのこと」 offers the stories nearest to the player first', () => {
+    const s = afterKaze();
+    expect(nearby(s, 7900).map((n) => n.id)).toContain('fumi');
+    expect(nearby(s, 14700).map((n) => n.id)).toContain('kashi');
+    expect(nearby(s, 14700).map((n) => n.id)).not.toContain('fumi');
   });
 });
