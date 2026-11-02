@@ -636,7 +636,7 @@ export function App() {
           ) : (
             <p>持ち物はまだありません。</p>
           )}
-          <button type="button" className="primary" onClick={() => setPanel(null)}>
+          <button type="button" className="primary panel-foot" onClick={() => setPanel(null)}>
             町に戻る
           </button>
         </div>
@@ -672,7 +672,8 @@ export function App() {
               })()}
             </nav>
           </details>
-          <h3>この通りの人と物</h3>
+          <details className="fold">
+            <summary>この通りの人と物（文字で選ぶ）</summary>
           <ul className="list compact">
             {spots
               .filter((s) => s.kind !== 'ambient')
@@ -694,7 +695,8 @@ export function App() {
                 </li>
               ))}
           </ul>
-          <button type="button" className="primary" onClick={() => setPanel(null)}>
+          </details>
+          <button type="button" className="primary panel-foot" onClick={() => setPanel(null)}>
             町に戻る
           </button>
         </div>

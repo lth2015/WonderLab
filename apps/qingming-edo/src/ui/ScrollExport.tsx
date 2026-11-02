@@ -117,7 +117,7 @@ export function ScrollExport({ save: data, onBack, onToast }: { save: SaveData; 
         </div>
       )}
 
-      <button type="button" className="ghost" onClick={onBack}>
+      <button type="button" className="ghost panel-foot" onClick={onBack}>
         絵巻帳に戻る
       </button>
     </div>
