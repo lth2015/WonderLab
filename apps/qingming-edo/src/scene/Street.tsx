@@ -226,7 +226,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     if (!d || d.id !== e.pointerId) {
       if (e.pointerType === 'mouse' && interactive) {
         const p = toScene(e.clientX, e.clientY);
-        const id = resolveTap(spots, p.x, p.y, size.current.scale)[0]?.id ?? null;
+        const id = resolveTap(spots.map(live), p.x, p.y, size.current.scale)[0]?.id ?? null;
         setHover((h) => (h === id ? h : id));
       }
       return;
@@ -292,7 +292,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     if (d.dragging) return glide(d, e.timeStamp);
     if (!interactive) return;
     const p = toScene(e.clientX, e.clientY);
-    const hits = resolveTap(spots, p.x, p.y, size.current.scale);
+    const hits = resolveTap(spots.map(live), p.x, p.y, size.current.scale);
     if (!hits.length) setRipple({ x: p.x, y: p.y, k: performance.now() });
     onTap(hits);
   };
@@ -301,6 +301,16 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     springBack();
   };
   const onPointerLeave = () => setHover(null);
+  /** A hotspot on a walking passer-by: its area follows the walker as drawn now. */
+  const live = (h: HotspotDef): HotspotDef => {
+    if (!h.walker) return h;
+    const img = box.current?.querySelector(`[data-walker="${h.walker}"] image`);
+    if (!img) return h;
+    const r = img.getBoundingClientRect();
+    const a = toScene(r.left, r.top);
+    const b = toScene(r.right, r.bottom);
+    return { ...h, anchor: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, hitArea: { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y } };
+  };
   const onWheel = (e: React.WheelEvent) => {
     if (!interactive) return;
     onActivity();
@@ -333,7 +343,8 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     const r = Math.max((person ? Math.min(h.hitArea.w, 60) : h.hitArea.w) / 2 + 8, 28);
     return { cx: person ? h.anchor.x : h.hitArea.x + h.hitArea.w / 2, cy: person ? Math.min(bottom, h.anchor.y + 45) : bottom, rx: r, ry: r * 0.3 };
   };
-  const hoverSpot = hover && interactive && !cueSpot ? spots.find((h) => h.id === hover) : undefined;
+  const hoverFound = hover && interactive && !cueSpot ? spots.find((h) => h.id === hover) : undefined;
+  const hoverSpot = hoverFound && live(hoverFound);
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const layerStyle = (w: number): React.CSSProperties => ({ width: w, height: SCENE_H, transformOrigin: '0 0' });
 
@@ -350,6 +361,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
       onPointerCancel={onPointerCancel}
       onPointerLeave={onPointerLeave}
       data-hover={hover && interactive ? 'yes' : undefined}
+      data-still={interactive ? undefined : 'yes'}
       onWheel={onWheel}
       onKeyDown={onKeyDown}
       data-scale={scale.toFixed(3)}

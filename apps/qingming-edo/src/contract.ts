@@ -63,6 +63,8 @@ export interface HotspotDef {
   /** Higher wins when areas overlap; ties offer at most three candidates. */
   priority: number;
   visibleWhen?: Condition;
+  /** Rides on a walking passer-by (scene/painted.tsx CROWD id): hit where they are at the tap. */
+  walker?: string;
 }
 
 export interface SceneDef {

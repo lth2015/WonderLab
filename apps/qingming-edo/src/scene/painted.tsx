@@ -185,6 +185,8 @@ export interface Poses {
   omatsu: SpriteId;
   /** null: not in the picture (before he is looked for). */
   kame: { id: SpriteId; at: 'hide' | 'home' } | null;
+  /** 母への文: the folded letter on the road, until it is picked up. */
+  fumi: boolean;
 }
 
 export function posesFor(s: SaveData): Poses {
@@ -207,7 +209,22 @@ export function posesFor(s: SaveData): Poses {
       : hasFlag(s, 'kashi_search')
         ? { id: 'kame-hide', at: 'hide' }
         : null,
+    fumi: kazeDone && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
   };
+}
+
+/** 母への文: a folded letter on the road before the rice shop (drawn, attributes only). */
+export const LETTER = { x: 7700, y: 612 };
+function DroppedLetter() {
+  const { x, y } = LETTER;
+  return (
+    <g aria-hidden="true">
+      <ellipse cx={x} cy={y + 2} rx={13} ry={2.4} fill="#3c2d1e" opacity={0.16} />
+      <path d={`M ${x - 12} ${y} L ${x + 10} ${y - 3} L ${x + 12} ${y + 2} L ${x - 10} ${y + 5} Z`} fill="#f4ecd8" stroke="#6b5a40" strokeWidth={0.6} strokeLinejoin="round" />
+      <path d={`M ${x - 1} ${y - 1.5} L ${x + 1} ${y + 3.5}`} stroke="#6b5a40" strokeWidth={0.5} />
+      <path d={`M ${x - 7} ${y + 1} l 4 -0.6 M ${x - 7} ${y + 2.6} l 3 -0.4`} stroke="#33291f" strokeWidth={0.45} opacity={0.7} />
+    </g>
+  );
 }
 
 /** Loose sheets lifting in the wind beside 清太, until the weight is on them. */
@@ -267,7 +284,7 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
         const w = walkOf(c, CROWD.indexOf(c));
         // placement stays in attributes; only the inner groups are animated (lesson of #157)
         return (
-          <g key={`${c.id}-${c.x}`} className="walker" style={{ '--dx': `${w.dx}px`, '--dur': `${w.dur}s`, animationDelay: `${w.delay}s` } as React.CSSProperties}>
+          <g key={`${c.id}-${c.x}`} className="walker" data-walker={c.id} style={{ '--dx': `${w.dx}px`, '--dur': `${w.dur}s`, animationDelay: `${w.delay}s` } as React.CSSProperties}>
             <g className="walker-face" style={{ animationDelay: `${w.delay}s` } as React.CSSProperties}>
               <g className="walker-bob">
                 <Sprite {...c} />
@@ -290,6 +307,7 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
       </Idle>
       {poses.seita === 'press' && <Sprite id="seita-press" {...SPOTS.seitaKneel} className="fret" />}
       {poses.seita === 'press' && <LooseSheets />}
+      {poses.fumi && <DroppedLetter />}
       {poses.seita === 'bow' && (
         <Idle n={7}>
           <Sprite id="seita-bow" {...SPOTS.seitaKneel} />
@@ -380,7 +398,15 @@ export function PaintedPageScene({ composition }: { composition: string }) {
             { id: 'oharu-found' as SpriteId, ...SPOTS.oharu },
           ],
         }
-      : composition === 'kashi-now'
+      : composition === 'fumi-send' || composition === 'fumi-rewrite'
+      ? {
+          // the clerk with his letter by the rice shop; the rewrite page stands further back
+          x0: composition === 'fumi-send' ? 7830 : 7740,
+          y0: composition === 'fumi-send' ? 330 : 210,
+          w: composition === 'fumi-send' ? 260 : 380,
+          people: [{ id: 'crowd1-merchant' as SpriteId, x: 7960, y: 610, flip: composition === 'fumi-rewrite' }],
+        }
+            : composition === 'kashi-now'
       ? {
           x0: SPOTS.omatsu.x - 150,
           y0: 230,

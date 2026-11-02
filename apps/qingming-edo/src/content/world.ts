@@ -24,6 +24,7 @@ export const CHARACTERS: CharacterDef[] = [
   { ...fictionChar(), id: 'oharu', sceneId: 'nihonbashi-kita', displayName: 'お春', scriptId: 'oharu' },
   { ...fictionChar(), id: 'omatsu', sceneId: 'nihonbashi-kita', displayName: 'おまつ', scriptId: 'omatsu' },
   { ...fictionChar(), isChild: true, id: 'kamekichi', sceneId: 'nihonbashi-kita', displayName: '亀吉', scriptId: 'kamekichi' },
+  { ...fictionChar(), id: 'ihei', sceneId: 'nihonbashi-kita', displayName: '伊兵衛', scriptId: 'ihei' },
 ];
 export const characterById = new Map(CHARACTERS.map((c) => [c.id, c]));
 
@@ -37,12 +38,16 @@ export const ROLES: Record<string, string> = {
   oharu: '町の使い',
   omatsu: '河岸の魚売り',
   kamekichi: 'おまつの孫',
+  ihei: '両替屋の手代',
 };
 
 const notPressed = { not: { flag: 'paper_pressed' } };
 // 亀吉 hides by the boats while he is being looked for, then stands by おまつ
 const kameHidden: Condition = { all: [{ flag: 'kashi_search' }, { not: { quest: 'kashi', is: 'complete' } }] };
 const kameHome: Condition = { quest: 'kashi', is: 'complete' };
+// 母への文: the letter lies on the road once 風のいたずら is done; 伊兵衛 can be caught while it is carried
+const letterOnRoad: Condition = { all: [{ quest: 'kaze', is: 'complete' }, { not: { flag: 'fumi_carry' } }, { not: { quest: 'fumi', is: 'complete' } }] };
+const iheiMet: Condition = { any: [{ flag: 'fumi_carry' }, { quest: 'fumi', is: 'complete' }] };
 
 // Read off the gridded painting (docs/painted-worlds/art/edo/README.md); people
 // stand where scene/painted.tsx SPOTS puts their feet.
@@ -63,6 +68,9 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'a-kashi-baskets', targetId: 'kashi-baskets', kind: 'ambient', anchor: { x: 14860, y: 395 }, hitArea: { x: 14780, y: 350, w: 170, h: 70 }, priority: 2 },
   { id: 'a-kashi-boats', targetId: 'kashi-boats', kind: 'ambient', anchor: { x: 15150, y: 540 }, hitArea: { x: 14950, y: 500, w: 420, h: 90 }, priority: 2 },
   { id: 'a-kashi-reeds', targetId: 'kashi-reeds', kind: 'ambient', anchor: { x: 15830, y: 440 }, hitArea: { x: 15740, y: 380, w: 180, h: 110 }, priority: 1 },
+  // 母への文: the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
+  { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
+  { id: 'h-ihei', targetId: 'ihei', kind: 'character', anchor: { x: 8040, y: 565 }, hitArea: { x: 8023, y: 520, w: 34, h: 90 }, priority: 6, visibleWhen: iheiMet, walker: 'crowd1-merchant' },
   // the first help: one tap on the blowing papers (spec §9 一頁目)
   { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 12420, y: 522 }, hitArea: { x: 12378, y: 504, w: 90, h: 40 }, priority: 8, visibleWhen: notPressed },
   // ambient reactions on things in the painting (spec §5: 8 or more)
@@ -280,6 +288,21 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
+  {
+    // 五頁目：母への文. Catch a walking man to return his letter; either word completes it.
+    id: 'fumi',
+    prerequisites: [{ quest: 'kaze', is: 'complete' }],
+    steps: [
+      { id: 'pick', doneWhen: { flag: 'fumi_carry' } },
+      { id: 'return', doneWhen: { any: [{ flag: 'fumi_send' }, { flag: 'fumi_rewrite' }] } },
+    ],
+    completionEffects: [
+      { type: 'grant', rewardId: 'fumi', amountMinor: 16 },
+      { type: 'familiarity', characterId: 'ihei', eventId: 'fumi' },
+      { type: 'questState', quest: 'fumi', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
@@ -308,8 +331,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4) adds its page and its other ending
-export const PAGE_SLOTS = 14;
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4) and 母への文 each add a page and its other ending
+export const PAGE_SLOTS = 16;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -320,6 +343,8 @@ export const PAGES: PageDef[] = [
   { id: 'p02-dougu-b', triggerId: 'dougu', compositionId: 'dougu-{deliver|entrust}', captionId: 'dougu', sourceRefs: [] },
   { id: 'p04-kashi', triggerId: 'kashi', compositionId: 'kashi-{now|watch}', captionId: 'kashi', sourceRefs: [] },
   { id: 'p04-kashi-b', triggerId: 'kashi', compositionId: 'kashi-{now|watch}', captionId: 'kashi', sourceRefs: [] },
+  { id: 'p05-fumi', triggerId: 'fumi', compositionId: 'fumi-{send|rewrite}', captionId: 'fumi', sourceRefs: [] },
+  { id: 'p05-fumi-b', triggerId: 'fumi', compositionId: 'fumi-{send|rewrite}', captionId: 'fumi', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -330,6 +355,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p02-dougu-b': 'いつもの道具（もう一つの朝）',
   'p04-kashi': '河岸の朝',
   'p04-kashi-b': '河岸の朝（もう一つの帰り道）',
+  'p05-fumi': '母への文',
+  'p05-fumi-b': '母への文（もう一つの返事）',
 };
 
 /**
@@ -428,6 +455,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p02-dougu' || pageId === 'p02-dougu-b') return compositionId === 'dougu-deliver' || compositionId === 'dougu-entrust';
   if (pageId === 'p03-tenugui') return compositionId === 'tenugui-return';
   if (pageId === 'p04-kashi' || pageId === 'p04-kashi-b') return compositionId === 'kashi-now' || compositionId === 'kashi-watch';
+  if (pageId === 'p05-fumi' || pageId === 'p05-fumi-b') return compositionId === 'fumi-send' || compositionId === 'fumi-rewrite';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }

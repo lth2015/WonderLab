@@ -32,7 +32,15 @@ export interface Nearby {
  */
 const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
-export function nearby(s: SaveData): Nearby[] {
+/** The stories someone is waiting to ask about (not yet under way). */
+const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi']);
+
+/**
+ * `here`: the scene x at the middle of the view. With five stories there are more
+ * offers than the three places in the list, so the ones nearest to the player come
+ * first; what is already under way always stays at the top.
+ */
+export function nearby(s: SaveData, here?: number): Nearby[] {
   const out: Nearby[] = [];
   if (s.journal.pages.length >= PAGE_SLOTS && !hasFlag(s, 'book_full')) out.push({ id: 'book', text: '一冊になった絵巻帳を、宗吉に見せる', spotId: 'h-sokichi' });
   if (!hasFlag(s, 'paper_pressed')) {
@@ -56,6 +64,11 @@ export function nearby(s: SaveData): Nearby[] {
     if (!hasFlag(s, 'met_oharu')) out.push({ id: 'oharu', text: '茶店の前で、お春が何かを探している', spotId: 'h-oharu' });
   }
   if (!hasFlag(s, 'met_kinji')) out.push({ id: 'kinji', text: '天秤棒の振売りが、商いから戻ってきた', spotId: 'h-kinji' });
+  // 母への文: the letter, then the man walking with his abacus
+  if (questState(s, 'kaze') === 'complete' && questState(s, 'fumi') !== 'complete') {
+    if (hasFlag(s, 'fumi_carry')) out.push({ id: 'fumi-carry', text: '文の持ち主に追いつく。そろばんの包みを抱えて歩いている', spotId: 'h-ihei' });
+    else out.push({ id: 'fumi', text: '米屋の前の道に、何か落ちている', spotId: 'h-fumi' });
+  }
   // 河岸の朝: across the bridge. The search hint points at the boats, never at 亀吉 himself.
   const kashi = questState(s, 'kashi');
   if (questState(s, 'kaze') === 'complete' && kashi !== 'complete') {
@@ -68,7 +81,12 @@ export function nearby(s: SaveData): Nearby[] {
     const left = SKETCHES.filter((k) => !s.journal.pages.some((p) => p.pageId === sketchPageId(k.id)));
     if (left.length) out.push({ id: 'sketches', text: `町の景色を写す（あと${left.length}か所）。${left[0].title}`, spotId: `a-${left[0].spots[0]}` });
   }
-  // stories under way first, then the sketches, then people not yet greeted
+  // under way first, then the offers, the sketches, and people not yet greeted
   const greeting = (n: Nearby) => GREETINGS.has(n.id);
-  return [...out.filter((n) => !greeting(n)), ...out.filter(greeting)].slice(0, 3);
+  const offer = (n: Nearby) => OFFERS.has(n.id);
+  const sketching = (n: Nearby) => n.id === 'sketches';
+  const xOf = (n: Nearby) => HOTSPOTS.find((h) => h.id === n.spotId)?.anchor.x ?? 0;
+  const near = (a: Nearby[]) => (here === undefined ? a : [...a].sort((p, q) => Math.abs(xOf(p) - here) - Math.abs(xOf(q) - here)));
+  const going = out.filter((n) => !greeting(n) && !offer(n) && !sketching(n));
+  return [...going, ...near(out.filter(offer)), ...out.filter(sketching), ...near(out.filter(greeting))].slice(0, 3);
 }
