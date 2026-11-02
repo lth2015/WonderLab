@@ -42,7 +42,11 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
   // 贈る画: the word chosen for a friend, or none (the page as it is)
   const [gift, setGift] = useState<string | null>(null);
   const [giftKind, setGiftKind] = useState<GiftKind['id']>(GIFT_KINDS[0].id);
-  useEffect(() => setGift(null), [open]);
+  const [giftOpen, setGiftOpen] = useState(false);
+  useEffect(() => {
+    setGift(null);
+    setGiftOpen(false);
+  }, [open]);
   const big = useRef<HTMLDivElement>(null);
   // a page this version cannot draw is left out rather than breaking the book (review F01)
   const pages = save.journal.pages.filter((p) => validJournalEntry(p.pageId, p.compositionId));
@@ -143,7 +147,7 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
   if (open) {
     const said = comment(open);
     return (
-      <div className="panel" role="dialog" aria-labelledby="page-h">
+      <div className={`panel page-view${giftOpen ? ' gifting' : ''}`} role="dialog" aria-labelledby="page-h">
         <h2 id="page-h">{PAGE_TITLES[open.pageId]}</h2>
         <div className="page-big" ref={big}>
           <Page entry={open} idPrefix="big" note={gift ?? undefined} />
@@ -167,9 +171,9 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
             作品のリンクをコピー
           </button>
         </div>
-        <details className="gift" open={gift !== null || undefined}>
+        <details className="gift" open={giftOpen || undefined} onToggle={(e) => setGiftOpen((e.currentTarget as HTMLDetailsElement).open)}>
           <summary>贈る画にする</summary>
-          <p className="small">この頁に一言を添えて、誰かに送る画にします。進み具合や所持金は入りません。</p>
+          <p className="small">一言を添えると、上の画がそのまま贈る画になります（進み具合や所持金は入りません）。</p>
           <div className="seg" role="group" aria-label="言葉の種類">
             {GIFT_KINDS.map((k) => (
               <button type="button" key={k.id} aria-pressed={giftKind === k.id} onClick={() => setGiftKind(k.id)}>
@@ -189,7 +193,6 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
               <span>言葉を添えない（元の頁）</span>
             </label>
           </div>
-          <p className="small">言葉を選ぶと、上の画がそのまま贈る画になります。「画像を保存」「共有する」で送れます。</p>
         </details>
         {(() => {
           const q = questOfPage(open.pageId);
@@ -203,7 +206,7 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
             </div>
           );
         })()}
-        <button type="button" className="ghost" onClick={() => setOpen(null)}>
+        <button type="button" className="ghost panel-foot" onClick={() => setOpen(null)}>
           絵巻帳に戻る
         </button>
       </div>
@@ -247,7 +250,7 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
       <button type="button" onClick={() => setScroll(true)}>
         長巻を画にする
       </button>
-      <button type="button" className="primary" onClick={onClose}>
+      <button type="button" className="primary panel-foot" onClick={onClose}>
         町に戻る
       </button>
     </div>

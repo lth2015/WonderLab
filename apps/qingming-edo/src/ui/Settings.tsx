@@ -145,7 +145,8 @@ export function Settings({
         <p className="small">音は、画面右上の「♪」で出したり止めたりできます（はじめは音なし）。音がなくても、すべて遊べます。端末を消音にしていると鳴りません。</p>
       </fieldset>
 
-      <h3>記録</h3>
+      <details className="fold" open={!!unreadable || undefined}>
+        <summary>記録（書き出し・読み込み・やり直し）</summary>
       {unreadable && (
         <div className="recall-box" role="group" aria-label="読めなかった記録">
           <p className="small">この端末に、読めなかった記録が残っています。保存の空きがなく退避できなかったため、この画面では上書きしていません。</p>
@@ -213,6 +214,7 @@ export function Settings({
           最初からやり直す
         </button>
       )}
+      </details>
 
       <details className="playtest">
         <summary>この回の試遊の記録とプライバシー</summary>
@@ -227,14 +229,16 @@ export function Settings({
         </button>
       </details>
 
-      <h3>この作品について</h3>
+      <details className="fold">
+        <summary>この作品について</summary>
       <p className="small">
         『熈代勝覧』（文化二年・1805年頃の日本橋の通りを描いた絵巻）に着想を得た創作です。原画の町並みを再現した地図ではありません。人物・店・出来事はすべて創作です。絵は画像生成の道具を使って描いた制作中のもので、原画の写しではありません。音はその場で合成しています。
       </p>
       <a className="ghost link" href={HUB_URL}>
         ほかの世界へ
       </a>
-      <button type="button" className="primary" onClick={onClose}>
+      </details>
+      <button type="button" className="primary panel-foot" onClick={onClose}>
         町に戻る
       </button>
     </div>

@@ -96,11 +96,14 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     return [Math.max(0, k - 1), Math.min(SECTIONS - 1, k + 1)];
   });
 
+  // past either end of the scroll: the street gives a little, then springs back (spec §7)
+  const over = useRef(0); // scene units beyond the end, drawn only
+  const overAnim = useRef(0);
   const paint = useCallback(() => {
     const s = size.current.scale;
-    const x = cam.current ?? 0;
+    const x = (cam.current ?? 0) + over.current;
     if (box.current) {
-      box.current.dataset.cam = x.toFixed(1); // read by the browser checks
+      box.current.dataset.cam = (cam.current ?? 0).toFixed(1); // read by the browser checks (the real camera, not the stretch)
       box.current.dataset.top = top.current.toFixed(1);
     }
     SCENE.layers.forEach((l, i) => {
@@ -237,7 +240,27 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     d.trail.push({ t: e.timeStamp, x: e.clientX });
     if (d.trail.length > 6) d.trail.shift();
     // The finger and the street move together, in the same direction (spec §7).
-    if (d.dragging) setCam(d.cam0 - dx / size.current.scale);
+    if (d.dragging) {
+      const want = d.cam0 - dx / size.current.scale;
+      setCam(want);
+      const beyond = want - (cam.current ?? 0);
+      over.current = reduceMotion ? 0 : Math.sign(beyond) * 60 * (1 - Math.exp(-Math.abs(beyond) / 120));
+      paint();
+    }
+  };
+  /** Let go past an end: back to the edge in ~200 ms. */
+  const springBack = () => {
+    cancelAnimationFrame(overAnim.current);
+    const from = over.current;
+    if (!from) return;
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / 200);
+      over.current = from * (1 - (1 - (1 - k) ** 3));
+      paint();
+      if (k < 1) overAnim.current = requestAnimationFrame(step);
+    };
+    overAnim.current = requestAnimationFrame(step);
   };
   /** After a flick the street glides on a little and slows (not with 動きを減らす). */
   const glide = (d: NonNullable<typeof drag.current>, t: number) => {
@@ -265,6 +288,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
+    if (over.current) return springBack(); // held at an end: no glide, just back to the edge
     if (d.dragging) return glide(d, e.timeStamp);
     if (!interactive) return;
     const p = toScene(e.clientX, e.clientY);
@@ -274,6 +298,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   };
   const onPointerCancel = () => {
     drag.current = null;
+    springBack();
   };
   const onPointerLeave = () => setHover(null);
   const onWheel = (e: React.WheelEvent) => {
