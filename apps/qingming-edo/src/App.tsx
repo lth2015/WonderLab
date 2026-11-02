@@ -560,7 +560,19 @@ export function App() {
       )}
 
       {node && line && (
-        <div className={`sheet dialogue${recall ? ' recall' : ''}`} role="dialog" aria-live="polite" aria-label={recall ? '回想' : '会話'}>
+        <div
+          className={`sheet dialogue${recall ? ' recall' : ''}`}
+          role="dialog"
+          aria-live="polite"
+          aria-label={recall ? '回想' : '会話'}
+          onClick={(e) => {
+            // a tap anywhere on the sheet turns the line (1A); closing, choices, 難語 and their notes keep their own buttons
+            if (atLast && (node.choices || !node.next)) return;
+            if ((e.target as HTMLElement).closest('button, a, [role="note"], input')) return;
+            if (window.getSelection()?.toString()) return;
+            advance();
+          }}
+        >
           {recall && <p className="recall-tag">回想　— 文は増えません</p>}
           {line.by !== 'narration' && (
             <p className="speaker">
