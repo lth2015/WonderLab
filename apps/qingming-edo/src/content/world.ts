@@ -109,7 +109,10 @@ export const SCENE: SceneDef = {
   hotspots: HOTSPOTS,
   ambienceId: 'street-morning',
   // right to left, as the scroll reads: the bridge end first
-  sections: Array.from({ length: 16 }, (_, i) => ({ id: `s${15 - i}`, x0: (15 - i) * 1000, x1: (16 - i) * 1000 })),
+  sections: Array.from({ length: SCENE_W / 1000 }, (_, i) => {
+    const k = SCENE_W / 1000 - 1 - i;
+    return { id: `s${k}`, x0: k * 1000, x1: (k + 1) * 1000 };
+  }),
 };
 
 export const WORLD: WorldDef = {

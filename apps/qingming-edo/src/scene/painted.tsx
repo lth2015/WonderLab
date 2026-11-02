@@ -11,7 +11,7 @@
 import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import SIZES from '../assets/art/sizes.json';
-import { parseSketch } from '../content/world';
+import { parseSketch, SCENE_W } from '../content/world';
 
 const URLS = import.meta.glob('../assets/art/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
 const url = (name: string) => {
@@ -20,8 +20,8 @@ const url = (name: string) => {
   return u;
 };
 
-/** 16 sections of 1000 units (style decision #14; 14–15 are the far bank, roadmap #158 item 4). */
-export const SECTIONS = 16;
+/** Sections of 1000 units (style decision #14; 14–15 are the far bank, roadmap #158 item 4). */
+export const SECTIONS = SCENE_W / 1000;
 export const STREET: (string | null)[] = Array.from({ length: SECTIONS }, (_, k) => URLS[`../assets/art/street-${k}.webp`] ?? null);
 /** The left end the camera may reach: the first painted section. */
 export const SCENE_X0 = STREET.findIndex(Boolean) * 1000;
