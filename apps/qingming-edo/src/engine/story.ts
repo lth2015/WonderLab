@@ -1,5 +1,5 @@
 import type { HotspotDef, SaveData } from '../contract';
-import { ENTRIES } from '../content/script';
+import { ENTRIES, NODES } from '../content/script';
 import { HOTSPOTS, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from '../content/world';
 import { hasFlag, questState, test } from './state';
 import { timeOf } from './time';
@@ -8,7 +8,10 @@ import { timeOf } from './time';
 export function entryFor(targetId: string, s: SaveData): string | null {
   const rules = ENTRIES[targetId];
   if (!rules) return null;
-  return rules.find((r) => test(s, r.when))?.node ?? null;
+  const node = rules.find((r) => test(s, r.when))?.node ?? null;
+  // 朝・昼・夕: an everyday word may have its own version for the time shown (content/script.ts AT_TIME)
+  const timed = node && `${node}@${timeOf(s)}`;
+  return timed && NODES[timed] ? timed : node;
 }
 
 export function visibleSpots(s: SaveData): HotspotDef[] {

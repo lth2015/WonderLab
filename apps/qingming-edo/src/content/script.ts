@@ -578,6 +578,56 @@ for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji
   NODES[id].choices = [{ label: '少し話す', talk: true }];
 }
 
+// 朝・昼・夕で言うことが変わる (owner: 多开发内容; demo feedback 「剧情太少」). A person's
+// everyday word after their story has a morning and an evening version; noon is the
+// base node. Variants copy the base node (its choices, such as 少し話す) with new lines,
+// and are named `${base}@${time}` (engine/story.ts entryFor picks them).
+const AT_TIME: Record<string, Partial<Record<'morning' | 'evening', Line>>> = {
+  'seita.again': {
+    morning: { by: 'seita', text: '朝の紙は湿り気が少なくて、手ざわりがいいんです。今日も一枚ずつ並べてます。' },
+    evening: { by: 'seita', text: 'もう店じまいの支度です。今日は一枚も飛ばずにすみました。おかげさまで。' },
+  },
+  'okon.again': {
+    morning: { by: 'okon', text: '朝いちばんは、漆のにおいがいちばん澄んでるんだよ。' },
+    evening: { by: 'okon', text: '夕方になると、手入れに持ち込まれる道具が増えるのさ。一日よく働いた道具だからね。' },
+  },
+  'kinji.done': {
+    morning: { by: 'kinji', text: 'これから一回り行ってくるよ。弁当箱は、ちゃんと包んで持ってる。' },
+    evening: { by: 'kinji', text: '今日もよく売れた。空の籠は軽いけど、足はくたくただ。' },
+  },
+  'kinji.done.entrust': {
+    morning: { by: 'kinji', text: 'お春ちゃんが届けてくれた包み、今朝あけたよ。いい塗り直しだ。' },
+    evening: { by: 'kinji', text: '一日売り歩いて、帰りにこの通りを通ると、なんだかほっとするんだ。' },
+  },
+  'kisuke.done3': {
+    morning: { by: 'kisuke', text: '朝の一番茶だ。湯がやわらかいうちに飲んでいきな。' },
+    evening: { by: 'kisuke', text: '夕方の客は長居するんだ。一日の話を、ここに置いていくのさ。' },
+  },
+  'oharu.done3': {
+    morning: { by: 'oharu', text: '朝のお使いは早いほうがいいんです。今日は用事が三つもあって。' },
+    evening: { by: 'oharu', text: 'お使いは今日はおしまい。手拭い、ちゃんと首に巻いてますよ。' },
+  },
+  'omatsu.done': {
+    morning: { by: 'omatsu', text: 'この時分の河岸がいちばん忙しいよ。亀吉も、舟を手伝うつもりでいる。' },
+    evening: { by: 'omatsu', text: '舟がみんな戻ってきた。今日の河岸も、これでおしまいだ。' },
+  },
+  'kame.done': {
+    morning: { by: 'kamekichi', text: '一番舟、もう見たかい？ おいらは見たぞ！' },
+    evening: { by: 'kamekichi', text: 'ばあちゃんがもう帰るって。……明日も来るよな？' },
+  },
+  'ihei.done.send': {
+    morning: { by: 'ihei', text: '今朝、飛脚に渡したよ。足の速そうな男だった。' },
+    evening: { by: 'ihei', text: '母から返事が来るのは、早くて十日後だそうだ。待つのも悪くない。' },
+  },
+  'ihei.done.rewrite': {
+    morning: { by: 'ihei', text: '朝のうちに書き直そうと思ってね。……まだ一行目だが。' },
+    evening: { by: 'ihei', text: '書き直した文、今夜のうちに封をするよ。柳のことも書いた。' },
+  },
+};
+for (const [base, byTime] of Object.entries(AT_TIME)) {
+  for (const [t, line] of Object.entries(byTime)) NODES[`${base}@${t}`] = { ...NODES[base], lines: [line!] };
+}
+
 /** Where each finished story is replayed from in 回想. */
 export const RECALL_START: Record<string, string> = {
   kaze: 'kaze.pressed',
