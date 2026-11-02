@@ -1,14 +1,15 @@
-import type { CharacterDef, HotspotDef, ItemDef, PageDef, QuestDef, SceneDef, WorldDef } from '../contract';
+import type { CharacterDef, Condition, HotspotDef, ItemDef, PageDef, QuestDef, SceneDef, WorldDef } from '../contract';
 import { SCHEMA_VERSION, WORLD_ID } from '../contract';
 
 // 日本橋北詰付近の創作街区 (spec §5, §8). Every shop, name, relation and event
 // here is fiction; none is presented as a shop seen in『熈代勝覧』.
 //
-// Scene units: the street is 14000 × 700 (fourteen sections of 1000), shop floors near y = 540.
-// It reads right to left like a scroll (spec §7): play starts at the bridge
-// on the right, and the street goes on to the left.
+// Scene units: the street is 16000 × 700 (sixteen sections of 1000), shop floors near y = 540.
+// It reads right to left like a scroll (spec §7). Play starts at the paper shop
+// by the bridge; across the bridge (14000–16000, roadmap #158 item 4) lies the
+// far bank's morning quay, and the street goes on to the left.
 
-export const SCENE_W = 14000;
+export const SCENE_W = 16000;
 export const SCENE_H = 700;
 export const GROUND_Y = 540;
 
@@ -21,6 +22,8 @@ export const CHARACTERS: CharacterDef[] = [
   { ...fictionChar(), id: 'kisuke', sceneId: 'nihonbashi-kita', displayName: '喜助', scriptId: 'kisuke' },
   { ...fictionChar(), id: 'kinji', sceneId: 'nihonbashi-kita', displayName: '金次', scriptId: 'kinji' },
   { ...fictionChar(), id: 'oharu', sceneId: 'nihonbashi-kita', displayName: 'お春', scriptId: 'oharu' },
+  { ...fictionChar(), id: 'omatsu', sceneId: 'nihonbashi-kita', displayName: 'おまつ', scriptId: 'omatsu' },
+  { ...fictionChar(), isChild: true, id: 'kamekichi', sceneId: 'nihonbashi-kita', displayName: '亀吉', scriptId: 'kamekichi' },
 ];
 export const characterById = new Map(CHARACTERS.map((c) => [c.id, c]));
 
@@ -32,9 +35,14 @@ export const ROLES: Record<string, string> = {
   kisuke: '茶店「喜の字」の主人',
   kinji: '振売り',
   oharu: '町の使い',
+  omatsu: '河岸の魚売り',
+  kamekichi: 'おまつの孫',
 };
 
 const notPressed = { not: { flag: 'paper_pressed' } };
+// 亀吉 hides by the boats while he is being looked for, then stands by おまつ
+const kameHidden: Condition = { all: [{ flag: 'kashi_search' }, { not: { quest: 'kashi', is: 'complete' } }] };
+const kameHome: Condition = { quest: 'kashi', is: 'complete' };
 
 // Read off the gridded painting (docs/painted-worlds/art/edo/README.md); people
 // stand where scene/painted.tsx SPOTS puts their feet.
@@ -46,6 +54,15 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'h-kisuke', targetId: 'kisuke', kind: 'character', anchor: { x: 11650, y: 500 }, hitArea: { x: 11628, y: 452, w: 44, h: 94 }, priority: 5 },
   { id: 'h-oharu', targetId: 'oharu', kind: 'character', anchor: { x: 11400, y: 535 }, hitArea: { x: 11380, y: 488, w: 40, h: 94 }, priority: 5 },
   { id: 'h-kinji', targetId: 'kinji', kind: 'character', anchor: { x: 7480, y: 525 }, hitArea: { x: 7452, y: 480, w: 56, h: 92 }, priority: 5 },
+  // 河岸の朝 (across the bridge): placed on the painted quay — see KASHI in scene/painted.tsx
+  { id: 'h-omatsu', targetId: 'omatsu', kind: 'character', anchor: { x: 14700, y: 412 }, hitArea: { x: 14676, y: 372, w: 48, h: 80 }, priority: 5 },
+  { id: 'h-kame-hidden', targetId: 'kamekichi', kind: 'character', anchor: { x: 15482, y: 452 }, hitArea: { x: 15466, y: 436, w: 32, h: 34 }, priority: 6, visibleWhen: kameHidden },
+  { id: 'h-kame', targetId: 'kamekichi', kind: 'character', anchor: { x: 14748, y: 426 }, hitArea: { x: 14736, y: 400, w: 26, h: 54 }, priority: 6, visibleWhen: kameHome },
+  { id: 'a-kashi-willow', targetId: 'kashi-willow', kind: 'ambient', anchor: { x: 14300, y: 240 }, hitArea: { x: 14230, y: 120, w: 150, h: 230 }, priority: 1 },
+  { id: 'a-kashi-steps', targetId: 'kashi-steps', kind: 'ambient', anchor: { x: 14310, y: 465 }, hitArea: { x: 14220, y: 410, w: 190, h: 110 }, priority: 2 },
+  { id: 'a-kashi-baskets', targetId: 'kashi-baskets', kind: 'ambient', anchor: { x: 14860, y: 395 }, hitArea: { x: 14780, y: 350, w: 170, h: 70 }, priority: 2 },
+  { id: 'a-kashi-boats', targetId: 'kashi-boats', kind: 'ambient', anchor: { x: 15150, y: 540 }, hitArea: { x: 14950, y: 500, w: 420, h: 90 }, priority: 2 },
+  { id: 'a-kashi-reeds', targetId: 'kashi-reeds', kind: 'ambient', anchor: { x: 15830, y: 440 }, hitArea: { x: 15740, y: 380, w: 180, h: 110 }, priority: 1 },
   // the first help: one tap on the blowing papers (spec §9 一頁目)
   { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 12420, y: 522 }, hitArea: { x: 12378, y: 504, w: 90, h: 40 }, priority: 8, visibleWhen: notPressed },
   // ambient reactions on things in the painting (spec §5: 8 or more)
@@ -92,7 +109,7 @@ export const SCENE: SceneDef = {
   hotspots: HOTSPOTS,
   ambienceId: 'street-morning',
   // right to left, as the scroll reads: the bridge end first
-  sections: Array.from({ length: 14 }, (_, i) => ({ id: `s${13 - i}`, x0: (13 - i) * 1000, x1: (14 - i) * 1000 })),
+  sections: Array.from({ length: 16 }, (_, i) => ({ id: `s${15 - i}`, x0: (15 - i) * 1000, x1: (16 - i) * 1000 })),
 };
 
 export const WORLD: WorldDef = {
@@ -106,6 +123,11 @@ export const WORLD: WorldDef = {
 /** Short captions for ambient reactions; read aloud too (sound is optional, spec §13). */
 export const AMBIENT_LABEL: Record<string, string> = {
   'willow': '川端の柳',
+  'kashi-willow': '向こう岸の柳',
+  'kashi-steps': '河岸の石段',
+  'kashi-baskets': '空の籠と樽',
+  'kashi-boats': 'つながれた荷舟',
+  'kashi-reeds': '河岸のはずれ',
   'boat': '川の荷舟',
   'giboshi': '橋の擬宝珠',
   'noren-aoba': '青葉屋の暖簾',
@@ -137,6 +159,11 @@ export const AMBIENT_LABEL: Record<string, string> = {
   'pond': '庭の池',
 };
 export const AMBIENT: Record<string, string> = {
+  'kashi-willow': '橋のたもとの柳が、川風にゆれている。',
+  'kashi-steps': '水際まで石段が下りている。舟から上がる人の足が、ここで乾く。',
+  'kashi-baskets': '空の籠と樽が積んである。もうすぐ、これが魚でいっぱいになる。',
+  'kashi-boats': '荷舟が何艘も岸につないである。縄がきしむ音がする。',
+  'kashi-reeds': '河岸のはずれ。葦の向こうは、ひろい水だけだ。',
   'willow': '川風に、柳の枝がそよいだ。',
   'boat': '荷を積んだ舟が、岸につながれている。',
   'giboshi': '欄干の擬宝珠が、朝の光を返している。',
@@ -216,6 +243,22 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
+  {
+    // 四頁目：河岸の朝 (roadmap #158 item 4). Find 亀吉 in the painting; either ending completes it.
+    id: 'kashi',
+    prerequisites: [{ quest: 'kaze', is: 'complete' }],
+    steps: [
+      { id: 'search', doneWhen: { flag: 'kashi_search' } },
+      { id: 'find', doneWhen: { flag: 'kashi_found' } },
+      { id: 'home', doneWhen: { any: [{ flag: 'kashi_now' }, { flag: 'kashi_watched' }] } },
+    ],
+    completionEffects: [
+      { type: 'grant', rewardId: 'kashi', amountMinor: 20 },
+      { type: 'familiarity', characterId: 'omatsu', eventId: 'kashi' },
+      { type: 'questState', quest: 'kashi', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
@@ -244,7 +287,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-export const PAGE_SLOTS = 12; // spec §5: 絵巻帳12頁
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4) adds its page and its other ending
+export const PAGE_SLOTS = 14;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -253,6 +297,8 @@ export const PAGES: PageDef[] = [
   // left by 回想: another composition, or the other ending (engine/state.ts addRecallPage)
   { id: 'p01-kaze-b', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
   { id: 'p02-dougu-b', triggerId: 'dougu', compositionId: 'dougu-{deliver|entrust}', captionId: 'dougu', sourceRefs: [] },
+  { id: 'p04-kashi', triggerId: 'kashi', compositionId: 'kashi-{now|watch}', captionId: 'kashi', sourceRefs: [] },
+  { id: 'p04-kashi-b', triggerId: 'kashi', compositionId: 'kashi-{now|watch}', captionId: 'kashi', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -261,6 +307,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p03-tenugui': 'あの人の手拭い',
   'p01-kaze-b': '風のいたずら（もう一枚）',
   'p02-dougu-b': 'いつもの道具（もう一つの朝）',
+  'p04-kashi': '河岸の朝',
+  'p04-kashi-b': '河岸の朝（もう一つの帰り道）',
 };
 
 /**
@@ -358,6 +406,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p01-kaze' || pageId === 'p01-kaze-b') return parseKaze(compositionId) !== null;
   if (pageId === 'p02-dougu' || pageId === 'p02-dougu-b') return compositionId === 'dougu-deliver' || compositionId === 'dougu-entrust';
   if (pageId === 'p03-tenugui') return compositionId === 'tenugui-return';
+  if (pageId === 'p04-kashi' || pageId === 'p04-kashi-b') return compositionId === 'kashi-now' || compositionId === 'kashi-watch';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }
@@ -371,6 +420,7 @@ export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);
  * every sketch place has a stop (docs/handoff/edo-guide-stops-2026-11-01 on collab).
  */
 export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[] = [
+  { id: 'mukou', name: '向こう岸の河岸', note: 'おまつと朝の荷揚げ', x: 14760 },
   { id: 'bridge', name: '日本橋', note: '橋と荷舟のいる水辺', x: 13420 },
   { id: 'aoba', name: '青葉屋の店先', note: '清太と宗吉のいる紙屋', x: 12510 },
   { id: 'teahouse', name: '茶店「喜の字」', note: '喜助とお春のいる茶店', x: 11530 },

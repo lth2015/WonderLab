@@ -33,16 +33,15 @@ const CREDIT = '熈代勝覧に想を得て';
 export function plan(mode: ScrollMode): number[][] {
   const order = STREET.map((href, k) => (href ? k : -1)).filter((k) => k >= 0).reverse();
   if (mode === 'phone') return [order];
+  // four pictures, as even as the sections allow (the bigger ones first, from the right)
   const groups: number[][] = [];
-  const sizes = [4, 4, 3, 3];
   let i = 0;
-  for (const n of sizes) {
-    if (i >= order.length) break;
-    groups.push(order.slice(i, i + n));
+  for (let g = 0; g < 4; g++) {
+    const n = Math.ceil((order.length - i) / (4 - g));
+    if (n) groups.push(order.slice(i, i + n));
     i += n;
   }
-  if (i < order.length) groups[groups.length - 1].push(...order.slice(i));
-  return groups.filter((g) => g.length);
+  return groups;
 }
 
 function abortError(): Error {
