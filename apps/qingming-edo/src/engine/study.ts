@@ -1,5 +1,5 @@
 import type { QuestState, SaveData } from '../contract';
-import { GUIDE_STOPS, PAGE_SLOTS, PAGES } from '../content/world';
+import { GUIDE_STOPS, PAGE_SLOTS, PAGES, QUESTS as STORY_QUESTS } from '../content/world';
 import { SESSION_STUDY_KEY } from './save';
 import { SESSION_MODE } from './session';
 
@@ -12,7 +12,8 @@ import { SESSION_MODE } from './session';
 // 試遊会 (?session=1) alone keeps it in this browser under
 // ww:qingming-edo:study:session until 「次の方へ」 (engine/session.ts).
 
-export type QuestId = 'kaze' | 'dougu' | 'tenugui' | 'kashi';
+/** A story id from content/world.ts QUESTS (the one list; the log checks against it). */
+export type QuestId = string;
 type Method = 'system' | 'system_link' | 'link';
 export type ErrorCode = 'save_read_failed' | 'save_write_failed' | 'save_import_failed' | 'postcard_export_failed' | 'audio_failed' | 'unexpected_error';
 type Events = {
@@ -32,7 +33,7 @@ type Events = {
 };
 export type StudyEvent = { event_id: string; session_id: string; schema_version: 1; occurred_at: string; elapsed_ms: number; environment: string; world_id: 'qingming-edo'; build_id: string; type: keyof Events; [key: string]: unknown };
 
-const QUESTS: QuestId[] = ['kaze', 'dougu', 'tenugui', 'kashi'];
+const QUESTS: QuestId[] = STORY_QUESTS.map((q) => q.id);
 const inList = (xs: readonly unknown[]) => (v: unknown) => xs.includes(v);
 const nonNegative = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
 const page = inList(PAGES.map((p) => p.id));
