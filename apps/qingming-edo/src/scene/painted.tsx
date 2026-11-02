@@ -553,6 +553,10 @@ export function PaintedPageScene({ composition }: { composition: string }) {
             { id: 'oharu-found' as SpriteId, ...SPOTS.oharu },
           ],
         }
+      : composition === 'ai-vat'
+      ? { x0: 3130, y0: 205, w: 300, people: [] }
+      : composition === 'ai-cloth'
+      ? { x0: 2990, y0: 60, w: 420, people: [] }
       : composition === 'yube-tell'
       ? { x0: 12560, y0: 250, w: 360, people: [{ id: 'sokichi-nod' as SpriteId, ...SPOTS.sokichi }] }
       : composition === 'yube-watch'
@@ -598,7 +602,7 @@ export function PaintedPageScene({ composition }: { composition: string }) {
   const first = Math.floor(view.x0 / 1000);
   // the time it was drawn, as a colour matrix inside the SVG (so a saved PNG keeps it)
   // 夕暮れの灯 is always an evening page; sketches keep the time they were drawn
-  const pageTod: 'morning' | 'noon' | 'evening' | null = sk ? sk.tod : composition.startsWith('yube-') ? 'evening' : null;
+  const pageTod: 'morning' | 'noon' | 'evening' | null = sk ? sk.tod : composition.startsWith('yube-') ? 'evening' : composition.startsWith('ai-') ? 'morning' : null;
   const tint = pageTod ? PAGE_TINT[pageTod] : null;
   return (
     <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`} filter={tint ? `url(#page-tint-${pageTod})` : undefined}>

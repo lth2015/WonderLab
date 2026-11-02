@@ -19,6 +19,8 @@ export const PLACE: Record<string, string> = {
   'fumi-rewrite': '日本橋・朝　米屋の前の往来',
   'yube-tell': '日本橋・夕　橋のたもとの石灯籠',
   'yube-watch': '日本橋・夕　茶店「喜の字」の縁台',
+  'ai-vat': '日本橋・朝　紺屋の藍甕',
+  'ai-cloth': '日本橋・朝　紺屋の干し場',
 };
 /** 宗吉's word on a page, by its composition (or, for 一頁目, its subject). */
 export const COMMENT_BY_COMPOSITION: Record<string, string> = {
@@ -31,6 +33,8 @@ export const COMMENT_BY_COMPOSITION: Record<string, string> = {
   'fumi-rewrite': '書き直す時間をやったな。人を急かさないのも、町の作法だ。',
   'yube-tell': '灯を点けた手で、点けられなかった人を訪ねた。そこまで描けている。',
   'yube-watch': '自分の点けた灯を、ゆっくり眺めたな。夕方の色が、よく出ている。',
+  'ai-vat': '甕の底の藍は、何度も浸けた時間の色だ。よく見たな。',
+  'ai-cloth': '濃い布から薄い布へ、藍の移り変わりを捕まえた。朝の光だからこそだ。',
 };
 export const RECALL_NOTE: Record<string, string> = {
   kaze: '別のものを描けば、もう一枚の頁が残ります。',
@@ -39,4 +43,5 @@ export const RECALL_NOTE: Record<string, string> = {
   kashi: 'もう一つの帰り方を選べば、別の頁が残ります。',
   fumi: 'もう一つの言葉を選べば、別の頁が残ります。',
   yube: 'もう一つの宵の過ごし方を選べば、別の頁が残ります。',
+  ai: 'もう一つの藍を描けば、別の頁が残ります。',
 };

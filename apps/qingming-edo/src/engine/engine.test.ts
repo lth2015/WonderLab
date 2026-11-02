@@ -296,8 +296,11 @@ describe('朝・昼・夕', () => {
     // (夕暮れの灯 needs いつもの道具 and あの人の手拭い, which open 夕), so the player can always
     // switch to it from the time menu; and 「近くのこと」 says so when another time is shown.
     const timed = Object.entries(ENTRIES).filter(([, rules]) => JSON.stringify(rules).match(/"time"/));
-    expect(timed.map(([who]) => who)).toEqual(['kisuke']);
-    expect(JSON.stringify(ENTRIES)).not.toMatch(/morning|noon|timeChoice/);
+    expect(timed.map(([who]) => who).sort()).toEqual(['kisuke', 'sokichi']);
+    // 朝 is open from the start; 夕 only through the stories 夕暮れの灯 already requires
+    expect(JSON.stringify(ENTRIES.kisuke)).not.toMatch(/morning|noon/);
+    expect(JSON.stringify(ENTRIES.sokichi)).not.toMatch(/evening|noon/);
+    expect(JSON.stringify(ENTRIES)).not.toMatch(/timeChoice/);
     expect(reachedTimes(all3())).toContain('evening');
     const shownMorning = apply(all3(), [{ type: 'setFlag', flag: 'yube_fire' }]);
     const m = { ...shownMorning, settings: { ...shownMorning.settings, timeChoice: 'morning' as const } };
@@ -755,5 +758,43 @@ describe('朝・昼・夕 everyday words', () => {
     expect(entryFor('okon', at('noon'))).toBe('okon.again');
     expect(entryFor('okon', at('morning'))).toBe('okon.again@morning');
     expect(NODES['okon.again@morning'].lines[0].text).toContain('朝');
+  });
+});
+
+describe('朝の藍 (morning: find three indigo things)', () => {
+  const at = (s: SaveData, t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('宗吉 asks in the morning once the first page is made; at other times he says to come in the morning', () => {
+    expect(entryFor('sokichi', at(afterKaze(), 'morning'))).toBe('sokichi.ai.ask');
+    expect(entryFor('sokichi', at(afterKaze(), 'noon'))).not.toBe('sokichi.ai.ask');
+    expect(nearby(at(afterKaze(), 'noon')).find((n) => n.id === 'ai')?.text).toContain('「朝」');
+    // an old save with the twelve-page book already full still gets the lesson
+    const full = apply(at(afterKaze(), 'morning'), [{ type: 'setFlag', flag: 'book_full' }]);
+    expect(entryFor('sokichi', full)).toBe('sokichi.ai.ask');
+  });
+
+  it('the indigo things can be found only while looking, in the morning, once each', () => {
+    let s = open(open(at(afterKaze(), 'morning'), 'sokichi.ai.ask'), 'sokichi.ai.look');
+    expect(spot(s, 'h-ai2')).toBe(true);
+    expect(spot(at(s, 'noon'), 'h-ai2')).toBe(false);
+    s = open(s, 'ai.seen2');
+    expect(spot(s, 'h-ai2')).toBe(false);
+    expect(nearby(s).find((n) => n.id === 'ai-find')?.text).toContain('あと2つ');
+  });
+
+  it('either painting leaves its own page, pays nothing, and 宗吉 remembers', () => {
+    for (const [end, comp] of [['ai.vat', 'ai-vat'], ['ai.cloth', 'ai-cloth']] as const) {
+      let s = open(open(at(afterKaze(), 'morning'), 'sokichi.ai.ask'), 'sokichi.ai.look');
+      for (const n of [1, 2, 3]) s = open(s, `ai.seen${n}`);
+      expect(entryFor('sokichi', s)).toBe('sokichi.ai.found');
+      const money = s.wallet.balanceMinor;
+      s = open(open(s, 'sokichi.ai.found'), end);
+      expect(questState(s, 'ai')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money);
+      expect(s.journal.pages.find((p) => p.pageId === 'p07-ai')?.compositionId).toBe(comp);
+      expect(s.progress.familiarity.sokichi?.events).toContain('ai');
+      expect(entryFor('sokichi', s)).toBe('sokichi.done');
+    }
   });
 });

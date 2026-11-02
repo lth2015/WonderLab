@@ -37,7 +37,7 @@ export interface Nearby {
 const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
 /** The stories someone is waiting to ask about (not yet under way). */
-const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube']);
+const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai']);
 
 /**
  * `here`: the scene x at the middle of the view. With five stories there are more
@@ -68,6 +68,16 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
     if (!hasFlag(s, 'met_oharu')) out.push({ id: 'oharu', text: '茶店の前で、お春が何かを探している', spotId: 'h-oharu' });
   }
   if (!hasFlag(s, 'met_kinji')) out.push({ id: 'kinji', text: '天秤棒の振売りが、商いから戻ってきた', spotId: 'h-kinji' });
+  // 朝の藍: in the morning; then the indigo things not yet found
+  const ai = questState(s, 'ai');
+  const morning = timeOf(s) === 'morning';
+  if (ai !== 'complete' && questState(s, 'kaze') === 'complete') {
+    const left = [1, 2, 3].filter((n) => !hasFlag(s, `ai_seen${n}`));
+    if (hasFlag(s, 'ai_look') && left.length === 0) out.push({ id: 'ai-done', text: '見つけた藍のことを、宗吉に話す', spotId: 'h-sokichi' });
+    else if (hasFlag(s, 'ai_look')) out.push({ id: 'ai-find', text: morning ? `町の藍を探す（あと${left.length}つ）。暖簾、甕、干した布` : '朝になったら、町の藍を探す', spotId: morning ? `h-ai${left[0]}` : 'h-sokichi' });
+    else if (morning) out.push({ id: 'ai', text: '宗吉が、朝の光の話をしたそうにしている', spotId: 'h-sokichi' });
+    else out.push({ id: 'ai', text: '朝の宗吉が、何か教えたそうにしていた（上の時刻で「朝」に）', spotId: 'h-sokichi' });
+  }
   // 夕暮れの灯: in the evening; then the lamps not yet lit, nearest first
   const yube = questState(s, 'yube');
   const evening = timeOf(s) === 'evening';
