@@ -10,8 +10,11 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
   for(const char of text){if(ctx.measureText(row+char).width>max){ctx.fillText(row,x,yy);row='';yy+=line;}row+=char;}
   if(row)ctx.fillText(row,x,yy);return yy;
 }
-export async function exportPostcard(game: GameState, id: PageId, art: SVGSVGElement | null) {
+export async function createPostcard(game: GameState, id: PageId, art: SVGSVGElement | null) {
   const page=PAGES.find(p=>p.id===id)!;
+  if (!art || !game.journal.includes(id)) throw new Error('画页还未准备好，记录已保留，请重新打开后重试。');
+  // Wait for device/web fonts before measuring or drawing the independent layout.
+  if (document.fonts) await document.fonts.ready;
   const canvas=document.createElement('canvas');canvas.width=1440;canvas.height=1800;
   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('浏览器暂不能生成留念图片。');
   ctx.fillStyle='#ede5d0';ctx.fillRect(0,0,1440,1800);
@@ -29,5 +32,5 @@ export async function exportPostcard(game: GameState, id: PageId, art: SVGSVGEle
   // 送给朋友的图不写进度与统计（所有者，路线 #158 1B）：只留一句落款
   ctx.fillStyle='#8b826b';ctx.font='26px serif';ctx.fillText('一河烟火，众人相成。',230,1612);
   const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('保存图片失败，请重试。')),'image/png'));
-  downloadFile(blob,`汴河拾光-${page.title}.png`);
+  return { blob, name: `汴河拾光-${page.title}.png` };
 }

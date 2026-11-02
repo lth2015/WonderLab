@@ -1,0 +1,18 @@
+{
+  "first_story": true,
+  "second_interaction": true,
+  "drag_separated_from_tap": true,
+  "persisted": true,
+  "postcard": [
+    1440,
+    1800
+  ],
+  "share_mock_invoked_cancelled": true,
+  "image_failure_retry": true,
+  "unsupported_share_manual_copy": true,
+  "local_events_only": true,
+  "sample_no_free_save_change": true,
+  "mobile_150_percent": true,
+  "page_errors": [],
+  "external_requests": []
+}

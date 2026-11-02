@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { CHARACTERS, ENVIRONMENT, PAGES, type CharacterId, type PageId } from './content';
 import { boatSummary, initialState, parseSave, readSave, reduceGame, SAVE_KEY, type Action, type GameState, type QuestId } from './game';
 import { Icon, JournalArt } from './Art';
@@ -12,10 +12,16 @@ import { SESSION_MODE, clearSessionKeys } from './session';
 import { TIMES, reachedTimes, timeOf } from './time';
 import { hasPlayableProgress, observeProgress, study } from './study';
 import { RiverAudio } from './audio';
-import { downloadFile, exportPostcard } from './export';
+import { downloadFile } from './export';
+import { PostcardActions } from './PostcardActions';
+import { internalStudyEnabled } from './study-mode';
+import { observeProgress, study } from './study';
 
-type Modal = { kind: 'character'; id: CharacterId } | { kind: 'page'; id: PageId } | { kind: 'album' | 'bag' | 'nearby' | 'settings' | 'rope' | 'tea' | 'summary' | 'about' | 'reset' | 'harbor' | 'gate' | 'time' | 'countryside' } | null;
-const QUEST_NAMES: Record<QuestId,string>={paper:'一纸春风',boat:'这一船日常',purse:'谁的香囊',harbor:'半步相让',gate:'认得归路',countryside:'这一程，不催'};
+const NightStudy = import.meta.env.DEV ? lazy(() => import('./NightStudy').then(module => ({ default: module.NightStudy }))) : null;
+const KeepsakeShop = import.meta.env.DEV ? lazy(() => import('./KeepsakeShop')) : null;
+
+type Modal = { kind: 'character'; id: CharacterId } | { kind: 'page'; id: PageId } | { kind: 'album' | 'bag' | 'nearby' | 'settings' | 'rope' | 'tea' | 'summary' | 'about' | 'reset' | 'harbor' | 'gate' | 'keepsakes' } | null;
+const QUEST_NAMES: Record<QuestId,string>={paper:'一纸春风',boat:'这一船日常',purse:'谁的香囊',harbor:'半步相让',gate:'认得归路'};
 
 function Sheet({ title, eyebrow, children, close, wide=false, notification, dismiss }: { title: string; eyebrow?: string; children: ReactNode; close: ()=>void; wide?: boolean; notification?:string; dismiss?:()=>void }) {
   const ref=useRef<HTMLDialogElement>(null);
@@ -44,7 +50,7 @@ export function App() {
     return()=>{window.removeEventListener('error',unexpected);window.removeEventListener('unhandledrejection',unexpected);};
   },[]);
   const [saveBlocked,setSaveBlocked]=useState(!!loaded.damaged);
-  const [modal,setModal]=useState<Modal>(null);
+  const [modal,setModal]=useState<Modal>(()=>import.meta.env.DEV&&internalStudyEnabled()&&new URLSearchParams(location.search).has('souvenir')?{kind:'keepsakes'}:null);
   const [center,setCenter]=useState(SCENE_CENTER.paper);
   const [toast,setToast]=useState(loaded.error??'');
   const [feedback,setFeedback]=useState('');
@@ -83,11 +89,11 @@ export function App() {
   const open=(m:Modal)=>{if(m?.kind==='album')study.emit('journal_opened',{page_count:gameRef.current.journal.length});if(!modal)lastFocus.current=document.activeElement as HTMLElement;setModal(m);setHint(false);};
   const close=()=>{setModal(null);requestAnimationFrame(()=>lastFocus.current?.focus({preventScroll:true}));};
   const visitStop=(x:number)=>{
-    setCenter(x);setModal(null);setHint(false);
+    setCenter(x);setModal(null);setHint(false);setToast(`已到达：${GUIDE_STOPS.find(s=>s.x===x)?.name??'画卷街巷'}。可用附近入口寻找相遇。`);
     requestAnimationFrame(()=>document.querySelector<HTMLElement>('.scroll-surface')?.focus({preventScroll:true}));
   };
   const person=(id:CharacterId)=>{act({type:'VISIT',id});open({kind:'character',id});};
-  const focusPerson=(id:CharacterId)=>{setCenter(personPosition(id,game).x);person(id);};
+  const focusPerson=(id:CharacterId)=>{setCenter(personPosition(id,game).x);setTargetPerson(id);person(id);};
   const notice=(text:string)=>{setToast(text);audio.current?.ring();};
   const environment=(id:string)=>{if(id==='grain'||id==='camels'||id==='ferry'){act({type:'OBSERVE',id});open({kind:id==='grain'?'harbor':id==='camels'?'gate':'countryside'});return;}const env=ENVIRONMENT.find(e=>e.id===id)!;setFeedback(id);act({type:'OBSERVE',id,...('page'in env?{page:env.page}:{})});notice(env.text);};
   const replay=(quest:QuestId)=>{act({type:'REPLAY',quest});notice('可以重新体验，补记另一个视角。已领过的文钱不会重复发放。');};

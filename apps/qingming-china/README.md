@@ -21,4 +21,22 @@ npm run build:qingming
 
 相对base支持/qingming/与独立域名根路径，scene查询只接受章节白名单。未配置service worker。存储键ww:qingming-china:save:v1，当前saveVersion4，兼容v0/v1/v2/v3；拒绝跨作和未来未知版本，损坏档显式处理前不覆盖。奖励是本地确定性状态机，不是联网防作弊系统。
 
-共享契约packages/scroll-contracts仍是待双方确认的提案。新增人物/故事为原创虚构、场景为AI辅助原创精绘、画册是简笔小画，不是馆藏原图或历史地图。素材与实际验证见docs/painted-worlds/；最新乡野证据在qingming-china/countryside-story-v1/。浏览器自动化不代表真机、真人试玩或已发布。
+## 隔离与发布
+
+`base: './'` 使同一静态构建可放在 `/qingming/` 或独立域名 `/`。场景深链接采用 `?scene=paper|bridge|tea`。未配置服务工作线程。
+
+存储键为 `ww:qingming-china:save:v1`，拒绝江户版和未来未知版本存档；支持 `saveVersion: 0 → 1` 的音量迁移。损坏存档在显式备份或导入前不会被自动覆盖。所有奖励由本地确定性状态机一次性发放，不是联网防作弊系统。
+
+公共 TypeScript 契约位于 `../../packages/scroll-contracts/index.ts`，与应用一起构建，不需单独安装公共包。它是待江户侧核对的初始提案，不宣称已共同冻结。
+
+详细限制、资产来源与验收记录见 `../../docs/painted-worlds/china-implementation.md`。
+
+## 画册与内部商业研究
+
+画页先在本机生成独立1440×1800 PNG，再提供保存、系统分享及复制作品链接；系统分享/剪贴板不支持时有保存/手动复制回退。生成失败不会清除存档，导出成功提示只代表已请求下载。设备相册和系统分享仍需真机检查。
+
+开发模式带 `?study=night-return`，在画册/今日小记中可玩《汴河夜归》内部小样，价格待定、尚未发售，无结账。生产构建不显示此入口。小样不改免费篇存档和奖励。
+
+设置中可以主动导出本次操作类型的内存记录，无文本/身份/钱包或自动上传，刷新清空。事件字典、目录/权益接口、素材缺口及观察表见 `../../docs/painted-worlds/china-commercial/README.md`。
+
+`VITE_QINGMING_PUBLIC_URL` 可配置本作分享用的正式HTTPS入口；未配保留当前作品目录。`VITE_QINGMING_BUILD_ID` 是可选非秘密构建标识。未修改DNS，跨子域名存档须JSON导出/导入。相对base继续支持 `/qingming/` 和独立根路径。

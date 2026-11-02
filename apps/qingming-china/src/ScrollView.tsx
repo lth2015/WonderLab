@@ -5,9 +5,9 @@ import type { GameState } from './game';
 import { PaintedLandscape } from './PaintedArt';
 import { ORIGIN, PERSON_HEIGHT, ROLL_MAX, ROLL_MIN, ROLL_WIDTH, WORLD_HEIGHT, personPosition, pickHotspot, regionAt, sceneAt, type HitTarget } from './layout';
 
-export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked }: {
+export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked, targetPerson }: {
   game: GameState; center: number; setCenter: (x: number) => void;
-  onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; feedback: string; locked: boolean;
+  onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; feedback: string; locked: boolean; targetPerson?: CharacterId | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 1200, height: 700 });
@@ -57,7 +57,7 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
             const c=CHARACTERS[id];
             const {x,y}=personPosition(id,game);
             const featured=(scene==='paper'&&id==='liu')||(scene==='bridge'&&id==='zhou')||(scene==='tea'&&id==='he');
-            return <button key={id} className={`person-hotspot ${featured?'featured':''}`} style={{ left:(x+ORIGIN)*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={e=>hit(e,{kind:'person',id})} aria-label={`与${c.name}交谈，${c.role}`}>
+            return <button key={id} className={`person-hotspot ${featured?'featured':''} ${targetPerson===id?'located':''}`} style={{ left:(x+ORIGIN)*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={e=>hit(e,{kind:'person',id})} aria-label={`与${c.name}交谈，${c.role}`}>
               <span className="person-label"><span className="conversation-mark">···</span>{c.name}</span><span className="person-ring"/>
             </button>;
           })}
