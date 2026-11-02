@@ -68,7 +68,12 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   const zoomNow = useRef(1);
   const savedCenter = useRef<number | null>(null);
   // sections drawn: the ones in view and one either side (loaded by section, decision #14)
-  const [sections, setSections] = useState<[number, number]>([SECTIONS - 3, SECTIONS - 1]);
+  // the first guess is where play starts, not the right end: the scroll grew past the
+  // bridge (roadmap #158 item 4) and the far bank must not load with the first screen
+  const [sections, setSections] = useState<[number, number]>(() => {
+    const k = Math.floor(START_X / 1000);
+    return [Math.max(0, k - 1), Math.min(SECTIONS - 1, k + 1)];
+  });
 
   const paint = useCallback(() => {
     const s = size.current.scale;
