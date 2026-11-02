@@ -11,6 +11,7 @@ import type React from 'react';
 
 import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
+import { timeOf } from '../engine/time';
 import SIZES from '../assets/art/sizes.json';
 import { parseSketch, SCENE_W, type Reaction } from '../content/world';
 
@@ -165,6 +166,61 @@ function AmbientLife({ sections }: { sections: [number, number] }) {
   );
 }
 
+/** 朝 quieter, 昼 everyone, 夕 going home: who is out (the clerk of 母への文 always is). */
+function outAt(tod: 'morning' | 'noon' | 'evening', id: string, i: number): boolean {
+  if (id === 'crowd1-merchant' || tod === 'noon') return true;
+  return tod === 'morning' ? i % 3 !== 1 : i % 2 === 0;
+}
+
+/** 夕: lamps lit in the shop fronts and the stone lantern (scene units, read off the painting). */
+const LAMPS: { x: number; y: number; r: number }[] = [
+  { x: 12745, y: 372, r: 12 }, // the stone lantern by the bridge
+  { x: 12470, y: 430, r: 70 }, // 青葉屋
+  { x: 12140, y: 430, r: 60 }, // くれ竹
+  { x: 11570, y: 415, r: 60 }, // 茶店「喜の字」
+  { x: 9300, y: 440, r: 70 }, // the cloth shop
+  { x: 7670, y: 420, r: 55 }, // the rice shop
+  { x: 4605, y: 420, r: 55 }, // the pottery
+  { x: 4230, y: 430, r: 50 }, // the cooper
+  { x: 14850, y: 395, r: 60 }, // the quay sheds
+  { x: 15300, y: 395, r: 55 },
+];
+function TimeOfDayLayer({ tod, sections }: { tod: 'morning' | 'noon' | 'evening'; sections: [number, number] }) {
+  if (tod === 'noon') return null;
+  const inView = (x: number) => near(x, sections);
+  if (tod === 'evening')
+    return (
+      <g className="tod-lamps" aria-hidden="true" pointerEvents="none">
+        <defs>
+          <radialGradient id="lamp-glow">
+            <stop offset="0" stopColor="#ffd98a" stopOpacity={0.85} />
+            <stop offset="0.45" stopColor="#ffbf63" stopOpacity={0.4} />
+            <stop offset="1" stopColor="#ffb057" stopOpacity={0} />
+          </radialGradient>
+        </defs>
+        {LAMPS.filter((l) => inView(l.x)).map((l, i) => (
+          <ellipse key={i} className="lamp" cx={l.x} cy={l.y} rx={l.r} ry={l.r * (l.r < 20 ? 1 : 0.5)} fill="url(#lamp-glow)" style={{ animationDelay: `${-i * 0.7}s` }} />
+        ))}
+      </g>
+    );
+  // 朝: a thin mist low along the street and over the water
+  const ks = Array.from({ length: sections[1] - sections[0] + 1 }, (_, i) => sections[0] + i);
+  return (
+    <g className="tod-mist" aria-hidden="true" pointerEvents="none">
+      <defs>
+        <radialGradient id="mist">
+          <stop offset="0" stopColor="#f7f4ea" stopOpacity={0.75} />
+          <stop offset="1" stopColor="#f7f4ea" stopOpacity={0} />
+        </radialGradient>
+      </defs>
+      {ks.flatMap((k) => [
+        <ellipse key={`a${k}`} className="mist" cx={k * 1000 + 300} cy={560} rx={620} ry={46} fill="url(#mist)" style={{ animationDelay: `${-k * 3}s` }} />,
+        <ellipse key={`b${k}`} className="mist" cx={k * 1000 + 800} cy={470} rx={520} ry={34} fill="url(#mist)" style={{ animationDelay: `${-k * 3 - 8}s` }} />,
+      ])}
+    </g>
+  );
+}
+
 /** A tap on a thing: something small and visible happens there for a moment. */
 function ReactionFx({ kind, x, y, w, h }: { kind: Reaction; x: number; y: number; w: number; h: number }) {
   const cx = x + w / 2;
@@ -239,6 +295,8 @@ export interface Poses {
   kame: { id: SpriteId; at: 'hide' | 'home' } | null;
   /** 母への文: the folded letter on the road, until it is picked up. */
   fumi: boolean;
+  /** 朝・昼・夕: how many people are out, morning mist, lamps lit in the evening. */
+  tod: 'morning' | 'noon' | 'evening';
 }
 
 export function posesFor(s: SaveData): Poses {
@@ -262,6 +320,7 @@ export function posesFor(s: SaveData): Poses {
         ? { id: 'kame-hide', at: 'hide' }
         : null,
     fumi: kazeDone && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
+    tod: timeOf(s),
   };
 }
 
@@ -323,6 +382,7 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
       )}
 
       <AmbientLife sections={sections} />
+      <TimeOfDayLayer tod={poses.tod} sections={sections} />
       {glints.map((g) => (
         <g key={g.id}>
           <ellipse className="glint" cx={g.x + g.w / 2} cy={g.y + g.h / 2} rx={g.w / 2 + 4} ry={g.h / 2 + 4} fill="#fff8e0" />
@@ -333,7 +393,7 @@ export function PaintedStreet({ poses, sections, glints }: PaintedProps) {
       {PROPS.filter((c) => near(c.x, sections)).map((c) => (
         <Sprite key={`${c.id}-${c.x}`} {...c} />
       ))}
-      {CROWD.filter((c, i) => near(c.x, sections) || near(c.x + walkOf(c, i).dx, sections)).map((c) => {
+      {CROWD.filter((c, i) => outAt(poses.tod, c.id, i) && (near(c.x, sections) || near(c.x + walkOf(c, i).dx, sections))).map((c) => {
         const w = walkOf(c, CROWD.indexOf(c));
         // placement stays in attributes; only the inner groups are animated (lesson of #157)
         return (

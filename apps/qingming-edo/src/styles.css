@@ -900,7 +900,7 @@ button[aria-pressed='true'] {
   filter: brightness(1.06) saturate(1.05) contrast(1.02);
 }
 .tod-evening .layer {
-  filter: sepia(0.28) saturate(1.03) hue-rotate(-3deg) brightness(0.85) contrast(1.15);
+  filter: sepia(0.3) saturate(1.05) hue-rotate(-4deg) brightness(0.78) contrast(1.15);
 }
 
 /* 試遊の記録とプライバシー (Settings) */
@@ -1449,4 +1449,28 @@ button.term[aria-expanded="true"] {
 }
 .rm .life {
   display: none;
+}
+
+/* 朝・昼・夕 that can be seen, not only a tint: lamps in the evening, mist in the morning */
+.lamp {
+  mix-blend-mode: screen;
+  animation: lamp 3.2s ease-in-out infinite;
+}
+@keyframes lamp {
+  0%, 100% { opacity: 0.9; }
+  40% { opacity: 0.75; }
+  60% { opacity: 1; }
+}
+.mist {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mist 26s ease-in-out infinite alternate;
+}
+@keyframes mist {
+  from { transform: translateX(-60px); opacity: 0.8; }
+  to { transform: translateX(60px); opacity: 1; }
+}
+.rm .lamp,
+.rm .mist {
+  animation: none !important;
 }
