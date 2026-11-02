@@ -634,7 +634,7 @@ for (const k of SKETCHES) {
 }
 
 // After a story, the person can be talked with a little more (即興のひとこと).
-for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again']) {
+for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again', 'omatsu.done', 'omatsu.done.watch', 'ihei.done.send', 'ihei.done.rewrite']) {
   NODES[id].choices = [{ label: '少し話す', talk: true }];
 }
 
