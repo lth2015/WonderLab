@@ -1174,3 +1174,105 @@ button.term[aria-expanded="true"] {
 .rm .drag-hint span {
   animation: none;
 }
+
+/* Popups: the way back is always in sight, no scrolling to reach it (owner, 2026-11-02) */
+.panel .panel-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: auto;
+  box-shadow: 0 -16px 16px -4px var(--paper-2);
+}
+.panel .panel-foot.ghost {
+  background: var(--paper-2);
+}
+/* the less used parts fold away */
+.fold > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+.fold[open] > summary {
+  margin-bottom: 8px;
+}
+/* 絵巻帳: fourteen pages in two rows where there is room */
+@media (min-width: 700px) {
+  .slots {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
+/* an open page fits the screen with its buttons */
+.page-big svg {
+  max-height: 44vh;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.page-view .page-big svg {
+  max-height: 38vh;
+}
+/* choosing a word: the picture steps back a little so the choices fit with it */
+.page-view.gifting .page-big svg {
+  max-height: 30vh;
+}
+.page-view.gifting .comment {
+  display: none;
+}
+.page-view .gift-lines label.check {
+  margin: 0.15rem 0;
+  min-height: 40px;
+}
+.page-view.gifting .recall-box {
+  display: none;
+}
+@media (max-height: 760px) {
+  .page-view .page-big svg {
+    max-height: 34vh;
+  }
+  .page-view.gifting .page-big svg {
+    max-height: 26vh;
+  }
+}
+/* the pinned way back sits on the very bottom, with paper under it (nothing shows through) */
+.panel:has(.panel-foot) {
+  padding-bottom: 0;
+}
+.panel .panel-foot {
+  border-bottom: calc(12px + env(safe-area-inset-bottom)) solid var(--paper-2);
+  background-clip: padding-box;
+}
+.panel .panel-foot.ghost {
+  background-clip: border-box;
+}
+/* the four kinds of word on one row */
+.gift .seg button {
+  padding: 6px 10px;
+  font-size: 0.92rem;
+}
+@media (max-width: 600px) {
+  .page-view.gifting .page-big svg {
+    max-height: 22vh;
+  }
+}
+.gift .seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.gift .seg button {
+  min-width: 0;
+  padding: 6px 2px;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+.page-view .gift-lines label.check span {
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+@media (max-height: 820px) {
+  .page-view.gifting .page-big svg {
+    max-height: 24vh;
+  }
+}
