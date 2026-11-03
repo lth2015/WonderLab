@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
 // 精絵 — the street painted by Codex (codex/painted-worlds-art,
 // docs/painted-worlds/art/edo-by-codex/), joined and mirrored by Claude so the
 // bridge is on the right and the scroll reads right to left. Scene units: 14
@@ -330,6 +331,8 @@ export interface Poses {
   tod: 'morning' | 'noon' | 'evening';
   /** 夕暮れの灯: which of the three lamps have been lit (they stay lit every evening after). */
   lit: [boolean, boolean, boolean];
+  /** 茶店の猫: where 喜助's cat is (null: away, or in the player's arms). */
+  neko: NekoAt | null;
 }
 
 export function posesFor(s: SaveData): Poses {
@@ -355,7 +358,64 @@ export function posesFor(s: SaveData): Poses {
     fumi: kazeDone && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
     tod: timeOf(s),
     lit: [1, 2, 3].map((n) => hasFlag(s, `yube_lit${n}`)) as [boolean, boolean, boolean],
+    neko:
+      questState(s, 'neko') === 'complete'
+        ? 'home'
+        : hasFlag(s, 'neko_caught')
+          ? null
+          : hasFlag(s, 'neko_hop2')
+            ? 3
+            : hasFlag(s, 'neko_hop1')
+              ? 2
+              : hasFlag(s, 'neko_look')
+                ? 1
+                : null,
   };
+}
+
+/** 茶店の猫: on the well's rim, by the rice bales, on the moat steps; then asleep by the tea house. */
+export type NekoAt = 1 | 2 | 3 | 'home';
+export const NEKO_AT: Record<NekoAt, { id: SpriteId; x: number; y: number; flip?: boolean }> = {
+  1: { id: 'neko-sit', x: 10610, y: 437 },
+  2: { id: 'neko-loaf', x: 7640, y: 472 },
+  3: { id: 'neko-sit', x: 5468, y: 484 }, // on the stone landing, looking at the boat
+  home: { id: 'neko-loaf', x: 11700, y: 548 },
+};
+
+/**
+ * The cat where it is; when it moves on while the player watches, it is seen leaping away
+ * from where it was (towards where it went). Only this inner group is animated (lesson of #157).
+ */
+function Neko({ at, sections }: { at: NekoAt | null; sections: [number, number] }) {
+  const prev = useRef(at);
+  const [leaving, setLeaving] = useState<{ from: NekoAt; left: boolean; k: number } | null>(null);
+  useEffect(() => {
+    const from = prev.current;
+    prev.current = at;
+    // picked up at the moat (→ null) or brought home: no leap
+    if (from === null || at === null || from === at || at === 'home') return;
+    setLeaving({ from, left: NEKO_AT[at].x < NEKO_AT[from].x, k: Date.now() });
+    const t = setTimeout(() => setLeaving(null), 1300);
+    return () => clearTimeout(t);
+  }, [at]);
+  const here = at === null ? null : NEKO_AT[at];
+  const gone = leaving && NEKO_AT[leaving.from];
+  return (
+    <>
+      {here && near(here.x, sections) && (
+        <Idle n={9}>
+          <Sprite id={here.id} x={here.x} y={here.y} flip={here.flip} />
+        </Idle>
+      )}
+      {gone && near(gone.x, sections) && (
+        <g key={leaving!.k} aria-hidden="true">
+          <g className="neko-leave" style={{ '--dx': `${leaving!.left ? -150 : 150}px` } as React.CSSProperties}>
+            <Sprite id="neko-run" x={gone.x} y={gone.y - 4} flip={!leaving!.left} />
+          </g>
+        </g>
+      )}
+    </>
+  );
 }
 
 /** 母への文: a folded letter on the road before the rice shop (drawn, attributes only). */
@@ -465,6 +525,7 @@ export function PaintedStreet({ poses, sections, glints, stopped = [] }: Painted
       {poses.seita === 'press' && <Sprite id="seita-press" {...SPOTS.seitaKneel} className="fret" />}
       {poses.seita === 'press' && <LooseSheets />}
       {poses.fumi && <DroppedLetter />}
+      <Neko at={poses.neko} sections={sections} />
       {poses.seita === 'bow' && (
         <Idle n={7}>
           <Sprite id="seita-bow" {...SPOTS.seitaKneel} />
@@ -578,6 +639,18 @@ export function PaintedPageScene({ composition }: { composition: string }) {
         }
       : composition === 'hashi-with' || composition === 'hashi-side'
       ? { x0: 12620, y0: 190, w: 400, people: hashiGroup(composition === 'hashi-with') }
+      : composition === 'neko-bench'
+      ? {
+          x0: SPOTS.kisuke.x - 170,
+          y0: 250,
+          w: 340,
+          people: [
+            { id: 'kisuke-pour' as SpriteId, ...SPOTS.kisuke },
+            { ...NEKO_AT.home },
+          ],
+        }
+      : composition === 'neko-boat'
+      ? { x0: 5330, y0: 300, w: 270, people: [{ ...NEKO_AT[3] }] }
       : composition === 'ai-vat'
       ? { x0: 3130, y0: 205, w: 300, people: [] }
       : composition === 'ai-cloth'

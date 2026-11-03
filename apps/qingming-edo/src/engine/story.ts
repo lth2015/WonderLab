@@ -37,7 +37,7 @@ export interface Nearby {
 const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
 /** The stories someone is waiting to ask about (not yet under way). */
-const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi']);
+const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi', 'neko']);
 
 /**
  * `here`: the scene x at the middle of the view. With five stories there are more
@@ -107,6 +107,14 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
     if (hasFlag(s, 'kashi_found')) out.push({ id: 'kashi-home', text: '亀吉を、おまつのところへ連れて帰る', spotId: 'h-kame-hidden' });
     else if (hasFlag(s, 'kashi_search')) out.push({ id: 'kashi-search', text: '亀吉を探す。舟の荷揚げを眺めるのが好きらしい', spotId: 'a-kashi-boats' });
     else out.push({ id: 'kashi', text: '橋の向こうの河岸で、おまつが誰かを呼んでいる', spotId: 'h-omatsu' });
+  }
+  // 茶店の猫: where the cat went last (the hint says which way it ran)
+  if (hasFlag(s, 'kisuke_seen_done') && questState(s, 'neko') !== 'complete') {
+    if (hasFlag(s, 'neko_caught')) out.push({ id: 'neko-back', text: 'こはくを、茶店の喜助のところへ連れて帰る', spotId: 'h-kisuke' });
+    else if (hasFlag(s, 'neko_hop2')) out.push({ id: 'neko-3', text: '三毛猫は、堀の河岸のほうへ駆けていった', spotId: 'h-neko3' });
+    else if (hasFlag(s, 'neko_hop1')) out.push({ id: 'neko-2', text: '三毛猫は、米屋のほうへ駆けていった', spotId: 'h-neko2' });
+    else if (hasFlag(s, 'neko_look')) out.push({ id: 'neko-1', text: '喜助の三毛猫を探す。井戸のほうで、鳴き声がした', spotId: 'h-neko1' });
+    else out.push({ id: 'neko', text: '茶店の喜助が、縁台の下をのぞきこんでいる', spotId: 'h-kisuke' });
   }
   // 橋のたもと: once the four have their pages; then the people not yet invited, nearest first
   const hashi = questState(s, 'hashi');

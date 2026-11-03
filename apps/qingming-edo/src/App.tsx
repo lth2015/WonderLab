@@ -214,6 +214,12 @@ export function App() {
         return setDialogue(null);
       }
       let next = n.effects && !inRecall ? apply(saveRef.current, n.effects) : saveRef.current;
+      // a passing moment (the cat leaping away): a note over the street, so the street stays in view
+      if (n.brief && !inRecall) {
+        if (next !== saveRef.current) setSave(next);
+        setToast(n.lines[0].text);
+        return setDialogue(null);
+      }
       // a node may leave a journal page: made once, kept even if the dialogue is closed early
       if (n.page && !inRecall) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId.replace('{tod}', timeOf(next)), titleStyle: 'plain', madeAt: new Date().toISOString() });
       if (inRecall) {

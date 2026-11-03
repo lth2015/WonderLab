@@ -30,6 +30,8 @@ export interface DialogueNode {
   page?: { pageId: string; compositionId: string };
   /** In 回想, where the scene goes on when the original sends the player walking elsewhere. */
   recallNext?: string;
+  /** A passing moment: its effects apply and its one line shows as a note over the street, no dialogue (茶店の猫). */
+  brief?: boolean;
 }
 
 const PRESS: Effect[] = [
@@ -701,6 +703,87 @@ Object.assign(NODES, {
   },
 } satisfies Record<string, DialogueNode>);
 
+// 九頁目：茶店の猫 (owner: 多开发内容; demo feedback 「交互太少、人不能动」). 喜助's cat is out:
+// tapped, it leaps away to the next place (a brief note, so the leap is seen); at the moat it
+// stays only if the player waits beside it rather than reaching for it.
+const HOP = (flag: string, text: string): DialogueNode => ({ brief: true, effects: [{ type: 'setFlag', flag }], lines: [{ by: 'narration', text }] });
+Object.assign(NODES, {
+  'kisuke.neko.ask': {
+    effects: [{ type: 'questState', quest: 'neko', state: 'discovered' }],
+    lines: [
+      { by: 'kisuke', text: 'うちの三毛の「こはく」が、朝から帰ってこないんだ。いつもは縁台の下で寝てるんだがね。' },
+      { by: 'kisuke', text: '猫は追うと逃げる。見かけたら、急がずに連れて帰ってきてくれないか。' },
+    ],
+    choices: [
+      { label: '探してみる', next: 'kisuke.neko.go' },
+      { label: 'またにする', next: 'kisuke.neko.later' },
+    ],
+  },
+  'kisuke.neko.later': {
+    effects: [{ type: 'setFlag', flag: 'neko_declined' }],
+    lines: [{ by: 'kisuke', text: 'いいさ。腹がへれば、そのうち帰ってくるだろう。' }],
+  },
+  'kisuke.neko.go': {
+    effects: [{ type: 'setFlag', flag: 'neko_look' }, { type: 'questState', quest: 'neko', state: 'active' }],
+    recallNext: 'neko.found',
+    lines: [{ by: 'narration', text: '小路の井戸のほうから、猫の鳴き声が聞こえた気がする。' }],
+  },
+  'kisuke.neko.waiting': {
+    lines: [{ by: 'kisuke', text: 'こはくは、高いところと、水の見えるところが好きなんだ。' }],
+  },
+  'neko.hop1': HOP('neko_hop1', '井戸のふちに三毛猫がいた。手を伸ばすと、ひらりと跳んで、米屋のほうへ駆けていった。'),
+  'neko.hop2': HOP('neko_hop2', '米俵の前で丸くなっていたこはくが、ぱっと起きて、堀の河岸のほうへ駆けていった。'),
+  'neko.found': {
+    lines: [{ by: 'narration', text: '堀の河岸の石段で、こはくがじっと舟を見ている。今度は逃げる気配がない。' }],
+    choices: [
+      { label: 'そっと手を伸ばす', next: 'neko.reach' },
+      { label: '隣にしゃがんで、いっしょに舟を見る', next: 'neko.wait' },
+    ],
+  },
+  'neko.reach': {
+    lines: [{ by: 'narration', text: 'こはくは耳を伏せて、少し体を引いた。……急ぐと、また逃げてしまいそうだ。' }],
+  },
+  'neko.wait': {
+    effects: [{ type: 'setFlag', flag: 'neko_caught' }],
+    recallNext: 'kisuke.neko.back',
+    lines: [
+      { by: 'narration', text: 'しばらく並んで舟を見ていた。荷を積んだ舟が一艘、ゆっくり堀を下っていく。' },
+      { by: 'narration', text: 'ふいに、こはくのほうから膝に乗ってきた。あたたかい。茶店へ連れて帰ろう。' },
+    ],
+  },
+  'kisuke.neko.back': {
+    lines: [
+      { by: 'kisuke', text: 'こはく！ ……まったく、心配させて。' },
+      { by: 'kisuke', text: '堀で舟を見ていた？ そうか。こいつは子猫のころ、船宿にいたんだ。ときどき、舟が恋しくなるのかもしれないな。' },
+    ],
+    choices: [
+      { label: '茶店の前で眠るこはくを描く', next: 'neko.bench' },
+      { label: '舟を見ていたこはくを描く', next: 'neko.boat' },
+    ],
+  },
+  'neko.bench': {
+    effects: [{ type: 'setFlag', flag: 'neko_bench' }, ...questById.get('neko')!.completionEffects],
+    page: { pageId: 'p09-neko', compositionId: 'neko-bench' },
+    lines: [
+      { by: 'narration', text: '茶店の前の日なたで、こはくはもう丸くなって眠っている。その寝息まで描くつもりで、筆を運んだ。' },
+      { by: 'kisuke', text: 'ありがとうよ。少ないが、取っておいてくれ。' },
+      { by: 'narration', text: '十文を受け取った。絵巻帳に、九頁目が残った。', reward: true },
+    ],
+  },
+  'neko.boat': {
+    effects: [{ type: 'setFlag', flag: 'neko_boat' }, ...questById.get('neko')!.completionEffects],
+    page: { pageId: 'p09-neko', compositionId: 'neko-boat' },
+    lines: [
+      { by: 'narration', text: '思い出しながら描いた。石段の上の小さな背中と、その先の舟と、堀の水。' },
+      { by: 'kisuke', text: 'ありがとうよ。少ないが、取っておいてくれ。' },
+      { by: 'narration', text: '十文を受け取った。絵巻帳に、九頁目が残った。', reward: true },
+    ],
+  },
+  'neko.home': {
+    lines: [{ by: 'narration', text: 'こはくが茶店の前で丸くなっている。しっぽの先だけが、ときどき動く。' }],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -754,6 +837,10 @@ const AT_TIME: Record<string, Partial<Record<'morning' | 'evening', Line>>> = {
     morning: { by: 'omatsu', text: 'この時分の河岸がいちばん忙しいよ。亀吉も、舟を手伝うつもりでいる。' },
     evening: { by: 'omatsu', text: '舟がみんな戻ってきた。今日の河岸も、これでおしまいだ。' },
   },
+  'neko.home': {
+    morning: { by: 'narration', text: 'こはくが茶店の前で、朝の日なたぼっこをしている。' },
+    evening: { by: 'narration', text: 'こはくが堀のほうを向いて座っている。舟の帰りを待っているのかもしれない。' },
+  },
   'kame.done': {
     morning: { by: 'kamekichi', text: '一番舟、もう見たかい？ おいらは見たぞ！' },
     evening: { by: 'kamekichi', text: 'ばあちゃんがもう帰るって。……明日も来るよな？' },
@@ -781,6 +868,7 @@ export const RECALL_START: Record<string, string> = {
   yube: 'kisuke.yube.ask',
   ai: 'sokichi.ai.ask',
   hashi: 'sokichi.hashi.ask',
+  neko: 'kisuke.neko.ask',
 };
 
 /** 橋のたもと can be asked for once the four people it gathers each have their page. */
@@ -836,6 +924,11 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { all: [{ flag: 'yube_lit1' }, { flag: 'yube_lit2' }, { flag: 'yube_lit3' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.done' },
     { when: { all: [{ flag: 'yube_fire' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.waiting' },
     { when: { all: [{ time: 'evening' }, { quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.ask' },
+    // 茶店の猫: the cat brought back, then still looking, then the ask
+    { when: { all: [{ flag: 'neko_caught' }, { not: { quest: 'neko', is: 'complete' } }] }, node: 'kisuke.neko.back' },
+    { when: { all: [{ flag: 'neko_look' }, { not: { quest: 'neko', is: 'complete' } }] }, node: 'kisuke.neko.waiting' },
+    // asked on a later visit, once his thanks for the towel has been heard
+    { when: { all: [{ flag: 'kisuke_seen_done' }, { not: { quest: 'neko', is: 'complete' } }] }, node: 'kisuke.neko.ask' },
     { when: { quest: 'tenugui', is: 'complete' }, node: 'kisuke.done3' },
     { when: { flag: 'tenugui_found' }, node: 'kisuke.waiting3' },
     { when: { flag: 'tenugui_clue' }, node: 'kisuke.compare' },
@@ -878,6 +971,10 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { quest: 'kashi', is: 'complete' }, node: 'kame.done' },
     { node: 'kame.found' },
   ],
+  neko1: [{ node: 'neko.hop1' }],
+  neko2: [{ node: 'neko.hop2' }],
+  neko3: [{ node: 'neko.found' }],
+  nekohome: [{ node: 'neko.home' }],
   // the papers themselves: one tap helps (spec §6 10〜30秒)
   papers: [{ node: 'kaze.pressed' }],
 };
@@ -886,4 +983,5 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
 export const ON_CLOSE: Record<string, Effect[]> = {
   'seita.done': [{ type: 'setFlag', flag: 'seita_seen_done' }],
   'okon.done': [{ type: 'setFlag', flag: 'okon_seen_done' }],
+  'kisuke.done3': [{ type: 'setFlag', flag: 'kisuke_seen_done' }],
 };

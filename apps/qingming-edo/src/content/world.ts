@@ -75,6 +75,11 @@ export const HOTSPOTS: HotspotDef[] = [
   // 母への文: the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
   { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
   { id: 'h-ihei', targetId: 'ihei', kind: 'character', anchor: { x: 8040, y: 565 }, hitArea: { x: 8023, y: 520, w: 34, h: 90 }, priority: 6, visibleWhen: iheiMet, walker: 'crowd1-merchant' },
+  // 茶店の猫: 喜助's cat, at one place at a time while it is looked for, then home by the tea house
+  { id: 'h-neko1', targetId: 'neko1', kind: 'prop', anchor: { x: 10610, y: 424 }, hitArea: { x: 10580, y: 400, w: 60, h: 44 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_look' }, { not: { flag: 'neko_hop1' } }, { not: { quest: 'neko', is: 'complete' } }] } },
+  { id: 'h-neko2', targetId: 'neko2', kind: 'prop', anchor: { x: 7640, y: 465 }, hitArea: { x: 7610, y: 446, w: 60, h: 34 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_hop1' }, { not: { flag: 'neko_hop2' } }, { not: { quest: 'neko', is: 'complete' } }] } },
+  { id: 'h-neko3', targetId: 'neko3', kind: 'prop', anchor: { x: 5468, y: 471 }, hitArea: { x: 5438, y: 446, w: 60, h: 44 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_hop2' }, { not: { flag: 'neko_caught' } }, { not: { quest: 'neko', is: 'complete' } }] } },
+  { id: 'h-nekohome', targetId: 'nekohome', kind: 'prop', anchor: { x: 11700, y: 542 }, hitArea: { x: 11678, y: 528, w: 46, h: 26 }, priority: 4, visibleWhen: { quest: 'neko', is: 'complete' } },
   // 通りすがりの人 (demo feedback 「交互太少、人不能动」): the walking passers-by say a word when
   // tapped, and stop for a moment. The area follows the walker as drawn (Street live()); the
   // static one is where each starts (scene/painted.tsx CROWD); who is out when matches outAt there.
@@ -407,6 +412,23 @@ export const QUESTS: QuestDef[] = [
     replayPolicy: 'memory-only',
   },
   {
+    // 九頁目：茶店の猫. Follow 喜助's cat along the roll; at the moat, wait beside it.
+    id: 'neko',
+    prerequisites: [{ quest: 'tenugui', is: 'complete' }],
+    steps: [
+      { id: 'look', doneWhen: { flag: 'neko_look' } },
+      { id: 'follow', doneWhen: { all: [{ flag: 'neko_hop1' }, { flag: 'neko_hop2' }] } },
+      { id: 'wait', doneWhen: { flag: 'neko_caught' } },
+      { id: 'home', doneWhen: { any: [{ flag: 'neko_bench' }, { flag: 'neko_boat' }] } },
+    ],
+    completionEffects: [
+      { type: 'grant', rewardId: 'neko', amountMinor: 10 },
+      { type: 'familiarity', characterId: 'kisuke', eventId: 'neko' },
+      { type: 'questState', quest: 'neko', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
+  {
     // 八頁目：橋のたもと. Invite the four people the player helped, then draw them all by the bridge. No money.
     id: 'hashi',
     prerequisites: [
@@ -458,8 +480,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so does 橋のたもと
-export const PAGE_SLOTS = 22;
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと and 茶店の猫
+export const PAGE_SLOTS = 24;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -478,6 +500,8 @@ export const PAGES: PageDef[] = [
   { id: 'p07-ai-b', triggerId: 'ai', compositionId: 'ai-{vat|cloth}', captionId: 'ai', sourceRefs: [] },
   { id: 'p08-hashi', triggerId: 'hashi', compositionId: 'hashi-{with|side}', captionId: 'hashi', sourceRefs: [] },
   { id: 'p08-hashi-b', triggerId: 'hashi', compositionId: 'hashi-{with|side}', captionId: 'hashi', sourceRefs: [] },
+  { id: 'p09-neko', triggerId: 'neko', compositionId: 'neko-{bench|boat}', captionId: 'neko', sourceRefs: [] },
+  { id: 'p09-neko-b', triggerId: 'neko', compositionId: 'neko-{bench|boat}', captionId: 'neko', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -496,6 +520,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p07-ai-b': '朝の藍（もう一つの藍）',
   'p08-hashi': '橋のたもと',
   'p08-hashi-b': '橋のたもと（もう一枚）',
+  'p09-neko': '茶店の猫',
+  'p09-neko-b': '茶店の猫（もう一枚）',
 };
 
 /**
@@ -598,6 +624,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p06-yube' || pageId === 'p06-yube-b') return compositionId === 'yube-tell' || compositionId === 'yube-watch';
   if (pageId === 'p07-ai' || pageId === 'p07-ai-b') return compositionId === 'ai-vat' || compositionId === 'ai-cloth';
   if (pageId === 'p08-hashi' || pageId === 'p08-hashi-b') return compositionId === 'hashi-with' || compositionId === 'hashi-side';
+  if (pageId === 'p09-neko' || pageId === 'p09-neko-b') return compositionId === 'neko-bench' || compositionId === 'neko-boat';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }

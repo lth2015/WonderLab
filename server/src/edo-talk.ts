@@ -10,7 +10,7 @@ import type { ChatMessage } from './tokenstars.js';
 
 export const TALK_TOPICS = ['today', 'work', 'earlier'] as const;
 export type TalkTopic = (typeof TALK_TOPICS)[number];
-export const TALK_STORIES = ['kaze', 'dougu', 'tenugui', 'kashi', 'fumi', 'hashi'] as const;
+export const TALK_STORIES = ['kaze', 'dougu', 'tenugui', 'kashi', 'fumi', 'hashi', 'neko'] as const;
 export type TalkStory = (typeof TALK_STORIES)[number];
 
 interface Persona {
@@ -57,6 +57,7 @@ export const PERSONAS: Record<string, Persona> = {
     memories: {
       tenugui: '見習いが茶を運ぶのを手伝い、忘れ物の手拭いの持ち主をいっしょに見つけた。',
       hashi: 'この見習いに誘われて、茶を持って橋のたもとへ行き、皆と一枚の絵に描かれた。',
+      neko: '飼い猫の三毛「こはく」が朝から帰らなかった日、この見習いが堀の河岸まで探しに行き、急がずに連れて帰ってくれた。',
     },
   },
   oharu: {
