@@ -115,6 +115,8 @@ export function App() {
   const inkyoFrom = useRef<number | null>(null);
   /** 動く人を描く: who was caught and where (`parasol-10642`), for the page made next. */
   const ugokiCatch = useRef<string | null>(null);
+  /** 動く人を描く without tapping in time (keyboard, switch, or a slow hand): wait for this passer-by to enter the frame. */
+  const [waitCatch, setWaitCatch] = useState<{ walker: string; key: string; until: number } | null>(null);
   const lastActivity = useRef(performance.now());
 
   const systemReduced = useSystemReducedMotion();
@@ -249,6 +251,7 @@ export function App() {
     (spot: HotspotDef) => {
       setCandidates(null);
       setHint(null);
+      setWaitCatch(null); // touching something else ends the waiting
       // ご隠居の散歩: he sets off from where he was walking when asked (the tap's live place)
       if (spot.id === 'h-inkyo') inkyoFrom.current = spot.anchor.x;
       // 動く人を描く: a passer-by tapped while the lesson is on — inside their frame, the page
@@ -436,6 +439,37 @@ export function App() {
   };
 
   const spots = useMemo(() => visibleSpots(save), [save]);
+  // 動く人を描く, the waiting way: watch the chosen passer-by and draw them once inside the frame
+  const ugokiOn = hasFlag(save, 'ugoki_look') && questState(save, 'ugoki') !== 'complete' && !raining(save);
+  const waitToCatch = (spot: HotspotDef) => {
+    const key = Object.keys(UGOKI_PEOPLE).find((k) => UGOKI_PEOPLE[k].walker === spot.walker);
+    const f = key && spot.walker ? frameOf(spot.walker) : null;
+    if (!key || !f || !spot.walker) return;
+    setPanel(null);
+    setHint(null);
+    street.current?.focus((f.lo + f.hi) / 2);
+    setWaitCatch({ walker: spot.walker, key, until: Date.now() + 60_000 });
+    setToast(`${UGOKI_PEOPLE[key].who}が枠に入るのを、筆を構えて待っている……`);
+  };
+  useEffect(() => {
+    if (!waitCatch || busy) return;
+    const f = frameOf(waitCatch.walker)!;
+    const t = setInterval(() => {
+      const x = street.current?.walkerX(waitCatch.walker) ?? null;
+      if (x !== null && x >= f.lo + 4 && x <= f.hi - 4) {
+        clearInterval(t);
+        setWaitCatch(null);
+        ugokiCatch.current = `${waitCatch.key}-${Math.round(x)}`;
+        study.emit('play_detail', { what: 'ugoki', outcome: 'caught' });
+        openNode('ugoki.caught');
+      } else if (Date.now() > waitCatch.until) {
+        clearInterval(t);
+        setWaitCatch(null);
+        setToast('その人は、しばらく通りそうにない。ほかの人を待ってみよう。');
+      }
+    }, 120);
+    return () => clearInterval(t);
+  }, [waitCatch, busy, openNode]);
   // ご隠居の散歩: he walks with the player once asked, until he reaches the bench
   const walking = hasFlag(save, 'inkyo_walk') && !hasFlag(save, 'inkyo_arrived') && questState(save, 'inkyo') !== 'complete';
   const companion = useMemo(() => (walking ? { from: inkyoFrom.current ?? INKYO_WALK.from, to: INKYO_BENCH.x, stops: INKYO_STOPS } : null), [walking]);
@@ -778,6 +812,17 @@ export function App() {
                   </button>
                 </li>
               ))}
+            {ugokiOn &&
+              spots
+                .filter((s) => s.kind === 'ambient' && s.walker && Object.values(UGOKI_PEOPLE).some((u) => u.walker === s.walker))
+                .map((s) => (
+                  <li key={s.id}>
+                    <button type="button" onClick={() => waitToCatch(s)}>
+                      {AMBIENT_LABEL[s.targetId]}
+                      <span className="small">（枠を通るのを待って描く）</span>
+                    </button>
+                  </li>
+                ))}
             {spots
               .filter((s) => s.kind === 'ambient' && !s.walker)
               .map((s) => (

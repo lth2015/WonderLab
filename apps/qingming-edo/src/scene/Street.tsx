@@ -7,6 +7,8 @@ import { InkyoSprite, PaintedStreet, SCENE_X0, SECTIONS, type Poses } from './pa
 export interface StreetApi {
   /** Brings scene x to the middle of the view (≤300 ms, instant when motion is reduced). */
   focus(x: number): void;
+  /** Where a walking passer-by is drawn now (scene x of their middle), or null if not on the street. */
+  walkerX(walker: string): number | null;
 }
 
 export interface StreetProps {
@@ -266,6 +268,13 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
           if (k < 1) anim.current = requestAnimationFrame(step);
         };
         anim.current = requestAnimationFrame(step);
+      },
+      walkerX(walker: string) {
+        const img = box.current?.querySelector(`[data-walker="${walker}"] image`);
+        if (!img || !box.current) return null;
+        const r = img.getBoundingClientRect();
+        const b = box.current.getBoundingClientRect();
+        return (cam.current ?? 0) + ((r.left + r.right) / 2 - b.left) / size.current.scale;
       },
     }),
     [reduceMotion, setCam],
