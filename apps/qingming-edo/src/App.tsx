@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, AMBIENT_LABEL, ambientText, GUIDE_STOPS, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
+import { AMBIENT, AMBIENT_LABEL, ambientText, GUIDE_STOPS, HOTSPOTS, INKYO_BENCH, INKYO_STOPS, INKYO_WALK, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearby, visibleSpots } from './engine/story';
@@ -110,6 +110,7 @@ export function App() {
   }, [cue]);
   const dismissedHint = useRef<string | null>(null);
   const street = useRef<StreetApi>(null);
+  const inkyoFrom = useRef<number | null>(null);
   const lastActivity = useRef(performance.now());
 
   const systemReduced = useSystemReducedMotion();
@@ -243,6 +244,8 @@ export function App() {
     (spot: HotspotDef) => {
       setCandidates(null);
       setHint(null);
+      // ご隠居の散歩: he sets off from where he was walking when asked (the tap's live place)
+      if (spot.id === 'h-inkyo') inkyoFrom.current = spot.anchor.x;
       if (spot.kind === 'ambient') {
         sound.cue('react');
         study.emit('first_interaction_completed', { interaction_id: 'observation', elapsed_ms: study.elapsed() }, 'first-interaction');
@@ -410,6 +413,17 @@ export function App() {
   };
 
   const spots = useMemo(() => visibleSpots(save), [save]);
+  // ご隠居の散歩: he walks with the player once asked, until he reaches the bench
+  const walking = hasFlag(save, 'inkyo_walk') && !hasFlag(save, 'inkyo_arrived') && questState(save, 'inkyo') !== 'complete';
+  const companion = useMemo(() => (walking ? { from: inkyoFrom.current ?? INKYO_WALK.from, to: INKYO_BENCH.x, stops: INKYO_STOPS } : null), [walking]);
+  const onCompanion = useCallback(
+    (e: { say: string } | { arrived: true }) => {
+      if ('say' in e) return setToast(e.say);
+      commit([{ type: 'setFlag', flag: 'inkyo_arrived' }]);
+      openNode('inkyo.arrive');
+    },
+    [commit, openNode],
+  );
   const tod = timeOf(save);
   useEffect(() => sound.setTime(tod), [tod]);
   const reached = reachedTimes(save);
@@ -495,6 +509,8 @@ export function App() {
           dragHint={!hasPlayableProgress(save)}
           onActivity={activity}
           onCamera={(x) => sound.place(x)}
+          companion={companion}
+          onCompanion={onCompanion}
         />
 
         {!entered && (

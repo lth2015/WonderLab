@@ -2,7 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, u
 import type { HotspotDef } from '../contract';
 import { AMBIENT_REACTION, SCENE, SCENE_H, SCENE_W } from '../content/world';
 import { clampCamera, isDrag, resolveTap } from '../engine/hit';
-import { PaintedStreet, SCENE_X0, SECTIONS, type Poses } from './painted';
+import { InkyoSprite, PaintedStreet, SCENE_X0, SECTIONS, type Poses } from './painted';
 
 export interface StreetApi {
   /** Brings scene x to the middle of the view (≤300 ms, instant when motion is reduced). */
@@ -29,7 +29,17 @@ export interface StreetProps {
   dragHint?: boolean;
   /** The scene x at the middle of the view, whenever it moves (for the sound). */
   onCamera?(x: number): void;
+  /**
+   * ご隠居の散歩: someone walking with the player, from `from` leftwards to `to`, at their own
+   * slow pace. They walk while the view is with them or ahead (to the left); if the player goes
+   * back past them, they wait. At each stop they pause and say something; at `to` they arrive.
+   */
+  companion?: { from: number; to: number; stops: { x: number; say: string }[] } | null;
+  onCompanion?(e: { say: string } | { arrived: true }): void;
 }
+
+/** Scene units a second: the passers-by's pace (about a minute and a half to the bench). */
+export const COMPANION_SPEED = 22;
 
 const START_X = 12505;
 /** The painting's top is empty sky (where the far layer shows); this much is left off-screen. */
@@ -47,7 +57,7 @@ function topFor(zoom: number, s: number, h: number): number {
 const ZOOM = 2;
 const ZOOM_FOCUS_Y = 470;
 
-export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera, cue, dragHint }: StreetProps) {
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera, cue, dragHint, companion, onCompanion }: StreetProps) {
   // the street moves: told once, a moment after arriving, gone at the first drag
   const [dragged, setDragged] = useState(false);
   const [hintShown, setHintShown] = useState(false);
@@ -76,6 +86,55 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   }, [ripple]);
   const onCam = useRef(onCamera);
   onCam.current = onCamera;
+  const onComp = useRef(onCompanion);
+  onComp.current = onCompanion;
+  const live_ = useRef(interactive);
+  live_.current = interactive;
+  // the companion's place is kept here and drawn straight onto its group (no re-render a frame)
+  const compEl = useRef<SVGGElement>(null);
+  const compX = useRef<number | null>(null);
+  useEffect(() => {
+    if (!companion) {
+      compX.current = null;
+      return;
+    }
+    compX.current ??= companion.from;
+    // stops already behind them (they walk leftwards) are not said again
+    const said = new Set(companion.stops.filter((st) => st.x >= compX.current!).map((st) => st.x));
+    let last = performance.now();
+    let waitUntil = 0;
+    let raf = 0;
+    const tick = (t: number) => {
+      const dt = Math.min(0.1, (t - last) / 1000);
+      last = t;
+      const x = compX.current!;
+      const viewL = cam.current ?? 0;
+      // with them or ahead of them: the left edge of the view is not past them
+      const together = viewL < x + 30;
+      const moving = live_.current && together && t >= waitUntil && x > companion.to;
+      let nx = x;
+      if (moving) {
+        nx = Math.max(companion.to, x - COMPANION_SPEED * dt);
+        const stop = companion.stops.find((st) => !said.has(st.x) && st.x < x && st.x >= nx);
+        if (stop) {
+          said.add(stop.x);
+          nx = stop.x;
+          waitUntil = t + 3500;
+          onComp.current?.({ say: stop.say });
+        }
+      }
+      compX.current = nx;
+      const el = compEl.current;
+      if (el) {
+        el.setAttribute('transform', `translate(${nx.toFixed(1)} 0)`);
+        el.dataset.moving = moving ? 'yes' : 'no';
+      }
+      if (nx <= companion.to) return onComp.current?.({ arrived: true });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [companion]);
   const box = useRef<HTMLDivElement>(null);
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const cam = useRef<number | null>(null); // left edge, scene units
@@ -385,6 +444,11 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
               .map((h) => ({ id: h.id, ...h.hitArea, reaction: AMBIENT_REACTION[h.targetId] }))}
             stopped={spots.filter((h) => h.walker && h.kind === 'ambient' && reacting.has(h.targetId)).map((h) => h.walker!)}
           />
+          {companion && (
+            <g ref={compEl} className="companion" data-walker="inkyo-walk" transform={`translate(${compX.current ?? companion.from} 0)`}>
+              <InkyoSprite />
+            </g>
+          )}
           {cueSpot && <ellipse key={`cue-${cue!.key}`} className="cue-ring" {...ringAt(cueSpot)} />}
           {ripple && <circle key={ripple.k} className="tap-ripple" cx={ripple.x} cy={ripple.y} r={16 / scale} />}
           {hoverSpot && <ellipse className="hover-ring" {...ringAt(hoverSpot)} />}
