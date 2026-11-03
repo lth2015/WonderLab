@@ -1,3 +1,4 @@
+import { TRACE_STROKES, tracePath } from './playStories';
 import type { CSSProperties } from 'react';
 
 export function Icon({ name, size = 22 }: { name: string; size?: number }) {
@@ -25,7 +26,9 @@ export function JournalArt({ kind, color = '#7b8069' }: { kind: string; color?: 
   return <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" className="journal-art" style={style} aria-hidden="true">
     <path d="M0 163Q120 126 320 154v46H0Z" fill="currentColor" opacity=".08"/>
     <g stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" strokeLinecap="round">
-      {kind === 'willow' ? <g><path d="M101 183q24-68 9-137m0 57-28-44m30 19 41-28" strokeWidth="5"/>{Array.from({length:15},(_,i)=><path key={i} d={`M${78+i*6} ${52+Math.sin(i)*10}q${40+i*3}-45 ${32+i*6} ${64+i%3*13}`} opacity=".6"/>)}<path d="M170 156q30-6 60 0m-65 11 39 0"/></g> :
+      {kind === 'trace' ? <g>{TRACE_STROKES.map(stroke=><path key={stroke.name} d={tracePath(stroke.points)} strokeWidth="2.5"/>)}<path d="M100 42q-9-6-22-7m84 68 20-15m-18 36 23-15m-69 46-19 16m76-20 24 13" opacity=".4"/></g> :
+      kind === 'breeze' ? <g><path d="M25 55 56 28h207l32 27ZM38 55h245M61 55v118m202-118v118M50 78h224"/><g className="breeze-sheet"><path d="m91 79-6 72q69 18 145-1l-8-71" fill="currentColor" fillOpacity=".06"/><path d="M97 74v18m121-18v18m-76 11q28 1 27 30m-2-18-11 8m-37 17q21-5 42-1"/></g><path d="M28 107q18-9 35 0m174 22q26-10 53-1"/><path d="M83 169h58m36 4h57" opacity=".5"/></g> :
+      kind === 'willow' ? <g><path d="M101 183q24-68 9-137m0 57-28-44m30 19 41-28" strokeWidth="5"/>{Array.from({length:15},(_,i)=><path key={i} d={`M${78+i*6} ${52+Math.sin(i)*10}q${40+i*3}-45 ${32+i*6} ${64+i%3*13}`} opacity=".6"/>)}<path d="M170 156q30-6 60 0m-65 11 39 0"/></g> :
       ['boat','landscape'].includes(kind) ? <g><path d="M49 143q100 29 223-12l-20 27q-113 26-193 1Zm91-8-2-109m-7 10q-50 38-56 83l60-9Zm8 2 53 66-50 5Z" fill="currentColor" fillOpacity=".12"/><path d="M48 170q89 20 213-4m-111 18 50-2m-121-61 49-8m-31-12 31-9m-17-10 19-7"/>{kind==='landscape'&&<path d="M12 124Q94 8 173 60t132 19m-290 58Q95 24 171 73t132 20" opacity=".4"/>}</g> :
       kind === 'bridge' || kind === 'bridge-crowd' ? <g><path d="M20 160Q147-10 300 148v15Q144 15 20 174Z" fill="currentColor" fillOpacity=".12"/><path d="M20 142Q147-28 300 130M20 132Q147-38 300 120"/>{Array.from({length:15},(_,i)=><path key={i} d={`M${20+i*20} ${132-138*(i/14)+126*(i/14)**2}v30`}/>)}<path d="M65 176h65m37 4h42m-65-19 47-2"/>{kind==='bridge-crowd'&&[0,1,2,3,4].map(i=><g key={i} transform={`translate(${74+i*38} ${108-Math.sin(i*.75)*36})`}><circle cy="-29" r="4" fill="currentColor" fillOpacity=".25"/><path d="M-3-24-8-6h15L3-24ZM-4-6l-3 10m10-10 3 10m-10-23-6 8m13-8 5 9"/></g>)}</g> :
       kind === 'purse' ? <g><path d="M122 49q-9-39 18-19l20 26q20-49 35-31t-23 34m-54 5q48 9 72-3l22 88q-46 38-103 1Zm11 8q30 7 49-1"/><path d="m132 93 19 29 23-30m-21 29-1 18m-6-32-14-2m29 1 15-3m-18 28 12-7m-19-12-12 5m-7 48-2 24m43-22 4 21"/><path d="M109 150q56 31 103-1" fill="currentColor" fillOpacity=".1"/></g> :

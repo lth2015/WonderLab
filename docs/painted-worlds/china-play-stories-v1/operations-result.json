@@ -1,0 +1,26 @@
+[
+  {
+    "url": "http://127.0.0.1:5199/",
+    "drag_does_not_open_person": true,
+    "modal_locks_pan_and_arrow_keys": true,
+    "viewport_rotation_retains_step": true,
+    "synthetic_visibility_pause_resume_retains_save": true,
+    "new_tab_and_refresh_retain_step": true,
+    "both_new_stories_finish": true,
+    "damaged_save_downloaded_before_replacement": true,
+    "page_errors": [],
+    "http_errors": []
+  },
+  {
+    "url": "http://127.0.0.1:5197/qingming/",
+    "drag_does_not_open_person": true,
+    "modal_locks_pan_and_arrow_keys": true,
+    "viewport_rotation_retains_step": true,
+    "synthetic_visibility_pause_resume_retains_save": true,
+    "new_tab_and_refresh_retain_step": true,
+    "both_new_stories_finish": true,
+    "damaged_save_downloaded_before_replacement": true,
+    "page_errors": [],
+    "http_errors": []
+  }
+]

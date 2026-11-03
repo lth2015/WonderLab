@@ -27,7 +27,7 @@ describe('故事与奖励',()=>{
   it('归错人无损失，仍然可以归还陈生',()=>{const s=run([...purse.slice(0,-1),{type:'RETURN_PURSE',who:'liu'}]);expect(s.progress.quests.purse.step).toBe(3);expect(s.wallet).toBe(60);expect(reduceGame(s,{type:'RETURN_PURSE',who:'chen'}).wallet).toBe(78);});
   it('配席失败不会解锁；正确配席可以重复玩而不刷文钱',()=>{const s=run([{type:'TEA',selections:[2,0]}]);expect(s.progress.tea).toBe(false);const next=run([{type:'TEA',selections:[0,2]},{type:'TEA',selections:[0,2]}],s);expect(next.journal).toEqual(['tea-seat']);expect(next.wallet).toBe(60);});
   it('师父只能评价实际拥有的画页；未相遇时不能凭空写小结',()=>{expect(run([{type:'FAVORITE',page:'purse'},{type:'DEPART'}]).journal).toEqual([]);expect(run([...paper,{type:'FAVORITE',page:'paper-hands'},{type:'DEPART'}]).journal).toEqual(['paper-hands','master','departure']);});
-  it('十五页都能通过真实事件解锁',()=>{const s=run([...countryside,...gate,...harbor,...paper,{type:'SKETCH',view:'boats'},{type:'SKETCH',view:'bridge'},...boat,{type:'REPLAY',quest:'boat'},...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'},...purse,{type:'TEA',selections:[0,2]},{type:'OBSERVE',id:'bell',page:'bridge'},{type:'OBSERVE',id:'willow',page:'willow'},{type:'OBSERVE',id:'brazier',page:'market'},{type:'FAVORITE',page:'purse'},{type:'DEPART'}]);expect(new Set(s.journal)).toEqual(new Set(PAGES.map(p=>p.id)));});
+  it('十七页都能通过真实事件解锁',()=>{const s=run([...countryside,...gate,...harbor,...paper,{type:'SKETCH',view:'boats'},{type:'SKETCH',view:'bridge'},...boat,{type:'REPLAY',quest:'boat'},...rope,{type:'TAG',tag:'tea'},{type:'BOAT_END',route:'observe'},...purse,{type:'TEA',selections:[0,2]},{type:'OBSERVE',id:'bell',page:'bridge'},{type:'OBSERVE',id:'willow',page:'willow'},{type:'OBSERVE',id:'brazier',page:'market'},{type:'FAVORITE',page:'purse'},{type:'DEPART'},{type:'TRACE_STROKE',stroke:0},{type:'TRACE_STROKE',stroke:1},{type:'TRACE_STROKE',stroke:2},{type:'TRACE_KEEP'},{type:'BREEZE_TALK'},{type:'BREEZE_HANG'},{type:'BREEZE_RELEASE',elapsed:3000},{type:'BREEZE_KEEP'}]);expect(new Set(s.journal)).toEqual(new Set(PAGES.map(p=>p.id)));});
 });
 describe('钱包与存档边界',()=>{
   it('只能以整数文消费，余额不会低于零',()=>{const s=run(Array.from({length:20},()=>({type:'BUY',item:'tea'})));expect(s.wallet).toBe(0);expect(s.progress.purchases).toHaveLength(10);});
@@ -104,7 +104,7 @@ describe('货港相遇与十三页兼容',()=>{
     const legacy=JSON.parse(JSON.stringify(run([...paper,...rope,{type:'TAG',tag:'tea'}])));
     legacy.saveVersion=1;delete legacy.progress.quests.harbor;delete legacy.progress.quests.gate;delete legacy.progress.quests.countryside;
     const raw=JSON.stringify(legacy),s=parseSave(raw);
-    expect(s.saveVersion).toBe(4);expect(s.wallet).toBe(72);expect(s.journal).toEqual(['paper-hands']);
+    expect(s.saveVersion).toBe(5);expect(s.wallet).toBe(72);expect(s.journal).toEqual(['paper-hands']);
     expect(s.progress.quests.boat.step).toBe(2);expect(s.progress.quests.harbor).toEqual({status:'unseen',step:0});
     expect(JSON.stringify(legacy)).toBe(raw);
   });
@@ -115,7 +115,7 @@ describe('货港相遇与十三页兼容',()=>{
   });
   it('新画页可给师父看并进入小结，扩页来源仍是可到达的货港入口',()=>{
     const s=run([...harbor,{type:'FAVORITE',page:'harbor-space'},{type:'DEPART'}]);
-    expect(s.progress.favorite).toBe('harbor-space');expect(s.journal).toEqual(['harbor-space','master','departure']);expect(PAGES).toHaveLength(15);
+    expect(s.progress.favorite).toBe('harbor-space');expect(s.journal).toEqual(['harbor-space','master','departure']);expect(PAGES).toHaveLength(17);
   });
 });
 
@@ -140,7 +140,7 @@ describe('城门路条与第十四页',()=>{
     const legacy=JSON.parse(JSON.stringify(run([...harbor,...paper,...rope,{type:'TAG',tag:'tea'},{type:'SETTINGS',settings:{largeText:true,ambience:.15}}])));
     legacy.saveVersion=2;delete legacy.progress.quests.gate;delete legacy.progress.quests.countryside;
     const raw=JSON.stringify(legacy),s=parseSave(raw);
-    expect(s.saveVersion).toBe(4);expect(s.progress.quests.gate).toEqual({status:'unseen',step:0});
+    expect(s.saveVersion).toBe(5);expect(s.progress.quests.gate).toEqual({status:'unseen',step:0});
     const {gate:_,countryside:__,...quests}=s.progress.quests;
     expect({...s,saveVersion:2,progress:{...s.progress,quests}}).toEqual(legacy);
     expect(JSON.stringify(legacy)).toBe(raw);
@@ -181,7 +181,7 @@ describe('乡野渡口与第十五页',()=>{
     const legacy=JSON.parse(JSON.stringify(run([...gate,...harbor,...paper,{type:'ROPE',rope:0,target:0},{type:'SETTINGS',settings:{timeChoice:'morning',largeText:true}}])));
     legacy.saveVersion=3;delete legacy.progress.quests.countryside;
     const raw=JSON.stringify(legacy),s=parseSave(raw);
-    expect(s.saveVersion).toBe(4);expect(s.progress.quests.countryside).toEqual({status:'unseen',step:0});
+    expect(s.saveVersion).toBe(5);expect(s.progress.quests.countryside).toEqual({status:'unseen',step:0});
     const {countryside:_,...quests}=s.progress.quests;
     expect({...s,saveVersion:3,progress:{...s.progress,quests}}).toEqual(legacy);expect(JSON.stringify(legacy)).toBe(raw);
   });

@@ -1,0 +1,65 @@
+{
+  "url": "http://127.0.0.1:5199/",
+  "wind_cases": [
+    {
+      "displayed_ms": 2490,
+      "clicked_ms": 2501,
+      "shown_at_click": "一阵风过 · 纸角在扬，先扶一扶",
+      "outcome": "miss",
+      "step": 2
+    },
+    {
+      "displayed_ms": 2500,
+      "clicked_ms": 2501,
+      "shown_at_click": "风轻了 · 纸角已平，可以松手",
+      "outcome": "caught",
+      "step": 4
+    },
+    {
+      "displayed_ms": 5490,
+      "clicked_ms": 5501,
+      "shown_at_click": "风轻了 · 纸角已平，可以松手",
+      "outcome": "caught",
+      "step": 4
+    },
+    {
+      "displayed_ms": 5499,
+      "clicked_ms": 5501,
+      "shown_at_click": "风轻了 · 纸角已平，可以松手",
+      "outcome": "caught",
+      "step": 4
+    },
+    {
+      "displayed_ms": 5500,
+      "clicked_ms": 5501,
+      "shown_at_click": "一阵风过 · 纸角在扬，先扶一扶",
+      "outcome": "miss",
+      "step": 2
+    },
+    {
+      "displayed_ms": 10490,
+      "clicked_ms": 10501,
+      "shown_at_click": "一阵风过 · 纸角在扬，先扶一扶",
+      "outcome": "miss",
+      "step": 2
+    },
+    {
+      "displayed_ms": 13490,
+      "clicked_ms": 13501,
+      "shown_at_click": "风轻了 · 纸角已平，可以松手",
+      "outcome": "caught",
+      "step": 4
+    }
+  ],
+  "touch": {
+    "input": "CDP touchStart/touchMove/touchEnd/touchCancel, 390x844 mobile emulation",
+    "cancel_does_not_commit": true,
+    "three_strokes_finish": true,
+    "reload_after_first_stroke_continues": true,
+    "one_page_only": true,
+    "wallet": 72,
+    "traced_events": 3
+  },
+  "page_errors": [],
+  "limits": "Headless Chromium touch emulation, not physical phone or Safari."
+}

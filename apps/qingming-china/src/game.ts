@@ -2,12 +2,13 @@ import { isSaveEnvelope, type QuestStatus } from '../../../packages/scroll-contr
 import type { TimeChoice } from './time';
 import { PAGES, type PageId, type CharacterId } from './content';
 
+import { windIsLight } from './playStories';
 import { SAVE_KEY } from './session';
 export { SAVE_KEY } from './session';
-export type QuestId = 'paper' | 'boat' | 'purse' | 'harbor' | 'gate' | 'countryside';
+export type QuestId = 'paper' | 'boat' | 'purse' | 'harbor' | 'gate' | 'countryside' | 'trace' | 'breeze';
 type Quest = { status: QuestStatus; step: number };
 export interface GameState {
-  schemaVersion: 1; worldId: 'qingming-china'; saveVersion: 4; updatedAt: string;
+  schemaVersion: 1; worldId: 'qingming-china'; saveVersion: 5; updatedAt: string;
   started: boolean; wallet: number; journal: PageId[]; claimed: QuestId[];
   progress: { quests: Record<QuestId, Quest>; ropes: number[]; clues: string[]; visited: CharacterId[]; tea: boolean; route: 'deliver' | 'observe' | null; favorite: PageId | null; purchases: string[]; observations: string[]; designs: Partial<Record<PageId, { close: boolean; decoration: string }>> };
   settings: { timeChoice?: TimeChoice; reduced: boolean; largeText: boolean; hints: boolean; sound: boolean; ambience: number; effects: number };
@@ -26,12 +27,15 @@ export type Action =
   | { type: 'GATE_WAIT'; place: 'eaves' | 'caravan' | 'wander' } | { type: 'GATE_SKETCH' }
   | { type: 'COUNTRYSIDE_TALK' } | { type: 'COUNTRYSIDE_SIGNAL'; signal: 'wave' | 'rush' | 'leave' }
   | { type: 'COUNTRYSIDE_BOARD'; plan: 'steady' | 'jump' | 'midriver' } | { type: 'COUNTRYSIDE_SKETCH' }
+  | { type: 'TRACE_STROKE'; stroke: number } | { type: 'TRACE_KEEP' }
+  | { type: 'BREEZE_TALK' } | { type: 'BREEZE_HANG' } | { type: 'BREEZE_RELEASE'; elapsed: number }
+  | { type: 'BREEZE_CLIP'; corner: 0 | 1 } | { type: 'BREEZE_KEEP' }
   | { type: 'DEPART' } | { type: 'BUY'; item: 'tea' | 'bookmark' }
   | { type: 'SETTINGS'; settings: Partial<GameState['settings']> } | { type: 'REPLAY'; quest: QuestId };
 
 export function initialState(): GameState {
-  return { schemaVersion: 1, worldId: 'qingming-china', saveVersion: 4, updatedAt: new Date().toISOString(), started: false,
-    wallet: 60, journal: [], claimed: [], progress: { quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 }, harbor: { status: 'unseen', step: 0 }, gate: { status: 'unseen', step: 0 }, countryside: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
+  return { schemaVersion: 1, worldId: 'qingming-china', saveVersion: 5, updatedAt: new Date().toISOString(), started: false,
+    wallet: 60, journal: [], claimed: [], progress: { quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 }, harbor: { status: 'unseen', step: 0 }, gate: { status: 'unseen', step: 0 }, countryside: { status: 'unseen', step: 0 }, trace: { status: 'unseen', step: 0 }, breeze: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
     settings: { timeChoice: 'auto', reduced: false, largeText: false, hints: true, sound: false, ambience: 0.3, effects: 0.4 } };
 }
 function addPage(s: GameState, id: PageId) { if (!s.journal.includes(id)) s.journal.push(id); }
@@ -82,6 +86,17 @@ export function reduceGame(state: GameState, action: Action): GameState {
     case 'COUNTRYSIDE_SIGNAL': if (q.countryside.step === 1 && action.signal === 'wave') q.countryside.step = 2; break;
     case 'COUNTRYSIDE_BOARD': if (q.countryside.step === 2 && action.plan === 'steady') { q.countryside.step = 3; q.countryside.status = 'ready'; } break;
     case 'COUNTRYSIDE_SKETCH': if (q.countryside.step === 3) { q.countryside.step = 4; complete(s, 'countryside', 0); addPage(s, 'ferry-neighbor'); } break;
+    case 'TRACE_STROKE': if (s.claimed.includes('paper') && q.trace.step < 3 && action.stroke === q.trace.step) {
+      q.trace.step++; q.trace.status = q.trace.step === 3 ? 'ready' : 'active';
+    } break;
+    case 'TRACE_KEEP': if (q.trace.step === 3) { q.trace.step = 4; complete(s, 'trace', 0); addPage(s, 'willow-trace'); } break;
+    case 'BREEZE_TALK': if (s.claimed.includes('paper') && q.breeze.step === 0) { q.breeze.step = 1; q.breeze.status = 'active'; } break;
+    case 'BREEZE_HANG': if (q.breeze.step === 1) q.breeze.step = 2; break;
+    case 'BREEZE_RELEASE': if (q.breeze.step === 2 && windIsLight(action.elapsed)) { q.breeze.step = 4; q.breeze.status = 'ready'; } break;
+    case 'BREEZE_CLIP': if ((q.breeze.step === 2 && action.corner === 0) || (q.breeze.step === 3 && action.corner === 1)) {
+      q.breeze.step++; if (q.breeze.step === 4) q.breeze.status = 'ready';
+    } break;
+    case 'BREEZE_KEEP': if (q.breeze.step === 4) { q.breeze.step = 5; complete(s, 'breeze', 0); addPage(s, 'paper-breeze'); } break;
     case 'TEA': if (action.selections[0] === 0 && action.selections[1] === 2) { p.tea = true; addPage(s, 'tea-seat'); } break;
     case 'OBSERVE': if (!p.observations.includes(action.id)) p.observations.push(action.id); if (action.page) addPage(s, action.page); break;
     case 'FAVORITE': if (s.journal.includes(action.page)) { p.favorite = action.page; addPage(s, 'master'); } break;
@@ -105,8 +120,8 @@ export function boatSummary(journal: readonly PageId[]): string {
   if(delivered)return '你理好绳索、认出货签，随阿成把新茶送到了何娘手里。';
   return '你理好绳索、认出货签，站在岸边看周伯与阿成接过这一船日常。';
 }
-const questIds: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate', 'countryside'];
-const questSteps: Record<QuestId,number> = { paper: 2, boat: 3, purse: 4, harbor: 4, gate: 4, countryside: 4 };
+const questIds: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate', 'countryside', 'trace', 'breeze'];
+const questSteps: Record<QuestId,number> = { paper: 2, boat: 3, purse: 4, harbor: 4, gate: 4, countryside: 4, trace: 4, breeze: 5 };
 const characterIds = ['liu', 'zhou', 'cheng', 'he', 'chen', 'shen'];
 const statuses = ['unseen', 'discovered', 'active', 'ready', 'complete', 'replay'];
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string');
@@ -135,7 +150,15 @@ export function parseSave(raw: string): GameState {
       v.progress.quests.countryside = { status: 'unseen', step: 0 };
     v.saveVersion = 4;
   }
-  if (!isSaveEnvelope(v, 'qingming-china') || v.saveVersion !== 4) throw new Error('这份存档不属于汴河拾光，或版本暂不支持。');
+  // v4 gains two untouched stories; no existing progress or ledger is rewritten.
+  if (v?.saveVersion === 4 && v?.worldId === 'qingming-china') {
+    for (const id of ['trace', 'breeze']) {
+      if (v.progress?.quests && typeof v.progress.quests === 'object' && !Object.hasOwn(v.progress.quests, id))
+        v.progress.quests[id] = { status: 'unseen', step: 0 };
+    }
+    v.saveVersion = 5;
+  }
+  if (!isSaveEnvelope(v, 'qingming-china') || v.saveVersion !== 5) throw new Error('这份存档不属于汴河拾光，或版本暂不支持。');
   const s = v as GameState;
   const p = s.progress;
   if (!Object.hasOwn(s.settings, 'timeChoice')) s.settings.timeChoice = 'auto';
@@ -154,7 +177,7 @@ export function parseSave(raw: string): GameState {
     throw new Error('存档内容不完整，原来的进度已保留。');
   }
   // Reject inconsistent completion ledgers, including saves that could reissue rewards.
-  if (new Set(s.claimed).size !== s.claimed.length || s.claimed.includes('harbor') !== s.journal.includes('harbor-space') || s.claimed.includes('gate') !== s.journal.includes('gate-meeting') || s.claimed.includes('countryside') !== s.journal.includes('ferry-neighbor') || !questIds.every(id => {
+  if (new Set(s.claimed).size !== s.claimed.length || s.claimed.includes('harbor') !== s.journal.includes('harbor-space') || s.claimed.includes('gate') !== s.journal.includes('gate-meeting') || s.claimed.includes('countryside') !== s.journal.includes('ferry-neighbor') || s.claimed.includes('trace') !== s.journal.includes('willow-trace') || s.claimed.includes('breeze') !== s.journal.includes('paper-breeze') || (['trace', 'breeze'] as const).some(id => (p.quests[id].step > 0 || s.claimed.includes(id)) && !s.claimed.includes('paper')) || !questIds.every(id => {
     const quest = p.quests[id]; const max = questSteps[id];
     return (quest.status !== 'complete' || (s.claimed.includes(id) && quest.step === max)) &&
       (quest.step !== max || (quest.status === 'complete' && s.claimed.includes(id))) &&
