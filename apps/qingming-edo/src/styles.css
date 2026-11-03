@@ -854,8 +854,14 @@ button[aria-pressed='true'] {
   color: var(--paper-2);
 }
 
-/* keep the toast clear of the close-up button */
+/* a passing note goes over the sky, not over the road where the people walk; when the
+   guide's hint already holds the top, it stays low, clear of the close-up button */
 .toast {
+  top: 12px;
+  bottom: auto;
+}
+.hint ~ .toast {
+  top: auto;
   bottom: 68px;
 }
 
