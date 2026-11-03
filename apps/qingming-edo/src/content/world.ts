@@ -580,7 +580,7 @@ export type SketchId = (typeof SKETCHES)[number]['id'];
 /**
  * なぞり描き (demo feedback 「交互太少」): before a sketch page is made, the player traces
  * two lines of the place with a finger — scene points along a roof, a hull, a trunk.
- * Read off the gridded crops of each sketch view (docs/painted-worlds/art/edo/trace-v1).
+ * Read off gridded crops of each sketch view (scene units).
  */
 export const TRACES: Record<string, { x: number; y: number }[][]> = {
   boat: [
