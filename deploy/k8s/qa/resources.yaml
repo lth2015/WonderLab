@@ -121,6 +121,10 @@ data:
   RUN_WORKER: "false"
   PUBLIC_WEB_URL: "https://want.world"
   PUBLIC_API_URL: "https://want.world"
+  # edo.want.world / qingming.want.world call /api/* through their own
+  # CloudFront origin back to this ALB; the browser's Origin header keeps the
+  # new domains, so they belong on this list (server/src/app.ts cors).
+  ALLOWED_ORIGINS: "https://edo.want.world,https://qingming.want.world"
   TOKENSTARS_MODEL_ID: "gemini-2.5-flash"
   DATABASE_SSL: "true"
   # Non-sensitive values are supplied through reviewed configuration. Secret
@@ -277,5 +281,18 @@ spec:
             backend:
               service:
                 name: wonderlab-gift
+                port:
+                  number: 80
+    # edo.want.world serves its pages from CloudFront/S3 (wonderlab-infra
+    # environments/qa/sites); only its /api/* reaches this ALB through the
+    # CloudFront origin, so the host rule routes it to the API.
+    - host: edo.want.world
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wonderlab-api
                 port:
                   number: 80
