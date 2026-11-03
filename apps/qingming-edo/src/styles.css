@@ -1387,6 +1387,18 @@ button.term[aria-expanded="true"] {
 .rm .idle {
   animation: none !important;
 }
+/* ご隠居の散歩: he sways a little while he walks, and stands still when he waits */
+.companion[data-moving='yes'] .companion-bob {
+  animation: companion-bob 1.1s ease-in-out infinite;
+}
+@keyframes companion-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.6px); }
+}
+.rm .companion-bob {
+  animation: none !important;
+}
+
 /* 茶店の猫: the cat leaping away from where it was */
 .neko-leave {
   animation: neko-leave 1.2s cubic-bezier(0.3, 0.1, 0.4, 1) forwards;

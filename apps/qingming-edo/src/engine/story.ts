@@ -37,7 +37,7 @@ export interface Nearby {
 const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
 /** The stories someone is waiting to ask about (not yet under way). */
-const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi', 'neko']);
+const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi', 'neko', 'inkyo']);
 
 /**
  * `here`: the scene x at the middle of the view. With five stories there are more
@@ -107,6 +107,13 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
     if (hasFlag(s, 'kashi_found')) out.push({ id: 'kashi-home', text: '亀吉を、おまつのところへ連れて帰る', spotId: 'h-kame-hidden' });
     else if (hasFlag(s, 'kashi_search')) out.push({ id: 'kashi-search', text: '亀吉を探す。舟の荷揚げを眺めるのが好きらしい', spotId: 'a-kashi-boats' });
     else out.push({ id: 'kashi', text: '橋の向こうの河岸で、おまつが誰かを呼んでいる', spotId: 'h-omatsu' });
+  }
+  // ご隠居の散歩: at noon, the old man of the towel; then the bench he is walking to
+  if (questState(s, 'tenugui') === 'complete' && questState(s, 'inkyo') !== 'complete') {
+    if (hasFlag(s, 'inkyo_arrived')) out.push({ id: 'inkyo-bench', text: 'ご隠居と、川端の縁台に着いた', spotId: 'h-inkyo-bench' });
+    else if (hasFlag(s, 'inkyo_walk')) out.push({ id: 'inkyo-walk', text: '町はずれの川端の縁台へ。ご隠居は、ゆっくりついてくる（急ぐと置いていってしまう）', spotId: 'a-bench' });
+    else if (timeOf(s) === 'noon') out.push({ id: 'inkyo', text: '杖をついたご隠居が、町はずれのほうを眺めている', spotId: 'h-inkyo' });
+    else out.push({ id: 'inkyo', text: '昼の通りで、手拭いのご隠居が何か言いたそうにしていた（上の時刻で「昼」に）', spotId: 'a-flowers' });
   }
   // 茶店の猫: where the cat went last (the hint says which way it ran)
   if (hasFlag(s, 'kisuke_seen_done') && questState(s, 'neko') !== 'complete') {

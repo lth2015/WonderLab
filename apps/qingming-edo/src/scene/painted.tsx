@@ -14,7 +14,7 @@ import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import { timeOf } from '../engine/time';
 import SIZES from '../assets/art/sizes.json';
-import { parseSketch, SCENE_W, type Reaction } from '../content/world';
+import { INKYO_BENCH, INKYO_WALK, parseSketch, SCENE_W, type Reaction } from '../content/world';
 
 const URLS = import.meta.glob('../assets/art/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
 const url = (name: string) => {
@@ -333,6 +333,8 @@ export interface Poses {
   lit: [boolean, boolean, boolean];
   /** 茶店の猫: where 喜助's cat is (null: away, or in the player's arms). */
   neko: NekoAt | null;
+  /** ご隠居の散歩: walking with the player (drawn by Street), or standing by the riverside bench. */
+  inkyo: 'walk' | 'bench' | null;
 }
 
 export function posesFor(s: SaveData): Poses {
@@ -358,6 +360,8 @@ export function posesFor(s: SaveData): Poses {
     fumi: kazeDone && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
     tod: timeOf(s),
     lit: [1, 2, 3].map((n) => hasFlag(s, `yube_lit${n}`)) as [boolean, boolean, boolean],
+    inkyo:
+      questState(s, 'inkyo') === 'complete' ? null : hasFlag(s, 'inkyo_arrived') ? 'bench' : hasFlag(s, 'inkyo_walk') ? 'walk' : null,
     neko:
       questState(s, 'neko') === 'complete'
         ? 'home'
@@ -415,6 +419,17 @@ function Neko({ at, sections }: { at: NekoAt | null; sections: [number, number] 
         </g>
       )}
     </>
+  );
+}
+
+/** ご隠居 is the elder passer-by: the same figure walks with the player (Street's companion). */
+export const INKYO_SPRITE: SpriteId = 'crowd2-elder';
+/** The walking ご隠居, drawn at x 0: Street moves the group along the road. */
+export function InkyoSprite() {
+  return (
+    <g className="companion-bob">
+      <Sprite id={INKYO_SPRITE} x={0} y={INKYO_WALK.y} />
+    </g>
   );
 }
 
@@ -497,7 +512,7 @@ export function PaintedStreet({ poses, sections, glints, stopped = [] }: Painted
       {PROPS.filter((c) => near(c.x, sections)).map((c) => (
         <Sprite key={`${c.id}-${c.x}`} {...c} />
       ))}
-      {CROWD.filter((c, i) => outAt(poses.tod, c.id, i) && (near(c.x, sections) || near(c.x + walkOf(c, i).dx, sections))).map((c) => {
+      {CROWD.filter((c, i) => outAt(poses.tod, c.id, i) && !(c.id === INKYO_SPRITE && poses.inkyo) && (near(c.x, sections) || near(c.x + walkOf(c, i).dx, sections))).map((c) => {
         const w = walkOf(c, CROWD.indexOf(c));
         // placement stays in attributes; only the inner groups are animated (lesson of #157)
         return (
@@ -526,6 +541,11 @@ export function PaintedStreet({ poses, sections, glints, stopped = [] }: Painted
       {poses.seita === 'press' && <LooseSheets />}
       {poses.fumi && <DroppedLetter />}
       <Neko at={poses.neko} sections={sections} />
+      {poses.inkyo === 'bench' && near(INKYO_BENCH.x, sections) && (
+        <Idle n={10}>
+          <Sprite id={INKYO_SPRITE} {...INKYO_BENCH} />
+        </Idle>
+      )}
       {poses.seita === 'bow' && (
         <Idle n={7}>
           <Sprite id="seita-bow" {...SPOTS.seitaKneel} />
@@ -651,6 +671,10 @@ export function PaintedPageScene({ composition }: { composition: string }) {
         }
       : composition === 'neko-boat'
       ? { x0: 5330, y0: 300, w: 270, people: [{ ...NEKO_AT[3] }] }
+      : composition === 'inkyo-listen'
+      ? { x0: 400, y0: 300, w: 300, people: [{ id: INKYO_SPRITE, ...INKYO_BENCH }] }
+      : composition === 'inkyo-quiet'
+      ? { x0: 250, y0: 120, w: 450, people: [{ id: INKYO_SPRITE, ...INKYO_BENCH }] }
       : composition === 'ai-vat'
       ? { x0: 3130, y0: 205, w: 300, people: [] }
       : composition === 'ai-cloth'
