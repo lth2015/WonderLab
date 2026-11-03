@@ -784,6 +784,67 @@ Object.assign(NODES, {
   },
 } satisfies Record<string, DialogueNode>);
 
+// 十頁目：ご隠居の散歩 (owner: 多开发内容; demo feedback 「人不能动」). The old man whose towel
+// came back asks to walk to the riverside bench his late wife loved. He follows the view at his
+// own slow pace (scene/Street.tsx companion): go ahead too fast and he is left behind.
+Object.assign(NODES, {
+  'inkyo.ask': {
+    effects: [{ type: 'questState', quest: 'inkyo', state: 'discovered' }],
+    lines: [
+      { by: 'inkyo', text: 'おや、あんたは……手拭いを見つけてくれた、絵師の見習いさんか。' },
+      { by: 'inkyo', text: 'あれが染めた手拭いが戻ってから、あれの好きだった場所へ行きたくなってな。町はずれの川端に、古い縁台がある。' },
+      { by: 'inkyo', text: 'だが、この足だ。……すまんが、ゆっくり付き合ってくれんか。' },
+    ],
+    choices: [
+      { label: 'いっしょに歩く', next: 'inkyo.go' },
+      { label: 'またにする', next: 'inkyo.later' },
+    ],
+  },
+  'inkyo.later': {
+    effects: [{ type: 'setFlag', flag: 'inkyo_declined' }],
+    lines: [{ by: 'inkyo', text: 'そうか。昼はたいてい、このあたりを歩いておる。' }],
+  },
+  'inkyo.go': {
+    effects: [{ type: 'setFlag', flag: 'inkyo_walk' }, { type: 'questState', quest: 'inkyo', state: 'active' }],
+    recallNext: 'inkyo.arrive',
+    lines: [{ by: 'narration', text: 'ご隠居は杖をついて、ゆっくり歩きだした。町はずれの川端へ、歩みを合わせて進もう。' }],
+  },
+  'inkyo.walking': {
+    brief: true,
+    lines: [{ by: 'narration', text: 'ご隠居「なに、ゆっくりでいい。わしの足に合わせてくれて、ありがたいよ」' }],
+  },
+  'inkyo.arrive': {
+    lines: [
+      { by: 'inkyo', text: '着いた着いた。……ああ、ここだ。' },
+      { by: 'narration', text: 'ご隠居は縁台のそばに立って、杖に両手をのせた。川風が、柳の枝を揺らしている。' },
+      { by: 'inkyo', text: 'あれとは、ここで川を見ながら、何も話さずに座っておったものだ。' },
+    ],
+    choices: [
+      { label: 'おかみさんの話を聞く', next: 'inkyo.listen' },
+      { label: '黙って、いっしょに川を見る', next: 'inkyo.quiet' },
+    ],
+  },
+  'inkyo.listen': {
+    effects: [{ type: 'setFlag', flag: 'inkyo_listen' }, ...questById.get('inkyo')!.completionEffects],
+    page: { pageId: 'p10-inkyo', compositionId: 'inkyo-listen' },
+    lines: [
+      { by: 'inkyo', text: 'あれは紺屋の娘でな。手拭いを染めるたびに、濃すぎた、薄すぎたと、ここでわしに見せたもんだ。' },
+      { by: 'narration', text: '話を聞きながら、ご隠居の横顔と縁台を描いた。' },
+      { by: 'inkyo', text: '……長話をしたな。ありがとうよ。帰りは一人で歩ける。' },
+      { by: 'narration', text: '絵巻帳に、十頁目が残った。' },
+    ],
+  },
+  'inkyo.quiet': {
+    effects: [{ type: 'setFlag', flag: 'inkyo_quiet' }, ...questById.get('inkyo')!.completionEffects],
+    page: { pageId: 'p10-inkyo', compositionId: 'inkyo-quiet' },
+    lines: [
+      { by: 'narration', text: '何も言わずに、並んで川を見た。柳の枝が、ときどき水面にふれる。' },
+      { by: 'inkyo', text: '……あれといたときも、こうだった。ありがとうよ。' },
+      { by: 'narration', text: '大きな柳と縁台と、ご隠居の背中を描いた。絵巻帳に、十頁目が残った。' },
+    ],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -869,6 +930,7 @@ export const RECALL_START: Record<string, string> = {
   ai: 'sokichi.ai.ask',
   hashi: 'sokichi.hashi.ask',
   neko: 'kisuke.neko.ask',
+  inkyo: 'inkyo.ask',
 };
 
 /** 橋のたもと can be asked for once the four people it gathers each have their page. */
@@ -970,6 +1032,11 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
   kamekichi: [
     { when: { quest: 'kashi', is: 'complete' }, node: 'kame.done' },
     { node: 'kame.found' },
+  ],
+  inkyo: [
+    { when: { all: [{ flag: 'inkyo_arrived' }, { not: { quest: 'inkyo', is: 'complete' } }] }, node: 'inkyo.arrive' },
+    { when: { all: [{ flag: 'inkyo_walk' }, { not: { quest: 'inkyo', is: 'complete' } }] }, node: 'inkyo.walking' },
+    { node: 'inkyo.ask' },
   ],
   neko1: [{ node: 'neko.hop1' }],
   neko2: [{ node: 'neko.hop2' }],

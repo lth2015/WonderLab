@@ -25,6 +25,7 @@ export const CHARACTERS: CharacterDef[] = [
   { ...fictionChar(), id: 'omatsu', sceneId: 'nihonbashi-kita', displayName: 'おまつ', scriptId: 'omatsu' },
   { ...fictionChar(), isChild: true, id: 'kamekichi', sceneId: 'nihonbashi-kita', displayName: '亀吉', scriptId: 'kamekichi' },
   { ...fictionChar(), id: 'ihei', sceneId: 'nihonbashi-kita', displayName: '伊兵衛', scriptId: 'ihei' },
+  { ...fictionChar(), id: 'inkyo', sceneId: 'nihonbashi-kita', displayName: 'ご隠居', scriptId: 'inkyo' },
 ];
 export const characterById = new Map(CHARACTERS.map((c) => [c.id, c]));
 
@@ -39,9 +40,21 @@ export const ROLES: Record<string, string> = {
   omatsu: '河岸の魚売り',
   kamekichi: 'おまつの孫',
   ihei: '両替屋の手代',
+  inkyo: '茶店の常連、手拭いの持ち主',
 };
 
 const notPressed = { not: { flag: 'paper_pressed' } };
+/** ご隠居の散歩: walking with the player, then arrived at the riverside bench (until the page is made). */
+const inkyoWalking: Condition = { all: [{ flag: 'inkyo_walk' }, { not: { flag: 'inkyo_arrived' } }, { not: { quest: 'inkyo', is: 'complete' } }] };
+const inkyoAtBench: Condition = { all: [{ flag: 'inkyo_arrived' }, { not: { quest: 'inkyo', is: 'complete' } }] };
+/** Where the walk with ご隠居 starts (his road at noon) and ends (beside the bench under the big willow). */
+export const INKYO_WALK = { from: 2300, y: 606 };
+export const INKYO_BENCH = { x: 545, y: 600 };
+/** On the way he stops twice, and says a word (scene x where he stops). */
+export const INKYO_STOPS: { x: number; say: string }[] = [
+  { x: 1950, say: 'ご隠居が梅の前で足を止めた。「ほころんできたな。あれは、この梅が咲くのを毎年待っておった」' },
+  { x: 1150, say: 'ご隠居が池をのぞきこんだ。「ここの鯉に麩をやるのが、あれの楽しみでな」' },
+];
 // 亀吉 hides by the boats while he is being looked for, then stands by おまつ
 const kameHidden: Condition = { all: [{ flag: 'kashi_search' }, { not: { quest: 'kashi', is: 'complete' } }] };
 const kameHome: Condition = { quest: 'kashi', is: 'complete' };
@@ -75,6 +88,10 @@ export const HOTSPOTS: HotspotDef[] = [
   // 母への文: the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
   { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
   { id: 'h-ihei', targetId: 'ihei', kind: 'character', anchor: { x: 8040, y: 565 }, hitArea: { x: 8023, y: 520, w: 34, h: 90 }, priority: 6, visibleWhen: iheiMet, walker: 'crowd1-merchant' },
+  // ご隠居の散歩: the elder passer-by (noon) once his towel is back; then walking with the player; then at the bench
+  { id: 'h-inkyo', targetId: 'inkyo', kind: 'character', anchor: { x: 2300, y: 565 }, hitArea: { x: 2280, y: 535, w: 40, h: 75 }, priority: 6, walker: 'crowd2-elder', visibleWhen: { all: [{ quest: 'tenugui', is: 'complete' }, { time: 'noon' }, { not: { flag: 'inkyo_walk' } }, { not: { quest: 'inkyo', is: 'complete' } }] } },
+  { id: 'h-inkyo-walk', targetId: 'inkyo', kind: 'character', anchor: { x: 2300, y: 565 }, hitArea: { x: 2280, y: 535, w: 40, h: 75 }, priority: 6, walker: 'inkyo-walk', visibleWhen: inkyoWalking },
+  { id: 'h-inkyo-bench', targetId: 'inkyo', kind: 'character', anchor: { x: INKYO_BENCH.x, y: INKYO_BENCH.y - 38 }, hitArea: { x: INKYO_BENCH.x - 20, y: INKYO_BENCH.y - 75, w: 40, h: 75 }, priority: 6, visibleWhen: inkyoAtBench },
   // 茶店の猫: 喜助's cat, at one place at a time while it is looked for, then home by the tea house
   { id: 'h-neko1', targetId: 'neko1', kind: 'prop', anchor: { x: 10610, y: 424 }, hitArea: { x: 10580, y: 400, w: 60, h: 44 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_look' }, { not: { flag: 'neko_hop1' } }, { not: { quest: 'neko', is: 'complete' } }] } },
   { id: 'h-neko2', targetId: 'neko2', kind: 'prop', anchor: { x: 7640, y: 465 }, hitArea: { x: 7610, y: 446, w: 60, h: 34 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_hop1' }, { not: { flag: 'neko_hop2' } }, { not: { quest: 'neko', is: 'complete' } }] } },
@@ -84,7 +101,7 @@ export const HOTSPOTS: HotspotDef[] = [
   // tapped, and stop for a moment. The area follows the walker as drawn (Street live()); the
   // static one is where each starts (scene/painted.tsx CROWD); who is out when matches outAt there.
   { id: 'a-pass-samurai', targetId: 'pass-samurai', kind: 'ambient', anchor: { x: 880, y: 567 }, hitArea: { x: 863, y: 522, w: 34, h: 90 }, priority: 4, walker: 'crowd2-samurai' },
-  { id: 'a-pass-elder', targetId: 'pass-elder', kind: 'ambient', anchor: { x: 2300, y: 565 }, hitArea: { x: 2283, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-elder', visibleWhen: { time: 'noon' } },
+  { id: 'a-pass-elder', targetId: 'pass-elder', kind: 'ambient', anchor: { x: 2300, y: 565 }, hitArea: { x: 2283, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-elder', visibleWhen: { all: [{ time: 'noon' }, { not: { all: [{ flag: 'inkyo_walk' }, { not: { quest: 'inkyo', is: 'complete' } }] } }] } },
   { id: 'a-pass-monk', targetId: 'pass-monk', kind: 'ambient', anchor: { x: 3750, y: 563 }, hitArea: { x: 3733, y: 518, w: 34, h: 90 }, priority: 4, walker: 'crowd1-monk' },
   { id: 'a-pass-fishmonger', targetId: 'pass-fishmonger', kind: 'ambient', anchor: { x: 5650, y: 565 }, hitArea: { x: 5633, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-fishmonger', visibleWhen: { not: { time: 'evening' } } },
   { id: 'a-pass-apprentice', targetId: 'pass-apprentice', kind: 'ambient', anchor: { x: 9550, y: 569 }, hitArea: { x: 9533, y: 524, w: 34, h: 90 }, priority: 4, walker: 'crowd2-apprentice', visibleWhen: { not: { time: 'evening' } } },
@@ -412,6 +429,21 @@ export const QUESTS: QuestDef[] = [
     replayPolicy: 'memory-only',
   },
   {
+    // 十頁目：ご隠居の散歩. Walk with the old man to the riverside bench, at his pace. No money.
+    id: 'inkyo',
+    prerequisites: [{ quest: 'tenugui', is: 'complete' }],
+    steps: [
+      { id: 'walk', doneWhen: { flag: 'inkyo_walk' } },
+      { id: 'arrive', doneWhen: { flag: 'inkyo_arrived' } },
+      { id: 'stay', doneWhen: { any: [{ flag: 'inkyo_listen' }, { flag: 'inkyo_quiet' }] } },
+    ],
+    completionEffects: [
+      { type: 'familiarity', characterId: 'inkyo', eventId: 'inkyo' },
+      { type: 'questState', quest: 'inkyo', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
+  {
     // 九頁目：茶店の猫. Follow 喜助's cat along the roll; at the moat, wait beside it.
     id: 'neko',
     prerequisites: [{ quest: 'tenugui', is: 'complete' }],
@@ -480,8 +512,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと and 茶店の猫
-export const PAGE_SLOTS = 24;
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと, 茶店の猫 and ご隠居の散歩
+export const PAGE_SLOTS = 26;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -502,6 +534,8 @@ export const PAGES: PageDef[] = [
   { id: 'p08-hashi-b', triggerId: 'hashi', compositionId: 'hashi-{with|side}', captionId: 'hashi', sourceRefs: [] },
   { id: 'p09-neko', triggerId: 'neko', compositionId: 'neko-{bench|boat}', captionId: 'neko', sourceRefs: [] },
   { id: 'p09-neko-b', triggerId: 'neko', compositionId: 'neko-{bench|boat}', captionId: 'neko', sourceRefs: [] },
+  { id: 'p10-inkyo', triggerId: 'inkyo', compositionId: 'inkyo-{listen|quiet}', captionId: 'inkyo', sourceRefs: [] },
+  { id: 'p10-inkyo-b', triggerId: 'inkyo', compositionId: 'inkyo-{listen|quiet}', captionId: 'inkyo', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -522,6 +556,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p08-hashi-b': '橋のたもと（もう一枚）',
   'p09-neko': '茶店の猫',
   'p09-neko-b': '茶店の猫（もう一枚）',
+  'p10-inkyo': 'ご隠居の散歩',
+  'p10-inkyo-b': 'ご隠居の散歩（もう一枚）',
 };
 
 /**
@@ -625,6 +661,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p07-ai' || pageId === 'p07-ai-b') return compositionId === 'ai-vat' || compositionId === 'ai-cloth';
   if (pageId === 'p08-hashi' || pageId === 'p08-hashi-b') return compositionId === 'hashi-with' || compositionId === 'hashi-side';
   if (pageId === 'p09-neko' || pageId === 'p09-neko-b') return compositionId === 'neko-bench' || compositionId === 'neko-boat';
+  if (pageId === 'p10-inkyo' || pageId === 'p10-inkyo-b') return compositionId === 'inkyo-listen' || compositionId === 'inkyo-quiet';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }

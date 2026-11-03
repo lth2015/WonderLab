@@ -498,7 +498,7 @@ describe('町の写生', () => {
     expect(nearby(newSave()).some((n) => n.id === 'sketches')).toBe(false);
     let s = done();
     // make room: the other stories are finished too
-    s = apply(s, [{ type: 'setFlag', flag: 'paper_pressed' }, ...['dougu', 'tenugui', 'fumi', 'kashi', 'hashi'].flatMap((q) => questById.get(q)!.completionEffects)]);
+    s = apply(s, [{ type: 'setFlag', flag: 'paper_pressed' }, ...['dougu', 'tenugui', 'fumi', 'kashi', 'hashi', 'inkyo'].flatMap((q) => questById.get(q)!.completionEffects)]);
     expect(nearby(s).find((n) => n.id === 'sketches')?.spotId).toBe('a-boat');
     s = addPage(s, { pageId: sketchPageId('boat'), compositionId: 'sketch-boat-noon', titleStyle: 'plain', madeAt: new Date().toISOString() });
     expect(nearby(s).find((n) => n.id === 'sketches')?.text).toContain('あと6か所');
@@ -808,7 +808,7 @@ describe('橋のたもと (invite four, draw everyone)', () => {
     const three = apply(afterKaze(), ['dougu', 'tenugui', 'kashi'].flatMap((q) => questById.get(q)!.completionEffects));
     expect(entryFor('sokichi', three)).not.toBe('sokichi.hashi.ask');
     expect(entryFor('sokichi', ready())).toBe('sokichi.hashi.ask');
-    expect(nearby(ready()).some((n) => n.id === 'hashi')).toBe(true);
+    expect(nearby(ready(), 12640).some((n) => n.id === 'hashi')).toBe(true);
   });
 
   it('each of the four is invited once, then 宗吉 gathers everyone', () => {
@@ -885,6 +885,48 @@ describe('茶店の猫 (follow the cat, wait beside it)', () => {
       expect(spot(s, 'h-nekohome')).toBe(true);
       expect(entryFor('kisuke', s)).toBe('kisuke.done3');
       expect(nearby(s).some((n) => n.id.startsWith('neko'))).toBe(false);
+    }
+  });
+});
+
+describe('ご隠居の散歩 (walk with him at his pace)', () => {
+  const at = (s: SaveData, t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+  const tenuguiDone = () => apply(afterKaze(), [...questById.get('tenugui')!.completionEffects]);
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('the elder passer-by can be asked at noon once his towel is back', () => {
+    expect(spot(at(afterKaze(), 'noon'), 'h-inkyo')).toBe(false);
+    expect(spot(at(tenuguiDone(), 'noon'), 'h-inkyo')).toBe(true);
+    expect(spot(at(tenuguiDone(), 'morning'), 'h-inkyo')).toBe(false);
+    expect(entryFor('inkyo', at(tenuguiDone(), 'noon'))).toBe('inkyo.ask');
+    expect(HOTSPOTS.find((h) => h.id === 'h-inkyo')?.walker).toBe('crowd2-elder');
+  });
+
+  it('while walking he is the companion, not the passer-by; a word to him is a note', () => {
+    let s = open(open(at(tenuguiDone(), 'noon'), 'inkyo.ask'), 'inkyo.go');
+    expect(spot(s, 'h-inkyo')).toBe(false);
+    expect(spot(s, 'a-pass-elder')).toBe(false);
+    expect(spot(s, 'h-inkyo-walk')).toBe(true);
+    expect(entryFor('inkyo', s)).toBe('inkyo.walking');
+    expect(NODES['inkyo.walking'].brief).toBe(true);
+    expect(nearby(s, 1500).find((n) => n.id === 'inkyo-walk')?.spotId).toBe('a-bench');
+    s = apply(s, [{ type: 'setFlag', flag: 'inkyo_arrived' }]);
+    expect(spot(s, 'h-inkyo-walk')).toBe(false);
+    expect(spot(s, 'h-inkyo-bench')).toBe(true);
+    expect(entryFor('inkyo', s)).toBe('inkyo.arrive');
+  });
+
+  it('either way of staying leaves its page, pays nothing, and he goes back to his walk', () => {
+    for (const [end, comp] of [['inkyo.listen', 'inkyo-listen'], ['inkyo.quiet', 'inkyo-quiet']] as const) {
+      let s = apply(open(open(at(tenuguiDone(), 'noon'), 'inkyo.ask'), 'inkyo.go'), [{ type: 'setFlag', flag: 'inkyo_arrived' }]);
+      const money = s.wallet.balanceMinor;
+      s = open(open(s, 'inkyo.arrive'), end);
+      expect(questState(s, 'inkyo')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money);
+      expect(s.journal.pages.find((p) => p.pageId === 'p10-inkyo')?.compositionId).toBe(comp);
+      expect(spot(s, 'h-inkyo-bench')).toBe(false);
+      expect(spot(s, 'a-pass-elder')).toBe(true);
+      expect(nearby(s, 1500).some((n) => n.id.startsWith('inkyo'))).toBe(false);
     }
   });
 });
