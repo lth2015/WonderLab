@@ -14,7 +14,8 @@ import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import { timeOf } from '../engine/time';
 import SIZES from '../assets/art/sizes.json';
-import { INKYO_BENCH, INKYO_WALK, parseSketch, SCENE_W, type Reaction } from '../content/world';
+import { CROWD as WORLD_CROWD, frameOf, INKYO_BENCH, INKYO_WALK, outAt, parseSketch, parseUgoki, SCENE_W, UGOKI_PEOPLE, walkOf, type Reaction } from '../content/world';
+export { outAt, walkOf };
 
 const URLS = import.meta.glob('../assets/art/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
 const url = (name: string) => {
@@ -68,18 +69,7 @@ export const SPOTS = {
  * into the street, and kept clear of the people the story is about. A fixed
  * pattern, so the street looks the same on every visit.
  */
-// Each silhouette appears once in the entire roll. Curated road positions
-// replace the old eight-sprite cycle (~40 copies at 300-unit intervals).
-export const CROWD: { id: SpriteId; x: number; y: number; flip: boolean }[] = [
-  { id: 'crowd2-samurai', x: 880, y: 612, flip: false },
-  { id: 'crowd2-elder', x: 2300, y: 610, flip: true },
-  { id: 'crowd1-monk', x: 3750, y: 608, flip: false },
-  { id: 'crowd2-fishmonger', x: 5650, y: 610, flip: true },
-  { id: 'crowd1-merchant', x: 8040, y: 610, flip: false },
-  { id: 'crowd2-apprentice', x: 9550, y: 614, flip: true },
-  { id: 'crowd1-parasol', x: 10780, y: 610, flip: false },
-  { id: 'crowd1-porter', x: 12300, y: 624, flip: true },
-];
+export const CROWD = WORLD_CROWD as { id: SpriteId; x: number; y: number; flip: boolean }[];
 
 /**
  * Roadside things in front of the painting. Some stand over a join where the
@@ -89,17 +79,6 @@ export const PROPS: { id: SpriteId; x: number; y: number; flip?: boolean }[] = [
   { id: 'props-cart', x: 3010, y: 640 }, // over the 11|12 join (unmirrored), curbs at two heights
 ];
 
-/**
- * 町が動く (owner's demo feedback: 「人不能动」): each passer-by strolls back and forth
- * along their own stretch of road, first the way they face (the art faces left unless
- * flipped), turning at each end. Slow on purpose: about 22 units a second.
- */
-export function walkOf(c: { x: number; flip: boolean }, i: number): { dx: number; dur: number; delay: number } {
-  const length = 300 + ((i * 47) % 130); // 300–430 units
-  const dx = c.flip ? length : -length;
-  const dur = (2 * length) / 22; // there and back
-  return { dx, dur, delay: -((i * 7.3) % dur) };
-}
 
 /**
  * The people of the stories are not cut-outs (owner's demo feedback: 「人不能动」): a slow
@@ -199,11 +178,6 @@ function StreetLamp({ x, y, painted, lit, glow }: { x: number; y: number; painte
   );
 }
 
-/** 朝 quieter, 昼 everyone, 夕 going home: who is out (the clerk of 母への文 always is). */
-export function outAt(tod: 'morning' | 'noon' | 'evening', id: string, i: number): boolean {
-  if (id === 'crowd1-merchant' || tod === 'noon') return true;
-  return tod === 'morning' ? i % 3 !== 1 : i % 2 === 0;
-}
 
 /** 夕: lamps lit in the shop fronts and the stone lantern (scene units, read off the painting). */
 const LAMPS: { x: number; y: number; r: number }[] = [
@@ -335,6 +309,8 @@ export interface Poses {
   neko: NekoAt | null;
   /** ご隠居の散歩: walking with the player (drawn by Street), or standing by the riverside bench. */
   inkyo: 'walk' | 'bench' | null;
+  /** 動く人を描く: the frames are drawn on the passers-by's ways while the lesson is on. */
+  frames: boolean;
 }
 
 export function posesFor(s: SaveData): Poses {
@@ -360,6 +336,7 @@ export function posesFor(s: SaveData): Poses {
     fumi: kazeDone && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
     tod: timeOf(s),
     lit: [1, 2, 3].map((n) => hasFlag(s, `yube_lit${n}`)) as [boolean, boolean, boolean],
+    frames: hasFlag(s, 'ugoki_look') && questState(s, 'ugoki') !== 'complete',
     inkyo:
       questState(s, 'inkyo') === 'complete' ? null : hasFlag(s, 'inkyo_arrived') ? 'bench' : hasFlag(s, 'inkyo_walk') ? 'walk' : null,
     neko:
@@ -500,6 +477,13 @@ export function PaintedStreet({ poses, sections, glints, stopped = [] }: Painted
       )}
 
       <AmbientLife sections={sections} />
+      {poses.frames &&
+        CROWD.map((c, i) => {
+          const f = frameOf(c.id);
+          if (!f || !outAt(poses.tod, c.id, i) || c.id === 'crowd1-merchant' || !near((f.lo + f.hi) / 2, sections)) return null;
+          if (!Object.values(UGOKI_PEOPLE).some((u) => u.walker === c.id)) return null;
+          return <rect key={`frame-${c.id}`} className="ugoki-frame" data-frame={c.id} x={f.lo} y={f.y - 104} width={f.hi - f.lo} height={112} rx={3} />;
+        })}
       <TimeOfDayLayer tod={poses.tod} sections={sections} />
       {STREET_LAMPS.map((l, i) => (near(l.x, sections) ? <StreetLamp key={i} {...l} lit={poses.lit[i] && poses.tod === 'evening'} glow={poses.tod === 'evening'} /> : null))}
       {glints.map((g) => (
@@ -675,6 +659,11 @@ export function PaintedPageScene({ composition }: { composition: string }) {
       ? { x0: 400, y0: 300, w: 300, people: [{ id: INKYO_SPRITE, ...INKYO_BENCH }] }
       : composition === 'inkyo-quiet'
       ? { x0: 250, y0: 120, w: 450, people: [{ id: INKYO_SPRITE, ...INKYO_BENCH }] }
+      : parseUgoki(composition)
+      ? (() => {
+          const u = parseUgoki(composition)!;
+          return { x0: u.x - 150, y0: u.walker.y - 300, w: 300, people: [{ id: u.walker.id as SpriteId, x: u.x, y: u.walker.y, flip: u.walker.flip }] };
+        })()
       : composition === 'ai-vat'
       ? { x0: 3130, y0: 205, w: 300, people: [] }
       : composition === 'ai-cloth'

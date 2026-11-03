@@ -39,7 +39,7 @@ export interface Nearby {
 const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
 /** The stories someone is waiting to ask about (not yet under way). */
-const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi', 'neko', 'inkyo']);
+const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi', 'neko', 'inkyo', 'ugoki']);
 
 /**
  * `here`: the scene x at the middle of the view. With five stories there are more
@@ -117,6 +117,12 @@ export function nearbyAll(s: SaveData, here?: number): Nearby[] {
     if (hasFlag(s, 'kashi_found')) out.push({ id: 'kashi-home', text: '亀吉を、おまつのところへ連れて帰る', spotId: 'h-kame-hidden' });
     else if (hasFlag(s, 'kashi_search')) out.push({ id: 'kashi-search', text: '亀吉を探す。舟の荷揚げを眺めるのが好きらしい', spotId: 'a-kashi-boats' });
     else out.push({ id: 'kashi', text: '橋の向こうの河岸で、おまつが誰かを呼んでいる', spotId: 'h-omatsu' });
+  }
+  // 動く人を描く: after the morning indigo; then the frames on the street
+  if (questState(s, 'ai') === 'complete' && questState(s, 'ugoki') !== 'complete') {
+    if (hasFlag(s, 'ugoki_look')) out.push({ id: 'ugoki-catch', text: '枠の中を歩く人を描く。枠に入った一瞬に、その人を点ける', spotId: 'a-pass-parasol' });
+    else if (timeOf(s) === 'morning') out.push({ id: 'ugoki', text: '宗吉が、通りを歩く人を目で追っている（上の時刻で「昼」か「夕」に）', spotId: 'h-sokichi', later: true });
+    else out.push({ id: 'ugoki', text: '宗吉が、通りを歩く人を目で追っている', spotId: 'h-sokichi' });
   }
   // ご隠居の散歩: at noon, the old man of the towel; then the bench he is walking to
   if (questState(s, 'tenugui') === 'complete' && questState(s, 'inkyo') !== 'complete') {
