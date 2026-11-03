@@ -1,9 +1,12 @@
 // 江戸編：新しい存档から十二の故事を全部、通りに触れずに終える（一覧・対話のボタン・
 // 上の時刻と晴雨・矢印キーだけ）。章の開き方、キーボードだけで遊べること、故事どうしの
 // つながりを一度に確かめる。手動で回す（CI では回さない）。
-//   node apps/qingming-edo/e2e/full-play.cjs <url>        例: http://localhost:4173/edo/
+//   node apps/qingming-edo/e2e/full-play.cjs <url> [save.json]   例: http://localhost:4173/edo/
+//   save.json を渡すと、終わったときの存档を書き出す（recall.cjs が続きに使う）。
 const { chromium } = require('playwright');
+const fs = require('fs');
 const URL = process.argv[2];
+const SAVE_OUT = process.argv[3];
 if (!URL) throw new Error('usage: node full-play.cjs <url>');
 
 (async () => {
@@ -277,6 +280,7 @@ if (!URL) throw new Error('usage: node full-play.cjs <url>');
   await done('hashi');
 
   const s = await save();
+  if (SAVE_OUT) fs.writeFileSync(SAVE_OUT, JSON.stringify(s));
   const left = Object.entries(s.progress.quests).filter(([, v]) => v !== 'complete');
   log(`all done: ${Object.keys(s.progress.quests).length} stories, not complete: ${left.map(([k]) => k).join(',') || 'none'}; pages ${s.journal.pages.length}; 文 ${s.wallet.balanceMinor}; page errors ${errs.length ? errs.join(' | ') : 'none'}`);
   await b.close();
