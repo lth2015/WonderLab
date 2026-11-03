@@ -842,3 +842,49 @@ describe('橋のたもと (invite four, draw everyone)', () => {
     }
   });
 });
+
+describe('茶店の猫 (follow the cat, wait beside it)', () => {
+  const tenuguiDone = () => apply(afterKaze(), [...questById.get('tenugui')!.completionEffects]);
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('喜助 asks on a later visit, after his thanks for the towel', () => {
+    expect(entryFor('kisuke', tenuguiDone())).not.toBe('kisuke.neko.ask');
+    const s = apply(tenuguiDone(), ON_CLOSE['kisuke.done3']);
+    expect(entryFor('kisuke', s)).toBe('kisuke.neko.ask');
+    expect(nearby(s, 11650).some((n) => n.id === 'neko')).toBe(true);
+  });
+
+  it('the cat is at one place at a time; a tap sends it on, with a note and no dialogue', () => {
+    let s = open(open(apply(tenuguiDone(), ON_CLOSE['kisuke.done3']), 'kisuke.neko.ask'), 'kisuke.neko.go');
+    const at = () => ['h-neko1', 'h-neko2', 'h-neko3', 'h-nekohome'].filter((id) => spot(s, id));
+    expect(at()).toEqual(['h-neko1']);
+    expect(NODES['neko.hop1'].brief).toBe(true);
+    s = open(s, entryFor('neko1', s)!);
+    expect(at()).toEqual(['h-neko2']);
+    expect(nearby(s).find((n) => n.id === 'neko-2')?.spotId).toBe('h-neko2');
+    s = open(s, entryFor('neko2', s)!);
+    expect(at()).toEqual(['h-neko3']);
+    // reaching for it changes nothing; waiting beside it does
+    s = open(s, 'neko.reach');
+    expect(at()).toEqual(['h-neko3']);
+    s = open(s, 'neko.wait');
+    expect(at()).toEqual([]);
+    expect(entryFor('kisuke', s)).toBe('kisuke.neko.back');
+  });
+
+  it('either picture pays 10文 once, leaves its page, and the cat stays by the tea house', () => {
+    for (const [end, comp] of [['neko.bench', 'neko-bench'], ['neko.boat', 'neko-boat']] as const) {
+      let s = open(open(apply(tenuguiDone(), ON_CLOSE['kisuke.done3']), 'kisuke.neko.ask'), 'kisuke.neko.go');
+      for (const n of ['neko.hop1', 'neko.hop2', 'neko.wait', 'kisuke.neko.back']) s = open(s, n);
+      const money = s.wallet.balanceMinor;
+      s = open(s, end);
+      expect(questState(s, 'neko')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money + 10);
+      expect(open(s, end).wallet.balanceMinor).toBe(money + 10);
+      expect(s.journal.pages.find((p) => p.pageId === 'p09-neko')?.compositionId).toBe(comp);
+      expect(spot(s, 'h-nekohome')).toBe(true);
+      expect(entryFor('kisuke', s)).toBe('kisuke.done3');
+      expect(nearby(s).some((n) => n.id.startsWith('neko'))).toBe(false);
+    }
+  });
+});

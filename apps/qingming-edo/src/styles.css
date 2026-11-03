@@ -1387,6 +1387,20 @@ button.term[aria-expanded="true"] {
 .rm .idle {
   animation: none !important;
 }
+/* 茶店の猫: the cat leaping away from where it was */
+.neko-leave {
+  animation: neko-leave 1.2s cubic-bezier(0.3, 0.1, 0.4, 1) forwards;
+}
+@keyframes neko-leave {
+  0% { transform: translate(0, 0); opacity: 1; }
+  30% { transform: translate(calc(var(--dx) * 0.3), -14px); opacity: 1; }
+  60% { transform: translate(calc(var(--dx) * 0.65), 0); opacity: 0.9; }
+  100% { transform: translate(var(--dx), 0); opacity: 0; }
+}
+.rm .neko-leave {
+  display: none;
+}
+
 /* while a dialogue, game or panel holds the screen, the passers-by wait too; one just spoken to stops a moment */
 .walker.stopped,
 .walker.stopped .walker-face,
