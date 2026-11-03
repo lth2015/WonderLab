@@ -131,7 +131,9 @@ export const ame: StoryModule = {
     kisuke: [
       { rank: 100, when: { all: [{ flag: 'ame_1' }, { flag: 'ame_2' }, { flag: 'ame_3' }, { not: { quest: 'ame', is: 'complete' } }] }, node: 'kisuke.ame.done' },
       { rank: 101, when: { all: [{ flag: 'ame_go' }, { not: { quest: 'ame', is: 'complete' } }] }, node: 'kisuke.ame.waiting' },
-      { rank: 102, when: { all: [{ rain: true }, { not: { quest: 'ame', is: 'complete' } }] }, node: 'kisuke.ame.ask' },
+      { rank: 102, when: { all: [{ not: { flag: 'ame_declined' } }, { rain: true }, { not: { quest: 'ame', is: 'complete' } }] }, node: 'kisuke.ame.ask' },
+      // put off once: asked again only after the other requests have had their turn
+      { rank: 360, when: { all: [{ rain: true }, { not: { quest: 'ame', is: 'complete' } }] }, node: 'kisuke.ame.ask' },
     ],
     ame1: [
       { rank: 100, when: { flag: 'ame_go' }, node: 'ame.give1' },

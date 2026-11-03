@@ -105,7 +105,9 @@ export const ai: StoryModule = {
     sokichi: [
       { rank: 100, when: { all: [{ flag: 'ai_seen1' }, { flag: 'ai_seen2' }, { flag: 'ai_seen3' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.found' },
       { rank: 101, when: { all: [{ flag: 'ai_look' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.waiting' },
-      { rank: 102, when: { all: [{ time: 'morning' }, { quest: 'kaze', is: 'complete' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.ask' },
+      { rank: 102, when: { all: [{ not: { flag: 'ai_declined' } }, { time: 'morning' }, { quest: 'kaze', is: 'complete' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.ask' },
+      // put off once: asked again only after the other requests have had their turn
+      { rank: 352, when: { all: [{ time: 'morning' }, { quest: 'kaze', is: 'complete' }, { not: { quest: 'ai', is: 'complete' } }] }, node: 'sokichi.ai.ask' },
     ],
     ai1: [{ rank: 100, node: 'ai.seen1' }],
     ai2: [{ rank: 100, node: 'ai.seen2' }],

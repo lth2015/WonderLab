@@ -71,3 +71,25 @@ describe('a story put off does not stand in the way of another', () => {
     expect(entryFor('sokichi', s)).toBe('sokichi.ugoki.ask');
   });
 });
+
+describe('喜助: a request put off goes to the back', () => {
+  it('turning down the rain lets the cat be asked in the rain; asked again after', () => {
+    let s = done(newSave(), 'kaze', 'dougu', 'tenugui', 'fumi', 'kashi', 'ai');
+    s = apply(s, [{ type: 'setFlag', flag: 'kisuke_seen_done' }]);
+    s = { ...at(s, 'noon'), settings: { ...at(s, 'noon').settings, rain: true } };
+    // chapter 4 (rain) is not open yet: open it
+    s = done(s, 'neko', 'yube');
+    s = apply(s, [{ type: 'questState', quest: 'neko', state: 'complete' }]);
+    expect(entryFor('kisuke', s)).toBe('kisuke.ame.ask');
+    s = apply(s, [{ type: 'setFlag', flag: 'ame_declined' }, { type: 'questState', quest: 'ame', state: 'discovered' }]);
+    expect(entryFor('kisuke', s)).toBe('kisuke.ame.ask'); // nothing else waits with him: asked again
+  });
+  it('with the cat still to come, turning down the umbrellas lets the cat be asked', () => {
+    let s = done(newSave(), 'kaze', 'dougu', 'tenugui', 'fumi', 'kashi', 'ai', 'yube', 'inkyo');
+    s = apply(s, [{ type: 'setFlag', flag: 'kisuke_seen_done' }, { type: 'setFlag', flag: 'ame_declined' }, { type: 'questState', quest: 'ame', state: 'discovered' }]);
+    s = { ...at(s, 'noon'), settings: { ...at(s, 'noon').settings, rain: true } };
+    expect(entryFor('kisuke', s)).toBe('kisuke.neko.ask');
+    s = done(s, 'neko');
+    expect(entryFor('kisuke', s)).toBe('kisuke.ame.ask');
+  });
+});
