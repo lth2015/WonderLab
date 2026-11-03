@@ -220,3 +220,16 @@
   .album-grid{gap:14px}
   .album-intro{margin-bottom:16px}
 }
+
+/* Two quiet paper-shop stories: the board has its own touch area; the page still scrolls. */
+.play-story-line{margin:1rem 0;padding:1rem 1.2rem;background:#7183690c;border-left:2px solid #a69b79;line-height:1.9}
+.play-story-actions{display:flex;flex-direction:column;gap:.8rem;margin:1rem 0}
+.play-story-actions .fine-print{margin:0}
+.trace-board{border:1px solid #b8aa8566;background:#f7f0df;border-radius:4px;overflow:hidden;margin:1rem 0}
+.trace-board svg{display:block;width:100%;height:auto;aspect-ratio:8/5;touch-action:none;user-select:none;cursor:crosshair}
+.breeze-picture{max-width:360px;margin:auto}
+.breeze-picture .breeze-sheet{transform-box:view-box;transform-origin:160px 79px;transition:transform .9s ease}
+.breeze-picture.gust .breeze-sheet{transform:skewX(-4deg) scaleY(.92)}
+.wind-status{margin:0;padding:.7rem 1rem;border-left:3px solid #aa8e64;background:#aa8e6410}
+.wind-status.light{border-color:#718369;background:#71836912}
+@media(prefers-reduced-motion:reduce){.breeze-picture .breeze-sheet{transition:none;transform:none}}

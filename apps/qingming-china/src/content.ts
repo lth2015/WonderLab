@@ -1,7 +1,7 @@
 import type { ScrollWorld } from '../../../packages/scroll-contracts';
 
 export const WORLD: ScrollWorld = {
-  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.5.0', defaultLocale: 'zh-CN',
+  schemaVersion: 1, worldId: 'qingming-china', contentVersion: '0.6.0', defaultLocale: 'zh-CN',
   scenes: [
     { id: 'bridge', bounds: { x: 0, y: 0, width: 1800, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'water' },
     { id: 'tea', bounds: { x: 1800, y: 0, width: 850, height: 1200 }, layers: ['painting', 'boats', 'characters', 'foreground'], hotspots: [], ambienceId: 'tea' },
@@ -34,6 +34,8 @@ export const PAGES = [
   { id: 'harbor-space', title: '半步相让', subtitle: '货港相遇', caption: '我和杜叔把空箩收在墙边，给后来的人留出一处落担的空地。码头上让出的半步，也能安放一肩辛苦。', art: 'harbor', color: '#7c8264' },
   { id: 'gate-meeting', title: '认得归路', subtitle: '城门有约', caption: '我陪阿芦读过阿姊留下的路条：穿过城门，认准绸缎铺，在铺前檐下等候。驼队会远去，约好的地方却不会。她把路条收好，也记住了回城门的方向。', art: 'gate', color: '#718377' },
   { id: 'ferry-neighbor', title: '这一程，不催', subtitle: '乡野渡口', caption: '我向田边挥手，告诉老邻居这一程船还在等。田伯稳好船，才迎他坐定；说起前年伤脚时，也是这位邻居替他照看菜畦。隔着一段水，人们仍记得彼此。', art: 'ferry', color: '#748271' },
+  { id: 'willow-trace', title: '柳下初笔', subtitle: '与沈砚学画', caption: '沈砚陪我看清垂枝、新叶与水纹，再一笔笔留在纸上。原来先看见枝叶的去处，手就不必赶着心走。', art: 'trace', color: '#718369' },
+  { id: 'paper-breeze', title: '借一阵风', subtitle: '与小柳晾画', caption: '我和小柳把新画挂到檐下，安顿好两边纸角。风从纸面轻轻经过，墨迹渐干；他终于能坐下来，看看自己照看了一天的春色。', art: 'breeze', color: '#8a7859' },
 ] as const;
 export const ENVIRONMENT = [
   { id: 'willow', x: 3400, y: 250, label: '拂一拂柳枝', text: '柳梢拂过水面，落下一点新绿。', page: 'willow' },

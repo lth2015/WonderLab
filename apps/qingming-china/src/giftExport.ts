@@ -38,7 +38,7 @@ export async function giftToPng(svg: SVGSVGElement): Promise<Blob> {
 const SCENES: Record<PageId,string> = {
   'paper-hands':'paper','paper-boats':'paper','paper-bridge':'paper','river-team':'bridge','river-delivery':'tea',
   'tea-seat':'tea',purse:'tea',bridge:'bridge',willow:'paper',market:'tea',master:'paper',departure:'bridge',
-  'harbor-space':'harbor','gate-meeting':'gate','ferry-neighbor':'fields',
+  'harbor-space':'harbor','gate-meeting':'gate','ferry-neighbor':'fields','willow-trace':'paper','paper-breeze':'paper',
 };
 /** New URL from the work's base, never the current query/hash or save data. */
 export function giftWorkLink(origin: string, base: string, page: PageId): string {
