@@ -189,6 +189,21 @@ export const AMBIENT_REACTION: Record<string, Reaction> = {
 };
 
 /** Short captions for ambient reactions; read aloud too (sound is optional, spec §13). */
+/** What each thing (not a person, not scenery) is called in the lists: the first page's papers, and the stories' things. */
+export const PROP_LABEL: Record<string, string> = {
+  papers: '青葉屋の店先の紙',
+  ...Object.assign({}, ...STORIES.map((s) => s.labels ?? {})),
+};
+
+/** A hotspot's name for the lists and the 'which one?' sheet: a person, a thing, or a part of the scene. */
+export function spotLabel(h: HotspotDef): string {
+  if (h.kind === 'character') {
+    const c = CHARACTERS.find((x) => x.id === h.targetId);
+    return c ? `${c.displayName}（${ROLES[h.targetId]}）` : h.targetId;
+  }
+  return (h.kind === 'ambient' ? AMBIENT_LABEL[h.targetId] : PROP_LABEL[h.targetId]) ?? h.targetId;
+}
+
 export const AMBIENT_LABEL: Record<string, string> = {
   'pass-samurai': '通りがかりの武士',
   'pass-elder': '杖をついたご隠居',

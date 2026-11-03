@@ -84,6 +84,7 @@ const nodes: Record<string, DialogueNode> = {
 export const ai: StoryModule = {
   quest,
   nodes,
+  labels: { ai1: 'くれ竹の藍の暖簾', ai2: '紺屋の藍甕', ai3: '干し場の藍の布' },
   hotspots: [
     // three indigo things along the roll (over the ambient spots, while looking)
     { id: 'h-ai1', targetId: 'ai1', kind: 'prop', anchor: { x: 12140, y: 387 }, hitArea: { x: 12000, y: 360, w: 280, h: 55 }, priority: 8, visibleWhen: aiToFind(1) },

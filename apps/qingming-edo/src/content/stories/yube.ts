@@ -100,6 +100,7 @@ const nodes: Record<string, DialogueNode> = {
 export const yube: StoryModule = {
   quest,
   nodes,
+  labels: { lamp1: '橋のたもとの石灯籠', lamp2: '米屋のそばの提灯', lamp3: '堀の河岸の提灯' },
   hotspots: [
     // the stone lantern by the bridge, and two street lamps (scene/painted.tsx STREET_LAMPS)
     { id: 'h-lamp1', targetId: 'lamp1', kind: 'prop', anchor: { x: 12745, y: 400 }, hitArea: { x: 12722, y: 350, w: 46, h: 110 }, priority: 8, visibleWhen: lampToLight(1) },

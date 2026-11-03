@@ -53,3 +53,21 @@ describe('章: stories open a batch at a time', () => {
     }
   });
 });
+
+describe('a story put off does not stand in the way of another', () => {
+  it('宗吉: turning down 橋のたもと lets 動く人を描く be asked, and the gathering is asked again after', () => {
+    let s = at(done(newSave(), 'kaze', 'dougu', 'tenugui', 'fumi', 'kashi', 'ai', 'yube', 'ame'), 'noon');
+    expect(entryFor('sokichi', s)).toBe('sokichi.hashi.ask');
+    s = apply(s, [{ type: 'setFlag', flag: 'hashi_declined' }, { type: 'questState', quest: 'hashi', state: 'discovered' }]);
+    expect(entryFor('sokichi', s)).toBe('sokichi.ugoki.ask');
+    s = done(s, 'ugoki');
+    expect(entryFor('sokichi', s)).toBe('sokichi.hashi.ask');
+  });
+  it('and the other way round', () => {
+    let s = at(done(newSave(), 'kaze', 'dougu', 'tenugui', 'fumi', 'kashi', 'ai', 'yube', 'ame'), 'noon');
+    s = apply(s, [{ type: 'setFlag', flag: 'ugoki_declined' }, { type: 'questState', quest: 'ugoki', state: 'discovered' }]);
+    expect(entryFor('sokichi', s)).toBe('sokichi.hashi.ask');
+    s = done(s, 'hashi');
+    expect(entryFor('sokichi', s)).toBe('sokichi.ugoki.ask');
+  });
+});

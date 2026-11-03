@@ -84,6 +84,7 @@ export const fumi: StoryModule = {
     { ...fictionChar(), id: 'ihei', sceneId: 'nihonbashi-kita', displayName: '伊兵衛', scriptId: 'ihei' },
   ],
   roles: { ihei: '両替屋の手代' },
+  labels: { fumi: '道に落ちている文' },
   hotspots: [
     // the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
     { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
