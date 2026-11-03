@@ -5,6 +5,7 @@ import { AMBIENT, AMBIENT_LABEL, ambientText, frameOf, GUIDE_STOPS, HOTSPOTS, UG
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearbyAll, visibleSpots } from './engine/story';
+import { openChapters } from './engine/chapters';
 import { rainOpen, raining, reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
 import { hasPlayableProgress, observeProgress, study } from './engine/study';
@@ -442,6 +443,14 @@ export function App() {
     },
     [commit, openNode],
   );
+  // 章: when a story's end opens the next batch, say so once the dialogue is closed (never on load)
+  const chapters = openChapters(save);
+  const shownChapters = useRef(chapters);
+  useEffect(() => {
+    if (busy || chapters <= shownChapters.current) return;
+    shownChapters.current = chapters;
+    setTimeout(() => setToast('町に、新しい頼みごとが増えたようだ。「近くのこと」をのぞいてみよう。'), 400);
+  }, [chapters, busy]);
   const tod = timeOf(save);
   useEffect(() => sound.setTime(tod), [tod]);
   const reached = reachedTimes(save);

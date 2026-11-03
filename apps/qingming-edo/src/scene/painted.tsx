@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import { raining, timeOf } from '../engine/time';
+import { questOpen } from '../engine/chapters';
 import SIZES from '../assets/art/sizes.json';
 import { CROWD as WORLD_CROWD, SHELTERS, frameOf, INKYO_BENCH, INKYO_WALK, outAt, parseSketch, parseUgoki, SCENE_W, UGOKI_PEOPLE, walkOf, type Reaction } from '../content/world';
 export { outAt, walkOf };
@@ -336,7 +337,7 @@ export function posesFor(s: SaveData): Poses {
       : hasFlag(s, 'kashi_search')
         ? { id: 'kame-hide', at: 'hide' }
         : null,
-    fumi: kazeDone && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
+    fumi: kazeDone && questOpen(s, 'fumi') && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
     tod: timeOf(s),
     lit: [1, 2, 3].map((n) => hasFlag(s, `yube_lit${n}`)) as [boolean, boolean, boolean],
     frames: hasFlag(s, 'ugoki_look') && questState(s, 'ugoki') !== 'complete' && !raining(s),

@@ -2,20 +2,27 @@ import type { HotspotDef, SaveData } from '../contract';
 import { ENTRIES, NODES } from '../content/script';
 import { HOTSPOTS, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from '../content/world';
 import { hasFlag, questState, test } from './state';
+import { questOpen } from './chapters';
+import { RECALL_START } from '../content/script';
 import { rainOpen, raining, timeOf } from './time';
 
 /** The node a person (or prop) opens with now. */
 export function entryFor(targetId: string, s: SaveData): string | null {
   const rules = ENTRIES[targetId];
   if (!rules) return null;
-  const node = rules.find((r) => test(s, r.when))?.node ?? null;
+  // a story's first step waits for its chapter (engine/chapters.ts)
+  const node = rules.find((r) => test(s, r.when) && !(STARTS[r.node] && !questOpen(s, STARTS[r.node])))?.node ?? null;
   // 朝・昼・夕: an everyday word may have its own version for the time shown (content/script.ts AT_TIME)
   const timed = node && `${node}@${timeOf(s)}`;
   return timed && NODES[timed] ? timed : node;
 }
 
+/** The node each story begins with → the story (from 回想's starting points). */
+const STARTS: Record<string, string> = Object.fromEntries(Object.entries(RECALL_START).map(([q, n]) => [n, q]));
+
 export function visibleSpots(s: SaveData): HotspotDef[] {
-  return HOTSPOTS.filter((h) => test(s, h.visibleWhen));
+  // a thing that would only start a story not yet open (the dropped letter, the elder's ask) is not there yet
+  return HOTSPOTS.filter((h) => test(s, h.visibleWhen) && (h.kind === 'ambient' || entryFor(h.targetId, s) !== null));
 }
 
 /** 回想可能 (spec §9): derived, never stored. */
@@ -166,6 +173,8 @@ export function nearbyAll(s: SaveData, here?: number): Nearby[] {
     const left = SKETCHES.filter((k) => !s.journal.pages.some((p) => p.pageId === sketchPageId(k.id)));
     if (left.length) out.push({ id: 'sketches', text: `町の景色を写す（あと${left.length}か所）。${left[0].title}`, spotId: `a-${left[0].spots[0]}` });
   }
+  // stories whose chapter is not open yet are not offered
+  for (let i = out.length - 1; i >= 0; i--) if (OFFERS.has(out[i].id) && !questOpen(s, out[i].id)) out.splice(i, 1);
   // under way first, then the offers, the sketches, and people not yet greeted
   const greeting = (n: Nearby) => GREETINGS.has(n.id);
   const offer = (n: Nearby) => OFFERS.has(n.id);
