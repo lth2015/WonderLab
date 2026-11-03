@@ -1,0 +1,27 @@
+{
+  "per_tile_added_delay_ms": 250,
+  "viewport": [
+    390,
+    844
+  ],
+  "runs": [
+    {
+      "variant": "before",
+      "seconds": 6.69,
+      "max_pending_tile_requests": 2,
+      "tile_requests": 20,
+      "sha256": "dbdf00f91753a55e0c6230edfc2076df6d95a6e0908434930b7823a1570bdf5a",
+      "page_errors": []
+    },
+    {
+      "variant": "after",
+      "seconds": 2.51,
+      "max_pending_tile_requests": 4,
+      "tile_requests": 20,
+      "sha256": "dbdf00f91753a55e0c6230edfc2076df6d95a6e0908434930b7823a1570bdf5a",
+      "page_errors": []
+    }
+  ],
+  "identical_output": true,
+  "limits": "Local headless simulation of per-request latency, not want.world timing or physical-device results."
+}
