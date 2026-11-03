@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, AMBIENT_LABEL, ambientText, GUIDE_STOPS, HOTSPOTS, INKYO_BENCH, INKYO_STOPS, INKYO_WALK, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
+import { AMBIENT, AMBIENT_LABEL, ambientText, frameOf, GUIDE_STOPS, HOTSPOTS, UGOKI_PEOPLE, INKYO_BENCH, INKYO_STOPS, INKYO_WALK, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearbyAll, visibleSpots } from './engine/story';
@@ -112,6 +112,8 @@ export function App() {
   const dismissedHint = useRef<string | null>(null);
   const street = useRef<StreetApi>(null);
   const inkyoFrom = useRef<number | null>(null);
+  /** 動く人を描く: who was caught and where (`parasol-10642`), for the page made next. */
+  const ugokiCatch = useRef<string | null>(null);
   const lastActivity = useRef(performance.now());
 
   const systemReduced = useSystemReducedMotion();
@@ -223,7 +225,7 @@ export function App() {
         return setDialogue(null);
       }
       // a node may leave a journal page: made once, kept even if the dialogue is closed early
-      if (n.page && !inRecall) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId.replace('{tod}', timeOf(next)), titleStyle: 'plain', madeAt: new Date().toISOString() });
+      if (n.page && !inRecall) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId.replace('{tod}', timeOf(next)).replace('{catch}', ugokiCatch.current ?? defaultCatch()), titleStyle: 'plain', madeAt: new Date().toISOString() });
       if (inRecall) {
         // a memory is not where the player stands: bring the speaker into view
         const who = linesOf(n, true).find((l) => l.by !== 'narration')?.by;
@@ -232,7 +234,7 @@ export function App() {
       }
       if (n.page && inRecall) {
         const before = next;
-        next = addRecallPage(next, n.page.pageId, n.page.compositionId);
+        next = addRecallPage(next, n.page.pageId, n.page.compositionId.replace('{catch}', defaultCatch()));
         if (next !== before) setToast('回想のなかで、もう一枚の頁が残った。');
       }
       if (next !== saveRef.current) setSave(next);
@@ -247,6 +249,19 @@ export function App() {
       setHint(null);
       // ご隠居の散歩: he sets off from where he was walking when asked (the tap's live place)
       if (spot.id === 'h-inkyo') inkyoFrom.current = spot.anchor.x;
+      // 動く人を描く: a passer-by tapped while the lesson is on — inside their frame, the page
+      if (spot.walker && hasFlag(saveRef.current, 'ugoki_look') && questState(saveRef.current, 'ugoki') !== 'complete') {
+        const key = Object.keys(UGOKI_PEOPLE).find((k) => UGOKI_PEOPLE[k].walker === spot.walker);
+        const f = key ? frameOf(spot.walker) : null;
+        if (key && f) {
+          sound.cue('tap');
+          if (spot.anchor.x >= f.lo && spot.anchor.x <= f.hi) {
+            ugokiCatch.current = `${key}-${Math.round(spot.anchor.x)}`;
+            return openNode('ugoki.caught');
+          }
+          return setToast('枠の外だ。その人が枠に入ったところで、もう一度。');
+        }
+      }
       if (spot.kind === 'ambient') {
         sound.cue('react');
         study.emit('first_interaction_completed', { interaction_id: 'observation', elapsed_ms: study.elapsed() }, 'first-interaction');
@@ -794,4 +809,8 @@ function linesOf(n: (typeof NODES)[string], inRecall: boolean) {
   return inRecall ? n.lines.filter((l) => !l.reward) : n.lines;
 }
 
-
+/** 動く人を描く in 回想 (nobody is caught there): the parasol girl in the middle of her frame. */
+function defaultCatch(): string {
+  const f = frameOf(UGOKI_PEOPLE.parasol.walker)!;
+  return `parasol-${Math.round((f.lo + f.hi) / 2)}`;
+}

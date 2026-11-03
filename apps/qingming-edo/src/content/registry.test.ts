@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createStudy } from '../engine/study';
 import { COMMENT, COMMENT_BY_COMPOSITION, PLACE, RECALL_NOTE } from './pageText';
 import { ENTRIES, NODES, RECALL_START } from './script';
-import { AMBIENT, AMBIENT_AT, AMBIENT_LABEL, AMBIENT_REACTION, ambientText, characterById, HOTSPOTS, PAGE_TITLES, PAGES, QUESTS, ROLES, SCENE, SCENE_W, SUBJECTS, validJournalEntry } from './world';
+import { frameOf, AMBIENT, AMBIENT_AT, AMBIENT_LABEL, AMBIENT_REACTION, ambientText, characterById, HOTSPOTS, PAGE_TITLES, PAGES, QUESTS, ROLES, SCENE, SCENE_W, SUBJECTS, validJournalEntry } from './world';
 import SIZES from '../assets/art/sizes.json';
 
 // 新しい場面・小話の登録 (roadmap #158 item 3): what adding a place or a story has to
@@ -30,9 +30,9 @@ describe('every page a story can leave can be drawn and read', () => {
   it('passes validJournalEntry, and has its place line and 宗吉 word', () => {
     expect(storyPages.length).toBeGreaterThan(0);
     for (const { pageId, compositionId } of storyPages) {
-      const c = compositionId.replace('{tod}', 'morning');
+      const c = compositionId.replace('{tod}', 'morning').replace('{catch}', 'parasol-' + Math.round((frameOf('crowd1-parasol')!.lo + frameOf('crowd1-parasol')!.hi) / 2));
       expect(validJournalEntry(pageId, c), `${pageId} ${c}`).toBe(true);
-      if (c.startsWith('sketch-') || c.startsWith('kaze-')) continue; // their words come from SKETCHES / the subject
+      if (c.startsWith('sketch-') || c.startsWith('kaze-') || c.startsWith('ugoki-')) continue; // their words come from SKETCHES / the subject / UGOKI_PEOPLE
       expect(PLACE[c], `PLACE ${c}`).toBeTruthy();
       expect(COMMENT_BY_COMPOSITION[c], `COMMENT_BY_COMPOSITION ${c}`).toBeTruthy();
     }

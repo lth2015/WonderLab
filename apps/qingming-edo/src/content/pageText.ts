@@ -59,4 +59,5 @@ export const RECALL_NOTE: Record<string, string> = {
   hashi: 'もう一つの描き方を選べば、別の一枚が残ります。',
   neko: 'もう一つの場面を描けば、別の頁が残ります。',
   inkyo: 'もう一つの過ごし方を選べば、別の頁が残ります。',
+  ugoki: '別の人を、別の一瞬で描けば、もう一枚の頁が残ります。',
 };

@@ -847,6 +847,45 @@ Object.assign(NODES, {
   },
 } satisfies Record<string, DialogueNode>);
 
+// 十一頁目：動く人を描く. After the morning indigo, 宗吉's second lesson: a frame on each
+// passer-by's way; tap one while they are inside it (App: the live place of the tap decides).
+Object.assign(NODES, {
+  'sokichi.ugoki.ask': {
+    effects: [{ type: 'questState', quest: 'ugoki', state: 'discovered' }],
+    lines: [
+      { by: 'sokichi', text: '止まっているものは、描けるようになったな。今度は、歩いている人を描け。' },
+      { by: 'sokichi', text: '通りの人の行き来に、枠を描いておく。誰でもいい。その人が枠に入った一瞬を、写し取れ。' },
+    ],
+    choices: [
+      { label: 'やってみる', next: 'sokichi.ugoki.go' },
+      { label: 'またにする', next: 'sokichi.ugoki.later' },
+    ],
+  },
+  'sokichi.ugoki.later': {
+    effects: [{ type: 'setFlag', flag: 'ugoki_declined' }],
+    lines: [{ by: 'sokichi', text: 'そうか。人は毎日歩いている。いつでもいい。' }],
+  },
+  'sokichi.ugoki.go': {
+    effects: [{ type: 'setFlag', flag: 'ugoki_look' }, { type: 'questState', quest: 'ugoki', state: 'active' }],
+    recallNext: 'ugoki.caught',
+    lines: [{ by: 'narration', text: '通りに、薄い枠が見える。歩く人がその中に入ったところで、その人を点けよう。' }],
+  },
+  'sokichi.ugoki.waiting': {
+    lines: [{ by: 'sokichi', text: '追いかけるな。枠のところで待っていれば、人のほうから入ってくる。' }],
+  },
+  'ugoki.caught': {
+    effects: [{ type: 'setFlag', flag: 'ugoki_caught' }, ...questById.get('ugoki')!.completionEffects],
+    page: { pageId: 'p11-ugoki', compositionId: 'ugoki-{catch}' },
+    lines: [
+      { by: 'narration', text: '枠の中を通り過ぎる一瞬を、急いで、しかし丁寧に写し取った。' },
+      { by: 'sokichi', text: '止まった絵の中で、人が歩いている。それが描ければ、町が描ける。……絵巻帳に、十一頁目が残ったな。' },
+    ],
+  },
+  'sokichi.ugoki.after': {
+    lines: [{ by: 'sokichi', text: '動くものは、目より先に手が覚える。毎日少しずつ描け。' }],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -863,7 +902,7 @@ for (const k of SKETCHES) {
 }
 
 // After a story, the person can be talked with a little more (即興のひとこと).
-for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again', 'omatsu.done', 'omatsu.done.watch', 'ihei.done.send', 'ihei.done.rewrite', 'sokichi.hashi.after']) {
+for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again', 'omatsu.done', 'omatsu.done.watch', 'ihei.done.send', 'ihei.done.rewrite', 'sokichi.hashi.after', 'sokichi.ugoki.after']) {
   NODES[id].choices = [{ label: '少し話す', talk: true }];
 }
 
@@ -933,6 +972,7 @@ export const RECALL_START: Record<string, string> = {
   hashi: 'sokichi.hashi.ask',
   neko: 'kisuke.neko.ask',
   inkyo: 'inkyo.ask',
+  ugoki: 'sokichi.ugoki.ask',
 };
 
 /** 橋のたもと can be asked for once the four people it gathers each have their page. */
@@ -957,9 +997,13 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { all: [{ flag: 'hashi_okon' }, { flag: 'hashi_kisuke' }, { flag: 'hashi_omatsu' }, { flag: 'hashi_ihei' }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.gather' },
     { when: { all: [{ flag: 'hashi_ask' }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.waiting' },
     { when: { all: [HASHI_READY, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.ask' },
+    // 動く人を描く: after the morning indigo
+    { when: { all: [{ flag: 'ugoki_look' }, { not: { quest: 'ugoki', is: 'complete' } }] }, node: 'sokichi.ugoki.waiting' },
+    { when: { all: [{ quest: 'ai', is: 'complete' }, { not: { quest: 'ugoki', is: 'complete' } }, { not: { time: 'morning' } }] }, node: 'sokichi.ugoki.ask' },
     { when: { flag: 'book_full' }, node: 'sokichi.full.again' },
     { when: { pagesAtLeast: PAGE_SLOTS }, node: 'sokichi.full' },
     { when: { quest: 'hashi', is: 'complete' }, node: 'sokichi.hashi.after' },
+    { when: { quest: 'ugoki', is: 'complete' }, node: 'sokichi.ugoki.after' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'sokichi.done' },
     { when: { flag: 'kaze_page' }, node: 'kaze.reward' },
     { when: { flag: 'paper_pressed' }, node: 'sokichi.ask' },

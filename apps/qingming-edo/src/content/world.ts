@@ -429,6 +429,20 @@ export const QUESTS: QuestDef[] = [
     replayPolicy: 'memory-only',
   },
   {
+    // 十一頁目：動く人を描く. 宗吉's second lesson: catch a walking person inside a frame. No money.
+    id: 'ugoki',
+    prerequisites: [{ quest: 'ai', is: 'complete' }],
+    steps: [
+      { id: 'look', doneWhen: { flag: 'ugoki_look' } },
+      { id: 'catch', doneWhen: { flag: 'ugoki_caught' } },
+    ],
+    completionEffects: [
+      { type: 'familiarity', characterId: 'sokichi', eventId: 'ugoki' },
+      { type: 'questState', quest: 'ugoki', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
+  {
     // 十頁目：ご隠居の散歩. Walk with the old man to the riverside bench, at his pace. No money.
     id: 'inkyo',
     prerequisites: [{ quest: 'tenugui', is: 'complete' }],
@@ -512,8 +526,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと, 茶店の猫 and ご隠居の散歩
-export const PAGE_SLOTS = 26;
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと, 茶店の猫, ご隠居の散歩 and 動く人を描く
+export const PAGE_SLOTS = 28;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -536,6 +550,8 @@ export const PAGES: PageDef[] = [
   { id: 'p09-neko-b', triggerId: 'neko', compositionId: 'neko-{bench|boat}', captionId: 'neko', sourceRefs: [] },
   { id: 'p10-inkyo', triggerId: 'inkyo', compositionId: 'inkyo-{listen|quiet}', captionId: 'inkyo', sourceRefs: [] },
   { id: 'p10-inkyo-b', triggerId: 'inkyo', compositionId: 'inkyo-{listen|quiet}', captionId: 'inkyo', sourceRefs: [] },
+  { id: 'p11-ugoki', triggerId: 'ugoki', compositionId: 'ugoki-{who}-{x}', captionId: 'ugoki', sourceRefs: [] },
+  { id: 'p11-ugoki-b', triggerId: 'ugoki', compositionId: 'ugoki-{who}-{x}', captionId: 'ugoki', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -558,6 +574,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p09-neko-b': '茶店の猫（もう一枚）',
   'p10-inkyo': 'ご隠居の散歩',
   'p10-inkyo-b': 'ご隠居の散歩（もう一枚）',
+  'p11-ugoki': '動く人を描く',
+  'p11-ugoki-b': '動く人を描く（もう一枚）',
 };
 
 /**
@@ -698,6 +716,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p08-hashi' || pageId === 'p08-hashi-b') return compositionId === 'hashi-with' || compositionId === 'hashi-side';
   if (pageId === 'p09-neko' || pageId === 'p09-neko-b') return compositionId === 'neko-bench' || compositionId === 'neko-boat';
   if (pageId === 'p10-inkyo' || pageId === 'p10-inkyo-b') return compositionId === 'inkyo-listen' || compositionId === 'inkyo-quiet';
+  if (pageId === 'p11-ugoki' || pageId === 'p11-ugoki-b') return parseUgoki(compositionId) !== null;
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }
@@ -723,3 +742,78 @@ export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[
   { id: 'garden', name: '水辺の庭', note: '池と庭木を眺める', x: 1120 },
   { id: 'end', name: '町はずれの川端', note: '柳の下の縁台でひと休み', x: 450 },
 ];
+
+// ---------------------------------------------------------------- passers-by
+
+/**
+ * Passers-by along the whole scroll (style decision #7), drawn by scene/painted.tsx and
+ * spoken to or sketched by the stories. A fixed pattern: the street looks the same on every visit.
+ */
+// Each silhouette appears once in the entire roll. Curated road positions
+// replace the old eight-sprite cycle (~40 copies at 300-unit intervals).
+export const CROWD: { id: string; x: number; y: number; flip: boolean }[] = [
+  { id: 'crowd2-samurai', x: 880, y: 612, flip: false },
+  { id: 'crowd2-elder', x: 2300, y: 610, flip: true },
+  { id: 'crowd1-monk', x: 3750, y: 608, flip: false },
+  { id: 'crowd2-fishmonger', x: 5650, y: 610, flip: true },
+  { id: 'crowd1-merchant', x: 8040, y: 610, flip: false },
+  { id: 'crowd2-apprentice', x: 9550, y: 614, flip: true },
+  { id: 'crowd1-parasol', x: 10780, y: 610, flip: false },
+  { id: 'crowd1-porter', x: 12300, y: 624, flip: true },
+];
+
+/**
+ * 町が動く (owner's demo feedback: 「人不能动」): each passer-by strolls back and forth
+ * along their own stretch of road, first the way they face (the art faces left unless
+ * flipped), turning at each end. Slow on purpose: about 22 units a second.
+ */
+export function walkOf(c: { x: number; flip: boolean }, i: number): { dx: number; dur: number; delay: number } {
+  const length = 300 + ((i * 47) % 130); // 300–430 units
+  const dx = c.flip ? length : -length;
+  const dur = (2 * length) / 22; // there and back
+  return { dx, dur, delay: -((i * 7.3) % dur) };
+}
+
+/** 朝 quieter, 昼 everyone, 夕 going home: who is out (the clerk of 母への文 always is). */
+export function outAt(tod: 'morning' | 'noon' | 'evening', id: string, i: number): boolean {
+  if (id === 'crowd1-merchant' || tod === 'noon') return true;
+  return tod === 'morning' ? i % 3 !== 1 : i % 2 === 0;
+}
+
+// ---------------------------------------------------------------- 動く人を描く
+
+/**
+ * 動く人を描く (eleventh story; demo feedback 「交互太少、人不能动」): 宗吉 draws a frame on
+ * the middle of each passer-by's stretch; the player taps the person in the moment they are
+ * inside it. The page shows who was caught, where they were.
+ */
+export const UGOKI_PEOPLE: Record<string, { walker: string; who: string; word: string }> = {
+  samurai: { walker: 'crowd2-samurai', who: '通りがかりの武士', word: '刀の重さで、肩が少し下がっている。歩く武士の癖まで描けた。' },
+  elder: { walker: 'crowd2-elder', who: '杖をついたご隠居', word: '杖と足が、三つで一歩だ。ゆっくりした拍子が、線に出ている。' },
+  monk: { walker: 'crowd1-monk', who: '托鉢の僧', word: '衣の裾が揺れている。歩みの静けさが、よく出た。' },
+  fishmonger: { walker: 'crowd2-fishmonger', who: '魚売り', word: '荷の重さで、体が前に出ている。急ぐ足の勢いがある。' },
+  apprentice: { walker: 'crowd2-apprentice', who: '使いの丁稚', word: '小走りの足が、地面から浮いている。いい一瞬を捕まえたな。' },
+  parasol: { walker: 'crowd1-parasol', who: '日傘の娘', word: '傘の傾きで、風と日差しの向きまで分かる。' },
+  porter: { walker: 'crowd1-porter', who: '荷を運ぶ人足', word: '担いだ荷の重さが、膝に出ている。働く体を、よく見た。' },
+};
+
+/** The frame on a passer-by's stretch: the middle third of where they walk (scene x). */
+export function frameOf(walker: string): { lo: number; hi: number; y: number } | null {
+  const i = CROWD.findIndex((c) => c.id === walker);
+  if (i < 0) return null;
+  const c = CROWD[i];
+  const end = c.x + walkOf(c, i).dx;
+  const a = Math.min(c.x, end);
+  const b = Math.max(c.x, end);
+  return { lo: Math.round(a + (b - a) * 0.35), hi: Math.round(a + (b - a) * 0.65), y: c.y };
+}
+
+/** `ugoki-parasol-10642`: who was caught, and at what scene x (inside their frame). */
+export function parseUgoki(compositionId: string): { key: string; x: number; walker: (typeof CROWD)[number] } | null {
+  const m = /^ugoki-([a-z]+)-(\d+)$/.exec(compositionId);
+  if (!m || !Object.hasOwn(UGOKI_PEOPLE, m[1])) return null;
+  const f = frameOf(UGOKI_PEOPLE[m[1]].walker);
+  const x = Number(m[2]);
+  if (!f || x < f.lo - 10 || x > f.hi + 10) return null;
+  return { key: m[1], x, walker: CROWD.find((c) => c.id === UGOKI_PEOPLE[m[1]].walker)! };
+}

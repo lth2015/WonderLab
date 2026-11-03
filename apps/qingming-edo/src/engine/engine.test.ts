@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
-import { characterById, GUIDE_STOPS, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
+import { characterById, frameOf, parseUgoki, UGOKI_PEOPLE, GUIDE_STOPS, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
@@ -938,5 +938,42 @@ describe('近くのこと with many stories', () => {
     expect(nearby(s, 12640)).toEqual(all.slice(0, 3));
     for (const id of ['hashi', 'yube', 'ai', 'inkyo', 'sketches']) expect(all.some((n) => n.id === id), id).toBe(true);
     expect(new Set(all.map((n) => n.id)).size).toBe(all.length);
+  });
+});
+
+describe('動く人を描く (catch a walking person inside a frame)', () => {
+  const at = (s: SaveData, t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+  const aiDone = () => apply(afterKaze(), [{ type: 'setFlag', flag: 'ai_vat' }, ...questById.get('ai')!.completionEffects]);
+
+  it('every passer-by has a frame in the middle of their way, wide enough to catch them', () => {
+    for (const [key, u] of Object.entries(UGOKI_PEOPLE)) {
+      const f = frameOf(u.walker)!;
+      expect(f, key).toBeTruthy();
+      expect(f.hi - f.lo, key).toBeGreaterThanOrEqual(90); // 22 units a second: four seconds inside
+      const mid = Math.round((f.lo + f.hi) / 2);
+      expect(parseUgoki(`ugoki-${key}-${mid}`)?.key).toBe(key);
+      expect(parseUgoki(`ugoki-${key}-${f.hi + 200}`), 'outside the frame is not a page').toBeNull();
+    }
+    expect(parseUgoki('ugoki-merchant-8000')).toBeNull();
+  });
+
+  it('宗吉 asks after the morning indigo (not in the morning), then waits', () => {
+    expect(entryFor('sokichi', at(afterKaze(), 'noon'))).not.toBe('sokichi.ugoki.ask');
+    expect(entryFor('sokichi', at(aiDone(), 'noon'))).toBe('sokichi.ugoki.ask');
+    expect(entryFor('sokichi', at(aiDone(), 'morning'))).not.toBe('sokichi.ugoki.ask');
+    const s = open(open(at(aiDone(), 'noon'), 'sokichi.ugoki.ask'), 'sokichi.ugoki.go');
+    expect(entryFor('sokichi', s)).toBe('sokichi.ugoki.waiting');
+    expect(nearby(s, 10780).some((n) => n.id === 'ugoki-catch')).toBe(true);
+  });
+
+  it('the catch leaves its page and 宗吉 remembers; no money', () => {
+    let s = open(open(at(aiDone(), 'noon'), 'sokichi.ugoki.ask'), 'sokichi.ugoki.go');
+    const money = s.wallet.balanceMinor;
+    s = apply(s, NODES['ugoki.caught'].effects!);
+    expect(questState(s, 'ugoki')).toBe('complete');
+    expect(s.wallet.balanceMinor).toBe(money);
+    expect(NODES['ugoki.caught'].page).toEqual({ pageId: 'p11-ugoki', compositionId: 'ugoki-{catch}' });
+    expect(s.progress.familiarity.sokichi?.events).toContain('ugoki');
+    expect(entryFor('sokichi', s)).not.toBe('sokichi.ugoki.waiting');
   });
 });

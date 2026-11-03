@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JournalEntry, SaveData } from '../contract';
-import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage, validJournalEntry } from '../content/world';
+import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage, validJournalEntry, parseUgoki, UGOKI_PEOPLE } from '../content/world';
 import { TIMES } from '../engine/time';
 import { study } from '../engine/study';
 import { replayable } from '../engine/story';
@@ -16,7 +16,8 @@ import { GIFT_KINDS, type GiftKind } from '../content/gift';
 function comment(entry: JournalEntry): string | null {
   const k = parseKaze(entry.compositionId);
   const sk = parseSketch(entry.compositionId);
-  return k ? COMMENT[k.subject] : sk ? sk.sketch.comment : (COMMENT_BY_COMPOSITION[entry.compositionId] ?? null);
+  const ug = parseUgoki(entry.compositionId);
+  return k ? COMMENT[k.subject] : sk ? sk.sketch.comment : ug ? UGOKI_PEOPLE[ug.key].word : (COMMENT_BY_COMPOSITION[entry.compositionId] ?? null);
 }
 const CREDIT = '清明上河図：江戸編';
 /** The one scene a link may name (spec §16): the work's address plus ?scene=nihonbashi, nothing else. */
@@ -32,7 +33,8 @@ function Page({ entry, idPrefix, note }: { entry: JournalEntry; idPrefix: string
   const common = { titleStyle: entry.titleStyle, title: PAGE_TITLES[entry.pageId], credit: CREDIT, idPrefix, note };
   if (k) return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={PLACE[entry.pageId]} {...common} />;
   const sk = parseSketch(entry.compositionId);
-  const place = sk ? `日本橋・${TIMES.find((t) => t.id === sk.tod)!.label}　${sk.sketch.place}` : PLACE[entry.compositionId];
+  const ug = parseUgoki(entry.compositionId);
+  const place = sk ? `日本橋・${TIMES.find((t) => t.id === sk.tod)!.label}　${sk.sketch.place}` : ug ? `日本橋　通りの往来　${UGOKI_PEOPLE[ug.key].who}` : PLACE[entry.compositionId];
   return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={place} {...common} />;
 }
 
