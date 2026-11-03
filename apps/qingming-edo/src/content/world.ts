@@ -1,5 +1,9 @@
-import type { CharacterDef, Condition, HotspotDef, ItemDef, PageDef, QuestDef, SceneDef, WorldDef } from '../contract';
+import type { CharacterDef, HotspotDef, ItemDef, PageDef, QuestDef, SceneDef, WorldDef } from '../contract';
 import { SCHEMA_VERSION, WORLD_ID } from '../contract';
+import { STORIES } from './stories';
+export { SHELTERS } from './stories/ame';
+export { INKYO_BENCH, INKYO_STOPS, INKYO_WALK } from './stories/inkyo';
+export { frameOf, parseUgoki, UGOKI_PEOPLE } from './stories/ugoki';
 
 // 日本橋北詰付近の創作街区 (spec §5, §8). Every shop, name, relation and event
 // here is fiction; none is presented as a shop seen in『熈代勝覧』.
@@ -22,10 +26,7 @@ export const CHARACTERS: CharacterDef[] = [
   { ...fictionChar(), id: 'kisuke', sceneId: 'nihonbashi-kita', displayName: '喜助', scriptId: 'kisuke' },
   { ...fictionChar(), id: 'kinji', sceneId: 'nihonbashi-kita', displayName: '金次', scriptId: 'kinji' },
   { ...fictionChar(), id: 'oharu', sceneId: 'nihonbashi-kita', displayName: 'お春', scriptId: 'oharu' },
-  { ...fictionChar(), id: 'omatsu', sceneId: 'nihonbashi-kita', displayName: 'おまつ', scriptId: 'omatsu' },
-  { ...fictionChar(), isChild: true, id: 'kamekichi', sceneId: 'nihonbashi-kita', displayName: '亀吉', scriptId: 'kamekichi' },
-  { ...fictionChar(), id: 'ihei', sceneId: 'nihonbashi-kita', displayName: '伊兵衛', scriptId: 'ihei' },
-  { ...fictionChar(), id: 'inkyo', sceneId: 'nihonbashi-kita', displayName: 'ご隠居', scriptId: 'inkyo' },
+  ...STORIES.flatMap((s) => s.characters ?? []),
 ];
 export const characterById = new Map(CHARACTERS.map((c) => [c.id, c]));
 
@@ -37,40 +38,14 @@ export const ROLES: Record<string, string> = {
   kisuke: '茶店「喜の字」の主人',
   kinji: '振売り',
   oharu: '町の使い',
-  omatsu: '河岸の魚売り',
-  kamekichi: 'おまつの孫',
-  ihei: '両替屋の手代',
-  inkyo: '茶店の常連、手拭いの持ち主',
+  ...Object.assign({}, ...STORIES.map((s) => s.roles ?? {})),
 };
 
 const notPressed = { not: { flag: 'paper_pressed' } };
-/** 雨宿り: who waits under which eaves in the rain (feet, scene units), read off the painting. */
-export const SHELTERS: { walker: string; x: number; y: number; flip?: boolean; place: string }[] = [
-  { walker: 'crowd2-samurai', x: 9560, y: 522, place: '呉服屋の軒下' },
-  { walker: 'crowd2-fishmonger', x: 7560, y: 505, flip: true, place: '米屋の軒先' },
-  { walker: 'crowd2-apprentice', x: 4460, y: 492, place: '瀬戸物屋の軒下' },
-];
-/** ご隠居の散歩: walking with the player, then arrived at the riverside bench (until the page is made). */
-const inkyoWalking: Condition = { all: [{ flag: 'inkyo_walk' }, { not: { flag: 'inkyo_arrived' } }, { not: { quest: 'inkyo', is: 'complete' } }] };
-const inkyoAtBench: Condition = { all: [{ flag: 'inkyo_arrived' }, { not: { quest: 'inkyo', is: 'complete' } }] };
-/** Where the walk with ご隠居 starts (his road at noon) and ends (beside the bench under the big willow). */
-export const INKYO_WALK = { from: 2300, y: 606 };
-export const INKYO_BENCH = { x: 545, y: 600 };
-/** On the way he stops twice, and says a word (scene x where he stops). */
-export const INKYO_STOPS: { x: number; say: string }[] = [
-  { x: 1950, say: 'ご隠居が梅の前で足を止めた。「ほころんできたな。あれは、この梅が咲くのを毎年待っておった」' },
-  { x: 1150, say: 'ご隠居が池をのぞきこんだ。「ここの鯉に麩をやるのが、あれの楽しみでな」' },
-];
 // 亀吉 hides by the boats while he is being looked for, then stands by おまつ
-const kameHidden: Condition = { all: [{ flag: 'kashi_search' }, { not: { quest: 'kashi', is: 'complete' } }] };
-const kameHome: Condition = { quest: 'kashi', is: 'complete' };
 // 母への文: the letter lies on the road once 風のいたずら is done; 伊兵衛 can be caught while it is carried
-const letterOnRoad: Condition = { all: [{ quest: 'kaze', is: 'complete' }, { not: { flag: 'fumi_carry' } }, { not: { quest: 'fumi', is: 'complete' } }] };
-const iheiMet: Condition = { any: [{ flag: 'fumi_carry' }, { quest: 'fumi', is: 'complete' }] };
 // 夕暮れの灯: a lamp can be lit while the flame is carried, in the evening, until it is lit
 // 朝の藍: an indigo thing can be found while looking, in the morning, until it is found
-const aiToFind = (n: number): Condition => ({ all: [{ flag: 'ai_look' }, { time: 'morning' }, { not: { flag: `ai_seen${n}` } }] });
-const lampToLight = (n: number): Condition => ({ all: [{ flag: 'yube_fire' }, { time: 'evening' }, { not: { flag: `yube_lit${n}` } }] });
 
 // Read off the gridded painting (docs/painted-worlds/art/edo/README.md); people
 // stand where scene/painted.tsx SPOTS puts their feet.
@@ -82,37 +57,11 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'h-kisuke', targetId: 'kisuke', kind: 'character', anchor: { x: 11650, y: 500 }, hitArea: { x: 11628, y: 452, w: 44, h: 94 }, priority: 5 },
   { id: 'h-oharu', targetId: 'oharu', kind: 'character', anchor: { x: 11400, y: 535 }, hitArea: { x: 11380, y: 488, w: 40, h: 94 }, priority: 5 },
   { id: 'h-kinji', targetId: 'kinji', kind: 'character', anchor: { x: 7480, y: 525 }, hitArea: { x: 7452, y: 480, w: 56, h: 92 }, priority: 5 },
-  // 河岸の朝 (across the bridge): placed on the painted quay — see KASHI in scene/painted.tsx
-  { id: 'h-omatsu', targetId: 'omatsu', kind: 'character', anchor: { x: 14700, y: 412 }, hitArea: { x: 14676, y: 372, w: 48, h: 80 }, priority: 5 },
-  { id: 'h-kame-hidden', targetId: 'kamekichi', kind: 'character', anchor: { x: 15482, y: 452 }, hitArea: { x: 15466, y: 436, w: 32, h: 34 }, priority: 6, visibleWhen: kameHidden },
-  { id: 'h-kame', targetId: 'kamekichi', kind: 'character', anchor: { x: 14748, y: 426 }, hitArea: { x: 14736, y: 400, w: 26, h: 54 }, priority: 6, visibleWhen: kameHome },
   { id: 'a-kashi-willow', targetId: 'kashi-willow', kind: 'ambient', anchor: { x: 14300, y: 240 }, hitArea: { x: 14230, y: 120, w: 150, h: 230 }, priority: 1 },
   { id: 'a-kashi-steps', targetId: 'kashi-steps', kind: 'ambient', anchor: { x: 14310, y: 465 }, hitArea: { x: 14220, y: 410, w: 190, h: 110 }, priority: 2 },
   { id: 'a-kashi-baskets', targetId: 'kashi-baskets', kind: 'ambient', anchor: { x: 14860, y: 395 }, hitArea: { x: 14780, y: 350, w: 170, h: 70 }, priority: 2 },
   { id: 'a-kashi-boats', targetId: 'kashi-boats', kind: 'ambient', anchor: { x: 15150, y: 540 }, hitArea: { x: 14950, y: 500, w: 420, h: 90 }, priority: 2 },
   { id: 'a-kashi-reeds', targetId: 'kashi-reeds', kind: 'ambient', anchor: { x: 15830, y: 440 }, hitArea: { x: 15740, y: 380, w: 180, h: 110 }, priority: 1 },
-  // 母への文: the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
-  { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
-  { id: 'h-ihei', targetId: 'ihei', kind: 'character', anchor: { x: 8040, y: 565 }, hitArea: { x: 8023, y: 520, w: 34, h: 90 }, priority: 6, visibleWhen: iheiMet, walker: 'crowd1-merchant' },
-  // 雨宿り: in the rain three people wait under the eaves, until an umbrella reaches them
-  ...SHELTERS.map((p, i) => ({
-    id: `h-ame${i + 1}`,
-    targetId: `ame${i + 1}`,
-    kind: 'prop' as const,
-    anchor: { x: p.x, y: p.y - 40 },
-    hitArea: { x: p.x - 22, y: p.y - 86, w: 44, h: 88 },
-    priority: 6,
-    visibleWhen: { all: [{ rain: true }, { not: { flag: `ame_${i + 1}` } }, { not: { quest: 'ame', is: 'complete' } }] } as Condition,
-  })),
-  // ご隠居の散歩: the elder passer-by (noon) once his towel is back; then walking with the player; then at the bench
-  { id: 'h-inkyo', targetId: 'inkyo', kind: 'character', anchor: { x: 2300, y: 565 }, hitArea: { x: 2280, y: 535, w: 40, h: 75 }, priority: 6, walker: 'crowd2-elder', visibleWhen: { all: [{ rain: false }, { quest: 'tenugui', is: 'complete' }, { time: 'noon' }, { not: { flag: 'inkyo_walk' } }, { not: { quest: 'inkyo', is: 'complete' } }] } },
-  { id: 'h-inkyo-walk', targetId: 'inkyo', kind: 'character', anchor: { x: 2300, y: 565 }, hitArea: { x: 2280, y: 535, w: 40, h: 75 }, priority: 6, walker: 'inkyo-walk', visibleWhen: inkyoWalking },
-  { id: 'h-inkyo-bench', targetId: 'inkyo', kind: 'character', anchor: { x: INKYO_BENCH.x, y: INKYO_BENCH.y - 38 }, hitArea: { x: INKYO_BENCH.x - 20, y: INKYO_BENCH.y - 75, w: 40, h: 75 }, priority: 6, visibleWhen: inkyoAtBench },
-  // 茶店の猫: 喜助's cat, at one place at a time while it is looked for, then home by the tea house
-  { id: 'h-neko1', targetId: 'neko1', kind: 'prop', anchor: { x: 10610, y: 424 }, hitArea: { x: 10580, y: 400, w: 60, h: 44 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_look' }, { not: { flag: 'neko_hop1' } }, { not: { quest: 'neko', is: 'complete' } }] } },
-  { id: 'h-neko2', targetId: 'neko2', kind: 'prop', anchor: { x: 7640, y: 465 }, hitArea: { x: 7610, y: 446, w: 60, h: 34 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_hop1' }, { not: { flag: 'neko_hop2' } }, { not: { quest: 'neko', is: 'complete' } }] } },
-  { id: 'h-neko3', targetId: 'neko3', kind: 'prop', anchor: { x: 5468, y: 471 }, hitArea: { x: 5438, y: 446, w: 60, h: 44 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_hop2' }, { not: { flag: 'neko_caught' } }, { not: { quest: 'neko', is: 'complete' } }] } },
-  { id: 'h-nekohome', targetId: 'nekohome', kind: 'prop', anchor: { x: 11700, y: 542 }, hitArea: { x: 11678, y: 528, w: 46, h: 26 }, priority: 4, visibleWhen: { quest: 'neko', is: 'complete' } },
   // 通りすがりの人 (demo feedback 「交互太少、人不能动」): the walking passers-by say a word when
   // tapped, and stop for a moment. The area follows the walker as drawn (Street live()); the
   // static one is where each starts (scene/painted.tsx CROWD); who is out when matches outAt there.
@@ -123,14 +72,6 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'a-pass-apprentice', targetId: 'pass-apprentice', kind: 'ambient', anchor: { x: 9550, y: 569 }, hitArea: { x: 9533, y: 524, w: 34, h: 90 }, priority: 4, walker: 'crowd2-apprentice', visibleWhen: { all: [{ rain: false }, { not: { time: 'evening' } }] } },
   { id: 'a-pass-parasol', targetId: 'pass-parasol', kind: 'ambient', anchor: { x: 10780, y: 565 }, hitArea: { x: 10763, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd1-parasol', visibleWhen: { rain: false } },
   { id: 'a-pass-porter', targetId: 'pass-porter', kind: 'ambient', anchor: { x: 12300, y: 579 }, hitArea: { x: 12283, y: 534, w: 34, h: 90 }, priority: 4, walker: 'crowd1-porter', visibleWhen: { all: [{ rain: false }, { time: 'noon' }] } },
-  // 朝の藍: three indigo things along the roll (over the ambient spots, while looking)
-  { id: 'h-ai1', targetId: 'ai1', kind: 'prop', anchor: { x: 12140, y: 387 }, hitArea: { x: 12000, y: 360, w: 280, h: 55 }, priority: 8, visibleWhen: aiToFind(1) },
-  { id: 'h-ai2', targetId: 'ai2', kind: 'prop', anchor: { x: 3285, y: 435 }, hitArea: { x: 3200, y: 390, w: 170, h: 90 }, priority: 8, visibleWhen: aiToFind(2) },
-  { id: 'h-ai3', targetId: 'ai3', kind: 'prop', anchor: { x: 3225, y: 320 }, hitArea: { x: 3050, y: 240, w: 350, h: 150 }, priority: 8, visibleWhen: aiToFind(3) },
-  // 夕暮れの灯: the stone lantern by the bridge, and two street lamps (scene/painted.tsx STREET_LAMPS)
-  { id: 'h-lamp1', targetId: 'lamp1', kind: 'prop', anchor: { x: 12745, y: 400 }, hitArea: { x: 12722, y: 350, w: 46, h: 110 }, priority: 8, visibleWhen: lampToLight(1) },
-  { id: 'h-lamp2', targetId: 'lamp2', kind: 'prop', anchor: { x: 7790, y: 560 }, hitArea: { x: 7774, y: 520, w: 32, h: 84 }, priority: 8, visibleWhen: lampToLight(2) },
-  { id: 'h-lamp3', targetId: 'lamp3', kind: 'prop', anchor: { x: 5480, y: 480 }, hitArea: { x: 5464, y: 440, w: 32, h: 84 }, priority: 8, visibleWhen: lampToLight(3) },
   // the first help: one tap on the blowing papers (spec §9 一頁目)
   { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 12420, y: 522 }, hitArea: { x: 12378, y: 504, w: 90, h: 40 }, priority: 8, visibleWhen: notPressed },
   // ambient reactions on things in the painting (spec §5: 8 or more)
@@ -164,6 +105,8 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'a-bench', targetId: 'bench', kind: 'ambient', anchor: { x: 452, y: 510 }, hitArea: { x: 370, y: 488, w: 165, h: 45 }, priority: 2 },
   { id: 'a-plum2', targetId: 'plum2', kind: 'ambient', anchor: { x: 1910, y: 350 }, hitArea: { x: 1830, y: 280, w: 160, h: 140 }, priority: 2 },
   { id: 'a-pond', targetId: 'pond', kind: 'ambient', anchor: { x: 1125, y: 375 }, hitArea: { x: 1000, y: 300, w: 250, h: 150 }, priority: 1 },
+  // the stories in their own files (content/stories)
+  ...STORIES.flatMap((s) => s.hotspots ?? []),
 ];
 
 export const SCENE: SceneDef = {
@@ -382,153 +325,7 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
-  {
-    // 四頁目：河岸の朝 (roadmap #158 item 4). Find 亀吉 in the painting; either ending completes it.
-    id: 'kashi',
-    prerequisites: [{ quest: 'kaze', is: 'complete' }],
-    steps: [
-      { id: 'search', doneWhen: { flag: 'kashi_search' } },
-      { id: 'find', doneWhen: { flag: 'kashi_found' } },
-      { id: 'home', doneWhen: { any: [{ flag: 'kashi_now' }, { flag: 'kashi_watched' }] } },
-    ],
-    completionEffects: [
-      { type: 'grant', rewardId: 'kashi', amountMinor: 20 },
-      { type: 'familiarity', characterId: 'omatsu', eventId: 'kashi' },
-      { type: 'questState', quest: 'kashi', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
-  {
-    // 五頁目：母への文. Catch a walking man to return his letter; either word completes it.
-    id: 'fumi',
-    prerequisites: [{ quest: 'kaze', is: 'complete' }],
-    steps: [
-      { id: 'pick', doneWhen: { flag: 'fumi_carry' } },
-      { id: 'return', doneWhen: { any: [{ flag: 'fumi_send' }, { flag: 'fumi_rewrite' }] } },
-    ],
-    completionEffects: [
-      { type: 'grant', rewardId: 'fumi', amountMinor: 16 },
-      { type: 'familiarity', characterId: 'ihei', eventId: 'fumi' },
-      { type: 'questState', quest: 'fumi', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
-  {
-    // 六頁目：夕暮れの灯. In the evening only: walk the street lighting three lamps.
-    id: 'yube',
-    prerequisites: [{ quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }],
-    steps: [
-      { id: 'fire', doneWhen: { flag: 'yube_fire' } },
-      { id: 'light', doneWhen: { all: [{ flag: 'yube_lit1' }, { flag: 'yube_lit2' }, { flag: 'yube_lit3' }] } },
-      { id: 'end', doneWhen: { any: [{ flag: 'yube_tell' }, { flag: 'yube_watch' }] } },
-    ],
-    completionEffects: [
-      { type: 'grant', rewardId: 'yube', amountMinor: 14 },
-      { type: 'familiarity', characterId: 'kisuke', eventId: 'yube' },
-      { type: 'questState', quest: 'yube', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
-  {
-    // 七頁目：朝の藍. In the morning only: 宗吉's lesson — find three indigo things, then paint one. No money: a lesson.
-    id: 'ai',
-    prerequisites: [{ quest: 'kaze', is: 'complete' }],
-    steps: [
-      { id: 'look', doneWhen: { flag: 'ai_look' } },
-      { id: 'find', doneWhen: { all: [{ flag: 'ai_seen1' }, { flag: 'ai_seen2' }, { flag: 'ai_seen3' }] } },
-      { id: 'paint', doneWhen: { any: [{ flag: 'ai_vat' }, { flag: 'ai_cloth' }] } },
-    ],
-    completionEffects: [
-      { type: 'familiarity', characterId: 'sokichi', eventId: 'ai' },
-      { type: 'questState', quest: 'ai', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
-  {
-    // 十二頁目：雨宿り. In the rain: carry the tea house's three umbrellas to people under the eaves. No money.
-    id: 'ame',
-    prerequisites: [{ quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }],
-    steps: [
-      { id: 'go', doneWhen: { flag: 'ame_go' } },
-      { id: 'give', doneWhen: { all: [{ flag: 'ame_1' }, { flag: 'ame_2' }, { flag: 'ame_3' }] } },
-      { id: 'draw', doneWhen: { any: [{ flag: 'ame_street' }, { flag: 'ame_eave' }] } },
-    ],
-    completionEffects: [
-      { type: 'familiarity', characterId: 'kisuke', eventId: 'ame' },
-      { type: 'questState', quest: 'ame', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
-  {
-    // 十一頁目：動く人を描く. 宗吉's second lesson: catch a walking person inside a frame. No money.
-    id: 'ugoki',
-    prerequisites: [{ quest: 'ai', is: 'complete' }],
-    steps: [
-      { id: 'look', doneWhen: { flag: 'ugoki_look' } },
-      { id: 'catch', doneWhen: { flag: 'ugoki_caught' } },
-    ],
-    completionEffects: [
-      { type: 'familiarity', characterId: 'sokichi', eventId: 'ugoki' },
-      { type: 'questState', quest: 'ugoki', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
-  {
-    // 十頁目：ご隠居の散歩. Walk with the old man to the riverside bench, at his pace. No money.
-    id: 'inkyo',
-    prerequisites: [{ quest: 'tenugui', is: 'complete' }],
-    steps: [
-      { id: 'walk', doneWhen: { flag: 'inkyo_walk' } },
-      { id: 'arrive', doneWhen: { flag: 'inkyo_arrived' } },
-      { id: 'stay', doneWhen: { any: [{ flag: 'inkyo_listen' }, { flag: 'inkyo_quiet' }] } },
-    ],
-    completionEffects: [
-      { type: 'familiarity', characterId: 'inkyo', eventId: 'inkyo' },
-      { type: 'questState', quest: 'inkyo', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
-  {
-    // 九頁目：茶店の猫. Follow 喜助's cat along the roll; at the moat, wait beside it.
-    id: 'neko',
-    prerequisites: [{ quest: 'tenugui', is: 'complete' }],
-    steps: [
-      { id: 'look', doneWhen: { flag: 'neko_look' } },
-      { id: 'follow', doneWhen: { all: [{ flag: 'neko_hop1' }, { flag: 'neko_hop2' }] } },
-      { id: 'wait', doneWhen: { flag: 'neko_caught' } },
-      { id: 'home', doneWhen: { any: [{ flag: 'neko_bench' }, { flag: 'neko_boat' }] } },
-    ],
-    completionEffects: [
-      { type: 'grant', rewardId: 'neko', amountMinor: 10 },
-      { type: 'familiarity', characterId: 'kisuke', eventId: 'neko' },
-      { type: 'questState', quest: 'neko', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
-  {
-    // 八頁目：橋のたもと. Invite the four people the player helped, then draw them all by the bridge. No money.
-    id: 'hashi',
-    prerequisites: [
-      { quest: 'dougu', is: 'complete' },
-      { quest: 'tenugui', is: 'complete' },
-      { quest: 'kashi', is: 'complete' },
-      { quest: 'fumi', is: 'complete' },
-    ],
-    steps: [
-      { id: 'ask', doneWhen: { flag: 'hashi_ask' } },
-      { id: 'invite', doneWhen: { all: [{ flag: 'hashi_okon' }, { flag: 'hashi_kisuke' }, { flag: 'hashi_omatsu' }, { flag: 'hashi_ihei' }] } },
-      { id: 'draw', doneWhen: { any: [{ flag: 'hashi_with' }, { flag: 'hashi_side' }] } },
-    ],
-    completionEffects: [
-      { type: 'familiarity', characterId: 'sokichi', eventId: 'hashi' },
-      { type: 'familiarity', characterId: 'okon', eventId: 'hashi' },
-      { type: 'familiarity', characterId: 'kisuke', eventId: 'hashi' },
-      { type: 'familiarity', characterId: 'omatsu', eventId: 'hashi' },
-      { type: 'familiarity', characterId: 'ihei', eventId: 'hashi' },
-      { type: 'questState', quest: 'hashi', state: 'complete' },
-    ],
-    replayPolicy: 'memory-only',
-  },
+  ...STORIES.map((s) => s.quest),
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
@@ -567,24 +364,7 @@ export const PAGES: PageDef[] = [
   // left by 回想: another composition, or the other ending (engine/state.ts addRecallPage)
   { id: 'p01-kaze-b', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
   { id: 'p02-dougu-b', triggerId: 'dougu', compositionId: 'dougu-{deliver|entrust}', captionId: 'dougu', sourceRefs: [] },
-  { id: 'p04-kashi', triggerId: 'kashi', compositionId: 'kashi-{now|watch}', captionId: 'kashi', sourceRefs: [] },
-  { id: 'p04-kashi-b', triggerId: 'kashi', compositionId: 'kashi-{now|watch}', captionId: 'kashi', sourceRefs: [] },
-  { id: 'p05-fumi', triggerId: 'fumi', compositionId: 'fumi-{send|rewrite}', captionId: 'fumi', sourceRefs: [] },
-  { id: 'p05-fumi-b', triggerId: 'fumi', compositionId: 'fumi-{send|rewrite}', captionId: 'fumi', sourceRefs: [] },
-  { id: 'p06-yube', triggerId: 'yube', compositionId: 'yube-{tell|watch}', captionId: 'yube', sourceRefs: [] },
-  { id: 'p06-yube-b', triggerId: 'yube', compositionId: 'yube-{tell|watch}', captionId: 'yube', sourceRefs: [] },
-  { id: 'p07-ai', triggerId: 'ai', compositionId: 'ai-{vat|cloth}', captionId: 'ai', sourceRefs: [] },
-  { id: 'p07-ai-b', triggerId: 'ai', compositionId: 'ai-{vat|cloth}', captionId: 'ai', sourceRefs: [] },
-  { id: 'p08-hashi', triggerId: 'hashi', compositionId: 'hashi-{with|side}', captionId: 'hashi', sourceRefs: [] },
-  { id: 'p08-hashi-b', triggerId: 'hashi', compositionId: 'hashi-{with|side}', captionId: 'hashi', sourceRefs: [] },
-  { id: 'p09-neko', triggerId: 'neko', compositionId: 'neko-{bench|boat}', captionId: 'neko', sourceRefs: [] },
-  { id: 'p09-neko-b', triggerId: 'neko', compositionId: 'neko-{bench|boat}', captionId: 'neko', sourceRefs: [] },
-  { id: 'p10-inkyo', triggerId: 'inkyo', compositionId: 'inkyo-{listen|quiet}', captionId: 'inkyo', sourceRefs: [] },
-  { id: 'p10-inkyo-b', triggerId: 'inkyo', compositionId: 'inkyo-{listen|quiet}', captionId: 'inkyo', sourceRefs: [] },
-  { id: 'p11-ugoki', triggerId: 'ugoki', compositionId: 'ugoki-{who}-{x}', captionId: 'ugoki', sourceRefs: [] },
-  { id: 'p11-ugoki-b', triggerId: 'ugoki', compositionId: 'ugoki-{who}-{x}', captionId: 'ugoki', sourceRefs: [] },
-  { id: 'p12-ame', triggerId: 'ame', compositionId: 'ame-{street|eave}', captionId: 'ame', sourceRefs: [] },
-  { id: 'p12-ame-b', triggerId: 'ame', compositionId: 'ame-{street|eave}', captionId: 'ame', sourceRefs: [] },
+  ...STORIES.flatMap((s) => s.pages),
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -593,24 +373,7 @@ export const PAGE_TITLES: Record<string, string> = {
   'p03-tenugui': 'あの人の手拭い',
   'p01-kaze-b': '風のいたずら（もう一枚）',
   'p02-dougu-b': 'いつもの道具（もう一つの朝）',
-  'p04-kashi': '河岸の朝',
-  'p04-kashi-b': '河岸の朝（もう一つの帰り道）',
-  'p05-fumi': '母への文',
-  'p05-fumi-b': '母への文（もう一つの返事）',
-  'p06-yube': '夕暮れの灯',
-  'p06-yube-b': '夕暮れの灯（もう一つの宵）',
-  'p07-ai': '朝の藍',
-  'p07-ai-b': '朝の藍（もう一つの藍）',
-  'p08-hashi': '橋のたもと',
-  'p08-hashi-b': '橋のたもと（もう一枚）',
-  'p09-neko': '茶店の猫',
-  'p09-neko-b': '茶店の猫（もう一枚）',
-  'p10-inkyo': 'ご隠居の散歩',
-  'p10-inkyo-b': 'ご隠居の散歩（もう一枚）',
-  'p11-ugoki': '動く人を描く',
-  'p11-ugoki-b': '動く人を描く（もう一枚）',
-  'p12-ame': '雨宿り',
-  'p12-ame-b': '雨宿り（もう一枚）',
+  ...Object.assign({}, ...STORIES.map((s) => s.titles)),
 };
 
 /**
@@ -741,18 +504,13 @@ export function parseKaze(compositionId: string): { subject: Subject; framing: F
  * current one kept). Codex review F01.
  */
 export function validJournalEntry(pageId: string, compositionId: string): boolean {
+  for (const st of STORIES) {
+    const v = st.valid(pageId, compositionId);
+    if (v !== null) return v;
+  }
   if (pageId === 'p01-kaze' || pageId === 'p01-kaze-b') return parseKaze(compositionId) !== null;
   if (pageId === 'p02-dougu' || pageId === 'p02-dougu-b') return compositionId === 'dougu-deliver' || compositionId === 'dougu-entrust';
   if (pageId === 'p03-tenugui') return compositionId === 'tenugui-return';
-  if (pageId === 'p04-kashi' || pageId === 'p04-kashi-b') return compositionId === 'kashi-now' || compositionId === 'kashi-watch';
-  if (pageId === 'p05-fumi' || pageId === 'p05-fumi-b') return compositionId === 'fumi-send' || compositionId === 'fumi-rewrite';
-  if (pageId === 'p06-yube' || pageId === 'p06-yube-b') return compositionId === 'yube-tell' || compositionId === 'yube-watch';
-  if (pageId === 'p07-ai' || pageId === 'p07-ai-b') return compositionId === 'ai-vat' || compositionId === 'ai-cloth';
-  if (pageId === 'p08-hashi' || pageId === 'p08-hashi-b') return compositionId === 'hashi-with' || compositionId === 'hashi-side';
-  if (pageId === 'p09-neko' || pageId === 'p09-neko-b') return compositionId === 'neko-bench' || compositionId === 'neko-boat';
-  if (pageId === 'p10-inkyo' || pageId === 'p10-inkyo-b') return compositionId === 'inkyo-listen' || compositionId === 'inkyo-quiet';
-  if (pageId === 'p11-ugoki' || pageId === 'p11-ugoki-b') return parseUgoki(compositionId) !== null;
-  if (pageId === 'p12-ame' || pageId === 'p12-ame-b') return compositionId === 'ame-street' || compositionId === 'ame-eave';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }
@@ -779,80 +537,7 @@ export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[
   { id: 'end', name: '町はずれの川端', note: '柳の下の縁台でひと休み', x: 450 },
 ];
 
-// ---------------------------------------------------------------- passers-by
-
-/**
- * Passers-by along the whole scroll (style decision #7), drawn by scene/painted.tsx and
- * spoken to or sketched by the stories. A fixed pattern: the street looks the same on every visit.
- */
-// Each silhouette appears once in the entire roll. Curated road positions
-// replace the old eight-sprite cycle (~40 copies at 300-unit intervals).
-export const CROWD: { id: string; x: number; y: number; flip: boolean }[] = [
-  { id: 'crowd2-samurai', x: 880, y: 612, flip: false },
-  { id: 'crowd2-elder', x: 2300, y: 610, flip: true },
-  { id: 'crowd1-monk', x: 3750, y: 608, flip: false },
-  { id: 'crowd2-fishmonger', x: 5650, y: 610, flip: true },
-  { id: 'crowd1-merchant', x: 8040, y: 610, flip: false },
-  { id: 'crowd2-apprentice', x: 9550, y: 614, flip: true },
-  { id: 'crowd1-parasol', x: 10780, y: 610, flip: false },
-  { id: 'crowd1-porter', x: 12300, y: 624, flip: true },
-];
-
-/**
- * 町が動く (owner's demo feedback: 「人不能动」): each passer-by strolls back and forth
- * along their own stretch of road, first the way they face (the art faces left unless
- * flipped), turning at each end. Slow on purpose: about 22 units a second.
- */
-export function walkOf(c: { x: number; flip: boolean }, i: number): { dx: number; dur: number; delay: number } {
-  const length = 300 + ((i * 47) % 130); // 300–430 units
-  const dx = c.flip ? length : -length;
-  const dur = (2 * length) / 22; // there and back
-  return { dx, dur, delay: -((i * 7.3) % dur) };
-}
-
-/** 朝 quieter, 昼 everyone, 夕 going home: who is out (the clerk of 母への文 always is). */
-export function outAt(tod: 'morning' | 'noon' | 'evening', id: string, i: number): boolean {
-  if (id === 'crowd1-merchant' || tod === 'noon') return true;
-  return tod === 'morning' ? i % 3 !== 1 : i % 2 === 0;
-}
-
-// ---------------------------------------------------------------- 動く人を描く
-
-/**
- * 動く人を描く (eleventh story; demo feedback 「交互太少、人不能动」): 宗吉 draws a frame on
- * the middle of each passer-by's stretch; the player taps the person in the moment they are
- * inside it. The page shows who was caught, where they were.
- */
-export const UGOKI_PEOPLE: Record<string, { walker: string; who: string; word: string }> = {
-  samurai: { walker: 'crowd2-samurai', who: '通りがかりの武士', word: '刀の重さで、肩が少し下がっている。歩く武士の癖まで描けた。' },
-  elder: { walker: 'crowd2-elder', who: '杖をついたご隠居', word: '杖と足が、三つで一歩だ。ゆっくりした拍子が、線に出ている。' },
-  monk: { walker: 'crowd1-monk', who: '托鉢の僧', word: '衣の裾が揺れている。歩みの静けさが、よく出た。' },
-  fishmonger: { walker: 'crowd2-fishmonger', who: '魚売り', word: '荷の重さで、体が前に出ている。急ぐ足の勢いがある。' },
-  apprentice: { walker: 'crowd2-apprentice', who: '使いの丁稚', word: '小走りの足が、地面から浮いている。いい一瞬を捕まえたな。' },
-  parasol: { walker: 'crowd1-parasol', who: '日傘の娘', word: '傘の傾きで、風と日差しの向きまで分かる。' },
-  porter: { walker: 'crowd1-porter', who: '荷を運ぶ人足', word: '担いだ荷の重さが、膝に出ている。働く体を、よく見た。' },
-};
-
-/** The frame on a passer-by's stretch: the middle third of where they walk (scene x). */
-export function frameOf(walker: string): { lo: number; hi: number; y: number } | null {
-  const i = CROWD.findIndex((c) => c.id === walker);
-  if (i < 0) return null;
-  const c = CROWD[i];
-  const end = c.x + walkOf(c, i).dx;
-  const a = Math.min(c.x, end);
-  const b = Math.max(c.x, end);
-  return { lo: Math.round(a + (b - a) * 0.35), hi: Math.round(a + (b - a) * 0.65), y: c.y };
-}
-
-/** `ugoki-parasol-10642`: who was caught, and at what scene x (inside their frame). */
-export function parseUgoki(compositionId: string): { key: string; x: number; walker: (typeof CROWD)[number] } | null {
-  const m = /^ugoki-([a-z]+)-(\d+)$/.exec(compositionId);
-  if (!m || !Object.hasOwn(UGOKI_PEOPLE, m[1])) return null;
-  const f = frameOf(UGOKI_PEOPLE[m[1]].walker);
-  const x = Number(m[2]);
-  if (!f || x < f.lo - 10 || x > f.hi + 10) return null;
-  return { key: m[1], x, walker: CROWD.find((c) => c.id === UGOKI_PEOPLE[m[1]].walker)! };
-}
+export { CROWD, walkOf, outAt } from './crowd';
 
 // ---------------------------------------------------------------- 章
 
