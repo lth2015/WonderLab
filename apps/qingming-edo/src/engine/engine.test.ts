@@ -6,7 +6,7 @@ import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
 import { addPage, addRecallPage, apply, hasFlag as hasFlagFn, newSave, questState, test } from './state';
-import { entryFor, nearby, visibleSpots } from './story';
+import { entryFor, nearby, nearbyAll, visibleSpots } from './story';
 import { reachedTimes, timeOf } from './time';
 import { DEFAULT_LEVELS, LEVEL_STEPS, levelsOf } from './sound';
 
@@ -304,7 +304,7 @@ describe('朝・昼・夕', () => {
     expect(reachedTimes(all3())).toContain('evening');
     const shownMorning = apply(all3(), [{ type: 'setFlag', flag: 'yube_fire' }]);
     const m = { ...shownMorning, settings: { ...shownMorning.settings, timeChoice: 'morning' as const } };
-    expect(nearby(m).find((n) => n.id === 'yube-light')?.text).toContain('夕方になったら');
+    expect(nearbyAll(m).find((n) => n.id === 'yube-light')?.text).toContain('夕方になったら');
   });
   it('an old save without a time choice loads as auto', () => {
     const old = { ...newSave(), settings: { reduceMotion: false, textScale: 1 } };
@@ -717,7 +717,7 @@ describe('夕暮れの灯 (evening: light three lamps)', () => {
     expect(entryFor('kisuke', afterKaze())).not.toBe('kisuke.yube.ask');
     expect(entryFor('kisuke', evening())).toBe('kisuke.yube.ask'); // auto shows the latest time: 夕
     expect(entryFor('kisuke', at(evening(), 'morning'))).not.toBe('kisuke.yube.ask');
-    expect(nearby(at(evening(), 'morning')).find((n) => n.id === 'yube')?.text).toContain('「夕」');
+    expect(nearbyAll(at(evening(), 'morning')).find((n) => n.id === 'yube')?.text).toContain('「夕」');
   });
 
   it('a lamp can be lit only with the flame, in the evening, and once', () => {
@@ -768,7 +768,7 @@ describe('朝の藍 (morning: find three indigo things)', () => {
   it('宗吉 asks in the morning once the first page is made; at other times he says to come in the morning', () => {
     expect(entryFor('sokichi', at(afterKaze(), 'morning'))).toBe('sokichi.ai.ask');
     expect(entryFor('sokichi', at(afterKaze(), 'noon'))).not.toBe('sokichi.ai.ask');
-    expect(nearby(at(afterKaze(), 'noon')).find((n) => n.id === 'ai')?.text).toContain('「朝」');
+    expect(nearbyAll(at(afterKaze(), 'noon')).find((n) => n.id === 'ai')?.text).toContain('「朝」');
     // an old save with the twelve-page book already full still gets the lesson
     const full = apply(at(afterKaze(), 'morning'), [{ type: 'setFlag', flag: 'book_full' }]);
     expect(entryFor('sokichi', full)).toBe('sokichi.ai.ask');
@@ -928,5 +928,15 @@ describe('ご隠居の散歩 (walk with him at his pace)', () => {
       expect(spot(s, 'a-pass-elder')).toBe(true);
       expect(nearby(s, 1500).some((n) => n.id.startsWith('inkyo'))).toBe(false);
     }
+  });
+});
+
+describe('近くのこと with many stories', () => {
+  it('the list shows three; every other offer waits under ほかの頼みごと, none is lost', () => {
+    const s = apply(afterKaze(), ['dougu', 'tenugui', 'fumi', 'kashi'].flatMap((q) => questById.get(q)!.completionEffects));
+    const all = nearbyAll(s, 12640);
+    expect(nearby(s, 12640)).toEqual(all.slice(0, 3));
+    for (const id of ['hashi', 'yube', 'ai', 'inkyo', 'sketches']) expect(all.some((n) => n.id === id), id).toBe(true);
+    expect(new Set(all.map((n) => n.id)).size).toBe(all.length);
   });
 });

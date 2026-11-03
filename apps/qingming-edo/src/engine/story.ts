@@ -28,6 +28,8 @@ export interface Nearby {
   id: string;
   text: string;
   spotId: string;
+  /** Waits for another time of day (朝・昼・夕): listed after what can be done now. */
+  later?: boolean;
 }
 
 /**
@@ -53,6 +55,14 @@ const HASHI_PEOPLE = [
 ] as const;
 
 export function nearby(s: SaveData, here?: number): Nearby[] {
+  return nearbyAll(s, here).slice(0, 3);
+}
+
+/**
+ * Everything 「近くのこと」 could point to, most pressing first: the first three are the list,
+ * the rest wait folded under 「ほかの頼みごと」 (with ten stories, offers no longer fit in three).
+ */
+export function nearbyAll(s: SaveData, here?: number): Nearby[] {
   const out: Nearby[] = [];
   if (s.journal.pages.length >= PAGE_SLOTS && !hasFlag(s, 'book_full')) out.push({ id: 'book', text: '一冊になった絵巻帳を、宗吉に見せる', spotId: 'h-sokichi' });
   if (!hasFlag(s, 'paper_pressed')) {
@@ -82,9 +92,9 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
   if (ai !== 'complete' && questState(s, 'kaze') === 'complete') {
     const left = [1, 2, 3].filter((n) => !hasFlag(s, `ai_seen${n}`));
     if (hasFlag(s, 'ai_look') && left.length === 0) out.push({ id: 'ai-done', text: '見つけた藍のことを、宗吉に話す', spotId: 'h-sokichi' });
-    else if (hasFlag(s, 'ai_look')) out.push({ id: 'ai-find', text: morning ? `町の藍を探す（あと${left.length}つ）。暖簾、甕、干した布` : '朝になったら、町の藍を探す', spotId: morning ? `h-ai${left[0]}` : 'h-sokichi' });
+    else if (hasFlag(s, 'ai_look')) out.push({ id: 'ai-find', text: morning ? `町の藍を探す（あと${left.length}つ）。暖簾、甕、干した布` : '朝になったら、町の藍を探す', spotId: morning ? `h-ai${left[0]}` : 'h-sokichi', later: !morning });
     else if (morning) out.push({ id: 'ai', text: '宗吉が、朝の光の話をしたそうにしている', spotId: 'h-sokichi' });
-    else out.push({ id: 'ai', text: '朝の宗吉が、何か教えたそうにしていた（上の時刻で「朝」に）', spotId: 'h-sokichi' });
+    else out.push({ id: 'ai', text: '朝の宗吉が、何か教えたそうにしていた（上の時刻で「朝」に）', spotId: 'h-sokichi', later: true });
   }
   // 夕暮れの灯: in the evening; then the lamps not yet lit, nearest first
   const yube = questState(s, 'yube');
@@ -92,9 +102,9 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
   if (yube !== 'complete' && questState(s, 'dougu') === 'complete' && questState(s, 'tenugui') === 'complete') {
     const left = [1, 2, 3].filter((n) => !hasFlag(s, `yube_lit${n}`));
     if (hasFlag(s, 'yube_fire') && left.length === 0) out.push({ id: 'yube-done', text: '三つの灯がともった。茶店の喜助に知らせる', spotId: 'h-kisuke' });
-    else if (hasFlag(s, 'yube_fire')) out.push({ id: 'yube-light', text: evening ? `提灯に火を入れて回る（あと${left.length}つ）` : '夕方になったら、提灯に火を入れて回る', spotId: evening ? `h-lamp${left[0]}` : 'h-kisuke' });
+    else if (hasFlag(s, 'yube_fire')) out.push({ id: 'yube-light', text: evening ? `提灯に火を入れて回る（あと${left.length}つ）` : '夕方になったら、提灯に火を入れて回る', spotId: evening ? `h-lamp${left[0]}` : 'h-kisuke', later: !evening });
     else if (evening) out.push({ id: 'yube', text: '茶店の喜助が、暗くなる通りを気にしている', spotId: 'h-kisuke' });
-    else out.push({ id: 'yube', text: '夕方の茶店で、喜助が何か頼みたそうにしている（上の時刻で「夕」に）', spotId: 'h-kisuke' });
+    else out.push({ id: 'yube', text: '夕方の茶店で、喜助が何か頼みたそうにしている（上の時刻で「夕」に）', spotId: 'h-kisuke', later: true });
   }
   // 母への文: the letter, then the man walking with his abacus
   if (questState(s, 'kaze') === 'complete' && questState(s, 'fumi') !== 'complete') {
@@ -113,7 +123,7 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
     if (hasFlag(s, 'inkyo_arrived')) out.push({ id: 'inkyo-bench', text: 'ご隠居と、川端の縁台に着いた', spotId: 'h-inkyo-bench' });
     else if (hasFlag(s, 'inkyo_walk')) out.push({ id: 'inkyo-walk', text: '町はずれの川端の縁台へ。ご隠居は、ゆっくりついてくる（急ぐと置いていってしまう）', spotId: 'a-bench' });
     else if (timeOf(s) === 'noon') out.push({ id: 'inkyo', text: '杖をついたご隠居が、町はずれのほうを眺めている', spotId: 'h-inkyo' });
-    else out.push({ id: 'inkyo', text: '昼の通りで、手拭いのご隠居が何か言いたそうにしていた（上の時刻で「昼」に）', spotId: 'a-flowers' });
+    else out.push({ id: 'inkyo', text: '昼の通りで、手拭いのご隠居が何か言いたそうにしていた（上の時刻で「昼」に）', spotId: 'a-flowers', later: true });
   }
   // 茶店の猫: where the cat went last (the hint says which way it ran)
   if (hasFlag(s, 'kisuke_seen_done') && questState(s, 'neko') !== 'complete') {
@@ -144,6 +154,9 @@ export function nearby(s: SaveData, here?: number): Nearby[] {
   const sketching = (n: Nearby) => n.id === 'sketches';
   const xOf = (n: Nearby) => HOTSPOTS.find((h) => h.id === n.spotId)?.anchor.x ?? 0;
   const near = (a: Nearby[]) => (here === undefined ? a : [...a].sort((p, q) => Math.abs(xOf(p) - here) - Math.abs(xOf(q) - here)));
-  const going = out.filter((n) => !greeting(n) && !offer(n) && !sketching(n));
-  return [...going, ...near(out.filter(offer)), ...out.filter(sketching), ...near(out.filter(greeting))].slice(0, 3);
+  const now = out.filter((n) => !n.later);
+  const going = now.filter((n) => !greeting(n) && !offer(n) && !sketching(n));
+  // what waits for another time of day comes last: under way first, then the offers
+  const later = [...out.filter((n) => n.later && !offer(n)), ...near(out.filter((n) => n.later && offer(n)))];
+  return [...going, ...near(now.filter(offer)), ...now.filter(sketching), ...near(now.filter(greeting)), ...later];
 }

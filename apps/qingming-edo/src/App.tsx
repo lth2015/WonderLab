@@ -4,7 +4,7 @@ import { NODES, ON_CLOSE, RECALL_START } from './content/script';
 import { AMBIENT, AMBIENT_LABEL, ambientText, GUIDE_STOPS, HOTSPOTS, INKYO_BENCH, INKYO_STOPS, INKYO_WALK, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
-import { entryFor, nearby, visibleSpots } from './engine/story';
+import { entryFor, nearbyAll, visibleSpots } from './engine/story';
 import { reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
 import { hasPlayableProgress, observeProgress, study } from './engine/study';
@@ -365,7 +365,9 @@ export function App() {
     const scale = Number(el?.dataset.scale) || 1;
     return Number.isFinite(cam) && el ? cam + el.getBoundingClientRect().width / scale / 2 : undefined;
   };
-  const nb = useMemo(() => nearby(save, camMid()), [save, panel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nbAll = useMemo(() => nearbyAll(save, camMid()), [save, panel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nb = nbAll.slice(0, 3);
+  const nbMore = nbAll.slice(3);
   const activity = useCallback(() => {
     lastActivity.current = performance.now();
     setHint(null);
@@ -686,6 +688,20 @@ export function App() {
                 </li>
               ))}
             </ul>
+          )}
+          {nbMore.length > 0 && (
+            <details className="fold more">
+              <summary>ほかの頼みごと（{nbMore.length}）</summary>
+              <ul className="list compact">
+                {nbMore.map((n) => (
+                  <li key={n.id}>
+                    <button type="button" onClick={() => goTo(n.spotId, false)}>
+                      {n.text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
           <details className="guide">
             <summary>通りの案内</summary>
