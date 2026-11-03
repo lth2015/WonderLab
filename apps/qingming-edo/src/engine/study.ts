@@ -12,6 +12,11 @@ import { SESSION_MODE } from './session';
 // 試遊会 (?session=1) alone keeps it in this browser under
 // ww:qingming-edo:study:session until 「次の方へ」 (engine/session.ts).
 
+export const PLAY_WHAT = ['trace', 'ugoki', 'companion', 'weather', 'passer', 'nearby', 'nearby_more', 'chapter'] as const;
+export const PLAY_OUTCOME = ['traced', 'skipped', 'left', 'miss', 'caught', 'behind', 'arrived', 'rain', 'clear', 'tapped', 'opened'] as const;
+export type PlayWhat = (typeof PLAY_WHAT)[number];
+export type PlayOutcome = (typeof PLAY_OUTCOME)[number];
+
 /** A story id from content/world.ts QUESTS (the one list; the log checks against it). */
 export type QuestId = string;
 type Method = 'system' | 'system_link' | 'link';
@@ -30,6 +35,12 @@ type Events = {
   error: { code: ErrorCode };
   /** 通りの案内: a stop chosen (not a story step, not a first interaction). */
   guide_stop_selected: { stop_id: string };
+  /**
+   * 江戸 only (iteration 2026-11-04 E4): how the newer ways of taking part are used — whether
+   * tracing is drawn or skipped, how often a frame is missed, whether the walking companion is
+   * left behind, whether the weather and the folded list are found. Fixed lists, no free text.
+   */
+  play_detail: { what: PlayWhat; outcome: PlayOutcome };
 };
 export type StudyEvent = { event_id: string; session_id: string; schema_version: 1; occurred_at: string; elapsed_ms: number; environment: string; world_id: 'qingming-edo'; build_id: string; type: keyof Events; [key: string]: unknown };
 
@@ -49,6 +60,7 @@ const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
   share_result: { method: inList(['system', 'system_link', 'link']), result: inList(['invoked', 'cancelled', 'copied', 'unavailable', 'failed']) },
   revisit: { has_progress: (v) => typeof v === 'boolean' },
   guide_stop_selected: { stop_id: inList(GUIDE_STOPS.map((g) => g.id)) },
+  play_detail: { what: inList(PLAY_WHAT), outcome: inList(PLAY_OUTCOME) },
   error: { code: inList(['save_read_failed', 'save_write_failed', 'save_import_failed', 'postcard_export_failed', 'audio_failed', 'unexpected_error']) },
 };
 const randomId = () => globalThis.crypto?.randomUUID?.() ?? 'event-' + Date.now() + '-' + Math.random().toString(36).slice(2);

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { SKETCHES, TRACES } from '../content/world';
 import { PaintedPageScene } from '../scene/painted';
+import { study } from '../engine/study';
 
 // なぞり描き (demo feedback 「交互太少」): the apprentice draws. Faint dotted lines lie over
 // the place; the finger (or mouse) goes along them and ink stays where it went. Most of
@@ -58,9 +59,10 @@ export function Trace({ sketchId, tod, onDone, onCancel }: { sketchId: string; t
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m);
     return { x: p.x, y: p.y };
   };
-  const finish = () => {
+  const finish = (how: 'traced' | 'skipped') => {
     if (doneRef.current) return;
     doneRef.current = true;
+    study.emit('play_detail', { what: 'trace', outcome: how });
     setDone(true);
     setTimeout(onDone, 900);
   };
@@ -69,7 +71,7 @@ export function Trace({ sketchId, tod, onDone, onCancel }: { sketchId: string; t
     if (!hit.length) return;
     hit.forEach((i) => inked.current.add(i));
     setCount(inked.current.size);
-    if (inked.current.size / points.length >= ENOUGH) finish();
+    if (inked.current.size / points.length >= ENOUGH) finish('traced');
   };
   const down = (e: React.PointerEvent) => {
     if (done) return;
@@ -122,10 +124,10 @@ export function Trace({ sketchId, tod, onDone, onCancel }: { sketchId: string; t
         <span style={{ width: `${Math.min(100, (share / ENOUGH) * 100)}%` }} />
       </div>
       <div className="trace-actions">
-        <button type="button" onClick={finish} disabled={done}>
+        <button type="button" onClick={() => finish('skipped')} disabled={done}>
           なぞらずに描く
         </button>
-        <button type="button" className="ghost" onClick={onCancel} disabled={done}>
+        <button type="button" className="ghost" onClick={() => (study.emit('play_detail', { what: 'trace', outcome: 'left' }), onCancel())} disabled={done}>
           町に戻る（あとで描く）
         </button>
       </div>
