@@ -122,7 +122,9 @@ export const yube: StoryModule = {
       { rank: 200, when: { all: [{ quest: 'yube', is: 'complete' }, { time: 'evening' }] }, node: 'kisuke.yube.after' },
       { rank: 201, when: { all: [{ flag: 'yube_lit1' }, { flag: 'yube_lit2' }, { flag: 'yube_lit3' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.done' },
       { rank: 202, when: { all: [{ flag: 'yube_fire' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.waiting' },
-      { rank: 203, when: { all: [{ time: 'evening' }, { quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.ask' },
+      { rank: 203, when: { all: [{ not: { flag: 'yube_declined' } }, { time: 'evening' }, { quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.ask' },
+      // put off once: asked again only after the other requests have had their turn
+      { rank: 361, when: { all: [{ time: 'evening' }, { quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.ask' },
     ],
     lamp1: [{ rank: 100, node: 'yube.light1' }],
     lamp2: [{ rank: 100, node: 'yube.light2' }],

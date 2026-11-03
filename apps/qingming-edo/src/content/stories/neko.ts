@@ -146,7 +146,9 @@ export const neko: StoryModule = {
     kisuke: [
       { rank: 300, when: { all: [{ flag: 'neko_caught' }, { not: { quest: 'neko', is: 'complete' } }] }, node: 'kisuke.neko.back' },
       { rank: 301, when: { all: [{ flag: 'neko_look' }, { not: { quest: 'neko', is: 'complete' } }] }, node: 'kisuke.neko.waiting' },
-      { rank: 302, when: { all: [{ flag: 'kisuke_seen_done' }, { not: { quest: 'neko', is: 'complete' } }] }, node: 'kisuke.neko.ask' },
+      { rank: 302, when: { all: [{ not: { flag: 'neko_declined' } }, { flag: 'kisuke_seen_done' }, { not: { quest: 'neko', is: 'complete' } }] }, node: 'kisuke.neko.ask' },
+      // put off once: asked again only after the other requests have had their turn
+      { rank: 362, when: { all: [{ flag: 'kisuke_seen_done' }, { not: { quest: 'neko', is: 'complete' } }] }, node: 'kisuke.neko.ask' },
     ],
     neko1: [
       { rank: 100, node: 'neko.hop1' },
