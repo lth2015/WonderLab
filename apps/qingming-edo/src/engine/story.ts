@@ -2,7 +2,7 @@ import type { HotspotDef, SaveData } from '../contract';
 import { ENTRIES, NODES } from '../content/script';
 import { HOTSPOTS, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from '../content/world';
 import { hasFlag, questState, test } from './state';
-import { timeOf } from './time';
+import { rainOpen, raining, timeOf } from './time';
 
 /** The node a person (or prop) opens with now. */
 export function entryFor(targetId: string, s: SaveData): string | null {
@@ -39,7 +39,7 @@ export interface Nearby {
 const GREETINGS = new Set(['okon', 'kisuke', 'oharu', 'kinji']);
 
 /** The stories someone is waiting to ask about (not yet under way). */
-const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi', 'neko', 'inkyo', 'ugoki']);
+const OFFERS = new Set(['dougu', 'tenugui', 'fumi', 'kashi', 'yube', 'ai', 'hashi', 'neko', 'inkyo', 'ugoki', 'ame']);
 
 /**
  * `here`: the scene x at the middle of the view. With five stories there are more
@@ -118,9 +118,21 @@ export function nearbyAll(s: SaveData, here?: number): Nearby[] {
     else if (hasFlag(s, 'kashi_search')) out.push({ id: 'kashi-search', text: '亀吉を探す。舟の荷揚げを眺めるのが好きらしい', spotId: 'a-kashi-boats' });
     else out.push({ id: 'kashi', text: '橋の向こうの河岸で、おまつが誰かを呼んでいる', spotId: 'h-omatsu' });
   }
+  // 雨宿り: in the rain; the umbrellas not yet given, nearest first
+  if (rainOpen(s) && questState(s, 'ame') !== 'complete') {
+    const wet = raining(s);
+    const xAt = (id: string) => HOTSPOTS.find((h) => h.id === id)!.anchor.x;
+    const left = [1, 2, 3].filter((n) => !hasFlag(s, `ame_${n}`)).map((n) => `h-ame${n}`);
+    if (here !== undefined) left.sort((a, b) => Math.abs(xAt(a) - here) - Math.abs(xAt(b) - here));
+    if (hasFlag(s, 'ame_go') && left.length === 0) out.push({ id: 'ame-done', text: '傘を三本とも渡した。茶店の喜助に知らせる', spotId: 'h-kisuke' });
+    else if (hasFlag(s, 'ame_go')) out.push({ id: 'ame-give', text: wet ? `軒下で雨宿りしている人に、傘を届ける（あと${left.length}本）` : '雨の日に、残りの傘を届けに回る（上の「晴」を「雨」に）', spotId: wet ? left[0] : 'h-kisuke', later: !wet });
+    else if (wet) out.push({ id: 'ame', text: '雨の茶店で、喜助が貸し傘を数えている', spotId: 'h-kisuke' });
+    else out.push({ id: 'ame', text: '雨の日の茶店で、喜助が何か頼みたそうにしている（上の「晴」を「雨」に）', spotId: 'h-kisuke', later: true });
+  }
   // 動く人を描く: after the morning indigo; then the frames on the street
   if (questState(s, 'ai') === 'complete' && questState(s, 'ugoki') !== 'complete') {
-    if (hasFlag(s, 'ugoki_look')) out.push({ id: 'ugoki-catch', text: '枠の中を歩く人を描く。枠に入った一瞬に、その人を点ける', spotId: 'a-pass-parasol' });
+    if (hasFlag(s, 'ugoki_look') && raining(s)) out.push({ id: 'ugoki-catch', text: '雨で人が軒下にいる。晴れたら、枠の中を歩く人を描く（上の「雨」を「晴」に）', spotId: 'h-sokichi', later: true });
+    else if (hasFlag(s, 'ugoki_look')) out.push({ id: 'ugoki-catch', text: '枠の中を歩く人を描く。枠に入った一瞬に、その人を点ける', spotId: 'a-pass-parasol' });
     else if (timeOf(s) === 'morning') out.push({ id: 'ugoki', text: '宗吉が、通りを歩く人を目で追っている（上の時刻で「昼」か「夕」に）', spotId: 'h-sokichi', later: true });
     else out.push({ id: 'ugoki', text: '宗吉が、通りを歩く人を目で追っている', spotId: 'h-sokichi' });
   }
