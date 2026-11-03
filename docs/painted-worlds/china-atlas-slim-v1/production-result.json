@@ -1,0 +1,32 @@
+[
+  {
+    "url": "http://127.0.0.1:5199/",
+    "renderer_loaded_only_on_start": true,
+    "phone_download": [
+      14280,
+      700
+    ],
+    "four_parts_generated_last_download": [
+      5325,
+      1024
+    ],
+    "save_unchanged": true,
+    "page_errors": [],
+    "http_errors": []
+  },
+  {
+    "url": "http://127.0.0.1:5197/qingming/",
+    "renderer_loaded_only_on_start": true,
+    "phone_download": [
+      14280,
+      700
+    ],
+    "four_parts_generated_last_download": [
+      5325,
+      1024
+    ],
+    "save_unchanged": true,
+    "page_errors": [],
+    "http_errors": []
+  }
+]

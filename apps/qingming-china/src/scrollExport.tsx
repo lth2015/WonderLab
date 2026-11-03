@@ -6,6 +6,7 @@ import { scrollPlan, type ScrollMode } from './scrollPlan';
 
 export type ScrollPart={name:string;blob:Blob;width:number;height:number};
 const PAPER='#ede5d0';
+const PREFETCH_TILES=4;
 function check(signal?:AbortSignal) {if(signal?.aborted)throw new DOMException('已取消制作','AbortError');}
 function abortable<T>(pending:PromiseLike<T>,signal?:AbortSignal):Promise<T> {
   check(signal);
@@ -65,15 +66,28 @@ function endPaper(ctx:CanvasRenderingContext2D,x:number,width:number,height:numb
   }
 }
 /** Bounded canvases, per-job image cache, current story state frozen at the start. */
-export async function exportScroll(mode:ScrollMode,game:GameState,onProgress:(done:number,total:number)=>void,signal?:AbortSignal):Promise<ScrollPart[]> {
-  check(signal);
+export async function exportScroll(mode:ScrollMode,game:GameState,onProgress:(done:number,total:number)=>void,externalSignal?:AbortSignal):Promise<ScrollPart[]> {
+  check(externalSignal);
   const snapshot=JSON.parse(JSON.stringify(game)) as GameState;
   const cache=new Map<string,Promise<string>>(),parts:ScrollPart[]=[];
+  const controller=new AbortController(),signal=controller.signal;
+  const stop=()=>controller.abort();
+  externalSignal?.addEventListener('abort',stop,{once:true});
   let done=0;
-  onProgress(0,TILES);
   try{
+    onProgress(0,TILES);
     await abortable(document.fonts.ready,signal);
     const plan=scrollPlan(mode);
+    const order=plan.flatMap(part=>part.tiles);
+    const prefetch=()=>{
+      check(signal);
+      for(const tile of order.slice(done,done+PREFETCH_TILES)){
+        const href=`${import.meta.env.BASE_URL}art/china/scroll/scroll-${String(tile).padStart(2,'0')}.webp`;
+        // Fetch only a small window of source files. Drawing still uses one tile
+        // and one canvas at a time; the job's signal cancels every queued fetch.
+        if(!cache.has(href))void assetData(href,cache,signal).catch(()=>{/* Report through tileImage when this tile is reached. */});
+      }
+    };
     for(const [index,part] of plan.entries()){
       check(signal);
       const canvas=document.createElement('canvas');canvas.width=part.width;canvas.height=part.height;
@@ -83,6 +97,7 @@ export async function exportScroll(mode:ScrollMode,game:GameState,onProgress:(do
         let right=part.width-(part.head?part.endPixels:0);
         if(part.head)endPaper(ctx,right,part.endPixels,part.height,true);
         for(const tile of part.tiles){
+          prefetch();
           const image=await tileImage(tile,snapshot,part.tilePixels,cache,signal);
           try{check(signal);right-=part.tilePixels;ctx.drawImage(image,right,0,part.tilePixels,part.height);}
           finally{image.src='';}
@@ -96,5 +111,5 @@ export async function exportScroll(mode:ScrollMode,game:GameState,onProgress:(do
       }finally{canvas.width=0;canvas.height=0;}
     }
     return parts;
-  }finally{cache.clear();}
+  }finally{controller.abort();externalSignal?.removeEventListener('abort',stop);cache.clear();}
 }

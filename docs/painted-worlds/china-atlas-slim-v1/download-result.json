@@ -1,0 +1,25 @@
+{
+  "before_and_after_png_sha256": {
+    "before": {
+      "normal": "08606f2fe7abc54b257da69deed53a4e746719cb9deab3ea4dd6a19fbb7fe447",
+      "gift": "da22bd50301ae8f2f9973bf8c03b4aa1e78a97f584f951f91925fd7349276c49"
+    },
+    "after": {
+      "normal": "08606f2fe7abc54b257da69deed53a4e746719cb9deab3ea4dd6a19fbb7fe447",
+      "gift": "da22bd50301ae8f2f9973bf8c03b4aa1e78a97f584f951f91925fd7349276c49"
+    }
+  },
+  "files_identical": true,
+  "checks": [
+    {
+      "connected_download_links": true,
+      "normal_png_and_gift_png_canvas_released": true,
+      "blocked_click_removes_anchor_and_revokes_url": true,
+      "retry_saves_same_gift_file": true,
+      "save_json_filename_and_content_match": true,
+      "save_unchanged": true
+    }
+  ],
+  "page_errors": [],
+  "limits": "Headless Chromium only. Firefox/WebKit binaries unavailable; native Safari/iOS download UI not verified."
+}

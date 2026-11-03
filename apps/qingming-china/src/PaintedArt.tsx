@@ -65,15 +65,15 @@ function Prop({ kind, x, y, width, className }: { kind: keyof typeof propFrames;
 }
 
 /** The long scroll's tiles within reach of the view (and one more each side, so a drag never shows paper). */
-function RollTiles({ center, viewHalf, only }: { center: number; viewHalf: number; only?: number }) {
+function RollTiles({ center, viewHalf, only, onReady }: { center: number; viewHalf: number; only?: number; onReady?:(tile:number)=>void }) {
   const from = only ?? Math.floor((center - viewHalf + ORIGIN) / TILE) - 1, to = only ?? Math.floor((center + viewHalf + ORIGIN) / TILE) + 1;
   const tiles = [];
   for (let k = Math.max(0, from); k <= Math.min(TILES - 1, to); k++)
-    tiles.push(<image key={k} href={artUrl(`scroll/scroll-${String(k).padStart(2, '0')}.webp`)} x={k * TILE - ORIGIN} y={0} width={TILE + 1} height={WORLD_HEIGHT} preserveAspectRatio="none"/>);
+    tiles.push(<image key={k} href={artUrl(`scroll/scroll-${String(k).padStart(2, '0')}.webp`)} x={k * TILE - ORIGIN} y={0} width={TILE + 1} height={WORLD_HEIGHT} preserveAspectRatio="none" onLoad={()=>onReady?.(k)} onError={()=>onReady?.(k)}/>);
   return <g className="roll-tiles">{tiles}</g>;
 }
 
-export function PaintedLandscape({ state, feedback, center, viewHalf, stillTile }: { state: GameState; feedback: SceneReaction | null; center: number; viewHalf: number; stillTile?: number }) {
+export function PaintedLandscape({ state, feedback, center, viewHalf, stillTile, willowReady=true, onTileReady }: { state: GameState; feedback: SceneReaction | null; center: number; viewHalf: number; stillTile?: number; willowReady?:boolean; onTileReady?:(tile:number)=>void }) {
   const still=stillTile!==undefined;
   const visible=(x:number,half=0)=>!still||x+half>=center-viewHalf&&x-half<=center+viewHalf;
   const active=feedback?.id;
@@ -91,7 +91,7 @@ export function PaintedLandscape({ state, feedback, center, viewHalf, stillTile 
         <polyline points={deckLine} transform="translate(0 -10)" strokeWidth="5"/>
       </g>
     </mask></defs>
-    <RollTiles center={center} viewHalf={viewHalf} only={stillTile}/>
+    <RollTiles center={center} viewHalf={viewHalf} only={stillTile} onReady={onTileReady}/>
     {(still?visible((MILL.left+MILL.right)/2,(MILL.right-MILL.left)/2):center + viewHalf > MILL.left - TILE && center - viewHalf < MILL.right + TILE) &&
       (still?<WatermillFrame/>:<Watermill running={center + viewHalf > MILL.left && center - viewHalf < MILL.right} reduced={state.settings.reduced}/>)}
     <g className="river-traffic">
@@ -128,7 +128,7 @@ export function PaintedLandscape({ state, feedback, center, viewHalf, stillTile 
       <path d="M1112 395q12-13 21 0l-9 6Zm25-4q12-13 21 0l-9 6Z"/>
     </g>}
     {visible(1340,20)&&<g transform="translate(1340 495)" stroke="#867955" fill="#ac9671" strokeWidth="2"><path d="M0 0v28m-8 0q8-20 16 0Zm8 0v8"/></g>}
-    {visible(3295,375)&&<g transform="translate(2920 -30)"><g className={active==='willow'?'painted-willow active':'painted-willow'}>
+    {willowReady&&visible(3295,375)&&<g transform="translate(2920 -30)"><g className={active==='willow'?'painted-willow active':'painted-willow'}>
       <image href={artUrl(manifest.willow.file)} x={0} y={0} width={750} height={375}/>
     </g></g>}
     <ReactionFx reaction={feedback}/>

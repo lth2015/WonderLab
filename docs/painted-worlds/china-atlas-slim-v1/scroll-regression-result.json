@@ -1,0 +1,80 @@
+{
+  "checks": [
+    "twenty_source_tiles_progress_and_per_job_cache",
+    "source_svg_has_no_live_canvas_or_runtime_styles",
+    "public_image_labels_without_stats",
+    "canvases_and_svg_urls_released_after_success",
+    "all_twenty_tile_pixel_order_and_both_paper_ends",
+    "four_parts_native_dimensions_filenames_and_save_unchanged",
+    "cancel_blocked_fetch_returns_and_releases_memory",
+    "source_failure_retry_recovers",
+    "canvas_allocation_failure_split_fallback_recovers",
+    "jpeg_encode_failure_retry_recovers",
+    "close_running_job_no_stale_result_or_save_mutation",
+    "three_viewports_large_text_fixed_actions_and_escape"
+  ],
+  "phone_seconds": 1.68,
+  "full_seconds": 2.0,
+  "phone_pixels": [
+    14280,
+    700
+  ],
+  "four_parts": [
+    {
+      "name": "汴河拾光-长卷-1of4.jpg",
+      "size": [
+        5325,
+        1024
+      ],
+      "bytes": 1585186
+    },
+    {
+      "name": "汴河拾光-长卷-2of4.jpg",
+      "size": [
+        5120,
+        1024
+      ],
+      "bytes": 1883179
+    },
+    {
+      "name": "汴河拾光-长卷-3of4.jpg",
+      "size": [
+        5120,
+        1024
+      ],
+      "bytes": 1763514
+    },
+    {
+      "name": "汴河拾光-长卷-4of4.jpg",
+      "size": [
+        5325,
+        1024
+      ],
+      "bytes": 1409688
+    }
+  ],
+  "pixel_source_order_errors": [
+    0.33,
+    1.17,
+    3.0,
+    1.17,
+    2.83,
+    7.5,
+    4.17,
+    3.83,
+    11.5,
+    2.83,
+    1.83,
+    13.0,
+    2.83,
+    2.33,
+    2.5,
+    3.33,
+    7.83,
+    1.17,
+    3.5,
+    7.5
+  ],
+  "page_errors": [],
+  "limits": "Headless Chromium; iOS/Safari and physical-device memory limits not verified."
+}
