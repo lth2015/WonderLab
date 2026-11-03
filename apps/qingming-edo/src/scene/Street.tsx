@@ -35,7 +35,7 @@ export interface StreetProps {
    * back past them, they wait. At each stop they pause and say something; at `to` they arrive.
    */
   companion?: { from: number; to: number; stops: { x: number; say: string }[] } | null;
-  onCompanion?(e: { say: string } | { arrived: true }): void;
+  onCompanion?(e: { say: string } | { arrived: true } | { behind: true }): void;
 }
 
 /** Scene units a second: the passers-by's pace (about a minute and a half to the bench). */
@@ -103,6 +103,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     const said = new Set(companion.stops.filter((st) => st.x >= compX.current!).map((st) => st.x));
     let last = performance.now();
     let waitUntil = 0;
+    let toldBehind = false;
     let raf = 0;
     const tick = (t: number) => {
       const dt = Math.min(0.1, (t - last) / 1000);
@@ -128,6 +129,12 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
       if (el) {
         el.setAttribute('transform', `translate(${nx.toFixed(1)} 0)`);
         el.dataset.moving = moving ? 'yes' : 'no';
+      }
+      // left behind: the view has gone on so far that he is off its right edge (said once a walk)
+      const viewR = viewL + size.current.w / size.current.scale;
+      if (!toldBehind && viewR < nx - 20) {
+        toldBehind = true;
+        onComp.current?.({ behind: true });
       }
       if (nx <= companion.to) return onComp.current?.({ arrived: true });
       raf = requestAnimationFrame(tick);
