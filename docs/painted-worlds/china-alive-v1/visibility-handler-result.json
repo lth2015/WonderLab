@@ -1,0 +1,4 @@
+{
+  "synthetic_visibility_event_pauses_and_resumes": true,
+  "limit": "document.hidden stubbed; headless background tabs remained visible."
+}

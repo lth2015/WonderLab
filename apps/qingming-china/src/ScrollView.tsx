@@ -3,11 +3,12 @@ import { CHARACTERS, ENVIRONMENT, type CharacterId } from './content';
 import { Icon } from './Art';
 import type { GameState } from './game';
 import { PaintedLandscape } from './PaintedArt';
+import type { SceneReaction } from './reactions';
 import { ORIGIN, PERSON_HEIGHT, ROLL_MAX, ROLL_MIN, ROLL_WIDTH, WORLD_HEIGHT, personPosition, pickHotspot, regionAt, sceneAt, type HitTarget } from './layout';
 
 export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked }: {
   game: GameState; center: number; setCenter: (x: number) => void;
-  onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; feedback: string; locked: boolean;
+  onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; feedback: SceneReaction | null; locked: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 1200, height: 700 });
@@ -61,7 +62,7 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
               <span className="person-label"><span className="conversation-mark">···</span>{c.name}</span><span className="person-ring"/>
             </button>;
           })}
-          {ENVIRONMENT.map(env => <button key={env.id} className={`environment-hotspot ${feedback===env.id?'activated':''}`} style={{left:(env.x+ORIGIN)*scale,top:env.y*scale}} onClick={e=>hit(e,{kind:'environment',id:env.id})} aria-label={env.label}><span className="environment-dot"/><span className="environment-label">{env.label}</span></button>)}
+          {ENVIRONMENT.map(env => <button key={env.id} className={`environment-hotspot ${feedback?.id===env.id?'activated':''}`} style={{left:(env.x+ORIGIN)*scale,top:env.y*scale}} onClick={e=>hit(e,{kind:'environment',id:env.id})} aria-label={env.label}><span className="environment-dot"/><span className="environment-label">{env.label}</span></button>)}
         </div>}
       </div>
     </div>

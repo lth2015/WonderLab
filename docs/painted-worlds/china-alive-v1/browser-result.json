@@ -1,0 +1,100 @@
+{
+  "all_21_hotspots_have_visible_effects": true,
+  "reaction_kinds": [
+    "birds",
+    "breeze",
+    "chime",
+    "dust",
+    "leaves",
+    "ripples",
+    "shavings",
+    "steam",
+    "stretch"
+  ],
+  "same_hotspot_restarts_animation_and_timeout": true,
+  "walker_routes": [
+    {
+      "id": 0,
+      "anchor": "translate(135 467)",
+      "direction_checked": true
+    },
+    {
+      "id": 1,
+      "anchor": "translate(340 405)",
+      "direction_checked": true
+    },
+    {
+      "id": 2,
+      "anchor": "translate(510 359)",
+      "direction_checked": true
+    },
+    {
+      "id": 3,
+      "anchor": "translate(710 331)",
+      "direction_checked": true
+    },
+    {
+      "id": 4,
+      "anchor": "translate(904 335)",
+      "direction_checked": true
+    },
+    {
+      "id": 5,
+      "anchor": "translate(1100 382)",
+      "direction_checked": true
+    },
+    {
+      "id": 6,
+      "anchor": "translate(1310 463)",
+      "direction_checked": true
+    },
+    {
+      "id": 7,
+      "anchor": "translate(1715 570)",
+      "direction_checked": true
+    },
+    {
+      "id": 8,
+      "anchor": "translate(1980 642)",
+      "direction_checked": true
+    },
+    {
+      "id": 9,
+      "anchor": "translate(2110 628)",
+      "direction_checked": true
+    },
+    {
+      "id": 10,
+      "anchor": "translate(2460 655)",
+      "direction_checked": true
+    },
+    {
+      "id": 11,
+      "anchor": "translate(2650 745)",
+      "direction_checked": true
+    },
+    {
+      "id": 12,
+      "anchor": "translate(3090 852)",
+      "direction_checked": true
+    },
+    {
+      "id": 13,
+      "anchor": "translate(3500 901)",
+      "direction_checked": true
+    }
+  ],
+  "six_runtime_idle_groups": true,
+  "reduced_static_feedback_and_stopped_motion": true,
+  "live_system_reduced_preference": true,
+  "offscreen_motion_paused": true,
+  "idle_transform_attribute_mutations": 0,
+  "drag_raf": {
+    "samples": 149,
+    "median_ms": 16.699999999999818,
+    "p95_ms": 16.800000000000182,
+    "max_ms": 16.800000000000182
+  },
+  "page_errors": [],
+  "limits": "Headless Chromium 390x844; RAF sample is not physical-phone 60fps verification. Lifecycle freeze/resume exercised; background visibility needs separate check."
+}

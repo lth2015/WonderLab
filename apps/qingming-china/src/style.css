@@ -128,6 +128,37 @@
 .gift-actions .primary-button,.gift-actions .secondary-button{padding:10px 14px}
 .gift-link-options{margin:10px 0;font-size:.9rem}
 
+/* World anchors belong to SVG attributes. Motion only affects local inner groups. */
+.walk-route{animation:quay-walk var(--walk-duration) linear infinite;animation-delay:var(--walk-delay);transform-origin:0 0}
+.walk-facing{animation:quay-turn var(--walk-duration) steps(1,end) infinite;animation-delay:var(--walk-delay);transform-origin:0 0}
+.walk-gait{animation:quiet-step .9s ease-in-out infinite;transform-origin:0 0}
+.person-idle{animation:person-breathe 6.4s ease-in-out infinite;animation-delay:var(--idle-delay,0s);transform-origin:0 0}
+.motion-sleep *{animation-play-state:paused!important}
+@keyframes quay-walk{0%,100%{transform:translate(var(--walk-from-x),var(--walk-from-y))}25%,75%{transform:translate(0,0)}50%{transform:translate(var(--walk-to-x),var(--walk-to-y))}}
+@keyframes quay-turn{0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)}}
+@keyframes quiet-step{0%,100%{transform:translateY(0) rotate(-.2deg)}50%{transform:translateY(-.7px) rotate(.2deg)}}
+@keyframes person-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.003,1.006)}}
+.painted-willow{transform-origin:680px 375px}
+.reaction-static{display:none}
+.reaction-fall,.reaction-ripple,.reaction-breeze,.reaction-lift,.reaction-bird,.reaction-dust,.reaction-chime{animation-duration:1.4s;animation-delay:var(--delay,0s);animation-fill-mode:both}
+.reaction-fall{animation-name:ink-fall;animation-timing-function:ease-out}
+.reaction-ripple{animation-name:ink-ripple;transform-origin:0 0}
+.reaction-breeze{animation-name:ink-breeze}
+.reaction-lift{animation-name:ink-lift;animation-timing-function:ease-out}
+.reaction-bird{animation-name:ink-flight;animation-timing-function:ease-out}
+.reaction-dust{animation-name:ink-dust;animation-timing-function:ease-out}
+.reaction-chime{animation-name:ink-chime}
+@keyframes ink-fall{0%{opacity:0;transform:translate(0,0) rotate(-10deg)}15%{opacity:.85}100%{opacity:0;transform:translate(var(--drift),var(--fall)) rotate(36deg)}}
+@keyframes ink-ripple{0%{opacity:0;transform:scale(.55)}20%{opacity:.8}100%{opacity:0;transform:scale(1.7)}}
+@keyframes ink-breeze{0%{opacity:0;transform:translateX(-30px)}20%{opacity:.8}100%{opacity:0;transform:translateX(45px)}}
+@keyframes ink-lift{0%{opacity:0;transform:translateY(0)}25%{opacity:.85}100%{opacity:0;transform:translateY(-72px)}}
+@keyframes ink-flight{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}100%{opacity:0;transform:translate(90px,-100px)}}
+@keyframes ink-dust{0%{opacity:0;transform:translate(0,0) scale(.7)}20%{opacity:.55}100%{opacity:0;transform:translate(var(--drift),-36px) scale(1.5)}}
+@keyframes ink-chime{0%{opacity:0;transform:scale(.65)}20%{opacity:.9}100%{opacity:0;transform:scale(1.6)}}
+.reduced .reaction-particles{display:none}
+.reduced .reaction-static{display:inline}
+@media(prefers-reduced-motion:reduce){.reaction-particles{display:none}.reaction-static{display:inline}}
+
 /* Keep return actions in view while only the content of a long sheet scrolls. */
 .sheet[open]{display:flex;flex-direction:column;overflow:hidden;max-height:90svh}
 .sheet-head{flex:0 0 auto;position:relative;background:var(--paper)}

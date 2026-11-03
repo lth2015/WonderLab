@@ -14,6 +14,7 @@ import { TIMES, reachedTimes, timeOf } from './time';
 import { hasPlayableProgress, observeProgress, study } from './study';
 import { RiverAudio } from './audio';
 import { downloadFile, exportPostcard } from './export';
+import { REACTION_MS, type SceneReaction } from './reactions';
 
 type Modal = { kind: 'character'; id: CharacterId } | { kind: 'page' | 'gift'; id: PageId } | { kind: 'album' | 'bag' | 'nearby' | 'settings' | 'rope' | 'tea' | 'summary' | 'about' | 'reset' | 'harbor' | 'gate' | 'time' | 'countryside' } | null;
 const QUEST_NAMES: Record<QuestId,string>={paper:'一纸春风',boat:'这一船日常',purse:'谁的香囊',harbor:'半步相让',gate:'认得归路',countryside:'这一程，不催'};
@@ -49,7 +50,7 @@ export function App() {
   const [modal,setModal]=useState<Modal>(null);
   const [center,setCenter]=useState(SCENE_CENTER.paper);
   const [toast,setToast]=useState(loaded.error??'');
-  const [feedback,setFeedback]=useState('');
+  const [feedback,setFeedback]=useState<SceneReaction|null>(null);
   const [hint,setHint]=useState(false);
   const [hidden,setHidden]=useState(document.hidden);
   const [systemReduced,setSystemReduced]=useState(matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -75,7 +76,7 @@ export function App() {
   useEffect(()=>{document.documentElement.classList.toggle('large-text',game.settings.largeText);},[game.settings.largeText]);
   useEffect(()=>{if(hidden)audio.current?.pause();else void audio.current?.configure(game.settings.sound,game.settings.ambience,game.settings.effects).catch(()=>{study.emit('error',{code:'audio_failed'},'audio-error');setToast('声音暂时未能开启，可以静音继续游玩。');});},[hidden,game.settings.sound,game.settings.ambience,game.settings.effects]);
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),5500);return()=>clearTimeout(t);},[toast]);
-  useEffect(()=>{if(!feedback)return;const t=setTimeout(()=>setFeedback(''),3500);return()=>clearTimeout(t);},[feedback]);
+  useEffect(()=>{if(!feedback)return;const t=setTimeout(()=>setFeedback(null),REACTION_MS);return()=>clearTimeout(t);},[feedback]);
   useEffect(()=>{
     if(!game.started||!game.settings.hints||modal||hidden||game.progress.visited.length)return;
     const t=setTimeout(()=>setHint(true),8000);return()=>clearTimeout(t);
@@ -91,7 +92,7 @@ export function App() {
   const person=(id:CharacterId)=>{act({type:'VISIT',id});open({kind:'character',id});};
   const focusPerson=(id:CharacterId)=>{setCenter(personPosition(id,game).x);person(id);};
   const notice=(text:string)=>{setToast(text);audio.current?.ring();};
-  const environment=(id:string)=>{if(id==='grain'||id==='camels'||id==='ferry'){act({type:'OBSERVE',id});open({kind:id==='grain'?'harbor':id==='camels'?'gate':'countryside'});return;}const env=ENVIRONMENT.find(e=>e.id===id)!;setFeedback(id);act({type:'OBSERVE',id,...('page'in env?{page:env.page}:{})});notice(env.text);};
+  const environment=(id:string)=>{const env=ENVIRONMENT.find(e=>e.id===id);if(!env)return;setFeedback(previous=>({id:env.id,serial:(previous?.serial??0)+1}));act({type:'OBSERVE',id,...('page'in env?{page:env.page}:{})});if(id==='grain'||id==='camels'||id==='ferry'){open({kind:id==='grain'?'harbor':id==='camels'?'gate':'countryside'});return;}notice(env.text);};
   const replay=(quest:QuestId)=>{act({type:'REPLAY',quest});notice('可以重新体验，补记另一个视角。已领过的文钱不会重复发放。');};
   const claim=(action:Action,text:string)=>{act(action);notice(text);};
   const currentTime=timeOf(game),time=currentTime.mark;
