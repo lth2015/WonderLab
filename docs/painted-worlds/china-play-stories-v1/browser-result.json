@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "real pointer three-stroke trace, no endpoint jump, partial release resets, refresh retains completed stroke, PNG download",
+    "keyboard trace replay, wind miss no penalty, timed success, two-clip alternative with reload midway, no duplicate page or money",
+    "real JSON save/import, session isolation, reduced motion manual route, 320x568 + 150% text no horizontal overflow, fixed telemetry",
+    "P2 host record export + next participant clears only session and starts new record ID"
+  ],
+  "page_errors": [],
+  "scope": "Headless system Chromium only; 390x844 and 320x568, not physical phone/Safari."
+}
