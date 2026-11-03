@@ -34,7 +34,23 @@
 
 ## 给 Claude 的合并与复验顺序
 
-1. 此分支包含待审 C2，先处理 `codex/china-atlas-slim@7aacb81`，再审本分支，可避免把两个工作项混在一个 PR。
+1. C2 已在 PR #206 合并为 main@`cd4653c`，本分支已在 `3b26ef6` 合入该主线。C3 可独立审阅；以当前分支最新提交为准。
 2. 审阅本分支，再合入届时最新 main，检查 CI；C3 自查关注 `PlayStoryPanels.tsx`、`playStories.ts`、`game.ts` 迁移与对应测试。
 3. 部署后在 `want.world/qingming/` 与独立域名各走纸铺首画 → 描柳/竹夹 → 收页；再查等风成功、送朋友新画页、旧存档迁移和试玩会独立进度。
 4. 真机/真人试玩前保持商业化 #138 为草稿，按已确认的迭代计划从观察结果决定下一步，不继续堆新故事。
+
+
+## 继续复验：风势提示与判定一致
+
+续接时复现了边界问题：画面每150ms更新一次风势，点击却重新读取实时时钟。显示5490ms时仍提示「风轻了」，5501ms点击会被判失败。修复 `f9d7b44` 让提示、记录与状态判定共用当前已显示的时刻；玩家看见可以松手时操作就能成功。风大提示下仍只扶住画角，不扣钱。八秒周期、三秒风轻区间和竹夹替代不变。
+
+- [修复前复现](checks/timing-before.json)：提示允许松手，却得到 `miss`，停在步骤2。
+- [独立根路径结果](checks/timing-root-result.json)、[联合路径结果](checks/timing-qingming-result.json)：各通过七组边界，包括第一轮/下一轮风轻区间前后、5490→5501ms以及5499→5501ms。测试在同一JavaScript任务内前移时钟并点击，确保点击前没有新的绘制，验证画面与判定一致；这不是性能计时。
+- 两个生产路径均以 Chromium 输入管线派发 `touchStart/touchMove/touchEnd/touchCancel`，通过三笔描线、半笔取消、完成第一笔后刷新续接；画页只收一次、钱包仍72文，记录只含三条固定 `traced`，无页面错误。此项仍是移动端触摸模拟，不是真机。
+- 修复后的86项中国测试及两种挂载构建通过。主线 #206 的合入未改变该分支任何文件内容，生产复验基于同一产品文件。
+
+可复验脚本：[touch-timing.py](checks/touch-timing.py)，需要 Python Playwright 与系统 Chromium。先构建并提供静态服务，然后按实际端口运行，例如：
+
+```sh
+python docs/painted-worlds/china-play-stories-v1/checks/touch-timing.py --url http://127.0.0.1:5199/ --out /tmp/china-touch-timing.json
+```
