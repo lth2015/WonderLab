@@ -4,7 +4,7 @@ import { Icon } from './Art';
 import type { GameState } from './game';
 import { PaintedLandscape } from './PaintedArt';
 import type { SceneReaction } from './reactions';
-import { ORIGIN, PERSON_HEIGHT, ROLL_MAX, ROLL_MIN, ROLL_WIDTH, WORLD_HEIGHT, personPosition, pickHotspot, regionAt, sceneAt, type HitTarget } from './layout';
+import { ORIGIN, PERSON_HEIGHT, ROLL_MAX, ROLL_MIN, ROLL_WIDTH, TILE, TILES, WORLD_HEIGHT, personPosition, pickHotspot, regionAt, sceneAt, type HitTarget } from './layout';
 
 export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked }: {
   game: GameState; center: number; setCenter: (x: number) => void;
@@ -15,6 +15,19 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
   const gesture = useRef<{ x: number; center: number; moved: boolean; id: number } | null>(null);
   const suppress = useRef(false);
   const [dragging, setDragging] = useState(false);
+  const loadedTiles=useRef(new Set<number>());
+  const [backgroundReady,setBackgroundReady]=useState(false),[willowReady,setWillowReady]=useState(false);
+  useEffect(()=>{
+    if(!backgroundReady)return;
+    let frame=0,idle=0,timer:ReturnType<typeof setTimeout>|undefined;
+    // The painting already contains its trees. The animated foreground can wait
+    // for a complete background and a painted frame without changing any pixels.
+    const first=requestAnimationFrame(()=>{frame=requestAnimationFrame(()=>{
+      if(typeof window.requestIdleCallback==='function')idle=window.requestIdleCallback(()=>setWillowReady(true),{timeout:800});
+      else timer=setTimeout(()=>setWillowReady(true),0);
+    });});
+    return()=>{cancelAnimationFrame(first);cancelAnimationFrame(frame);if(idle)window.cancelIdleCallback(idle);if(timer)clearTimeout(timer);};
+  },[backgroundReady]);
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) => setSize({ width: entry.contentRect.width, height: entry.contentRect.height }));
     if (ref.current) observer.observe(ref.current);
@@ -24,6 +37,11 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
   const half = Math.min(ROLL_WIDTH / 2, size.width / scale / 2);
   const bound = (x: number) => Math.min(ROLL_MAX-half, Math.max(ROLL_MIN+half, x));
   const actual = bound(center);
+  const tileReady=(tile:number)=>{
+    loadedTiles.current.add(tile);
+    const from=Math.max(0,Math.floor((actual-half+ORIGIN)/TILE)),to=Math.min(TILES-1,Math.floor((actual+half+ORIGIN-1)/TILE));
+    if(Array.from({length:to-from+1},(_,i)=>from+i).every(k=>loadedTiles.current.has(k)))setBackgroundReady(true);
+  };
   const scene = sceneAt(center);
   const move = (x: number) => setCenter(bound(x));
   const strip = useRef<HTMLDivElement>(null);
@@ -52,7 +70,7 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
       onPointerCancel={() => { gesture.current=null; setDragging(false); }}
       onClickCapture={e=>{ if(suppress.current) { e.stopPropagation(); e.preventDefault(); suppress.current=false; } }}>
       <div ref={strip} className="world-strip" style={{ width: ROLL_WIDTH*scale, height: WORLD_HEIGHT*scale, transform: `translate3d(${size.width/2-(actual+ORIGIN)*scale}px, ${Math.min(0,(size.height-WORLD_HEIGHT*scale)/2)}px, 0)`, '--world-scale': scale } as CSSProperties}>
-        <PaintedLandscape state={game} feedback={feedback} center={actual} viewHalf={half}/>
+        <PaintedLandscape state={game} feedback={feedback} center={actual} viewHalf={half} willowReady={willowReady} onTileReady={tileReady}/>
         {game.started && <div className="hotspots">
           {(Object.keys(CHARACTERS) as CharacterId[]).map(id => {
             const c=CHARACTERS[id];

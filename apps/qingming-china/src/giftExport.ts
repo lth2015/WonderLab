@@ -27,9 +27,11 @@ export async function giftToPng(svg: SVGSVGElement): Promise<Blob> {
   try{
     const image=new Image();await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('画纸未能装裱，请再试一次。'));image.src=url;});
     const canvas=document.createElement('canvas');canvas.width=1440;canvas.height=1800;
-    const context=canvas.getContext('2d');if(!context)throw new Error('浏览器暂不能生成画纸。');
-    context.drawImage(image,0,0,1440,1800);
-    return await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('画纸未能保存，请再试一次。')),'image/png'));
+    try {
+      const context=canvas.getContext('2d');if(!context)throw new Error('浏览器暂不能生成画纸。');
+      context.drawImage(image,0,0,1440,1800);
+      return await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('画纸未能保存，请再试一次。')),'image/png'));
+    }finally{canvas.width=0;canvas.height=0;}
   }finally{URL.revokeObjectURL(url);}
 }
 
