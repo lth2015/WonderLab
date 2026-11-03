@@ -34,3 +34,13 @@ describe('stories in their own files (content/stories)', () => {
     for (const st of STORIES) for (const other of STORIES) if (other !== st) for (const p of other.pages) expect(st.view(example(p.compositionId)), `${st.quest.id} vs ${p.compositionId}`).toBeNull();
   });
 });
+
+describe('every thing on the street has its own name in the lists', () => {
+  it('props are named by what they are, and no two things share a name', async () => {
+    const { HOTSPOTS: all, spotLabel } = await import('../world');
+    const props = all.filter((h) => h.kind === 'prop');
+    for (const h of props) expect(spotLabel(h), h.id).not.toBe(h.targetId);
+    const names = props.map((h) => spotLabel(h));
+    expect(new Set(names).size).toBe(names.length);
+  });
+});

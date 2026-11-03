@@ -168,7 +168,9 @@ export const hashi: StoryModule = {
     sokichi: [
       { rank: 200, when: { all: [{ flag: 'hashi_okon' }, { flag: 'hashi_kisuke' }, { flag: 'hashi_omatsu' }, { flag: 'hashi_ihei' }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.gather' },
       { rank: 201, when: { all: [{ flag: 'hashi_ask' }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.waiting' },
-      { rank: 202, when: { all: [HASHI_READY, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.ask' },
+      { rank: 202, when: { all: [HASHI_READY, { not: { flag: 'hashi_declined' } }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.ask' },
+      // put off once: asked again only after his other lessons have had their turn
+      { rank: 350, when: { all: [HASHI_READY, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'sokichi.hashi.ask' },
       { rank: 500, when: { quest: 'hashi', is: 'complete' }, node: 'sokichi.hashi.after' },
     ],
     okon: [

@@ -95,6 +95,7 @@ const nodes: Record<string, DialogueNode> = {
 export const ame: StoryModule = {
   quest,
   nodes,
+  labels: { ame1: '呉服屋の軒下の武士', ame2: '米屋の軒先の魚売り', ame3: '瀬戸物屋の軒下の丁稚' },
   hotspots: [
   // 雨宿り: in the rain three people wait under the eaves, until an umbrella reaches them
   ...SHELTERS.map((p, i) => ({

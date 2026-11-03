@@ -57,6 +57,8 @@ export interface StoryModule {
   characters?: CharacterDef[];
   roles?: Record<string, string>;
   hotspots?: HotspotDef[];
+  /** What each thing (not a person) this story puts on the street is called in the lists. */
+  labels?: Record<string, string>;
   pages: PageDef[];
   titles: Record<string, string>;
   nodes: Record<string, DialogueNode>;

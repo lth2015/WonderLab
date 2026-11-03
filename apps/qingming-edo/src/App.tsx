@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, AMBIENT_LABEL, ambientText, frameOf, GUIDE_STOPS, HOTSPOTS, UGOKI_PEOPLE, INKYO_BENCH, INKYO_STOPS, INKYO_WALK, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
+import { AMBIENT_LABEL, ambientText, spotLabel, frameOf, GUIDE_STOPS, HOTSPOTS, UGOKI_PEOPLE, INKYO_BENCH, INKYO_STOPS, INKYO_WALK, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearbyAll, visibleSpots } from './engine/story';
@@ -663,7 +663,7 @@ export function App() {
           <p className="sheet-title">どれに声をかけますか</p>
           {candidates.map((c) => (
             <button type="button" key={c.id} className="choice" onClick={() => openTarget(c)}>
-              {characterById.get(c.targetId)?.displayName ?? AMBIENT[c.targetId] ?? '紙'}
+              {spotLabel(c)}
             </button>
           ))}
           <button type="button" className="ghost" onClick={() => setCandidates(null)}>
@@ -808,7 +808,7 @@ export function App() {
               .map((s) => (
                 <li key={s.id}>
                   <button type="button" onClick={() => goTo(s.id, true)}>
-                    {s.kind === 'character' ? `${characterById.get(s.targetId)!.displayName}（${ROLES[s.targetId]}）` : '青葉屋の店先の紙'}
+                    {spotLabel(s)}
                   </button>
                 </li>
               ))}

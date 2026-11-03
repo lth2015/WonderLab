@@ -115,6 +115,7 @@ const nodes: Record<string, DialogueNode> = {
 export const neko: StoryModule = {
   quest,
   nodes,
+  labels: { neko1: '井戸のふちの三毛猫', neko2: '米俵の前の三毛猫', neko3: '堀の河岸の三毛猫', nekohome: '茶店の前で眠るこはく' },
   hotspots: [
   // 茶店の猫: 喜助's cat, at one place at a time while it is looked for, then home by the tea house
   { id: 'h-neko1', targetId: 'neko1', kind: 'prop', anchor: { x: 10610, y: 424 }, hitArea: { x: 10580, y: 400, w: 60, h: 44 }, priority: 7, visibleWhen: { all: [{ flag: 'neko_look' }, { not: { flag: 'neko_hop1' } }, { not: { quest: 'neko', is: 'complete' } }] } },

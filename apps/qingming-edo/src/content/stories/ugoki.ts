@@ -117,7 +117,9 @@ export const ugoki: StoryModule = {
     // after the morning indigo; his word after the lesson comes after the full book
     sokichi: [
       { rank: 300, when: { all: [{ flag: 'ugoki_look' }, { not: { quest: 'ugoki', is: 'complete' } }] }, node: 'sokichi.ugoki.waiting' },
-      { rank: 301, when: { all: [{ quest: 'ai', is: 'complete' }, { not: { quest: 'ugoki', is: 'complete' } }, { not: { time: 'morning' } }] }, node: 'sokichi.ugoki.ask' },
+      { rank: 301, when: { all: [{ quest: 'ai', is: 'complete' }, { not: { flag: 'ugoki_declined' } }, { not: { quest: 'ugoki', is: 'complete' } }, { not: { time: 'morning' } }] }, node: 'sokichi.ugoki.ask' },
+      // put off once: asked again after the others
+      { rank: 351, when: { all: [{ quest: 'ai', is: 'complete' }, { not: { quest: 'ugoki', is: 'complete' } }, { not: { time: 'morning' } }] }, node: 'sokichi.ugoki.ask' },
       { rank: 510, when: { quest: 'ugoki', is: 'complete' }, node: 'sokichi.ugoki.after' },
     ],
   },
