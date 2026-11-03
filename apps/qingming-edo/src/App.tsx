@@ -5,7 +5,7 @@ import { AMBIENT, AMBIENT_LABEL, ambientText, frameOf, GUIDE_STOPS, HOTSPOTS, UG
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
 import { entryFor, nearbyAll, visibleSpots } from './engine/story';
-import { reachedTimes, TIMES, timeOf } from './engine/time';
+import { rainOpen, raining, reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
 import { hasPlayableProgress, observeProgress, study } from './engine/study';
 import { SESSION_MODE } from './engine/session';
@@ -504,6 +504,17 @@ export function App() {
             ))}
           </div>
         )}
+        {rainOpen(save) && (
+          <button
+            type="button"
+            className="time ghost weather"
+            aria-pressed={raining(save)}
+            aria-label={raining(save) ? '雨（押すと晴れに）' : '晴れ（押すと雨に）'}
+            onClick={() => setSave({ ...save, settings: { ...save.settings, rain: !raining(save) }, updatedAt: new Date().toISOString() })}
+          >
+            {raining(save) ? '雨' : '晴'}
+          </button>
+        )}
         <button type="button" className="ghost sound-toggle" aria-pressed={soundOn} onClick={toggleSound} aria-label={soundOn ? '音を止める' : '音を出す'} title={soundOn ? '音を止める' : '音を出す'}>
           <span aria-hidden="true">♪</span>
         </button>
@@ -512,7 +523,8 @@ export function App() {
         </button>
       </header>
 
-      <main className={`stage tod-${tod}`}>
+      <main className={`stage tod-${tod}${raining(save) ? ' rain' : ''}`}>
+        {raining(save) && <div className="rain-layer" aria-hidden="true" />}
         <Street
           apiRef={street}
           spots={spots}

@@ -27,6 +27,8 @@ export const PLACE: Record<string, string> = {
   'neko-boat': '日本橋　堀の河岸の石段',
   'inkyo-listen': '日本橋・昼　町はずれの川端の縁台',
   'inkyo-quiet': '日本橋・昼　町はずれの川端の縁台',
+  'ame-street': '日本橋・雨　米屋の前の往来',
+  'ame-eave': '日本橋・雨　茶店「喜の字」の軒先',
 };
 /** 宗吉's word on a page, by its composition (or, for 一頁目, its subject). */
 export const COMMENT_BY_COMPOSITION: Record<string, string> = {
@@ -46,6 +48,8 @@ export const COMMENT_BY_COMPOSITION: Record<string, string> = {
   'neko-bench': '眠る猫ほど、描くのは難しい。寝息のやわらかさが出ている。',
   'neko-boat': '猫が見ていたものを、お前も並んで見たな。舟の揺れまで描けている。',
   'inkyo-listen': '人の話を聞きながら描くと、線がやわらかくなる。ご隠居の顔に出ている。',
+  'ame-street': '人のいない雨の通りに、さっきまでの人の気配が残っている。雨は線ではなく、間で描くものだ。',
+  'ame-eave': '軒から落ちる雨を、内側から見たか。濡れない場所から見る雨は、やさしい色をしている。',
   'inkyo-quiet': '黙って並ぶのも、付き合いのうちだ。柳と背中だけで、二人の時間が描けている。',
 };
 export const RECALL_NOTE: Record<string, string> = {
@@ -59,5 +63,6 @@ export const RECALL_NOTE: Record<string, string> = {
   hashi: 'もう一つの描き方を選べば、別の一枚が残ります。',
   neko: 'もう一つの場面を描けば、別の頁が残ります。',
   inkyo: 'もう一つの過ごし方を選べば、別の頁が残ります。',
+  ame: 'もう一つの場面を描けば、別の頁が残ります。',
   ugoki: '別の人を、別の一瞬で描けば、もう一枚の頁が残ります。',
 };

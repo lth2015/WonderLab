@@ -977,3 +977,54 @@ describe('動く人を描く (catch a walking person inside a frame)', () => {
     expect(entryFor('sokichi', s)).not.toBe('sokichi.ugoki.waiting');
   });
 });
+
+describe('雨宿り (rain: carry three umbrellas)', () => {
+  const open2 = () => apply(afterKaze(), ['dougu', 'tenugui'].flatMap((q) => questById.get(q)!.completionEffects));
+  const wet = (s: SaveData, rain = true) => ({ ...s, settings: { ...s.settings, rain } });
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('the weather opens with the evening; rain is only rain once open', () => {
+    expect(test(wet(afterKaze()), { rain: true })).toBe(false);
+    expect(test(wet(open2()), { rain: true })).toBe(true);
+    expect(test(open2(), { rain: false })).toBe(true);
+    expect(nearbyAll(open2()).find((n) => n.id === 'ame')?.text).toContain('「雨」に');
+  });
+
+  it('in the rain the passers-by are under the eaves; three people wait for umbrellas', () => {
+    const s = wet(open2());
+    expect(spot(s, 'a-pass-samurai')).toBe(false);
+    expect(spot(open2(), 'a-pass-samurai')).toBe(true);
+    for (const n of [1, 2, 3]) expect(spot(s, `h-ame${n}`)).toBe(true);
+    expect(entryFor('ame1', s)).toBe('ame.shelter1');
+    expect(NODES['ame.shelter1'].brief).toBe(true);
+    expect(entryFor('kisuke', s)).toBe('kisuke.ame.ask');
+    expect(entryFor('kisuke', open2())).not.toBe('kisuke.ame.ask');
+  });
+
+  it('each umbrella once; then either page, no money, and the eaves are empty', () => {
+    for (const [end, comp] of [['ame.street', 'ame-street'], ['ame.eave', 'ame-eave']] as const) {
+      let s = open(open(wet(open2()), 'kisuke.ame.ask'), 'kisuke.ame.go');
+      expect(entryFor('kisuke', s)).toBe('kisuke.ame.waiting');
+      for (const n of [1, 2, 3]) {
+        expect(entryFor(`ame${n}`, s)).toBe(`ame.give${n}`);
+        s = open(s, `ame.give${n}`);
+        expect(spot(s, `h-ame${n}`)).toBe(false);
+      }
+      expect(entryFor('kisuke', s)).toBe('kisuke.ame.done');
+      const money = s.wallet.balanceMinor;
+      s = open(open(s, 'kisuke.ame.done'), end);
+      expect(questState(s, 'ame')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money);
+      expect(s.journal.pages.find((p) => p.pageId === 'p12-ame')?.compositionId).toBe(comp);
+      expect([1, 2, 3].some((n) => spot(s, `h-ame${n}`))).toBe(false);
+    }
+  });
+
+  it('the weather survives a save and a bad value does not', () => {
+    const s = wet(open2());
+    const r = importText(exportText(s));
+    expect(r.ok && r.save.settings.rain).toBe(true);
+    const bad = importText(exportText({ ...s, settings: { ...s.settings, rain: 'yes' as never } }));
+    expect(bad.ok && bad.save.settings.rain).toBeFalsy();
+  });
+});

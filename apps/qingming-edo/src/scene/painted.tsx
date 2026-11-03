@@ -12,9 +12,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
-import { timeOf } from '../engine/time';
+import { raining, timeOf } from '../engine/time';
 import SIZES from '../assets/art/sizes.json';
-import { CROWD as WORLD_CROWD, frameOf, INKYO_BENCH, INKYO_WALK, outAt, parseSketch, parseUgoki, SCENE_W, UGOKI_PEOPLE, walkOf, type Reaction } from '../content/world';
+import { CROWD as WORLD_CROWD, SHELTERS, frameOf, INKYO_BENCH, INKYO_WALK, outAt, parseSketch, parseUgoki, SCENE_W, UGOKI_PEOPLE, walkOf, type Reaction } from '../content/world';
 export { outAt, walkOf };
 
 const URLS = import.meta.glob('../assets/art/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
@@ -311,6 +311,9 @@ export interface Poses {
   inkyo: 'walk' | 'bench' | null;
   /** 動く人を描く: the frames are drawn on the passers-by's ways while the lesson is on. */
   frames: boolean;
+  /** 雨: passers-by keep under the eaves; these three wait there until an umbrella comes. */
+  rain: boolean;
+  sheltering: [boolean, boolean, boolean];
 }
 
 export function posesFor(s: SaveData): Poses {
@@ -336,7 +339,9 @@ export function posesFor(s: SaveData): Poses {
     fumi: kazeDone && questState(s, 'fumi') !== 'complete' && !hasFlag(s, 'fumi_carry'),
     tod: timeOf(s),
     lit: [1, 2, 3].map((n) => hasFlag(s, `yube_lit${n}`)) as [boolean, boolean, boolean],
-    frames: hasFlag(s, 'ugoki_look') && questState(s, 'ugoki') !== 'complete',
+    frames: hasFlag(s, 'ugoki_look') && questState(s, 'ugoki') !== 'complete' && !raining(s),
+    rain: raining(s),
+    sheltering: [1, 2, 3].map((n) => raining(s) && !hasFlag(s, `ame_${n}`) && questState(s, 'ame') !== 'complete') as [boolean, boolean, boolean],
     inkyo:
       questState(s, 'inkyo') === 'complete' ? null : hasFlag(s, 'inkyo_arrived') ? 'bench' : hasFlag(s, 'inkyo_walk') ? 'walk' : null,
     neko:
@@ -496,7 +501,7 @@ export function PaintedStreet({ poses, sections, glints, stopped = [] }: Painted
       {PROPS.filter((c) => near(c.x, sections)).map((c) => (
         <Sprite key={`${c.id}-${c.x}`} {...c} />
       ))}
-      {CROWD.filter((c, i) => outAt(poses.tod, c.id, i) && !(c.id === INKYO_SPRITE && poses.inkyo) && (near(c.x, sections) || near(c.x + walkOf(c, i).dx, sections))).map((c) => {
+      {CROWD.filter((c, i) => outAt(poses.tod, c.id, i) && !(c.id === INKYO_SPRITE && poses.inkyo) && !(poses.rain && c.id !== 'crowd1-merchant') && (near(c.x, sections) || near(c.x + walkOf(c, i).dx, sections))).map((c) => {
         const w = walkOf(c, CROWD.indexOf(c));
         // placement stays in attributes; only the inner groups are animated (lesson of #157)
         return (
@@ -525,6 +530,13 @@ export function PaintedStreet({ poses, sections, glints, stopped = [] }: Painted
       {poses.seita === 'press' && <LooseSheets />}
       {poses.fumi && <DroppedLetter />}
       <Neko at={poses.neko} sections={sections} />
+      {SHELTERS.map((p, i) =>
+        poses.sheltering[i] && near(p.x, sections) ? (
+          <Idle n={11 + i} key={`shelter-${i}`}>
+            <Sprite id={p.walker as SpriteId} x={p.x} y={p.y} flip={p.flip} />
+          </Idle>
+        ) : null,
+      )}
       {poses.inkyo === 'bench' && near(INKYO_BENCH.x, sections) && (
         <Idle n={10}>
           <Sprite id={INKYO_SPRITE} {...INKYO_BENCH} />
@@ -619,6 +631,24 @@ function hashiGroup(withMaster: boolean): Person[] {
   return [...back, ...front];
 }
 
+/** 雨宿り pages: a grey wash and fine slanting rain over the picture (inside the SVG, so a saved PNG keeps it). */
+function PageRain({ x0, y0, w }: { x0: number; y0: number; w: number }) {
+  const h = (w * 660) / 520;
+  const lines = Array.from({ length: 70 }, (_, i) => {
+    const x = x0 + ((i * 53) % 100) / 100 * (w + 60) - 30;
+    const y = y0 + ((i * 37) % 100) / 100 * h;
+    return <path key={i} d={`M ${x.toFixed(1)} ${y.toFixed(1)} l -5 18`} />;
+  });
+  return (
+    <g aria-hidden="true">
+      <rect x={x0 - 10} y={y0 - 10} width={w + 20} height={h + 20} fill="#5d6670" opacity={0.18} />
+      <g stroke="#eef2f4" strokeWidth={0.9} strokeLinecap="round" opacity={0.65}>
+        {lines}
+      </g>
+    </g>
+  );
+}
+
 /**
  * A page cut from the painted street: the world rectangle starting at
  * (x0, y0), w units wide, fills the page's picture area (40, 40, 520 × 660
@@ -664,6 +694,10 @@ export function PaintedPageScene({ composition }: { composition: string }) {
           const u = parseUgoki(composition)!;
           return { x0: u.x - 150, y0: u.walker.y - 300, w: 300, people: [{ id: u.walker.id as SpriteId, x: u.x, y: u.walker.y, flip: u.walker.flip }] };
         })()
+      : composition === 'ame-street'
+      ? { x0: 7380, y0: 270, w: 330, people: [] }
+      : composition === 'ame-eave'
+      ? { x0: SPOTS.kisuke.x - 170, y0: 250, w: 340, people: [{ id: 'kisuke-teapot' as SpriteId, ...SPOTS.kisuke }] }
       : composition === 'ai-vat'
       ? { x0: 3130, y0: 205, w: 300, people: [] }
       : composition === 'ai-cloth'
@@ -739,6 +773,7 @@ export function PaintedPageScene({ composition }: { composition: string }) {
       {view.people.map((p) => (
         <Sprite key={p.id} id={p.id} x={p.x} y={p.y} flip={p.flip} />
       ))}
+      {composition.startsWith('ame-') && <PageRain x0={view.x0} y0={view.y0} w={view.w} />}
     </g>
   );
 }

@@ -1602,3 +1602,39 @@ button.term[aria-expanded="true"] {
   opacity: 0.85;
   pointer-events: none;
 }
+
+/* 雨: the street a little greyer and darker, fine slanting rain over it (static with 動きを減らす) */
+.rain.tod-morning .layer {
+  filter: saturate(0.5) hue-rotate(6deg) brightness(0.92) contrast(1.05);
+}
+.rain.tod-noon .layer {
+  filter: saturate(0.62) brightness(0.88) contrast(1.02);
+}
+.rain.tod-evening .layer {
+  filter: sepia(0.2) saturate(0.7) brightness(0.68) contrast(1.12);
+}
+.rain-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(105deg, transparent 0 22px, rgba(235, 240, 244, 0.28) 22px 23px, transparent 23px 46px),
+    repeating-linear-gradient(100deg, transparent 0 31px, rgba(235, 240, 244, 0.18) 31px 32px, transparent 32px 61px);
+  background-size: 120px 160px, 150px 210px;
+  animation: rain-fall 0.55s linear infinite;
+}
+@keyframes rain-fall {
+  to {
+    background-position: -30px 160px, -40px 210px;
+  }
+}
+.rm .rain-layer {
+  animation: none;
+}
+.top .weather[aria-pressed='true'],
+.top .weather[aria-pressed='true']:hover {
+  background: none;
+  color: #3d5677;
+  border-color: transparent;
+}

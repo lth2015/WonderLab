@@ -886,6 +886,71 @@ Object.assign(NODES, {
   },
 } satisfies Record<string, DialogueNode>);
 
+// 十二頁目：雨宿り (owner: 多开发内容; demo feedback 「场景简单」). In the rain, 喜助 lends the
+// tea house's three umbrellas: carry them to the people waiting under the eaves along the roll.
+const GIVE = (n: number, lines: Line[]): DialogueNode => ({ effects: [{ type: 'setFlag', flag: `ame_${n}` }], lines });
+const SHELTERED = (text: string): DialogueNode => ({ brief: true, lines: [{ by: 'narration', text }] });
+Object.assign(NODES, {
+  'kisuke.ame.ask': {
+    effects: [{ type: 'questState', quest: 'ame', state: 'discovered' }],
+    lines: [
+      { by: 'kisuke', text: '急な雨だ。軒下で足止めされてる人が、きっといるな。' },
+      { by: 'kisuke', text: '店の貸し傘が三本ある。困ってる人に届けてくれないか。返すのはいつでもいいって言ってな。' },
+    ],
+    choices: [
+      { label: '傘を届けに行く', next: 'kisuke.ame.go' },
+      { label: 'またにする', next: 'kisuke.ame.later' },
+    ],
+  },
+  'kisuke.ame.later': {
+    effects: [{ type: 'setFlag', flag: 'ame_declined' }],
+    lines: [{ by: 'kisuke', text: 'そうか。まあ、通り雨かもしれないしな。' }],
+  },
+  'kisuke.ame.go': {
+    effects: [{ type: 'setFlag', flag: 'ame_go' }, { type: 'questState', quest: 'ame', state: 'active' }],
+    recallNext: 'kisuke.ame.done',
+    lines: [{ by: 'narration', text: '番傘を三本かかえて、雨の通りへ出た。軒下で雨宿りしている人を探そう。' }],
+  },
+  'kisuke.ame.waiting': {
+    lines: [{ by: 'kisuke', text: 'まだ傘が残ってるな。呉服屋に米屋、瀬戸物屋のあたりの軒下を見ておいで。' }],
+  },
+  'ame.give1': GIVE(1, [
+    { by: 'narration', text: '呉服屋の軒下で、武士が空を見上げていた。傘を差し出すと、少し驚いた顔をした。' },
+    { by: 'narration', text: '武士「かたじけない。国元へ送る反物を、濡らすわけにはいかなくてな」' },
+  ]),
+  'ame.give2': GIVE(2, [
+    { by: 'narration', text: '米屋の軒先で、魚売りが籠をかばってしゃがみこんでいた。' },
+    { by: 'narration', text: '魚売り「助かった！ 魚は濡れてもいいが、おいらが風邪をひいちまう」' },
+  ]),
+  'ame.give3': GIVE(3, [
+    { by: 'narration', text: '瀬戸物屋の軒下で、丁稚が包みを抱えて震えていた。' },
+    { by: 'narration', text: '丁稚「番頭さんのお使いの帰りなんです。……ありがとうございます！」' },
+  ]),
+  'ame.shelter1': SHELTERED('武士が呉服屋の軒下で、空を見上げている。「やみそうにないな」'),
+  'ame.shelter2': SHELTERED('魚売りが米屋の軒先で、籠をかばっている。「まいったな、こりゃ」'),
+  'ame.shelter3': SHELTERED('丁稚が瀬戸物屋の軒下で、包みを抱えて雨を見ている。'),
+  'kisuke.ame.done': {
+    lines: [
+      { by: 'kisuke', text: '三本とも渡せたか。ご苦労さん。' },
+      { by: 'kisuke', text: '傘ってのは、返ってこなくてもいいんだ。また誰かの雨の日に使われりゃ、それでいい。' },
+    ],
+    choices: [
+      { label: '人のいない雨の通りを描く', next: 'ame.street' },
+      { label: '茶店の軒先から雨を描く', next: 'ame.eave' },
+    ],
+  },
+  'ame.street': {
+    effects: [{ type: 'setFlag', flag: 'ame_street' }, ...questById.get('ame')!.completionEffects],
+    page: { pageId: 'p12-ame', compositionId: 'ame-street' },
+    lines: [{ by: 'narration', text: '傘を差した人たちが帰っていったあとの、静かな通りを描いた。絵巻帳に、十二頁目が残った。' }],
+  },
+  'ame.eave': {
+    effects: [{ type: 'setFlag', flag: 'ame_eave' }, ...questById.get('ame')!.completionEffects],
+    page: { pageId: 'p12-ame', compositionId: 'ame-eave' },
+    lines: [{ by: 'narration', text: '茶店の縁台に腰かけて、軒から落ちる雨と喜助の背中を描いた。絵巻帳に、十二頁目が残った。' }],
+  },
+} satisfies Record<string, DialogueNode>);
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -973,6 +1038,7 @@ export const RECALL_START: Record<string, string> = {
   neko: 'kisuke.neko.ask',
   inkyo: 'inkyo.ask',
   ugoki: 'sokichi.ugoki.ask',
+  ame: 'kisuke.ame.ask',
 };
 
 /** 橋のたもと can be asked for once the four people it gathers each have their page. */
@@ -1027,6 +1093,10 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
   lamp3: [{ node: 'yube.light3' }],
   kisuke: [
     { when: { all: [{ flag: 'hashi_ask' }, { not: { flag: 'hashi_kisuke' } }, { not: { quest: 'hashi', is: 'complete' } }] }, node: 'kisuke.hashi' },
+    // 雨宿り: in the rain, which the player chose, before the evening's lamps (after the umbrellas are out, whatever the weather)
+    { when: { all: [{ flag: 'ame_1' }, { flag: 'ame_2' }, { flag: 'ame_3' }, { not: { quest: 'ame', is: 'complete' } }] }, node: 'kisuke.ame.done' },
+    { when: { all: [{ flag: 'ame_go' }, { not: { quest: 'ame', is: 'complete' } }] }, node: 'kisuke.ame.waiting' },
+    { when: { all: [{ rain: true }, { not: { quest: 'ame', is: 'complete' } }] }, node: 'kisuke.ame.ask' },
     // 夕暮れの灯 (evening only); his other words at other times
     { when: { all: [{ quest: 'yube', is: 'complete' }, { time: 'evening' }] }, node: 'kisuke.yube.after' },
     { when: { all: [{ flag: 'yube_lit1' }, { flag: 'yube_lit2' }, { flag: 'yube_lit3' }, { not: { quest: 'yube', is: 'complete' } }] }, node: 'kisuke.yube.done' },
@@ -1084,6 +1154,9 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { all: [{ flag: 'inkyo_walk' }, { not: { quest: 'inkyo', is: 'complete' } }] }, node: 'inkyo.walking' },
     { node: 'inkyo.ask' },
   ],
+  ame1: [{ when: { flag: 'ame_go' }, node: 'ame.give1' }, { node: 'ame.shelter1' }],
+  ame2: [{ when: { flag: 'ame_go' }, node: 'ame.give2' }, { node: 'ame.shelter2' }],
+  ame3: [{ when: { flag: 'ame_go' }, node: 'ame.give3' }, { node: 'ame.shelter3' }],
   neko1: [{ node: 'neko.hop1' }],
   neko2: [{ node: 'neko.hop2' }],
   neko3: [{ node: 'neko.found' }],

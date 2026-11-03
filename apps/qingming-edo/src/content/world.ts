@@ -44,6 +44,12 @@ export const ROLES: Record<string, string> = {
 };
 
 const notPressed = { not: { flag: 'paper_pressed' } };
+/** 雨宿り: who waits under which eaves in the rain (feet, scene units), read off the painting. */
+export const SHELTERS: { walker: string; x: number; y: number; flip?: boolean; place: string }[] = [
+  { walker: 'crowd2-samurai', x: 9560, y: 522, place: '呉服屋の軒下' },
+  { walker: 'crowd2-fishmonger', x: 7560, y: 505, flip: true, place: '米屋の軒先' },
+  { walker: 'crowd2-apprentice', x: 4460, y: 492, place: '瀬戸物屋の軒下' },
+];
 /** ご隠居の散歩: walking with the player, then arrived at the riverside bench (until the page is made). */
 const inkyoWalking: Condition = { all: [{ flag: 'inkyo_walk' }, { not: { flag: 'inkyo_arrived' } }, { not: { quest: 'inkyo', is: 'complete' } }] };
 const inkyoAtBench: Condition = { all: [{ flag: 'inkyo_arrived' }, { not: { quest: 'inkyo', is: 'complete' } }] };
@@ -88,8 +94,18 @@ export const HOTSPOTS: HotspotDef[] = [
   // 母への文: the letter on the road, and 伊兵衛 — a walking passer-by, hit where he is (scene/Street.tsx live)
   { id: 'h-fumi', targetId: 'fumi', kind: 'prop', anchor: { x: 7700, y: 610 }, hitArea: { x: 7684, y: 600, w: 32, h: 18 }, priority: 7, visibleWhen: letterOnRoad },
   { id: 'h-ihei', targetId: 'ihei', kind: 'character', anchor: { x: 8040, y: 565 }, hitArea: { x: 8023, y: 520, w: 34, h: 90 }, priority: 6, visibleWhen: iheiMet, walker: 'crowd1-merchant' },
+  // 雨宿り: in the rain three people wait under the eaves, until an umbrella reaches them
+  ...SHELTERS.map((p, i) => ({
+    id: `h-ame${i + 1}`,
+    targetId: `ame${i + 1}`,
+    kind: 'prop' as const,
+    anchor: { x: p.x, y: p.y - 40 },
+    hitArea: { x: p.x - 22, y: p.y - 86, w: 44, h: 88 },
+    priority: 6,
+    visibleWhen: { all: [{ rain: true }, { not: { flag: `ame_${i + 1}` } }, { not: { quest: 'ame', is: 'complete' } }] } as Condition,
+  })),
   // ご隠居の散歩: the elder passer-by (noon) once his towel is back; then walking with the player; then at the bench
-  { id: 'h-inkyo', targetId: 'inkyo', kind: 'character', anchor: { x: 2300, y: 565 }, hitArea: { x: 2280, y: 535, w: 40, h: 75 }, priority: 6, walker: 'crowd2-elder', visibleWhen: { all: [{ quest: 'tenugui', is: 'complete' }, { time: 'noon' }, { not: { flag: 'inkyo_walk' } }, { not: { quest: 'inkyo', is: 'complete' } }] } },
+  { id: 'h-inkyo', targetId: 'inkyo', kind: 'character', anchor: { x: 2300, y: 565 }, hitArea: { x: 2280, y: 535, w: 40, h: 75 }, priority: 6, walker: 'crowd2-elder', visibleWhen: { all: [{ rain: false }, { quest: 'tenugui', is: 'complete' }, { time: 'noon' }, { not: { flag: 'inkyo_walk' } }, { not: { quest: 'inkyo', is: 'complete' } }] } },
   { id: 'h-inkyo-walk', targetId: 'inkyo', kind: 'character', anchor: { x: 2300, y: 565 }, hitArea: { x: 2280, y: 535, w: 40, h: 75 }, priority: 6, walker: 'inkyo-walk', visibleWhen: inkyoWalking },
   { id: 'h-inkyo-bench', targetId: 'inkyo', kind: 'character', anchor: { x: INKYO_BENCH.x, y: INKYO_BENCH.y - 38 }, hitArea: { x: INKYO_BENCH.x - 20, y: INKYO_BENCH.y - 75, w: 40, h: 75 }, priority: 6, visibleWhen: inkyoAtBench },
   // 茶店の猫: 喜助's cat, at one place at a time while it is looked for, then home by the tea house
@@ -100,13 +116,13 @@ export const HOTSPOTS: HotspotDef[] = [
   // 通りすがりの人 (demo feedback 「交互太少、人不能动」): the walking passers-by say a word when
   // tapped, and stop for a moment. The area follows the walker as drawn (Street live()); the
   // static one is where each starts (scene/painted.tsx CROWD); who is out when matches outAt there.
-  { id: 'a-pass-samurai', targetId: 'pass-samurai', kind: 'ambient', anchor: { x: 880, y: 567 }, hitArea: { x: 863, y: 522, w: 34, h: 90 }, priority: 4, walker: 'crowd2-samurai' },
-  { id: 'a-pass-elder', targetId: 'pass-elder', kind: 'ambient', anchor: { x: 2300, y: 565 }, hitArea: { x: 2283, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-elder', visibleWhen: { all: [{ time: 'noon' }, { not: { all: [{ flag: 'inkyo_walk' }, { not: { quest: 'inkyo', is: 'complete' } }] } }] } },
-  { id: 'a-pass-monk', targetId: 'pass-monk', kind: 'ambient', anchor: { x: 3750, y: 563 }, hitArea: { x: 3733, y: 518, w: 34, h: 90 }, priority: 4, walker: 'crowd1-monk' },
-  { id: 'a-pass-fishmonger', targetId: 'pass-fishmonger', kind: 'ambient', anchor: { x: 5650, y: 565 }, hitArea: { x: 5633, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-fishmonger', visibleWhen: { not: { time: 'evening' } } },
-  { id: 'a-pass-apprentice', targetId: 'pass-apprentice', kind: 'ambient', anchor: { x: 9550, y: 569 }, hitArea: { x: 9533, y: 524, w: 34, h: 90 }, priority: 4, walker: 'crowd2-apprentice', visibleWhen: { not: { time: 'evening' } } },
-  { id: 'a-pass-parasol', targetId: 'pass-parasol', kind: 'ambient', anchor: { x: 10780, y: 565 }, hitArea: { x: 10763, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd1-parasol' },
-  { id: 'a-pass-porter', targetId: 'pass-porter', kind: 'ambient', anchor: { x: 12300, y: 579 }, hitArea: { x: 12283, y: 534, w: 34, h: 90 }, priority: 4, walker: 'crowd1-porter', visibleWhen: { time: 'noon' } },
+  { id: 'a-pass-samurai', targetId: 'pass-samurai', kind: 'ambient', anchor: { x: 880, y: 567 }, hitArea: { x: 863, y: 522, w: 34, h: 90 }, priority: 4, walker: 'crowd2-samurai', visibleWhen: { rain: false } },
+  { id: 'a-pass-elder', targetId: 'pass-elder', kind: 'ambient', anchor: { x: 2300, y: 565 }, hitArea: { x: 2283, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-elder', visibleWhen: { all: [{ rain: false }, { all: [{ time: 'noon' }, { not: { all: [{ flag: 'inkyo_walk' }, { not: { quest: 'inkyo', is: 'complete' } }] } }] }] } },
+  { id: 'a-pass-monk', targetId: 'pass-monk', kind: 'ambient', anchor: { x: 3750, y: 563 }, hitArea: { x: 3733, y: 518, w: 34, h: 90 }, priority: 4, walker: 'crowd1-monk', visibleWhen: { rain: false } },
+  { id: 'a-pass-fishmonger', targetId: 'pass-fishmonger', kind: 'ambient', anchor: { x: 5650, y: 565 }, hitArea: { x: 5633, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-fishmonger', visibleWhen: { all: [{ rain: false }, { not: { time: 'evening' } }] } },
+  { id: 'a-pass-apprentice', targetId: 'pass-apprentice', kind: 'ambient', anchor: { x: 9550, y: 569 }, hitArea: { x: 9533, y: 524, w: 34, h: 90 }, priority: 4, walker: 'crowd2-apprentice', visibleWhen: { all: [{ rain: false }, { not: { time: 'evening' } }] } },
+  { id: 'a-pass-parasol', targetId: 'pass-parasol', kind: 'ambient', anchor: { x: 10780, y: 565 }, hitArea: { x: 10763, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd1-parasol', visibleWhen: { rain: false } },
+  { id: 'a-pass-porter', targetId: 'pass-porter', kind: 'ambient', anchor: { x: 12300, y: 579 }, hitArea: { x: 12283, y: 534, w: 34, h: 90 }, priority: 4, walker: 'crowd1-porter', visibleWhen: { all: [{ rain: false }, { time: 'noon' }] } },
   // 朝の藍: three indigo things along the roll (over the ambient spots, while looking)
   { id: 'h-ai1', targetId: 'ai1', kind: 'prop', anchor: { x: 12140, y: 387 }, hitArea: { x: 12000, y: 360, w: 280, h: 55 }, priority: 8, visibleWhen: aiToFind(1) },
   { id: 'h-ai2', targetId: 'ai2', kind: 'prop', anchor: { x: 3285, y: 435 }, hitArea: { x: 3200, y: 390, w: 170, h: 90 }, priority: 8, visibleWhen: aiToFind(2) },
@@ -429,6 +445,21 @@ export const QUESTS: QuestDef[] = [
     replayPolicy: 'memory-only',
   },
   {
+    // 十二頁目：雨宿り. In the rain: carry the tea house's three umbrellas to people under the eaves. No money.
+    id: 'ame',
+    prerequisites: [{ quest: 'dougu', is: 'complete' }, { quest: 'tenugui', is: 'complete' }],
+    steps: [
+      { id: 'go', doneWhen: { flag: 'ame_go' } },
+      { id: 'give', doneWhen: { all: [{ flag: 'ame_1' }, { flag: 'ame_2' }, { flag: 'ame_3' }] } },
+      { id: 'draw', doneWhen: { any: [{ flag: 'ame_street' }, { flag: 'ame_eave' }] } },
+    ],
+    completionEffects: [
+      { type: 'familiarity', characterId: 'kisuke', eventId: 'ame' },
+      { type: 'questState', quest: 'ame', state: 'complete' },
+    ],
+    replayPolicy: 'memory-only',
+  },
+  {
     // 十一頁目：動く人を描く. 宗吉's second lesson: catch a walking person inside a frame. No money.
     id: 'ugoki',
     prerequisites: [{ quest: 'ai', is: 'complete' }],
@@ -526,8 +557,8 @@ export const TITLE_STYLES = [
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
 
-// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと, 茶店の猫, ご隠居の散歩 and 動く人を描く
-export const PAGE_SLOTS = 28;
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと, 茶店の猫, ご隠居の散歩, 動く人を描く and 雨宿り
+export const PAGE_SLOTS = 30;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -552,6 +583,8 @@ export const PAGES: PageDef[] = [
   { id: 'p10-inkyo-b', triggerId: 'inkyo', compositionId: 'inkyo-{listen|quiet}', captionId: 'inkyo', sourceRefs: [] },
   { id: 'p11-ugoki', triggerId: 'ugoki', compositionId: 'ugoki-{who}-{x}', captionId: 'ugoki', sourceRefs: [] },
   { id: 'p11-ugoki-b', triggerId: 'ugoki', compositionId: 'ugoki-{who}-{x}', captionId: 'ugoki', sourceRefs: [] },
+  { id: 'p12-ame', triggerId: 'ame', compositionId: 'ame-{street|eave}', captionId: 'ame', sourceRefs: [] },
+  { id: 'p12-ame-b', triggerId: 'ame', compositionId: 'ame-{street|eave}', captionId: 'ame', sourceRefs: [] },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -576,6 +609,8 @@ export const PAGE_TITLES: Record<string, string> = {
   'p10-inkyo-b': 'ご隠居の散歩（もう一枚）',
   'p11-ugoki': '動く人を描く',
   'p11-ugoki-b': '動く人を描く（もう一枚）',
+  'p12-ame': '雨宿り',
+  'p12-ame-b': '雨宿り（もう一枚）',
 };
 
 /**
@@ -717,6 +752,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   if (pageId === 'p09-neko' || pageId === 'p09-neko-b') return compositionId === 'neko-bench' || compositionId === 'neko-boat';
   if (pageId === 'p10-inkyo' || pageId === 'p10-inkyo-b') return compositionId === 'inkyo-listen' || compositionId === 'inkyo-quiet';
   if (pageId === 'p11-ugoki' || pageId === 'p11-ugoki-b') return parseUgoki(compositionId) !== null;
+  if (pageId === 'p12-ame' || pageId === 'p12-ame-b') return compositionId === 'ame-street' || compositionId === 'ame-eave';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }

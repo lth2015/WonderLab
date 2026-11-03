@@ -36,7 +36,9 @@ export type Condition =
   /** The journal holds at least this many pages. */
   | { pagesAtLeast: number }
   /** The time of day shown now (engine/time.ts timeOf): 夕暮れの灯 happens in the evening. */
-  | { time: TimeOfDay | TimeOfDay[] };
+  | { time: TimeOfDay | TimeOfDay[] }
+  /** Rain shown now (engine/time.ts raining): 雨宿り happens in the rain. */
+  | { rain: boolean };
 
 /** Spec §9: 未発見、発見済み、進行中、提出待ち、完了、回想可能. */
 export type QuestState = 'undiscovered' | 'discovered' | 'active' | 'ready' | 'complete';
@@ -145,6 +147,8 @@ export interface Settings {
   reduceMotion: boolean;
   textScale: 1 | 1.25 | 1.5;
   timeChoice?: TimeChoice;
+  /** 雨: the player's choice of weather, once it is open (engine/time.ts rainOpen). */
+  rain?: boolean;
   /** 0–1 each; absent in saves made before sound existed (the defaults apply). */
   sound?: SoundLevels;
   /** Sound is on only once the player has turned it on (spec §4: 音は別途本人が有効にする). */
