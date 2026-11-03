@@ -58,6 +58,7 @@ node docs/painted-worlds/playtest/summarize.mjs <导出的 JSON 所在文件夹>
 - 输出四项指标里能自动算的两项，同时给出「分子/分母」和百分比（四舍五入到整数）。
 - `elapsed_ms` 从本位玩家首次载入开始计，包含标题画面停留；试玩会模式刷新后继续按首次载入的墙上时间计时（含后台停留），所以 30 秒的口径偏严。普通模式刷新另开一场。
 - 另外两项（能说出变化、主动探索）用观察表人工统计。
+- 江户还会列出各种新玩法的使用情况（`play details`，次数 / 人数）：描线是描完还是跳过（`trace:traced/skipped/left`）、抓时机点空几次（`ugoki:miss/caught`）、同行时把老人甩在后面（`companion:behind/arrived`）、是否发现晴雨（`weather:rain/clear`）、点了说话的路人（`passer:tapped`）、打开「近くのこと」和「ほかの頼みごと」（`nearby:opened`、`nearby_more:opened`）、开了几章（`chapter:opened`）。
 
 ## 隐私
 

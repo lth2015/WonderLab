@@ -42,6 +42,8 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
     shares: ev.filter((e) => e.type === 'share_result').map((e) => `${e.method}:${e.result}`).join(' '),
     errors: ev.filter((e) => e.type === 'error').map((e) => e.code).join(' '),
     revisit: ev.some((e) => e.type === 'revisit'),
+    // 江戸 play_detail: "what:outcome" → count
+    details: ev.filter((e) => e.type === 'play_detail').reduce((m, e) => ((m[`${e.what}:${e.outcome}`] = (m[`${e.what}:${e.outcome}`] ?? 0) + 1), m), {}),
   });
 }
 const sec = (ms) => (ms === null ? '—' : `${(ms / 1000).toFixed(0)}s`);
@@ -58,6 +60,12 @@ for (const w of ['edo', 'china']) {
   console.log(`\n[${w}] first-time sessions: ${g.length}`);
   console.log(`  first action within 30 s (target ≥80%): ${rate(in30, g.length)}`);
   console.log(`  a story completed within 10 min (target ≥70%; check the sheet for hints given): ${rate(in10m, g.length)}`);
+  // how the newer ways of taking part were used (江戸 play_detail): times in all, and by how many players
+  const keys = [...new Set(g.flatMap((s) => Object.keys(s.details)))].sort();
+  if (keys.length) {
+    console.log('  play details (times / players):');
+    for (const k of keys) console.log(`    ${k.padEnd(22)} ${String(g.reduce((n, s) => n + (s.details[k] ?? 0), 0)).padStart(3)} / ${g.filter((s) => s.details[k]).length}`);
+  }
   if (g.some((s) => s.dropped)) console.log('  note: some records dropped events (buffer full)');
   if (new Set(g.map((s) => s.build)).size > 1) console.log('  note: sessions come from different builds; do not pool them blindly');
 }

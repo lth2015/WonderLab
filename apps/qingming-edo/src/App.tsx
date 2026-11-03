@@ -183,6 +183,7 @@ export function App() {
   }, [pageCount, balance]);
   useEffect(() => {
     if (panel === 'journal') study.emit('journal_opened', { page_count: saveRef.current.journal.pages.length });
+    if (panel === 'nearby') study.emit('play_detail', { what: 'nearby', outcome: 'opened' });
   }, [panel]);
   const sheetOpen = !!(panel || sketch || game);
   const lastSheet = useRef(sheetOpen);
@@ -258,8 +259,10 @@ export function App() {
           sound.cue('tap');
           if (spot.anchor.x >= f.lo && spot.anchor.x <= f.hi) {
             ugokiCatch.current = `${key}-${Math.round(spot.anchor.x)}`;
+            study.emit('play_detail', { what: 'ugoki', outcome: 'caught' });
             return openNode('ugoki.caught');
           }
+          study.emit('play_detail', { what: 'ugoki', outcome: 'miss' });
           return setToast('枠の外だ。その人が枠に入ったところで、もう一度。');
         }
       }
@@ -270,6 +273,7 @@ export function App() {
         setReacting((r) => new Set(r).add(id));
         // a passer-by spoken to stands still while the word is read
         setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), spot.walker ? 3200 : 1400);
+        if (spot.walker) study.emit('play_detail', { what: 'passer', outcome: 'tapped' });
         // 町の写生: after the first page, some places can be drawn (once each)
         const k = sketchOfSpot(id);
         const cur = saveRef.current;
@@ -436,8 +440,10 @@ export function App() {
   const walking = hasFlag(save, 'inkyo_walk') && !hasFlag(save, 'inkyo_arrived') && questState(save, 'inkyo') !== 'complete';
   const companion = useMemo(() => (walking ? { from: inkyoFrom.current ?? INKYO_WALK.from, to: INKYO_BENCH.x, stops: INKYO_STOPS } : null), [walking]);
   const onCompanion = useCallback(
-    (e: { say: string } | { arrived: true }) => {
+    (e: { say: string } | { arrived: true } | { behind: true }) => {
       if ('say' in e) return setToast(e.say);
+      if ('behind' in e) return void study.emit('play_detail', { what: 'companion', outcome: 'behind' });
+      study.emit('play_detail', { what: 'companion', outcome: 'arrived' });
       commit([{ type: 'setFlag', flag: 'inkyo_arrived' }]);
       openNode('inkyo.arrive');
     },
@@ -449,6 +455,7 @@ export function App() {
   useEffect(() => {
     if (busy || chapters <= shownChapters.current) return;
     shownChapters.current = chapters;
+    study.emit('play_detail', { what: 'chapter', outcome: 'opened' });
     setTimeout(() => setToast('町に、新しい頼みごとが増えたようだ。「近くのこと」をのぞいてみよう。'), 400);
   }, [chapters, busy]);
   const tod = timeOf(save);
@@ -519,7 +526,10 @@ export function App() {
             className="time ghost weather"
             aria-pressed={raining(save)}
             aria-label={raining(save) ? '雨（押すと晴れに）' : '晴れ（押すと雨に）'}
-            onClick={() => setSave({ ...save, settings: { ...save.settings, rain: !raining(save) }, updatedAt: new Date().toISOString() })}
+            onClick={() => {
+              study.emit('play_detail', { what: 'weather', outcome: raining(save) ? 'clear' : 'rain' });
+              setSave({ ...save, settings: { ...save.settings, rain: !raining(save) }, updatedAt: new Date().toISOString() });
+            }}
           >
             {raining(save) ? '雨' : '晴'}
           </button>
@@ -728,7 +738,7 @@ export function App() {
             </ul>
           )}
           {nbMore.length > 0 && (
-            <details className="fold more">
+            <details className="fold more" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && study.emit('play_detail', { what: 'nearby_more', outcome: 'opened' })}>
               <summary>ほかの頼みごと（{nbMore.length}）</summary>
               <ul className="list compact">
                 {nbMore.map((n) => (
