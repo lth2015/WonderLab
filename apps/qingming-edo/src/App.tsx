@@ -17,6 +17,7 @@ import { Sketch } from './ui/Sketch';
 import { Wrap } from './ui/Wrap';
 import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
+import { Trace } from './ui/Trace';
 import { Talk } from './ui/Talk';
 import { Glossed } from './ui/Glossed';
 import { useModalFocus } from './ui/modalFocus';
@@ -86,7 +87,7 @@ export function App() {
   const [talk, setTalk] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [timeMenu, setTimeMenu] = useState(false);
-  const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui'; then: string | null } | null>(null);
+  const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui' | 'trace'; then: string | null; trace?: string } | null>(null);
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
       ? '記録が読めなかったため、元の記録を退避して最初から始めます。'
@@ -329,7 +330,7 @@ export function App() {
       setSketch(c.sketch);
     } else if (c.game) {
       setDialogue(null);
-      setGame({ id: c.game, then: c.next ?? null });
+      setGame({ id: c.game, then: c.next ?? null, trace: c.trace });
     } else if (c.next) {
       // in 回想, turning the request down simply ends the memory
       if (recallRef.current && /declined$/.test(c.next)) return endRecall();
@@ -649,6 +650,7 @@ export function App() {
         };
         if (game.id === 'wrap') return <Wrap onDone={done} onCancel={cancel} />;
         if (game.id === 'tea') return <Tea onDone={done} onCancel={cancel} />;
+        if (game.id === 'trace') return <Trace sketchId={game.trace!} tod={timeOf(save)} onDone={done} onCancel={cancel} />;
         return <Tenugui onDone={done} onCancel={cancel} />;
       })()}
       {sketch && <Sketch subject={sketch} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}

@@ -18,7 +18,9 @@ export interface Choice {
   /** Stays to talk a little (即興のひとこと, ui/Talk.tsx). */
   talk?: boolean;
   /** Opens a short game; on success the dialogue goes on at `next` (spec §10). */
-  game?: 'wrap' | 'tea' | 'tenugui';
+  game?: 'wrap' | 'tea' | 'tenugui' | 'trace';
+  /** なぞり描き: which sketch place is traced (with game 'trace'). */
+  trace?: string;
 }
 export interface DialogueNode {
   lines: Line[];
@@ -852,7 +854,7 @@ for (const k of SKETCHES) {
       { by: 'narration', text: AMBIENT[k.spots[0]] },
       { by: 'narration', text: `${k.title}。足を止めて、この景色を写しておこうか。` },
     ],
-    choices: [{ label: 'この景色を写す', next: `sk.${k.id}.made` }, { label: '眺めるだけにする' }],
+    choices: [{ label: 'この景色を写す', game: 'trace', trace: k.id, next: `sk.${k.id}.made` }, { label: '眺めるだけにする' }],
   };
   NODES[`sk.${k.id}.made`] = {
     page: { pageId: sketchPageId(k.id), compositionId: `sketch-${k.id}-{tod}` }, // drawn in the time shown

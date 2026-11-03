@@ -576,6 +576,42 @@ export const SKETCHES = [
   { id: 'bench', spots: ['willow-end', 'bench'], title: '川端の縁台', place: '町はずれの川端', view: { x0: 260, y0: 130, w: 420 }, comment: '町の終わりまで歩いたか。賑わいの後の静けさも、町のうちだ。' },
 ] as const;
 export type SketchId = (typeof SKETCHES)[number]['id'];
+
+/**
+ * なぞり描き (demo feedback 「交互太少」): before a sketch page is made, the player traces
+ * two lines of the place with a finger — scene points along a roof, a hull, a trunk.
+ * Read off the gridded crops of each sketch view (docs/painted-worlds/art/edo/trace-v1).
+ */
+export const TRACES: Record<string, { x: number; y: number }[][]> = {
+  boat: [
+    [{ x: 13130, y: 590 }, { x: 13200, y: 627 }, { x: 13300, y: 642 }, { x: 13400, y: 600 }, { x: 13490, y: 502 }],
+    [{ x: 13350, y: 402 }, { x: 13520, y: 385 }],
+  ],
+  well: [
+    [{ x: 10507, y: 350 }, { x: 10535, y: 310 }, { x: 10660, y: 310 }, { x: 10690, y: 350 }],
+    [{ x: 10517, y: 437 }, { x: 10667, y: 432 }, { x: 10667, y: 495 }],
+  ],
+  cooper: [
+    [{ x: 4250, y: 413 }, { x: 4255, y: 474 }, { x: 4290, y: 480 }, { x: 4322, y: 474 }, { x: 4322, y: 413 }],
+    [{ x: 4330, y: 297 }, { x: 4530, y: 295 }],
+  ],
+  jetty: [
+    [{ x: 5212, y: 392 }, { x: 5230, y: 430 }, { x: 5285, y: 442 }, { x: 5370, y: 430 }, { x: 5437, y: 375 }],
+    [{ x: 5242, y: 360 }, { x: 5242, y: 450 }],
+  ],
+  dye: [
+    [{ x: 3255, y: 370 }, { x: 3290, y: 359 }, { x: 3350, y: 359 }, { x: 3395, y: 370 }],
+    [{ x: 3227, y: 227 }, { x: 3470, y: 227 }],
+  ],
+  pond: [
+    [{ x: 1015, y: 465 }, { x: 1160, y: 417 }, { x: 1310, y: 350 }],
+    [{ x: 1030, y: 257 }, { x: 1210, y: 262 }],
+  ],
+  bench: [
+    [{ x: 367, y: 495 }, { x: 530, y: 502 }],
+    [{ x: 480, y: 205 }, { x: 495, y: 280 }, { x: 520, y: 345 }, { x: 540, y: 430 }, { x: 550, y: 525 }],
+  ],
+};
 export const sketchPageId = (id: string) => `p-sk-${id}`;
 /** `sketch-<id>-<time>`: the place and the time of day it was drawn. */
 export function parseSketch(composition: string): { sketch: (typeof SKETCHES)[number]; tod: 'morning' | 'noon' | 'evening' } | null {
