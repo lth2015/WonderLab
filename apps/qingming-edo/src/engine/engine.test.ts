@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// These tests are about each story's own steps; the chapters that open stories one batch at a
+// time have their own tests (engine/chapters.test.ts). Here every story counts as open.
+vi.mock('./chapters', async (orig) => ({ ...(await orig<typeof import('./chapters')>()), questOpen: () => true }));
 import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
 import { characterById, frameOf, parseUgoki, UGOKI_PEOPLE, GUIDE_STOPS, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
