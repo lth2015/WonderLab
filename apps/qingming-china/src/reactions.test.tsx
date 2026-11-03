@@ -12,7 +12,8 @@ describe('visible world reactions',()=>{
     for(const env of ENVIRONMENT){
       const output=renderToStaticMarkup(<ReactionFx reaction={{id:env.id,serial:1}}/>);
       expect(output).toContain(`translate(${env.x} ${env.y})`);expect(output).toContain(`reaction-${REACTIONS[env.id]}`);
-      expect(output).toContain('reaction-static');expect(output).toMatch(/<path|<ellipse|<circle/);
+      expect(output).toContain('reaction-static');
+      expect(output).toMatch(/class="reaction-particles[^\"]*"[^>]*><g/);
     }
   });
   it('animates only local groups, so movement never replaces world placement or the art used by gifts',()=>{
