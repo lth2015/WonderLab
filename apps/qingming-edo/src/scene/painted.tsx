@@ -14,8 +14,12 @@ import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import { raining, timeOf } from '../engine/time';
 import { questOpen } from '../engine/chapters';
+import { STORIES } from '../content/stories';
+import { NEKO_AT as NEKO_PLACES, type NekoAt } from '../content/stories/neko';
+/** 茶店の猫: the cat's places (content/stories/neko.ts), as sprites. */
+const NEKO_AT = NEKO_PLACES as Record<NekoAt, { id: SpriteId; x: number; y: number; flip?: boolean }>;
 import SIZES from '../assets/art/sizes.json';
-import { CROWD as WORLD_CROWD, SHELTERS, frameOf, INKYO_BENCH, INKYO_WALK, outAt, parseSketch, parseUgoki, SCENE_W, UGOKI_PEOPLE, walkOf, type Reaction } from '../content/world';
+import { CROWD as WORLD_CROWD, SHELTERS, frameOf, INKYO_BENCH, INKYO_WALK, outAt, parseSketch, SCENE_W, UGOKI_PEOPLE, walkOf, type Reaction } from '../content/world';
 export { outAt, walkOf };
 
 const URLS = import.meta.glob('../assets/art/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
@@ -50,20 +54,8 @@ function Sprite({ id, x, y, flip, className }: { id: SpriteId; x: number; y: num
   );
 }
 
-/** Where people stand in the painting (their feet), read off the gridded art. */
-export const SPOTS = {
-  seitaKneel: { x: 12440, y: 538 }, // on the paper shop's raised floor
-  seitaStand: { x: 12560, y: 590 }, // in the street before the shop
-  sokichi: { x: 12640, y: 578 }, // in the street before the stone lantern, towards the bridge
-  okon: { x: 12150, y: 562 }, // before the tools shop
-  kisuke: { x: 11650, y: 546 }, // at the tea house front
-  oharu: { x: 11400, y: 582 }, // in the street before the tea house
-  kinji: { x: 7480, y: 572 }, // resting before the rice shop
-  // across the bridge (河岸の朝): the quay is further back, so its people are drawn smaller
-  omatsu: { x: 14700, y: 448 }, // before the first quay sheds
-  kameHide: { x: 15482, y: 468 }, // crouched by the barrels at the far sheds
-  kameHome: { x: 14748, y: 452 }, // beside his grandmother, once found
-};
+export { SPOTS } from '../content/spots';
+import { SPOTS } from '../content/spots';
 
 /**
  * Passers-by along the whole scroll (style decision #7): placed, never baked
@@ -360,15 +352,6 @@ export function posesFor(s: SaveData): Poses {
   };
 }
 
-/** 茶店の猫: on the well's rim, by the rice bales, on the moat steps; then asleep by the tea house. */
-export type NekoAt = 1 | 2 | 3 | 'home';
-export const NEKO_AT: Record<NekoAt, { id: SpriteId; x: number; y: number; flip?: boolean }> = {
-  1: { id: 'neko-sit', x: 10610, y: 437 },
-  2: { id: 'neko-loaf', x: 7640, y: 472 },
-  3: { id: 'neko-sit', x: 5468, y: 484 }, // on the stone landing, looking at the boat
-  home: { id: 'neko-loaf', x: 11700, y: 548 },
-};
-
 /**
  * The cat where it is; when it moves on while the player watches, it is seen leaping away
  * from where it was (towards where it went). Only this inner group is animated (lesson of #157).
@@ -611,27 +594,6 @@ const KAZE_VIEWS: Record<string, { x0: number; y0: number; w: number; people: Pe
   },
 };
 
-/**
- * 八頁目 (橋のたもと): everyone the player helped, on the open ground before the bridge,
- * two rows (the back row higher up the road). 宗吉 at the end, if the player asked him in.
- */
-function hashiGroup(withMaster: boolean): Person[] {
-  const back: Person[] = [
-    { id: 'seita-stand', x: 12720, y: 505 },
-    { id: 'okon-bow', x: 12765, y: 507 },
-    { id: 'kinji-nod', x: 12818, y: 505 },
-    { id: 'oharu-found', x: 12872, y: 507 },
-    { id: 'kisuke-teapot', x: 12928, y: 505 },
-  ];
-  const front: Person[] = [
-    { id: 'omatsu-smile', x: 12700, y: 566 },
-    { id: 'kame-shy', x: 12736, y: 568 },
-    { id: 'crowd1-merchant', x: 12800, y: 566 },
-    ...(withMaster ? [{ id: 'sokichi-nod' as SpriteId, x: 12862, y: 562 }] : []),
-  ];
-  return [...back, ...front];
-}
-
 /** 雨宿り pages: a grey wash and fine slanting rain over the picture (inside the SVG, so a saved PNG keeps it). */
 function PageRain({ x0, y0, w }: { x0: number; y0: number; w: number }) {
   const h = (w * 660) / 520;
@@ -658,7 +620,11 @@ function PageRain({ x0, y0, w }: { x0: number; y0: number; w: number }) {
 export function PaintedPageScene({ composition }: { composition: string }) {
   const sk = parseSketch(composition);
   const kz = /^kaze-([a-z]+-(?:near|wide))$/.exec(composition);
-  const view: { x0: number; y0: number; w: number; people: Person[] } = sk
+  // a story in its own file draws its pages from its own view (content/stories)
+  const mv = STORIES.map((st) => st.view(composition)).find((v) => v !== null) ?? null;
+  const view: { x0: number; y0: number; w: number; people: Person[] } = mv
+    ? (mv as { x0: number; y0: number; w: number; people: Person[] })
+    : sk
     ? { ...sk.sketch.view, people: [] }
     : kz && KAZE_VIEWS[kz[1]]
       ? KAZE_VIEWS[kz[1]]
@@ -671,67 +637,6 @@ export function PaintedPageScene({ composition }: { composition: string }) {
             { id: 'kisuke-bow' as SpriteId, ...SPOTS.kisuke },
             { id: 'oharu-found' as SpriteId, ...SPOTS.oharu },
           ],
-        }
-      : composition === 'hashi-with' || composition === 'hashi-side'
-      ? { x0: 12620, y0: 190, w: 400, people: hashiGroup(composition === 'hashi-with') }
-      : composition === 'neko-bench'
-      ? {
-          x0: SPOTS.kisuke.x - 170,
-          y0: 250,
-          w: 340,
-          people: [
-            { id: 'kisuke-pour' as SpriteId, ...SPOTS.kisuke },
-            { ...NEKO_AT.home },
-          ],
-        }
-      : composition === 'neko-boat'
-      ? { x0: 5330, y0: 300, w: 270, people: [{ ...NEKO_AT[3] }] }
-      : composition === 'inkyo-listen'
-      ? { x0: 400, y0: 300, w: 300, people: [{ id: INKYO_SPRITE, ...INKYO_BENCH }] }
-      : composition === 'inkyo-quiet'
-      ? { x0: 250, y0: 120, w: 450, people: [{ id: INKYO_SPRITE, ...INKYO_BENCH }] }
-      : parseUgoki(composition)
-      ? (() => {
-          const u = parseUgoki(composition)!;
-          return { x0: u.x - 150, y0: u.walker.y - 300, w: 300, people: [{ id: u.walker.id as SpriteId, x: u.x, y: u.walker.y, flip: u.walker.flip }] };
-        })()
-      : composition === 'ame-street'
-      ? { x0: 7380, y0: 270, w: 330, people: [] }
-      : composition === 'ame-eave'
-      ? { x0: SPOTS.kisuke.x - 170, y0: 250, w: 340, people: [{ id: 'kisuke-teapot' as SpriteId, ...SPOTS.kisuke }] }
-      : composition === 'ai-vat'
-      ? { x0: 3130, y0: 205, w: 300, people: [] }
-      : composition === 'ai-cloth'
-      ? { x0: 2990, y0: 60, w: 420, people: [] }
-      : composition === 'yube-tell'
-      ? { x0: 12560, y0: 250, w: 360, people: [{ id: 'sokichi-nod' as SpriteId, ...SPOTS.sokichi }] }
-      : composition === 'yube-watch'
-      ? { x0: SPOTS.kisuke.x - 170, y0: 250, w: 340, people: [{ id: 'kisuke-pour' as SpriteId, ...SPOTS.kisuke }] }
-            : composition === 'fumi-send' || composition === 'fumi-rewrite'
-      ? {
-          // the clerk with his letter by the rice shop; the rewrite page stands further back
-          x0: composition === 'fumi-send' ? 7830 : 7740,
-          y0: composition === 'fumi-send' ? 330 : 210,
-          w: composition === 'fumi-send' ? 260 : 380,
-          people: [{ id: 'crowd1-merchant' as SpriteId, x: 7960, y: 610, flip: composition === 'fumi-rewrite' }],
-        }
-            : composition === 'kashi-now'
-      ? {
-          x0: SPOTS.omatsu.x - 150,
-          y0: 230,
-          w: 300,
-          people: [
-            { id: 'omatsu-smile' as SpriteId, ...SPOTS.omatsu },
-            { id: 'kame-shy' as SpriteId, ...SPOTS.kameHome },
-          ],
-        }
-      : composition === 'kashi-watch'
-      ? {
-          // the two of them by the barrels, the boats below
-          x0: SPOTS.kameHide.x - 210,
-          y0: 260,
-          w: 330,
-          people: [{ id: 'kame-point' as SpriteId, ...SPOTS.kameHide }],
         }
       : composition === 'dougu-deliver'
       ? { x0: SPOTS.kinji.x - 165, y0: 240, w: 330, people: [{ id: 'kinji-nod' as SpriteId, ...SPOTS.kinji }] }
@@ -748,7 +653,9 @@ export function PaintedPageScene({ composition }: { composition: string }) {
   const first = Math.floor(view.x0 / 1000);
   // the time it was drawn, as a colour matrix inside the SVG (so a saved PNG keeps it)
   // 夕暮れの灯 is always an evening page; sketches keep the time they were drawn
-  const pageTod: 'morning' | 'noon' | 'evening' | null = sk ? sk.tod : composition.startsWith('yube-') ? 'evening' : composition.startsWith('ai-') ? 'morning' : null;
+  const pageTod: 'morning' | 'noon' | 'evening' | null = mv ? (mv.tod ?? null) : sk ? sk.tod : composition.startsWith('yube-') ? 'evening' : composition.startsWith('ai-') ? 'morning' : null;
+  const lamps = mv ? !!mv.lamps : composition.startsWith('yube-');
+  const rain = mv ? !!mv.rain : composition.startsWith('ame-');
   const tint = pageTod ? PAGE_TINT[pageTod] : null;
   return (
     <g transform={`translate(40 40) scale(${k}) translate(${-view.x0} ${-view.y0})`} filter={tint ? `url(#page-tint-${pageTod})` : undefined}>
@@ -757,7 +664,7 @@ export function PaintedPageScene({ composition }: { composition: string }) {
           <feColorMatrix type="matrix" values={tint} />
         </filter>
       )}
-      {composition.startsWith('yube-') && (
+      {lamps && (
         <defs>
           <radialGradient id="lamp-glow-street">
             <stop offset="0" stopColor="#ffd98a" stopOpacity={0.9} />
@@ -770,11 +677,11 @@ export function PaintedPageScene({ composition }: { composition: string }) {
       {STREET.map((href, i) =>
         !href || i < first || i > first + 1 ? null : <image key={i} href={href!} x={i * 1000} y={0} width={1000} height={700} preserveAspectRatio="none" />,
       )}
-      {composition.startsWith('yube-') && STREET_LAMPS.map((l, i) => <StreetLamp key={i} {...l} lit glow />)}
+      {lamps && STREET_LAMPS.map((l, i) => <StreetLamp key={i} {...l} lit glow />)}
       {view.people.map((p) => (
         <Sprite key={p.id} id={p.id} x={p.x} y={p.y} flip={p.flip} />
       ))}
-      {composition.startsWith('ame-') && <PageRain x0={view.x0} y0={view.y0} w={view.w} />}
+      {rain && <PageRain x0={view.x0} y0={view.y0} w={view.w} />}
     </g>
   );
 }
