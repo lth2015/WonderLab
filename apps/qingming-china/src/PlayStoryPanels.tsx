@@ -71,9 +71,9 @@ export function BreezePanel({game,act,onPage,close,reduced}:Props & {reduced:boo
   const light=windIsLight(elapsed);
   const clip=(corner:0|1)=>{setHint('');study.emit('play_detail',{what:'ugoki',outcome:'tapped'});act({type:'BREEZE_CLIP',corner});};
   const release=()=>{
-    const now=performance.now()-start.current;
-    const caught=windIsLight(now);study.emit('play_detail',{what:'ugoki',outcome:caught?'caught':'miss'});
-    act({type:'BREEZE_RELEASE',elapsed:now});setHint(caught?'':'纸角还在扬，小柳替你扶住了。等它平下来再试，也可直接用竹夹。');
+    // Judge the same sample that painted the invitation, including between ticks.
+    const caught=windIsLight(elapsed);study.emit('play_detail',{what:'ugoki',outcome:caught?'caught':'miss'});
+    act({type:'BREEZE_RELEASE',elapsed});setHint(caught?'':'纸角还在扬，小柳替你扶住了。等它平下来再试，也可直接用竹夹。');
   };
   const lines=[
     '小柳：刚才那幅画，墨还没干。替我把它挂到檐下吧，让风轻轻走过纸面。',
