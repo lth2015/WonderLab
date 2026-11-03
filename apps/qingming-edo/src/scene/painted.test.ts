@@ -21,7 +21,7 @@ describe('people along the scroll', () => {
 describe('通りすがりの人 (tap a walker)', () => {
   it('every passer-by can be spoken to, exactly when they are out walking', () => {
     for (const [i, c] of CROWD.entries()) {
-      const spot = HOTSPOTS.find((h) => h.walker === c.id);
+      const spot = HOTSPOTS.find((h) => h.walker === c.id && h.kind === 'ambient') ?? HOTSPOTS.find((h) => h.walker === c.id);
       expect(spot, c.id).toBeDefined();
       expect(spot!.anchor.x).toBe(c.x);
       for (const t of ['morning', 'noon', 'evening'] as const) {

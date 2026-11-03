@@ -853,3 +853,18 @@ export function parseUgoki(compositionId: string): { key: string; x: number; wal
   if (!f || x < f.lo - 10 || x > f.hi + 10) return null;
   return { key: m[1], x, walker: CROWD.find((c) => c.id === UGOKI_PEOPLE[m[1]].walker)! };
 }
+
+// ---------------------------------------------------------------- 章
+
+/**
+ * Which stories open together (engine/chapters.ts). The first three after 風のいたずら are on the
+ * bridge-end street; then the far bank, the morning lesson and the cat; then the times and the
+ * weather; the gathering at the bridge last.
+ */
+export const CHAPTERS: string[][] = [
+  ['kaze'],
+  ['dougu', 'tenugui', 'fumi'],
+  ['kashi', 'ai', 'neko'],
+  ['yube', 'inkyo', 'ame', 'ugoki'],
+  ['hashi'],
+];
