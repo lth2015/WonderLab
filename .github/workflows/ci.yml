@@ -29,11 +29,13 @@ jobs:
       - run: npm test
       - run: npm run build
       # 清明上河図：江戸編 (apps/qingming-edo): its own typecheck, tests and
-      # build: `npm run build` already puts it in dist/edo/; this checks it
-      # also builds for a domain of its own (spec §16).
+      # build: `npm run build` already puts it in dist/edo/. The *:domain
+      # builds are the standalone-domain artifacts for edo.want.world and
+      # qingming.want.world (CloudFront + S3; spec §16).
       - run: npm run test:qingming
       - run: npm run edo:test
-      - run: EDO_BASE=/ npm run edo:build
+      - run: npm run edo:domain
+      - run: npm run qingming:domain
 
   db:
     name: Database tests

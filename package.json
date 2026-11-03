@@ -27,10 +27,12 @@
     "edo:preview": "vite preview --config apps/qingming-edo/vite.config.ts",
     "edo:test": "vitest run --config apps/qingming-edo/vitest.config.ts",
     "edo:site": "tsc -p apps/qingming-edo/tsconfig.json && EDO_OUT_DIR=dist/edo vite build --config apps/qingming-edo/vite.config.ts",
+    "edo:domain": "tsc -p apps/qingming-edo/tsconfig.json && EDO_BASE=/ EDO_OUT_DIR=dist-edo-domain vite build --config apps/qingming-edo/vite.config.ts",
     "dev:qingming": "npm --prefix apps/qingming-china run dev",
     "build:qingming": "npm --prefix apps/qingming-china run build",
     "test:qingming": "npm --prefix apps/qingming-china test",
-    "qingming:site": "tsc -p apps/qingming-china/tsconfig.json && QINGMING_OUT_DIR=dist/qingming vite build --config apps/qingming-china/vite.config.ts"
+    "qingming:site": "tsc -p apps/qingming-china/tsconfig.json && QINGMING_OUT_DIR=dist/qingming vite build --config apps/qingming-china/vite.config.ts",
+    "qingming:domain": "tsc -p apps/qingming-china/tsconfig.json && QINGMING_OUT_DIR=dist-qingming-domain vite build --config apps/qingming-china/vite.config.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",

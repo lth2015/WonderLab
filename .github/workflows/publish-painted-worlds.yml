@@ -1,0 +1,126 @@
+name: Publish Painted Worlds
+
+# The two standalone painted-world sites (edo.want.world, qingming.want.world)
+# are static pages on S3 behind CloudFront. Infra owns the buckets, the
+# distributions and the DNS (Terraform, applied by hand); this workflow only
+# publishes build artifacts into the existing bucket, so it can never touch
+# want.world, the API or the database. Sync targets that do not exist yet fail
+# loudly instead of creating anything (docs/deploy-static.md).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+# Two overlapping runs would cross-delete each other's hashed assets (the
+# --delete pass only sees its own build output), so runs queue up instead.
+concurrency:
+  group: publish-painted-worlds
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-1
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: qa
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # One bucket, one prefix per site (apps/edo, apps/qingming). The *:domain
+      # builds serve from the root of their own domain (EDO_BASE=/; the china
+      # app builds with a relative base), so the prefix is invisible to the
+      # pages and every address stays a plain /… on its domain.
+      - name: Build edo.want.world (清明上河図：江戸編)
+        id: edo
+        env:
+          VITE_EDO_BUILD_ID: dom-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          npm run edo:domain
+          echo "dir=dist-edo-domain" >> "$GITHUB_OUTPUT"
+
+      - name: Build qingming.want.world（汴河拾光）
+        id: qingming
+        env:
+          VITE_QINGMING_BUILD_ID: dom-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          npm run qingming:domain
+          echo "dir=dist-qingming-domain" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-wonderlab-sites-${{ github.run_id }}
+
+      # Hashed files under assets/ never change and cache for a year; the page
+      # and everything else revalidates (same policy as server/src/web.ts),
+      # so a new publish is picked up on the next load. Assets go first so a
+      # fresh index.html is never visible before the files it references;
+      # --delete in each pass only sees files its own include/exclude covers.
+      - name: Publish edo site
+        env:
+          BUCKET: ${{ vars.SITES_BUCKET || 'wonderlab' }}
+          DIR: ${{ steps.edo.outputs.dir }}
+        run: |
+          set -euo pipefail
+          dest="s3://${BUCKET}/apps/edo/"
+          aws s3 sync "$DIR/" "$dest" --delete --exclude "*" --include "assets/*" \
+            --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync "$DIR/" "$dest" --delete --exclude "assets/*" --cache-control "no-cache"
+
+      - name: Publish qingming site
+        env:
+          BUCKET: ${{ vars.SITES_BUCKET || 'wonderlab' }}
+          DIR: ${{ steps.qingming.outputs.dir }}
+        run: |
+          set -euo pipefail
+          dest="s3://${BUCKET}/apps/qingming/"
+          aws s3 sync "$DIR/" "$dest" --delete --exclude "*" --include "assets/*" \
+            --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync "$DIR/" "$dest" --delete --exclude "assets/*" --cache-control "no-cache"
+
+      # Distribution IDs come from Terraform (infra repo). Unset: the pages
+      # are already published and pick up on browser revalidation; set the
+      # variables once the distributions exist.
+      - name: Invalidate CloudFront
+        if: ${{ vars.EDO_CF_DISTRIBUTION_ID != '' || vars.QINGMING_CF_DISTRIBUTION_ID != '' }}
+        env:
+          EDO_ID: ${{ vars.EDO_CF_DISTRIBUTION_ID }}
+          QINGMING_ID: ${{ vars.QINGMING_CF_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "$EDO_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id "$EDO_ID" --paths "/*"
+          fi
+          if [ -n "$QINGMING_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id "$QINGMING_ID" --paths "/*"
+          fi
+
+      - name: Publish build summary
+        env:
+          SHA: ${{ github.sha }}
+          BUCKET: ${{ vars.SITES_BUCKET || 'wonderlab' }}
+        run: |
+          {
+            echo "### Painted worlds publish"
+            echo "- commit: $SHA"
+            echo "- edo.want.world ← s3://${BUCKET}/apps/edo/ (dist-edo-domain)"
+            echo "- qingming.want.world ← s3://${BUCKET}/apps/qingming/ (dist-qingming-domain)"
+          } >> "$GITHUB_STEP_SUMMARY"
