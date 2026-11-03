@@ -19,9 +19,11 @@ spec:
   provider: aws
   parameters:
     usePodIdentity: "true"
-    # The external Secret value is never copied into this manifest or a
-    # Kubernetes Secret. It contains only username/password; connection
-    # coordinates are supplied by the non-sensitive ConfigMap.
+    # Points at the RDS-managed master credential secret (rds!db-…): the
+    # migration Job is short-lived, so it always mounts the password that is
+    # current at start time, even right after the 7-day managed rotation
+    # (ADR-0010). It contains only username/password; connection coordinates
+    # are supplied by the non-sensitive ConfigMap.
     objects: |
       - objectName: "REPLACE_WITH_MIGRATION_DATABASE_SECRET_ARN"
         objectType: "secretsmanager"

@@ -25,7 +25,12 @@ env:
   DATABASE_PORT: "3306"
   DATABASE_NAME: wonderlab
   RUNTIME_DATABASE_SECRET_ARN: arn:aws:secretsmanager:ap-northeast-1:654654578710:secret:qa-wonderlab-runtime-database-secrets-kv-zQlzdb
-  MIGRATION_DATABASE_SECRET_ARN: arn:aws:secretsmanager:ap-northeast-1:654654578710:secret:qa-wonderlab-migration-database-secrets-kv-7dIpim
+  # The migration Job mounts the RDS-managed master credential secret
+  # directly (ADR-0010): it is short-lived, so it always picks up the latest
+  # password even right after the 7-day managed rotation, and the former
+  # static master-password copy (qa-wonderlab-migration-database-secrets-kv)
+  # is retired.
+  MIGRATION_DATABASE_SECRET_ARN: arn:aws:secretsmanager:ap-northeast-1:654654578710:secret:rds!db-5f6e911b-d74b-490e-bf75-a00265041929-i10gGT
 
 concurrency:
   group: wonderlab-deploy-qa
