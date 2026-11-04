@@ -14,6 +14,7 @@ import type { SaveData } from '../contract';
 import { hasFlag, questState } from '../engine/state';
 import { raining, timeOf } from '../engine/time';
 import { questOpen } from '../engine/chapters';
+import { LOST } from '../content/lost';
 import { STORIES } from '../content/stories';
 import { NEKO_AT as NEKO_PLACES, type NekoAt } from '../content/stories/neko';
 /** 茶店の猫: the cat's places (content/stories/neko.ts), as sprites. */
@@ -307,6 +308,8 @@ export interface Poses {
   /** 雨: passers-by keep under the eaves; these three wait there until an umbrella comes. */
   rain: boolean;
   sheltering: [boolean, boolean, boolean];
+  /** 探し物: the lost things still lying where they fell. */
+  lost: string[];
 }
 
 export function posesFor(s: SaveData): Poses {
@@ -334,6 +337,7 @@ export function posesFor(s: SaveData): Poses {
     lit: [1, 2, 3].map((n) => hasFlag(s, `yube_lit${n}`)) as [boolean, boolean, boolean],
     frames: hasFlag(s, 'ugoki_look') && questState(s, 'ugoki') !== 'complete' && !raining(s),
     rain: raining(s),
+    lost: questState(s, 'kaze') === 'complete' ? LOST.filter((t) => !hasFlag(s, `lost_found_${t.id}`)).map((t) => t.id) : [],
     sheltering: [1, 2, 3].map((n) => raining(s) && !hasFlag(s, `ame_${n}`) && questState(s, 'ame') !== 'complete') as [boolean, boolean, boolean],
     inkyo:
       questState(s, 'inkyo') === 'complete' ? null : hasFlag(s, 'inkyo_arrived') ? 'bench' : hasFlag(s, 'inkyo_walk') ? 'walk' : null,
@@ -514,6 +518,15 @@ export function PaintedStreet({ poses, sections, glints, stopped = [] }: Painted
       {poses.seita === 'press' && <LooseSheets />}
       {poses.fumi && <DroppedLetter />}
       <Neko at={poses.neko} sections={sections} />
+      {LOST.filter((t) => poses.lost.includes(t.id) && near(t.at.x, sections)).map((t, i) => (
+        <g key={`lost-${t.id}`} aria-hidden="true">
+          <image href={url(t.sprite)} x={t.at.x - SIZES[t.sprite as SpriteId].w / 2} y={t.at.y - SIZES[t.sprite as SpriteId].h} width={SIZES[t.sprite as SpriteId].w} height={SIZES[t.sprite as SpriteId].h} />
+          {/* a glint now and then, so a sharp eye can find it */}
+          <g transform={`translate(${t.at.x + SIZES[t.sprite as SpriteId].w * 0.25} ${t.at.y - SIZES[t.sprite as SpriteId].h})`}>
+            <path className="lost-glint" style={{ animationDelay: `${-i * 1.7}s` } as React.CSSProperties} d="M 0 -4 L 0.9 -0.9 L 4 0 L 0.9 0.9 L 0 4 L -0.9 0.9 L -4 0 L -0.9 -0.9 Z" fill="#fffbe6" />
+          </g>
+        </g>
+      ))}
       {SHELTERS.map((p, i) =>
         poses.sheltering[i] && near(p.x, sections) ? (
           <Idle n={11 + i} key={`shelter-${i}`}>

@@ -19,6 +19,8 @@ import { Wrap } from './ui/Wrap';
 import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
 import { Trace } from './ui/Trace';
+import { TownMap } from './ui/TownMap';
+import { LOST } from './content/lost';
 import { Talk } from './ui/Talk';
 import { Glossed } from './ui/Glossed';
 import { useModalFocus } from './ui/modalFocus';
@@ -38,7 +40,7 @@ function unknownScene(): boolean {
 /** Shown whenever the time bell is rung, so the event is there without sound too. */
 const BELL_LINE = '石町のほうから、時の鐘が遠く聞こえてくる。';
 
-type Panel = 'journal' | 'items' | 'nearby' | 'settings' | null;
+type Panel = 'journal' | 'items' | 'nearby' | 'settings' | 'map' | null;
 const IDLE_MS = 8000; // spec §6
 
 function storage(): Storage | null {
@@ -186,6 +188,7 @@ export function App() {
   useEffect(() => {
     if (panel === 'journal') study.emit('journal_opened', { page_count: saveRef.current.journal.pages.length });
     if (panel === 'nearby') study.emit('play_detail', { what: 'nearby', outcome: 'opened' });
+    if (panel === 'map') study.emit('play_detail', { what: 'map', outcome: 'opened' });
   }, [panel]);
   const sheetOpen = !!(panel || sketch || game);
   const lastSheet = useRef(sheetOpen);
@@ -222,6 +225,9 @@ export function App() {
         return setDialogue(null);
       }
       let next = n.effects && !inRecall ? apply(saveRef.current, n.effects) : saveRef.current;
+      // 探し物 in the play log: heard of, found, given back
+      const lostStep = /^lost\.[a-z]+\.(hint|find|back)$/.exec(id)?.[1];
+      if (lostStep && !inRecall) study.emit('play_detail', { what: 'lost', outcome: lostStep === 'hint' ? 'hinted' : lostStep === 'find' ? 'found' : 'returned' });
       // a passing moment (the cat leaping away): a note over the street, so the street stays in view
       if (n.brief && !inRecall) {
         if (next !== saveRef.current) setSave(next);
@@ -383,6 +389,13 @@ export function App() {
 
   // ---------------------------------------------------------------- idle hint
   // 「近くのこと」 near where the player is: read the camera when the list is (re)made
+  /** The part of the street in view now (scene units), for the map. */
+  const streetView = () => {
+    const el = document.querySelector<HTMLElement>('.street');
+    const cam = Number(el?.dataset.cam);
+    const scale = Number(el?.dataset.scale) || 1;
+    return Number.isFinite(cam) && el ? { x0: cam, w: el.getBoundingClientRect().width / scale } : null;
+  };
   const camMid = () => {
     const el = document.querySelector<HTMLElement>('.street');
     const cam = Number(el?.dataset.cam);
@@ -525,7 +538,9 @@ export function App() {
   return (
     <div className="app">
       <header className="top">
-        <span className="place">日本橋北詰</span>
+        <button type="button" className="place map-open" onClick={() => setPanel('map')} disabled={!entered} aria-label="町の絵図を開く（日本橋北詰）">
+          日本橋北詰<span className="map-open-mark" aria-hidden="true">図</span>
+        </button>
         {SESSION_MODE && <span className="session-badge">試遊会</span>}
         {reached.length > 1 ? (
           <button type="button" className="time ghost" aria-expanded={timeMenu} onClick={() => setTimeMenu((m) => !m)}>
@@ -736,6 +751,18 @@ export function App() {
       {sketch && <Sketch subject={sketch} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}
 
       {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} />}
+      {panel === 'map' && (
+        <TownMap
+          save={save}
+          view={streetView()}
+          onGo={(x) => {
+            setPanel(null);
+            setHint(null);
+            street.current?.focus(x);
+          }}
+          onClose={() => setPanel(null)}
+        />
+      )}
       {panel === 'items' && (
         <div className="panel" role="dialog" aria-labelledby="items-h">
           <h2 id="items-h">持ち物</h2>
@@ -743,12 +770,24 @@ export function App() {
             所持金 <strong>{save.wallet.balanceMinor}</strong> 文
           </p>
           <p className="small">文はこの町の中だけで使うお金です。金額は遊びのための調整値で、1805年の物価ではありません。</p>
-          {hasFlag(save, 'dougu_carry') && questState(save, 'dougu') !== 'complete' ? (
-            <ul className="list">
-              <li>お紺から預かった包み（金次さんの弁当箱・箸箱・砥石）</li>
-            </ul>
-          ) : (
-            <p>持ち物はまだありません。</p>
+          {(() => {
+            const carried = [
+              ...(hasFlag(save, 'dougu_carry') && questState(save, 'dougu') !== 'complete' ? ['お紺から預かった包み（金次さんの弁当箱・箸箱・砥石）'] : []),
+              // 探し物: found, not yet given back
+              ...LOST.filter((t) => hasFlag(save, `lost_found_${t.id}`) && !hasFlag(save, `lost_back_${t.id}`)).map((t) => `拾った${t.name}（${t.place}で）`),
+            ];
+            return carried.length ? (
+              <ul className="list">
+                {carried.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>持ち物はまだありません。</p>
+            );
+          })()}
+          {LOST.some((t) => hasFlag(save, `lost_back_${t.id}`)) && (
+            <p className="small">持ち主に返した落とし物：{LOST.filter((t) => hasFlag(save, `lost_back_${t.id}`)).map((t) => t.name).join('、')}</p>
           )}
           <button type="button" className="primary panel-foot" onClick={() => setPanel(null)}>
             町に戻る
@@ -804,7 +843,8 @@ export function App() {
             <summary>この通りの人と物（文字で選ぶ）</summary>
           <ul className="list compact">
             {spots
-              .filter((s) => s.kind !== 'ambient')
+              // a lost thing is in the list once its owner has spoken of it (before that, only a sharp eye finds it)
+              .filter((s) => s.kind !== 'ambient' && !(s.targetId.startsWith('lost_') && !hasFlag(save, `lost_hint_${s.targetId.slice(5)}`)))
               .map((s) => (
                 <li key={s.id}>
                   <button type="button" onClick={() => goTo(s.id, true)}>

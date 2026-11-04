@@ -1638,3 +1638,121 @@ button.term[aria-expanded="true"] {
   color: #3d5677;
   border-color: transparent;
 }
+
+/* 探し物: a lost thing catches the light now and then (still with 動きを減らす: a faint star) */
+.lost-glint {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lost-glint 6.5s ease-in-out infinite;
+}
+@keyframes lost-glint {
+  0%, 84%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  89% { opacity: 1; transform: scale(1.15) rotate(20deg); }
+  94% { opacity: 0; transform: scale(0.6) rotate(40deg); }
+}
+.rm .lost-glint {
+  animation: none;
+  opacity: 0.55;
+}
+
+/* 町の絵図 */
+.top .map-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.top .map-open-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4em;
+  height: 1.4em;
+  font-size: 0.72em;
+  border: 1px solid #9b3a26;
+  color: #9b3a26;
+  border-radius: 3px;
+}
+.town-map .map-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.town-map .map-row {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #c9b994;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #ece2c9;
+}
+.town-map .map-row-name {
+  font-size: 16px;
+  fill: #33291f;
+  paint-order: stroke;
+  stroke: #f6efdc;
+  stroke-width: 4px;
+}
+.map-here {
+  fill: rgba(255, 252, 240, 0.25);
+  stroke: #9b3a26;
+  stroke-width: 3;
+}
+.map-ask circle {
+  fill: #9b3a26;
+  stroke: #fff6e2;
+  stroke-width: 3;
+}
+.map-ask text {
+  fill: #fff6e2;
+  font-size: 22px;
+  text-anchor: middle;
+}
+.map-lost circle {
+  fill: rgba(255, 246, 226, 0.25);
+  stroke: #3d5677;
+  stroke-width: 2.5;
+  stroke-dasharray: 6 5;
+}
+.map-lost text {
+  fill: #3d5677;
+  font-size: 22px;
+  font-weight: 700;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: #f6efdc;
+  stroke-width: 4px;
+}
+.map-legend {
+  margin: 0;
+}
+.map-key {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3em;
+  height: 1.3em;
+  vertical-align: -0.2em;
+  font-size: 0.85em;
+}
+.map-key.here {
+  border: 2px solid #9b3a26;
+  border-radius: 3px;
+}
+.map-key.ask {
+  background: #9b3a26;
+  color: #fff6e2;
+  border-radius: 50%;
+}
+.map-key.lost {
+  color: #3d5677;
+  border: 1.5px dashed #3d5677;
+  border-radius: 50%;
+}

@@ -8,6 +8,7 @@ import { AMBIENT, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from './world'
 export type { Speaker, Line, Choice, DialogueNode } from './types';
 import { STORIES } from './stories';
 import { RUMOR_RANK, RUMORS } from './rumors';
+import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
 
@@ -319,6 +320,14 @@ export const NODES: Record<string, DialogueNode> = {
 // the stories in their own files (content/stories), in page order
 for (const st of STORIES) Object.assign(NODES, st.nodes);
 
+// 探し物 (content/lost.ts): the owner's word, the find (a note over the street), the giving back
+for (const t of LOST) {
+  NODES[`lost.${t.id}.hint`] = { effects: [{ type: 'setFlag', flag: `lost_hint_${t.id}` }], lines: t.hint };
+  NODES[`lost.${t.id}.find`] = { brief: true, effects: [{ type: 'setFlag', flag: `lost_found_${t.id}` }], lines: [{ by: 'narration', text: t.find }] };
+  NODES[`lost.${t.id}.back`] = { effects: [{ type: 'setFlag', flag: `lost_back_${t.id}` }], lines: t.back };
+}
+NODES['lost.allback'] = { effects: [{ type: 'setFlag', flag: 'lost_allback' }], lines: LOST_ALL_BACK };
+
 // 町のうわさ (content/rumors.ts): each said once
 for (const r of RUMORS) NODES[`rumor.${r.id}`] = { effects: [{ type: 'setFlag', flag: `rumor_${r.id}` }], lines: r.lines };
 
@@ -448,6 +457,18 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = (()
   const all: Record<string, Rule[]> = {};
   for (const [t, rules] of Object.entries(BASE_ENTRIES)) all[t] = rules.map((r, i) => ({ ...r, rank: r.rank ?? 1000 + i }));
   for (const st of STORIES) for (const [t, rules] of Object.entries(st.entries)) all[t] = [...(all[t] ?? []), ...rules];
+  // 探し物: giving a found thing back comes before the rumors; the owner's word about the loss
+  // after them, once their own thanks has been read
+  LOST.forEach((t, i) => {
+    const r = RUMOR_RANK[t.owner] - 0.9 + i / 100;
+    all[t.owner] = [
+      ...(all[t.owner] ?? []),
+      { rank: r, when: { all: [{ flag: `lost_found_${t.id}` }, { not: { flag: `lost_back_${t.id}` } }] }, node: `lost.${t.id}.back` },
+      { rank: RUMOR_RANK[t.owner] + 0.5 + i / 100, when: { all: [LOST_OPEN, { quest: t.needs, is: 'complete' }, ...(t.seen ? [{ flag: t.seen }] : []), { not: { flag: `lost_hint_${t.id}` } }, { not: { flag: `lost_found_${t.id}` } }] }, node: `lost.${t.id}.hint` },
+    ];
+    all[`lost_${t.id}`] = [{ rank: 100, node: `lost.${t.id}.find` }];
+  });
+  all.sokichi = [...(all.sokichi ?? []), { rank: RUMOR_RANK.sokichi - 0.5, when: { all: [...LOST.map((t) => ({ flag: `lost_back_${t.id}` })), { not: { flag: 'lost_allback' } }] }, node: 'lost.allback' }];
   // うわさ: after every request, before the person's everyday word (content/rumors.ts RUMOR_RANK)
   RUMORS.forEach((r, i) => {
     const when: Condition = { all: [{ quest: r.needs, is: 'complete' }, { quest: r.after, is: 'complete' }, { not: { flag: `rumor_${r.id}` } }] };
@@ -462,4 +483,8 @@ export const ON_CLOSE: Record<string, Effect[]> = {
   'seita.done': [{ type: 'setFlag', flag: 'seita_seen_done' }],
   'okon.done': [{ type: 'setFlag', flag: 'okon_seen_done' }],
   'kisuke.done3': [{ type: 'setFlag', flag: 'kisuke_seen_done' }],
+  'kinji.done': [{ type: 'setFlag', flag: 'kinji_seen_done' }],
+  'kinji.done.entrust': [{ type: 'setFlag', flag: 'kinji_seen_done' }],
+  'oharu.done3': [{ type: 'setFlag', flag: 'oharu_seen_done' }],
+  'kame.done': [{ type: 'setFlag', flag: 'kame_seen_done' }],
 };
