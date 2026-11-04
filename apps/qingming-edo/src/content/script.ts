@@ -7,6 +7,7 @@ import { AMBIENT, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from './world'
 
 export type { Speaker, Line, Choice, DialogueNode } from './types';
 import { STORIES } from './stories';
+import { RUMOR_RANK, RUMORS } from './rumors';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
 
@@ -318,6 +319,9 @@ export const NODES: Record<string, DialogueNode> = {
 // the stories in their own files (content/stories), in page order
 for (const st of STORIES) Object.assign(NODES, st.nodes);
 
+// 町のうわさ (content/rumors.ts): each said once
+for (const r of RUMORS) NODES[`rumor.${r.id}`] = { effects: [{ type: 'setFlag', flag: `rumor_${r.id}` }], lines: r.lines };
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -444,6 +448,11 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = (()
   const all: Record<string, Rule[]> = {};
   for (const [t, rules] of Object.entries(BASE_ENTRIES)) all[t] = rules.map((r, i) => ({ ...r, rank: r.rank ?? 1000 + i }));
   for (const st of STORIES) for (const [t, rules] of Object.entries(st.entries)) all[t] = [...(all[t] ?? []), ...rules];
+  // うわさ: after every request, before the person's everyday word (content/rumors.ts RUMOR_RANK)
+  RUMORS.forEach((r, i) => {
+    const when: Condition = { all: [{ quest: r.needs, is: 'complete' }, { quest: r.after, is: 'complete' }, { not: { flag: `rumor_${r.id}` } }] };
+    all[r.who] = [...(all[r.who] ?? []), { rank: RUMOR_RANK[r.who] + i / 100, when, node: `rumor.${r.id}` }];
+  });
   return Object.fromEntries(Object.entries(all).map(([t, rules]) => [t, [...rules].sort((a, b) => a.rank - b.rank).map(({ rank: _rank, ...r }) => r)]));
 })();
 
