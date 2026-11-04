@@ -20,6 +20,7 @@ import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
 import { Trace } from './ui/Trace';
 import { TownMap } from './ui/TownMap';
+import { Face } from './ui/Face';
 import { LOST } from './content/lost';
 import { Talk } from './ui/Talk';
 import { Glossed } from './ui/Glossed';
@@ -539,7 +540,8 @@ export function App() {
     <div className="app">
       <header className="top">
         <button type="button" className="place map-open" onClick={() => setPanel('map')} disabled={!entered} aria-label="町の絵図を開く（日本橋北詰）">
-          日本橋北詰<span className="map-open-mark" aria-hidden="true">図</span>
+          <span className="map-open-name">日本橋北詰</span>
+          <span className="map-open-mark" aria-hidden="true">図</span>
         </button>
         {SESSION_MODE && <span className="session-badge">試遊会</span>}
         {reached.length > 1 ? (
@@ -702,13 +704,16 @@ export function App() {
           }}
         >
           {recall && <p className="recall-tag">回想　— 文は増えません</p>}
-          {line.by !== 'narration' && (
-            <p className="speaker">
-              {characterById.get(line.by)?.displayName}
-              <small>{ROLES[line.by]}</small>
-            </p>
-          )}
-          <Glossed className={line.by === 'narration' ? 'narration' : 'said'} text={line.text} />
+          <div className="line-body">
+            {line.by !== 'narration' && <Face who={line.by} />}
+            {line.by !== 'narration' && (
+              <p className="speaker">
+                {characterById.get(line.by)?.displayName}
+                <small>{ROLES[line.by]}</small>
+              </p>
+            )}
+            <Glossed className={line.by === 'narration' ? 'narration' : 'said'} text={line.text} />
+          </div>
           {atLast && node.choices ? (
             <div className="choices">
               {node.choices.map((c, i) => (
@@ -731,7 +736,7 @@ export function App() {
       )}
 
       {talk && (
-        <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} onClose={() => setTalk(null)} />
+        <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} complete={Object.keys(save.progress.quests).filter((q) => questState(save, q) === 'complete')} onClose={() => setTalk(null)} />
       )}
       {game && (() => {
         const done = () => {

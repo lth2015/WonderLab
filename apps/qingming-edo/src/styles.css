@@ -1668,7 +1668,18 @@ button.term[aria-expanded="true"] {
   color: inherit;
   cursor: pointer;
 }
+.top .map-open {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+/* a narrow screen with large text: the place name gives way before anything overlaps */
+.top .map-open-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .top .map-open-mark {
+  flex-shrink: 0;
   display: inline-grid;
   place-items: center;
   width: 1.4em;
@@ -1755,4 +1766,53 @@ button.term[aria-expanded="true"] {
   color: #3d5677;
   border: 1.5px dashed #3d5677;
   border-radius: 50%;
+}
+
+/* ---------------------------------------------------------------- 立ち絵 */
+/* The portrait sits beside the words, the text flowing round it (no extra height for short lines). */
+.line-body {
+  display: flow-root;
+}
+.line-body > p {
+  margin-top: 0;
+}
+.line-body .speaker {
+  margin-bottom: 4px;
+}
+.face {
+  float: left;
+  width: 88px;
+  height: 88px;
+  margin: -4px 12px 2px -6px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fff8e8 62%, rgba(255, 248, 232, 0));
+  animation: face-in 260ms var(--ease);
+}
+@keyframes face-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.rm .face {
+  animation: none;
+}
+@media (max-width: 380px) {
+  .face {
+    width: 68px;
+    height: 68px;
+    margin-right: 10px;
+  }
+}
+/* 少し話す: topics and people side by side, two to a row, so the list stays short
+   (one to a row once large text leaves no room: the width is in em) */
+.talk .choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr));
+}
+.talk .choice {
+  min-height: 44px;
+  padding-left: 12px;
+  padding-right: 8px;
 }

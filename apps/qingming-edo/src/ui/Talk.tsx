@@ -1,6 +1,8 @@
 import { Glossed } from './Glossed';
+import { Face } from './Face';
 import { useEffect, useRef, useState } from 'react';
 import { characterById, ROLES } from '../content/world';
+import { aboutLine, aboutWhom } from '../content/about';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS, TALK_TURNS, type TalkTopic } from '../content/talk';
 
 // 即興のひとこと (spec §12): after a story, stay and talk a little. The player
@@ -18,8 +20,12 @@ type Said = { text: string; live: boolean };
 /** Once the server says the feature is off (no key), stop asking for this visit. */
 let talkOff = false;
 
-export function Talk({ who, done, onClose }: { who: string; done: string[]; onClose(): void }) {
+export function Talk({ who, done, complete, onClose }: { who: string; done: string[]; complete: string[]; onClose(): void }) {
   const [turn, setTurn] = useState(0);
+  // 人のこと: the list of people to ask about is open; each is asked once a visit
+  const [asking, setAsking] = useState(false);
+  const [asked, setAsked] = useState<string[]>([]);
+  const whom = aboutWhom(who, complete).filter((x) => !asked.includes(x));
   const [said, setSaid] = useState<Said | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [showWait, setShowWait] = useState(false);
@@ -27,6 +33,11 @@ export function Talk({ who, done, onClose }: { who: string; done: string[]; onCl
   const name = characterById.get(who)?.displayName ?? '';
 
   useEffect(() => () => abort.current?.abort(), []);
+  // a new line (or the list of people) starts from the top of the sheet, never half scrolled
+  const sheet = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    sheet.current?.scrollTo({ top: 0 });
+  }, [said, asking]);
 
   const ask = async (topic: TalkTopic) => {
     if (talkOff) {
@@ -67,6 +78,14 @@ export function Talk({ who, done, onClose }: { who: string; done: string[]; onCl
     setShowWait(false);
   };
 
+  const askAbout = (subject: string) => {
+    // scripted: what one person thinks of another is never generated
+    setSaid({ text: aboutLine(who, subject, complete), live: false });
+    setAsked((a) => [...a, subject]);
+    setAsking(false);
+    setTurn((t) => t + 1);
+  };
+
   const cancel = () => {
     // stopping waiting is not a turn: the pending answer is dropped, nothing is said
     const ctl = abort.current;
@@ -79,46 +98,63 @@ export function Talk({ who, done, onClose }: { who: string; done: string[]; onCl
   const finished = turn >= TALK_TURNS;
 
   return (
-    <div className="sheet dialogue talk" role="dialog" aria-live="polite" aria-label={`${name}と話す`}>
-      <p className="speaker">
-        {name}
-        <small>{ROLES[who]}</small>
-      </p>
+    <div ref={sheet} className="sheet dialogue talk" role="dialog" aria-live="polite" aria-label={`${name}と話す`}>
+      <div className="line-body">
+        <Face who={who} />
+        <p className="speaker">
+          {name}
+          <small>{ROLES[who]}</small>
+        </p>
+        {waiting ? <p className="narration">{showWait ? `${name}は少し考えている……` : '　'}</p> : said ? (
+          <>
+            {said.live && <p className="improv-tag">即興のひとこと</p>}
+            <Glossed className="said" text={said.text} />
+          </>
+        ) : (
+          <p className="narration">何について話そう。</p>
+        )}
+        {!waiting && finished && <p className="said">{TALK_CLOSE[who]}</p>}
+      </div>
       {waiting ? (
         <>
-          <p className="narration">{showWait ? `${name}は少し考えている……` : '　'}</p>
           <button type="button" className="ghost" onClick={cancel}>
             やめる
           </button>
         </>
       ) : (
         <>
-          {said ? (
-            <>
-              {said.live && <p className="improv-tag">即興のひとこと</p>}
-              <Glossed className="said" text={said.text} />
-            </>
-          ) : (
-            <p className="narration">何について話そう。</p>
-          )}
           {finished ? (
             <>
-              <p className="said">{TALK_CLOSE[who]}</p>
               <button type="button" className="primary next" onClick={onClose} autoFocus>
                 閉じる
               </button>
             </>
           ) : (
             <>
-              <div className="choices">
-                {TALK_TOPICS.map((t) => (
-                  <button type="button" key={t.id} className="choice" onClick={() => ask(t.id)}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              <button type="button" className="ghost" onClick={onClose}>
-                町に戻る
+              {asking ? (
+                <div className="choices about" role="group" aria-label="だれのことを聞く？">
+                  {whom.map((x) => (
+                    <button type="button" key={x} className="choice" onClick={() => askAbout(x)}>
+                      {characterById.get(x)?.displayName}のこと
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="choices">
+                  {TALK_TOPICS.map((t) => (
+                    <button type="button" key={t.id} className="choice" onClick={() => ask(t.id)}>
+                      {t.label}
+                    </button>
+                  ))}
+                  {whom.length > 0 && (
+                    <button type="button" className="choice" onClick={() => setAsking(true)}>
+                      町の人のこと…
+                    </button>
+                  )}
+                </div>
+              )}
+              <button type="button" className="ghost" onClick={asking ? () => setAsking(false) : onClose}>
+                {asking ? 'ほかの話にする' : '町に戻る'}
               </button>
             </>
           )}
