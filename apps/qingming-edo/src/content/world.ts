@@ -1,6 +1,7 @@
-import type { CharacterDef, HotspotDef, ItemDef, PageDef, QuestDef, SceneDef, WorldDef } from '../contract';
+import type { CharacterDef, Condition, HotspotDef, ItemDef, PageDef, QuestDef, SceneDef, WorldDef } from '../contract';
 import { SCHEMA_VERSION, WORLD_ID } from '../contract';
 import { STORIES } from './stories';
+import { LOST, LOST_OPEN } from './lost';
 export { SHELTERS } from './stories/ame';
 export { INKYO_BENCH, INKYO_STOPS, INKYO_WALK } from './stories/inkyo';
 export { frameOf, parseUgoki, UGOKI_PEOPLE } from './stories/ugoki';
@@ -107,6 +108,16 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'a-pond', targetId: 'pond', kind: 'ambient', anchor: { x: 1125, y: 375 }, hitArea: { x: 1000, y: 300, w: 250, h: 150 }, priority: 1 },
   // the stories in their own files (content/stories)
   ...STORIES.flatMap((s) => s.hotspots ?? []),
+  // 探し物 (content/lost.ts): small, so the area to tap is generous
+  ...LOST.map((t) => ({
+    id: `h-lost-${t.id}`,
+    targetId: `lost_${t.id}`,
+    kind: 'prop' as const,
+    anchor: { x: t.at.x, y: t.at.y - 5 },
+    hitArea: { x: t.at.x - 22, y: t.at.y - 26, w: 44, h: 34 },
+    priority: 7,
+    visibleWhen: { all: [LOST_OPEN, { not: { flag: `lost_found_${t.id}` } }] } as Condition,
+  })),
 ];
 
 export const SCENE: SceneDef = {
@@ -192,6 +203,7 @@ export const AMBIENT_REACTION: Record<string, Reaction> = {
 /** What each thing (not a person, not scenery) is called in the lists: the first page's papers, and the stories' things. */
 export const PROP_LABEL: Record<string, string> = {
   papers: '青葉屋の店先の紙',
+  ...Object.fromEntries(LOST.map((t) => [`lost_${t.id}`, `${t.place}の落とし物`])),
   ...Object.assign({}, ...STORIES.map((s) => s.labels ?? {})),
 };
 

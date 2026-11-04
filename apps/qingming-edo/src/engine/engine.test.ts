@@ -887,7 +887,9 @@ describe('茶店の猫 (follow the cat, wait beside it)', () => {
       expect(open(s, end).wallet.balanceMinor).toBe(money + 10);
       expect(s.journal.pages.find((p) => p.pageId === 'p09-neko')?.compositionId).toBe(comp);
       expect(spot(s, 'h-nekohome')).toBe(true);
-      expect(entryFor('kisuke', s)).toBe('kisuke.done3');
+      // once the town has wind of lost things, he mentions the bell first, then his day-time words
+      expect(entryFor('kisuke', s)).toBe('lost.suzu.hint');
+      expect(entryFor('kisuke', open(s, 'lost.suzu.hint'))).toBe('kisuke.done3');
       expect(nearby(s).some((n) => n.id.startsWith('neko'))).toBe(false);
     }
   });
