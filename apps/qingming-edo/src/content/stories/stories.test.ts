@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENTRIES, NODES } from '../script';
 import { CHAPTERS, HOTSPOTS } from '../world';
 import { STORIES } from '.';
+import type { SaveData } from '../../contract';
 
 /** A composition each page can be drawn with: `a-{b|c}` → `a-b`; the dynamic ones by example. */
 const example = (pattern: string) => (pattern === 'ugoki-{who}-{x}' ? 'ugoki-parasol-10600' : pattern.replace(/\{([a-z]+)\|[a-z|]+\}/, '$1'));
@@ -42,5 +43,36 @@ describe('every thing on the street has its own name in the lists', () => {
     for (const h of props) expect(spotLabel(h), h.id).not.toBe(h.targetId);
     const names = props.map((h) => spotLabel(h));
     expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+describe('町のうわさ', () => {
+  it('each is said once, only after both stories, and never before a request', async () => {
+    const { RUMORS, RUMOR_RANK } = await import('../rumors');
+    const { questById } = await import('../world');
+    const { apply, newSave } = await import('../../engine/state');
+    const { entryFor } = await import('../../engine/story');
+    const done = (s: ReturnType<typeof newSave>, ...qs: string[]) => apply(s, qs.flatMap((q) => questById.get(q)!.completionEffects));
+    for (const r of RUMORS) {
+      expect(RUMOR_RANK[r.who], r.who).toBeDefined();
+      const both = { ...done(newSave(), 'kaze', r.needs, r.after), settings: { ...newSave().settings, timeChoice: 'noon' as const } };
+      const onlyMine = { ...done(newSave(), 'kaze', r.needs), settings: { ...newSave().settings, timeChoice: 'noon' as const } };
+      expect(entryFor(r.who, onlyMine), r.id).not.toBe(`rumor.${r.id}`);
+      // other rumors of the same person may come first: say those, then this one is heard
+      let s: SaveData = both;
+      for (let k = 0; k < 4 && entryFor(r.who, s)?.startsWith('rumor.') && entryFor(r.who, s) !== `rumor.${r.id}`; k++) s = apply(s, NODES[entryFor(r.who, s)!].effects!);
+      expect(entryFor(r.who, s), r.id).toBe(`rumor.${r.id}`);
+      s = apply(s, NODES[`rumor.${r.id}`].effects!);
+      expect(entryFor(r.who, s), `${r.id} once`).not.toBe(`rumor.${r.id}`);
+    }
+  });
+  it('a request waiting with the same person comes before the rumor', async () => {
+    const { questById } = await import('../world');
+    const { apply, newSave } = await import('../../engine/state');
+    const { entryFor } = await import('../../engine/story');
+    // 喜助 in the rain with the umbrellas still to carry, and he has heard of the cat... he asks first
+    let s = apply(newSave(), ['kaze', 'dougu', 'tenugui', 'fumi', 'kashi', 'ai', 'neko', 'yube'].flatMap((q) => questById.get(q)!.completionEffects));
+    s = { ...s, settings: { ...s.settings, timeChoice: 'noon', rain: true } };
+    expect(entryFor('kisuke', s)).toBe('kisuke.ame.ask');
   });
 });
