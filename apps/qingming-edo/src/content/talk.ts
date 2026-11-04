@@ -9,7 +9,7 @@ export const TALK_TOPICS: { id: TalkTopic; label: string }[] = [
   { id: 'earlier', label: 'さっきのこと' },
 ];
 /** Lines per visit before the person goes back to work. */
-export const TALK_TURNS = 3;
+export const TALK_TURNS = 4;
 
 export const FALLBACK: Record<string, Record<TalkTopic, string>> = {
   seita: {
