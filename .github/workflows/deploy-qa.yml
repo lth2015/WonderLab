@@ -230,7 +230,63 @@ jobs:
           kubectl apply --namespace "$NAMESPACE" --filename "$workdir/resources.yaml"
 
       - name: Verify API rollout
-        run: kubectl rollout status deployment/wonderlab-api --namespace "$NAMESPACE" --timeout=5m
+        shell: bash
+        run: |
+          set -euo pipefail
+          selector='app.kubernetes.io/name=wonderlab,app.kubernetes.io/component=api'
+
+          diagnose_rollout() {
+            # Keep failure evidence to workload metadata and events. In
+            # particular, never read CSI-mounted files or print process env.
+            echo '::group::API rollout diagnostics: Deployment and ReplicaSets'
+            kubectl get deployment wonderlab-api --namespace "$NAMESPACE" --output=wide || true
+            kubectl describe deployment wonderlab-api --namespace "$NAMESPACE" || true
+            kubectl get rs --namespace "$NAMESPACE" --selector="$selector" --output=wide || true
+            echo '::endgroup::'
+
+            echo '::group::API rollout diagnostics: Pods'
+            kubectl get pods --namespace "$NAMESPACE" --selector="$selector" --output=wide || true
+            kubectl get pods --namespace "$NAMESPACE" --selector="$selector" --output=json 2>/dev/null \
+              | jq -r '.items[] | [
+                  .metadata.name,
+                  (.metadata.deletionTimestamp // "-"),
+                  (.spec.nodeName // "-"),
+                  (.status.phase // "-"),
+                  ((.status.conditions // []) | map(select(.type == "Ready") | .status)[0] // "Unknown")
+                ] | @tsv' \
+              | awk 'BEGIN { print "POD\\tDELETION_TIMESTAMP\\tNODE\\tPHASE\\tREADY" } { print }' \
+              || true
+            echo '::endgroup::'
+
+            # A Pod that still has deletionTimestamp is the usual reason for
+            # "old replicas are pending termination". Describe it and its
+            # node so kubelet, CSI unmount and unreachable-node events are in
+            # the same Actions log.
+            terminating_pods="$(kubectl get pods --namespace "$NAMESPACE" --selector="$selector" --output=json 2>/dev/null \
+              | jq -r '.items[] | select(.metadata.deletionTimestamp != null) | .metadata.name' || true)"
+            while IFS= read -r pod; do
+              [ -n "$pod" ] || continue
+              echo "::group::Terminating API Pod: $pod"
+              kubectl describe pod --namespace "$NAMESPACE" "$pod" || true
+              node="$(kubectl get pod --namespace "$NAMESPACE" "$pod" --output=jsonpath='{.spec.nodeName}' 2>/dev/null || true)"
+              if [ -n "$node" ]; then
+                echo "Node for terminating Pod: $node"
+                kubectl get node "$node" --output=wide || true
+                kubectl describe node "$node" || true
+              fi
+              echo '::endgroup::'
+            done <<< "$terminating_pods"
+
+            echo '::group::API rollout diagnostics: recent namespace events'
+            kubectl get events --namespace "$NAMESPACE" --sort-by=.lastTimestamp | tail -n 100 || true
+            echo '::endgroup::'
+          }
+
+          if ! kubectl rollout status deployment/wonderlab-api --namespace "$NAMESPACE" --timeout=5m; then
+            echo '::error::API rollout did not complete; collecting diagnostics.'
+            diagnose_rollout
+            exit 1
+          fi
 
       - name: Deploy gift site
         if: ${{ steps.images.outputs.gift_digest != '' }}
