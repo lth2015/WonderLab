@@ -72,6 +72,7 @@ const nodes: Record<string, DialogueNode> = {
     lines: [{ by: 'omatsu', text: '舟のほうかねえ、樽のほうかねえ。あの子は、荷揚げが好きでね。' }],
   },
   'kame.found': {
+    cg: 'kashi',
     effects: KASHI_DONE,
     lines: [
       { by: 'kamekichi', text: 'わっ！ ……見つかっちまった。' },
@@ -96,6 +97,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'kame.watch': {
+    cg: 'kashi',
     effects: [{ type: 'setFlag', flag: 'kashi_watched' }, { type: 'familiarity', characterId: 'kamekichi', eventId: 'kashi' }, ...quest.completionEffects],
     page: { pageId: 'p04-kashi', compositionId: 'kashi-watch' },
     lines: [

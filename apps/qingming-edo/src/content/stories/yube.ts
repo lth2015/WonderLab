@@ -63,6 +63,7 @@ const nodes: Record<string, DialogueNode> = {
   'yube.light2': LIGHT(2, '米屋の前を、天秤棒の影がひとつ、灯の下を通り過ぎていく。'),
   'yube.light3': LIGHT(3, '桟橋の水面に、灯がひとつ揺れて映った。'),
   'kisuke.yube.done': {
+    cg: 'yube',
     lines: [
       { by: 'kisuke', text: '三つとも点けてくれたかい。……ほら、ここからでも橋の灯が見える。' },
       { by: 'kisuke', text: '作爺さんはね、毎晩あれを点けて回って、もう三十年になる。' },
@@ -83,6 +84,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'yube.watch': {
+    cg: 'yube',
     effects: [{ type: 'setFlag', flag: 'yube_watch' }, ...quest.completionEffects],
     page: { pageId: 'p06-yube', compositionId: 'yube-watch' },
     lines: [
