@@ -7,6 +7,7 @@ import { buySlip, buyTea, ownsSlip } from '../engine/shop';
 import { study } from '../engine/study';
 import { Face } from './Face';
 import { Glossed } from './Glossed';
+import ippukuUrl from '../assets/cg/ippuku.webp';
 
 // 買い物 (spec §11): 喜助's tea and a sweet, 青葉屋's title slips. Paying is a plain, sure step
 // (engine/shop.ts): the price is shown on the button, and a light purse simply cannot pay.
@@ -29,7 +30,7 @@ function Said({ line }: { line: Line }) {
   );
 }
 
-export function Shop({ kind, save, onSave, onToast, onClose }: { kind: 'tea' | 'slips'; save: SaveData; onSave(s: SaveData): void; onToast(t: string): void; onClose(): void }) {
+export function Shop({ kind, save, tod, rain, onSave, onToast, onClose }: { kind: 'tea' | 'slips'; save: SaveData; tod: 'morning' | 'noon' | 'evening'; rain: boolean; onSave(s: SaveData): void; onToast(t: string): void; onClose(): void }) {
   const [lines, setLines] = useState<Line[] | null>(null);
   const [at, setAt] = useState(0);
   const sheet = useRef<HTMLDivElement>(null);
@@ -51,12 +52,18 @@ export function Shop({ kind, save, onSave, onToast, onClose }: { kind: 'tea' | '
     if (lines) {
       const last = at >= lines.length - 1;
       return (
+        <>
+        {/* 一服の画: while resting, the view from the bench takes the place of the street */}
+        <div className={`cg tod-${tod}${rain ? ' rain' : ''}`} aria-hidden="true">
+          <img src={ippukuUrl} alt="" decoding="async" />
+        </div>
         <div ref={sheet} className="sheet dialogue shop" role="dialog" aria-live="polite" aria-label="一服">
           <Said line={lines[at]} />
           <button type="button" className="primary next" onClick={last ? onClose : () => setAt(at + 1)} autoFocus>
             {last ? 'ごちそうさま' : '次へ'}
           </button>
         </div>
+        </>
       );
     }
     return (

@@ -18,6 +18,8 @@ describe('買い物', () => {
   it('喜助 offers tea and 清太 the slips, beside 少し話す', () => {
     expect(NODES['kisuke.done3'].choices!.map((c) => c.shop ?? (c.talk ? 'talk' : ''))).toEqual(['talk', 'tea']);
     for (const id of ['seita.done', 'seita.again']) expect(NODES[id].choices!.some((c) => c.shop === 'slips')).toBe(true);
+    // his evening word after 夕暮れの灯 too
+    expect(NODES['kisuke.yube.after'].choices!.map((c) => c.shop ?? (c.talk ? 'talk' : ''))).toEqual(['talk', 'tea']);
     // the morning and evening words carry the same choices
     for (const id of Object.keys(NODES).filter((k) => k.startsWith('kisuke.done3@'))) expect(NODES[id].choices!.some((c) => c.shop === 'tea')).toBe(true);
   });

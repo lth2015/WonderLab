@@ -353,6 +353,8 @@ for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji
 }
 // 買い物 (spec §11): a rest at 喜助's tea house, title slips at 青葉屋 (content/shop.ts)
 NODES['kisuke.done3'].choices!.push({ label: `一服する（${TEA_PRICE}文）`, shop: 'tea' });
+// after 夕暮れの灯 his evening word is always the lamps: the tea house stays open then too
+NODES['kisuke.yube.after'].choices = [{ label: '少し話す', talk: true }, { label: `一服する（${TEA_PRICE}文）`, shop: 'tea' }];
 for (const id of ['seita.done', 'seita.again']) NODES[id].choices!.push({ label: '題箋を見る', shop: 'slips' });
 
 // 朝・昼・夕で言うことが変わる (owner: 多开发内容; demo feedback 「剧情太少」). A person's
