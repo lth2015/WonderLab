@@ -1922,3 +1922,10 @@ button.term[aria-expanded="true"] {
   margin: 0;
   text-align: right;
 }
+.town-map .map-row:focus-visible {
+  outline: 3px solid #9b3a26;
+  outline-offset: 2px;
+}
+.town-map .map-list {
+  flex: 0 0 auto;
+}

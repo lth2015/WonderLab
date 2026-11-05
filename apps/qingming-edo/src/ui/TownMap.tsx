@@ -26,10 +26,17 @@ export function TownMap({ save, view, onGo, onClose }: { save: SaveData; view: {
               className="map-row"
               viewBox={`0 ${r * MAP_ROW_H} ${W} ${MAP_ROW_H}`}
               role="button"
+              tabIndex={0}
               aria-label={`${ROW_NAMES[r]}${rowMarks.length ? `（${rowMarks.map((m) => m.label).join('、')}）` : ''}。押すとそこへ行きます`}
               onClick={(e) => {
                 const b = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
                 onGo(start + ((e.clientX - b.left) / b.width) * MAP_ROW_UNITS);
+              }}
+              // keyboard: Enter or Space goes to the middle of the row (marks have their own list below)
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                onGo(start + MAP_ROW_UNITS / 2);
               }}
             >
               <image href={mapUrl} x={0} y={0} width={W} height={MAP_ROW_H * 4} />
@@ -63,6 +70,24 @@ export function TownMap({ save, view, onGo, onClose }: { save: SaveData; view: {
       <p className="map-legend small">
         <span className="map-key here" /> いま見ているところ　<span className="map-key ask">依</span> 頼みごと　<span className="map-key lost">？</span> 落とし物のうわさ
       </p>
+      {marks.length > 0 && (
+        // the marks as words too: for the keyboard and for reading aloud
+        <details className="fold map-list">
+          <summary>印のあるところ（文字で選ぶ）</summary>
+          <ul className="list compact">
+            {[...marks]
+              .sort((a, b) => b.x - a.x)
+              .map((m, i) => (
+                <li key={i}>
+                  <button type="button" onClick={() => onGo(m.x)}>
+                    {m.kind === 'ask' ? '依　' : '？　'}
+                    {m.label}
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </details>
+      )}
       <button type="button" className="primary panel-foot" onClick={onClose}>
         町に戻る
       </button>
