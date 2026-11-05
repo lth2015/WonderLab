@@ -194,8 +194,12 @@ export function App() {
   useEffect(() => {
     if (panel === 'journal') study.emit('journal_opened', { page_count: saveRef.current.journal.pages.length });
     if (panel === 'nearby') study.emit('play_detail', { what: 'nearby', outcome: 'opened' });
-    if (panel === 'map') study.emit('play_detail', { what: 'map', outcome: 'opened' });
-  }, [panel]);
+    if (panel === 'map') {
+      study.emit('play_detail', { what: 'map', outcome: 'opened' });
+      // once the map has been opened, the notes below stop pointing at it
+      if (!hasFlag(saveRef.current, 'map_seen')) commit([{ type: 'setFlag', flag: 'map_seen' }]);
+    }
+  }, [panel, commit]);
   const sheetOpen = !!(panel || sketch || game);
   const lastSheet = useRef(sheetOpen);
   useEffect(() => {
@@ -515,8 +519,19 @@ export function App() {
     if (busy || chapters <= shownChapters.current) return;
     shownChapters.current = chapters;
     study.emit('play_detail', { what: 'chapter', outcome: 'opened' });
-    setTimeout(() => setToast('町に、新しい頼みごとが増えたようだ。「近くのこと」をのぞいてみよう。'), 400);
+    // until the player has found the map, say once where it is (it is only a small 図 by the place name)
+    const map = hasFlag(saveRef.current, 'map_seen') ? '' : '左上の「図」を押すと、町の絵図で場所もわかる。';
+    setTimeout(() => setToast(`町に、新しい頼みごとが増えたようだ。「近くのこと」をのぞいてみよう。${map}`), 400);
   }, [chapters, busy]);
+  // 探し物: the first time someone speaks of a loss, say that the map now marks the place (never on load)
+  const heardLost = LOST.filter((t) => hasFlag(save, `lost_hint_${t.id}`)).length;
+  const shownLost = useRef(heardLost);
+  useEffect(() => {
+    if (busy || heardLost <= shownLost.current) return;
+    const first = shownLost.current === 0;
+    shownLost.current = heardLost;
+    if (first) setTimeout(() => setToast('落とし物のあたりが、町の絵図（左上の「図」）に「？」で記された。'), 400);
+  }, [heardLost, busy]);
   const tod = timeOf(save);
   useEffect(() => sound.setTime(tod), [tod]);
   const reached = reachedTimes(save);
