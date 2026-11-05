@@ -9,6 +9,7 @@ export type { Speaker, Line, Choice, DialogueNode } from './types';
 import { STORIES } from './stories';
 import { RUMOR_RANK, RUMORS } from './rumors';
 import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
+import { TEA_PRICE } from './shop';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
 
@@ -350,6 +351,9 @@ for (const k of SKETCHES) {
 for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again', ...STORIES.flatMap((st) => st.talk ?? [])]) {
   NODES[id].choices = [{ label: '少し話す', talk: true }];
 }
+// 買い物 (spec §11): a rest at 喜助's tea house, title slips at 青葉屋 (content/shop.ts)
+NODES['kisuke.done3'].choices!.push({ label: `一服する（${TEA_PRICE}文）`, shop: 'tea' });
+for (const id of ['seita.done', 'seita.again']) NODES[id].choices!.push({ label: '題箋を見る', shop: 'slips' });
 
 // 朝・昼・夕で言うことが変わる (owner: 多开发内容; demo feedback 「剧情太少」). A person's
 // everyday word after their story has a morning and an evening version; noon is the

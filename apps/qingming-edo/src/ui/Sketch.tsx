@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FRAMINGS, kazeComposition, SUBJECTS, TITLE_STYLES, type Framing, type Subject } from '../content/world';
+import { FRAMINGS, kazeComposition, SUBJECTS, type Framing, type Subject } from '../content/world';
 import { PageArt } from '../scene/PageArt';
 import { PaintedPageScene } from '../scene/painted';
 
@@ -8,10 +8,13 @@ import { PaintedPageScene } from '../scene/painted';
 
 export function Sketch({
   subject,
+  styles,
   onDone,
   onCancel,
 }: {
   subject: Subject;
+  /** The title slips the player has: the three free ones and those bought at 青葉屋. */
+  styles: { id: string; label: string }[];
   onDone(subject: Subject, framing: Framing, titleStyle: string): void;
   onCancel(): void;
   reduceMotion: boolean;
@@ -44,7 +47,7 @@ export function Sketch({
       <fieldset>
         <legend>題箋</legend>
         <div className="seg">
-          {TITLE_STYLES.map((t) => (
+          {styles.map((t) => (
             <button type="button" key={t.id} aria-pressed={titleStyle === t.id} onClick={() => setTitleStyle(t.id)}>
               {t.label}
             </button>

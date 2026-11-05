@@ -1816,3 +1816,56 @@ button.term[aria-expanded="true"] {
   padding-left: 12px;
   padding-right: 8px;
 }
+
+/* ---------------------------------------------------------------- 買い物 */
+.shop .slips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.shop .slips li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.slip-swatch {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 52px;
+  border: 1px solid var(--ink, #33291f);
+  border-radius: 2px;
+}
+.slip-swatch.kinsunago {
+  background-image: radial-gradient(#b8902f 1px, transparent 1.4px) !important;
+  background-size: 7px 9px !important;
+}
+.slip-swatch.sakura {
+  background-image: radial-gradient(#d79a9e 1px, transparent 1.4px) !important;
+  background-size: 8px 10px !important;
+}
+.slip-text {
+  flex: 1 1 9em;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.slip-text small {
+  color: var(--ink-soft);
+}
+.slip-owned {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+.retitle summary {
+  cursor: pointer;
+}
+.shop .slips li > button {
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-left: auto;
+  white-space: nowrap;
+}
