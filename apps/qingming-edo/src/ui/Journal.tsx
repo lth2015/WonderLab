@@ -9,6 +9,7 @@ import { PageArt, pageToPng } from '../scene/PageArt';
 import { PaintedPageScene } from '../scene/painted';
 
 import { ScrollExport } from './ScrollExport';
+import { People } from './People';
 import { COMMENT, COMMENT_BY_COMPOSITION, PLACE, RECALL_NOTE } from '../content/pageText';
 import { GIFT_KINDS, type GiftKind } from '../content/gift';
 // 絵巻帳 (spec §6, §10, §18): only what actually happened. A page, once made,
@@ -39,9 +40,11 @@ function Page({ entry, idPrefix, note }: { entry: JournalEntry; idPrefix: string
   return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={place} {...common} />;
 }
 
-export function Journal({ save, onClose, onToast, onRecall, onRetitle }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void; onRetitle(pageId: string, style: string): void }) {
+export function Journal({ save, onClose, onToast, onRecall, onRetitle, onVisit }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void; onRetitle(pageId: string, style: string): void; onVisit(spotId: string): void }) {
   const [open, setOpen] = useState<JournalEntry | null>(null);
   const [scroll, setScroll] = useState(false);
+  // 頁 or 町の人 (人物帳)
+  const [tab, setTab] = useState<'pages' | 'people'>('pages');
   // 贈る画: the word chosen for a friend, or none (the page as it is)
   const [gift, setGift] = useState<string | null>(null);
   const [giftKind, setGiftKind] = useState<GiftKind['id']>(GIFT_KINDS[0].id);
@@ -245,9 +248,34 @@ export function Journal({ save, onClose, onToast, onRecall, onRetitle }: { save:
     );
   }
 
+  const tabs = (
+    <div className="seg journal-tabs" role="group" aria-label="絵巻帳の中身">
+      <button type="button" aria-pressed={tab === 'pages'} onClick={() => setTab('pages')}>
+        頁
+      </button>
+      <button type="button" aria-pressed={tab === 'people'} onClick={() => setTab('people')}>
+        町の人
+      </button>
+    </div>
+  );
+  if (tab === 'people') {
+    return (
+      <div className="panel" role="dialog" aria-labelledby="journal-h">
+        <h2 id="journal-h">絵巻帳</h2>
+        {tabs}
+        <p className="small">出会った人と、ともにしたこと。なじみは、一緒に何かをするたびに深まります。</p>
+        <People save={save} onVisit={onVisit} />
+        <button type="button" className="primary panel-foot" onClick={onClose}>
+          町に戻る
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="panel" role="dialog" aria-labelledby="journal-h">
       <h2 id="journal-h">絵巻帳</h2>
+      {tabs}
       <p className="small">
         {pages.length} / {PAGE_SLOTS} 頁{pages.length >= PAGE_SLOTS && '　一冊になりました'}
       </p>
