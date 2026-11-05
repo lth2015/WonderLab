@@ -62,6 +62,7 @@ const nodes: Record<string, DialogueNode> = {
     lines: [{ by: 'narration', text: 'ご隠居「なに、ゆっくりでいい。わしの足に合わせてくれて、ありがたいよ」' }],
   },
   'inkyo.arrive': {
+    cg: 'inkyo',
     lines: [
       { by: 'inkyo', text: '着いた着いた。……ああ、ここだ。' },
       { by: 'narration', text: 'ご隠居は縁台のそばに立って、杖に両手をのせた。川風が、柳の枝を揺らしている。' },
@@ -73,6 +74,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'inkyo.listen': {
+    cg: 'inkyo',
     effects: [{ type: 'setFlag', flag: 'inkyo_listen' }, ...quest.completionEffects],
     page: { pageId: 'p10-inkyo', compositionId: 'inkyo-listen' },
     lines: [
@@ -83,6 +85,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'inkyo.quiet': {
+    cg: 'inkyo',
     effects: [{ type: 'setFlag', flag: 'inkyo_quiet' }, ...quest.completionEffects],
     page: { pageId: 'p10-inkyo', compositionId: 'inkyo-quiet' },
     lines: [

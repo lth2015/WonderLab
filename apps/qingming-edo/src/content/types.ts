@@ -34,4 +34,6 @@ export interface DialogueNode {
   recallNext?: string;
   /** A passing moment: its effects apply and its one line shows as a note over the street, no dialogue (茶店の猫). */
   brief?: boolean;
+  /** 物語の画: a painting (assets/cg/<id>.webp) in place of the street while this node is read (ui/Cg.tsx). */
+  cg?: string;
 }

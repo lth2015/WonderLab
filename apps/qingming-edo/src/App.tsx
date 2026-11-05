@@ -22,6 +22,7 @@ import { Trace } from './ui/Trace';
 import { TownMap } from './ui/TownMap';
 import { Face } from './ui/Face';
 import { Shop } from './ui/Shop';
+import { Cg } from './ui/Cg';
 import { ownsSlip, retitle, slipStyles } from './engine/shop';
 import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
@@ -715,6 +716,7 @@ export function App() {
         </div>
       )}
 
+      {node?.cg && line && <Cg id={node.cg} tod={tod} rain={raining(save)} />}
       {node && line && (
         <div
           className={`sheet dialogue${recall ? ' recall' : ''}`}

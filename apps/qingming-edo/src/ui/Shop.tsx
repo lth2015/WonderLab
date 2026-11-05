@@ -7,7 +7,7 @@ import { buySlip, buyTea, ownsSlip } from '../engine/shop';
 import { study } from '../engine/study';
 import { Face } from './Face';
 import { Glossed } from './Glossed';
-import ippukuUrl from '../assets/cg/ippuku.webp';
+import { Cg } from './Cg';
 
 // 買い物 (spec §11): 喜助's tea and a sweet, 青葉屋's title slips. Paying is a plain, sure step
 // (engine/shop.ts): the price is shown on the button, and a light purse simply cannot pay.
@@ -54,9 +54,7 @@ export function Shop({ kind, save, tod, rain, onSave, onToast, onClose }: { kind
       return (
         <>
         {/* 一服の画: while resting, the view from the bench takes the place of the street */}
-        <div className={`cg tod-${tod}${rain ? ' rain' : ''}`} aria-hidden="true">
-          <img src={ippukuUrl} alt="" decoding="async" />
-        </div>
+        <Cg id="ippuku" tod={tod} rain={rain} />
         <div ref={sheet} className="sheet dialogue shop" role="dialog" aria-live="polite" aria-label="一服">
           <Said line={lines[at]} />
           <button type="button" className="primary next" onClick={last ? onClose : () => setAt(at + 1)} autoFocus>
