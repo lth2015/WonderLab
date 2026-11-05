@@ -1,5 +1,6 @@
 import { Glossed } from './Glossed';
 import { Face } from './Face';
+import { study } from '../engine/study';
 import { useEffect, useRef, useState } from 'react';
 import { characterById, ROLES } from '../content/world';
 import { aboutLine, aboutWhom } from '../content/about';
@@ -81,6 +82,7 @@ export function Talk({ who, done, complete, onClose }: { who: string; done: stri
   const askAbout = (subject: string) => {
     // scripted: what one person thinks of another is never generated
     setSaid({ text: aboutLine(who, subject, complete), live: false });
+    study.emit('play_detail', { what: 'talk', outcome: 'about' });
     setAsked((a) => [...a, subject]);
     setAsking(false);
     setTurn((t) => t + 1);
