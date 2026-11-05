@@ -5,14 +5,24 @@ import { useEffect } from 'react';
 // and focus returns to whatever opened it. The panel is looked up on each key,
 // because a panel can swap its contents (the journal's book and page views).
 // a[href] only: a page picture's SVG <image href> must not count as a focus stop
-const FOCUSABLE = 'button:not([disabled]), a[href], input:not([type="hidden"]):not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+// summary: a fold's own toggle; [tabindex] also takes the town map's rows (SVG)
+const FOCUSABLE = 'button:not([disabled]), a[href], input:not([type="hidden"]):not([disabled]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
 
 function currentPanel(): HTMLElement | null {
   const all = document.querySelectorAll<HTMLElement>('.panel[role="dialog"]');
   return all.length ? all[all.length - 1] : null;
 }
+/** Inside a closed fold nothing can take focus, except that fold's own summary. */
+function inClosedFold(x: Element): boolean {
+  const fold = x.closest('details:not([open])');
+  if (!fold) return false;
+  const ownSummary = x.tagName === 'SUMMARY' && x.parentElement === fold;
+  return !ownSummary || !!fold.parentElement?.closest('details:not([open])');
+}
 function focusables(el: HTMLElement): HTMLElement[] {
-  return [...el.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((x) => x instanceof HTMLElement && !x.hidden && x.getClientRects().length > 0);
+  return [...el.querySelectorAll<Element>(FOCUSABLE)].filter(
+    (x): x is HTMLElement => (x instanceof HTMLElement || x instanceof SVGElement) && !(x as HTMLElement).hidden && x.getClientRects().length > 0 && !inClosedFold(x),
+  );
 }
 
 /** `key` changes whenever a different panel opens; null when none is open. */
