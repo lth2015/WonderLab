@@ -356,7 +356,7 @@ export const QUESTS: QuestDef[] = [
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
-/** Spec §11 仮設定. 'balance': game values, not 1805 prices. Not on sale yet. */
+/** Spec §11 仮設定. 'balance': game values, not 1805 prices. Sold in content/shop.ts. */
 export const ITEMS: ItemDef[] = [
   { id: 'tea-sweet', displayName: '茶と菓子', currencyId: 'mon', priceMinor: 6, evidenceType: 'balance', sourceRefs: [], reviewStatus: 'reviewed' },
   { id: 'title-slip', displayName: '記念の題箋', currencyId: 'mon', priceMinor: 12, evidenceType: 'balance', sourceRefs: [], reviewStatus: 'reviewed' },
@@ -379,6 +379,12 @@ export const TITLE_STYLES = [
   { id: 'plain', label: '白の題箋' },
   { id: 'indigo', label: '藍の題箋' },
   { id: 'vermilion', label: '朱の題箋' },
+] as const;
+/** 記念の題箋 (spec §11, 12文 each): sold at 青葉屋 (content/shop.ts), once each. */
+export const SLIPS_FOR_SALE = [
+  { id: 'kinsunago', label: '金砂子の題箋', note: '金の粉を散らした、晴れの日の題箋。' },
+  { id: 'wakakusa', label: '若草の題箋', note: '春の土手の、やわらかな緑。' },
+  { id: 'sakura', label: '桜の題箋', note: '薄紅に、花びらの透かし。' },
 ] as const;
 
 // spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと, 茶店の猫, ご隠居の散歩, 動く人を描く and 雨宿り
@@ -541,7 +547,7 @@ export function validJournalEntry(pageId: string, compositionId: string): boolea
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }
-export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);
+export const TITLE_STYLE_IDS: readonly string[] = [...TITLE_STYLES, ...SLIPS_FOR_SALE].map((t) => t.id);
 
 /**
  * 通りの案内 (Codex review L02): stops along the whole roll, right (the bridge)

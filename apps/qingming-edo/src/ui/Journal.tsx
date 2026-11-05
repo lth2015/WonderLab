@@ -4,6 +4,7 @@ import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage, validJour
 import { TIMES } from '../engine/time';
 import { study } from '../engine/study';
 import { replayable } from '../engine/story';
+import { slipStyles } from '../engine/shop';
 import { PageArt, pageToPng } from '../scene/PageArt';
 import { PaintedPageScene } from '../scene/painted';
 
@@ -38,7 +39,7 @@ function Page({ entry, idPrefix, note }: { entry: JournalEntry; idPrefix: string
   return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={place} {...common} />;
 }
 
-export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void }) {
+export function Journal({ save, onClose, onToast, onRecall, onRetitle }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void; onRetitle(pageId: string, style: string): void }) {
   const [open, setOpen] = useState<JournalEntry | null>(null);
   const [scroll, setScroll] = useState(false);
   // 贈る画: the word chosen for a friend, or none (the page as it is)
@@ -173,6 +174,26 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
             作品のリンクをコピー
           </button>
         </div>
+        {slipStyles(save).length > 3 && (
+          <details className="retitle">
+            <summary>題箋を貼りかえる</summary>
+            <div className="seg" role="group" aria-label="題箋">
+              {slipStyles(save).map((t) => (
+                <button
+                  type="button"
+                  key={t.id}
+                  aria-pressed={open.titleStyle === t.id}
+                  onClick={() => {
+                    onRetitle(open.pageId, t.id);
+                    setOpen({ ...open, titleStyle: t.id });
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </details>
+        )}
         <details className="gift" open={giftOpen || undefined} onToggle={(e) => setGiftOpen((e.currentTarget as HTMLDetailsElement).open)}>
           <summary>贈る画にする</summary>
           <p className="small">一言を添えると、上の画がそのまま贈る画になります（進み具合や所持金は入りません）。</p>

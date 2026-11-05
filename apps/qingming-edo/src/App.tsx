@@ -21,6 +21,9 @@ import { Tenugui } from './ui/Tenugui';
 import { Trace } from './ui/Trace';
 import { TownMap } from './ui/TownMap';
 import { Face } from './ui/Face';
+import { Shop } from './ui/Shop';
+import { ownsSlip, retitle, slipStyles } from './engine/shop';
+import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
 import { Talk } from './ui/Talk';
 import { Glossed } from './ui/Glossed';
@@ -89,6 +92,8 @@ export function App() {
   const [candidates, setCandidates] = useState<HotspotDef[] | null>(null);
   const [sketch, setSketch] = useState<Subject | null>(null);
   const [talk, setTalk] = useState<string | null>(null);
+  // 買い物 (ui/Shop.tsx): 喜助's tea, 青葉屋's title slips
+  const [shop, setShop] = useState<'tea' | 'slips' | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [timeMenu, setTimeMenu] = useState(false);
   const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui' | 'trace'; then: string | null; trace?: string } | null>(null);
@@ -124,7 +129,7 @@ export function App() {
 
   const systemReduced = useSystemReducedMotion();
   const reduceMotion = save.settings.reduceMotion || systemReduced;
-  const busy = !!(dialogue || candidates || sketch || game || panel || talk);
+  const busy = !!(dialogue || candidates || sketch || game || panel || talk || shop);
   // panels hold the keyboard while open; Escape closes the menu panels (journal,
   // items, nearby, settings). Games and the sketch close with their own buttons.
   useModalFocus(panel ?? (sketch ? `sketch-${sketch}` : game ? `game-${game.id}` : null), panel ? () => setPanel(null) : null);
@@ -348,6 +353,12 @@ export function App() {
   const choose = (i: number) => {
     const c = NODES[dialogue!.node].choices![i];
     if (c.effects && !recallRef.current) commit(c.effects);
+    if (c.shop) {
+      if (ON_CLOSE[baseNode(dialogue!.node)]) commit(ON_CLOSE[baseNode(dialogue!.node)]);
+      setDialogue(null);
+      setShop(c.shop);
+      return;
+    }
     if (c.talk) {
       const n = NODES[dialogue!.node];
       if (ON_CLOSE[baseNode(dialogue!.node)]) commit(ON_CLOSE[baseNode(dialogue!.node)]);
@@ -602,7 +613,7 @@ export function App() {
           reacting={reacting}
           reduceMotion={reduceMotion}
           interactive={entered && !busy}
-          talking={!!(dialogue || candidates || talk)}
+          talking={!!(dialogue || candidates || talk || shop)}
           zoomed={zoomed}
           onTap={onTap}
           cue={cue}
@@ -735,6 +746,7 @@ export function App() {
         </div>
       )}
 
+      {shop && <Shop kind={shop} save={save} onSave={(next) => setSave(next)} onToast={setToast} onClose={() => setShop(null)} />}
       {talk && (
         <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} complete={Object.keys(save.progress.quests).filter((q) => questState(save, q) === 'complete')} onClose={() => setTalk(null)} />
       )}
@@ -753,9 +765,9 @@ export function App() {
         if (game.id === 'trace') return <Trace sketchId={game.trace!} tod={timeOf(save)} onDone={done} onCancel={cancel} />;
         return <Tenugui onDone={done} onCancel={cancel} />;
       })()}
-      {sketch && <Sketch subject={sketch} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}
+      {sketch && <Sketch subject={sketch} styles={slipStyles(save)} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}
 
-      {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} />}
+      {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} onRetitle={(pageId, style) => setSave(retitle(saveRef.current, pageId, style))} />}
       {panel === 'map' && (
         <TownMap
           save={save}
@@ -774,7 +786,10 @@ export function App() {
           <p className="purse">
             所持金 <strong>{save.wallet.balanceMinor}</strong> 文
           </p>
-          <p className="small">文はこの町の中だけで使うお金です。金額は遊びのための調整値で、1805年の物価ではありません。</p>
+          <p className="small">文はこの町の中だけで使うお金です。茶店の喜助のところで一服したり、青葉屋の清太から記念の題箋を買ったりできます。金額は遊びのための調整値で、1805年の物価ではありません。</p>
+          {SLIPS_FOR_SALE.some((x) => ownsSlip(save, x.id)) && (
+            <p className="small">買った題箋：{SLIPS_FOR_SALE.filter((x) => ownsSlip(save, x.id)).map((x) => x.label).join('、')}（絵巻帳の頁で貼りかえられます）</p>
+          )}
           {(() => {
             const carried = [
               ...(hasFlag(save, 'dougu_carry') && questState(save, 'dougu') !== 'complete' ? ['お紺から預かった包み（金次さんの弁当箱・箸箱・砥石）'] : []),

@@ -44,8 +44,8 @@ if (!URL) throw new Error('usage: node full-play.cjs <url>');
     for (let i = 0; i < 20 && (await d.count()); i++) {
       const labels = await readOn();
       if (!labels.length) continue;
-      // an everyday word may offer only 「少し話す」: leave it there
-      if (labels.every((l) => /少し話す/.test(l))) {
+      // an everyday word may offer only 「少し話す」 (and 喜助's tea, 清太's slips): leave it there
+      if (labels.every((l) => /少し話す|一服する|題箋を見る/.test(l))) {
         await d.getByRole('button', { name: '町に戻る' }).click();
         await p.waitForTimeout(120);
         continue;
