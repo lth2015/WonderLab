@@ -253,7 +253,14 @@ export function Journal({ save, onClose, onToast, onRecall, onRetitle, onVisit }
       <button type="button" aria-pressed={tab === 'pages'} onClick={() => setTab('pages')}>
         頁
       </button>
-      <button type="button" aria-pressed={tab === 'people'} onClick={() => setTab('people')}>
+      <button
+        type="button"
+        aria-pressed={tab === 'people'}
+        onClick={() => {
+          if (tab !== 'people') study.emit('play_detail', { what: 'people', outcome: 'opened' });
+          setTab('people');
+        }}
+      >
         町の人
       </button>
     </div>
@@ -264,7 +271,13 @@ export function Journal({ save, onClose, onToast, onRecall, onRetitle, onVisit }
         <h2 id="journal-h">絵巻帳</h2>
         {tabs}
         <p className="small">出会った人と、ともにしたこと。なじみは、一緒に何かをするたびに深まります。</p>
-        <People save={save} onVisit={onVisit} />
+        <People
+          save={save}
+          onVisit={(spot) => {
+            study.emit('play_detail', { what: 'people', outcome: 'visit' });
+            onVisit(spot);
+          }}
+        />
         <button type="button" className="primary panel-foot" onClick={onClose}>
           町に戻る
         </button>
