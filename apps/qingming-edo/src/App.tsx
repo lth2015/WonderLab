@@ -767,7 +767,7 @@ export function App() {
       })()}
       {sketch && <Sketch subject={sketch} styles={slipStyles(save)} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}
 
-      {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} onRetitle={(pageId, style) => setSave(retitle(saveRef.current, pageId, style))} />}
+      {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} onRetitle={(pageId, style) => setSave(retitle(saveRef.current, pageId, style))} onVisit={(spotId) => goTo(spotId, false)} />}
       {panel === 'map' && (
         <TownMap
           save={save}

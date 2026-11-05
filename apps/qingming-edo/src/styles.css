@@ -159,6 +159,13 @@ button[aria-pressed='true'] {
 .bottom button {
   border: none;
   background: transparent;
+  /* one line each, even at 360 px with large text: a label never splits mid-word
+     (絵/巻帳); the size gives a little only where three labels could not fit */
+  white-space: nowrap;
+  min-width: 0;
+  padding-left: 2px;
+  padding-right: 2px;
+  font-size: clamp(0.875rem, 4.6vw, 1rem);
 }
 .bottom small {
   font-size: 0.75rem;
@@ -1868,4 +1875,50 @@ button.term[aria-expanded="true"] {
   min-width: 0;
   margin-left: auto;
   white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 人物帳 */
+.journal-tabs {
+  margin-bottom: 4px;
+}
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.person {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.person .line-body > p {
+  margin-bottom: 2px;
+}
+.person .najimi span {
+  display: inline-block;
+  font-size: 0.8125rem;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.person .najimi-1 {
+  border-color: #b7a37c;
+  background: #f1e6c9;
+}
+.person .najimi-2 {
+  border-color: #9b3a26;
+  color: #9b3a26;
+  background: #f6e1d6;
+}
+.person > button {
+  align-self: flex-end;
+}
+.person .away {
+  margin: 0;
+  text-align: right;
 }
