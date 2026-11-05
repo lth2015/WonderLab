@@ -71,6 +71,7 @@ const nodes: Record<string, DialogueNode> = {
   'ame.shelter2': SHELTERED('魚売りが米屋の軒先で、籠をかばっている。「まいったな、こりゃ」'),
   'ame.shelter3': SHELTERED('丁稚が瀬戸物屋の軒下で、包みを抱えて雨を見ている。'),
   'kisuke.ame.done': {
+    cg: 'ame',
     lines: [
       { by: 'kisuke', text: '三本とも渡せたか。ご苦労さん。' },
       { by: 'kisuke', text: '傘ってのは、返ってこなくてもいいんだ。また誰かの雨の日に使われりゃ、それでいい。' },
@@ -81,11 +82,13 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'ame.street': {
+    cg: 'ame',
     effects: [{ type: 'setFlag', flag: 'ame_street' }, ...quest.completionEffects],
     page: { pageId: 'p12-ame', compositionId: 'ame-street' },
     lines: [{ by: 'narration', text: '傘を差した人たちが帰っていったあとの、静かな通りを描いた。絵巻帳に、十二頁目が残った。' }],
   },
   'ame.eave': {
+    cg: 'ame',
     effects: [{ type: 'setFlag', flag: 'ame_eave' }, ...quest.completionEffects],
     page: { pageId: 'p12-ame', compositionId: 'ame-eave' },
     lines: [{ by: 'narration', text: '茶店の縁台に腰かけて、軒から落ちる雨と喜助の背中を描いた。絵巻帳に、十二頁目が残った。' }],
