@@ -233,3 +233,31 @@
 .wind-status{margin:0;padding:.7rem 1rem;border-left:3px solid #aa8e64;background:#aa8e6410}
 .wind-status.light{border-color:#718369;background:#71836912}
 @media(prefers-reduced-motion:reduce){.breeze-picture .breeze-sheet{transition:none;transform:none}}
+
+/* The same painting folded into four rows; image fetched only when the map opens. */
+.scene-caption{max-width:calc(100% - 48px)}
+.scene-caption>div{min-width:0}
+.scene-caption p{overflow-wrap:anywhere}
+.town-map-open{pointer-events:auto;flex:0 0 auto;min-width:48px;min-height:44px;border:1px solid #a99a77;background:#f1ead9ed;color:#555f4f;border-radius:3px;padding:7px 9px;font-size:15px;letter-spacing:1px}
+.town-map-open:hover{background:#fff7e4}
+.town-map-nearby{width:100%;margin-bottom:12px}
+.town-map{min-width:0}
+.town-map-rows{display:grid;gap:14px}
+.town-map-row{display:block;width:100%;min-width:0;border:1px solid #b6aa8a;background:#ebe3ce;text-align:left;padding:0}
+.town-map-caption{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;padding:8px 10px;font-size:var(--body-size);line-height:1.6;color:#555e4e}
+.town-map-caption b{font-weight:400}
+.town-map-caption>span{font-size:.8em;color:#66755f}
+.town-map-row svg{display:block;width:100%;height:auto;aspect-ratio:5/1}
+.town-map-here{fill:#f8edba33;stroke:#fff9d3;stroke-width:4;paint-order:stroke;filter:drop-shadow(0 0 2px #4c6048)}
+.town-map-mark circle{fill:#687b62;stroke:#f7efda;stroke-width:2}
+.town-map-mark text{fill:#fff9e8;font-size:30px;font-family:serif}
+.town-map-mark.lost circle{fill:#a76c43}
+.town-map-legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0;color:#636f59;font-size:var(--body-size)}
+.town-map-legend>span{display:inline-flex;align-items:center;gap:7px}
+.town-map-legend i{width:18px;height:14px;display:inline-block;border:2px solid #819375;background:#dbe1c5}
+.town-map-legend b{border-radius:50%;background:#687b62;color:#fff7e3;padding:1px 5px;font-size:.85em;font-weight:400}
+.town-map-list{border-top:1px solid var(--line)}
+.town-map-list>summary{cursor:pointer;min-height:44px;padding:12px 0;font-size:var(--body-size);line-height:1.6}
+.town-map-list ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.town-map-list button{width:100%;min-height:44px;border:1px solid var(--line);padding:10px 12px;line-height:1.7;text-align:left;font-size:var(--body-size);overflow-wrap:anywhere}
+.town-map-row:focus-visible,.town-map-open:focus-visible,.town-map-list button:focus-visible{outline:3px solid #8b593d;outline-offset:3px}

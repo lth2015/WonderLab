@@ -4,11 +4,11 @@ import { Icon } from './Art';
 import type { GameState } from './game';
 import { PaintedLandscape } from './PaintedArt';
 import type { SceneReaction } from './reactions';
-import { ORIGIN, PERSON_HEIGHT, ROLL_MAX, ROLL_MIN, ROLL_WIDTH, TILE, TILES, WORLD_HEIGHT, personPosition, pickHotspot, regionAt, sceneAt, type HitTarget } from './layout';
+import { ORIGIN, PERSON_HEIGHT, ROLL_MAX, ROLL_MIN, ROLL_WIDTH, TILE, TILES, WORLD_HEIGHT, personPosition, pickHotspot, regionAt, sceneAt, type HitTarget, type ScrollViewport } from './layout';
 
-export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked }: {
+export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked, onViewChange, onMap }: {
   game: GameState; center: number; setCenter: (x: number) => void;
-  onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; feedback: SceneReaction | null; locked: boolean;
+  onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; feedback: SceneReaction | null; locked: boolean; onViewChange?: (view:ScrollViewport)=>void; onMap?:()=>void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 1200, height: 700 });
@@ -37,6 +37,7 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
   const half = Math.min(ROLL_WIDTH / 2, size.width / scale / 2);
   const bound = (x: number) => Math.min(ROLL_MAX-half, Math.max(ROLL_MIN+half, x));
   const actual = bound(center);
+  useEffect(()=>{onViewChange?.({from:actual-half,to:actual+half,center:actual});},[actual,half,onViewChange]);
   const tileReady=(tile:number)=>{
     loadedTiles.current.add(tile);
     const from=Math.max(0,Math.floor((actual-half+ORIGIN)/TILE)),to=Math.min(TILES-1,Math.floor((actual+half+ORIGIN-1)/TILE));
@@ -88,7 +89,7 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
     {game.started && <>
       <button className="pan-button pan-left" aria-label="往左：虹桥与城门" onClick={()=>move(actual-800)} disabled={actual<=ROLL_MIN+half+1}><Icon name="back"/></button>
       <button className="pan-button pan-right" aria-label="往右：纸铺与郊野" onClick={()=>move(actual+800)} disabled={actual>=ROLL_MAX-half-1}><Icon name="arrow"/></button>
-      <div className="scene-caption"><span className="scene-seal">汴京</span><div><small>沿河慢行 · 随处可停</small><p>{regionAt(actual).area} · {regionAt(actual).place}</p></div></div>
+      <div className="scene-caption"><span className="scene-seal">汴京</span><div><small>沿河慢行 · 随处可停</small><p>{regionAt(actual).area} · {regionAt(actual).place}</p></div>{onMap&&<button type="button" className="town-map-open" aria-label="打开长卷地图" onClick={onMap}>地图</button>}</div>
       <div className="scroll-guide" aria-hidden="true"><span>←</span> 拖动画卷，寻一段人间烟火 <span>→</span></div>
     </>}
   </div>;

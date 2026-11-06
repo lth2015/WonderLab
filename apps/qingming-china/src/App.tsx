@@ -2,11 +2,12 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CHARACTERS, ENVIRONMENT, PAGES, type CharacterId, type PageId } from './content';
 import { boatSummary, initialState, parseSave, readSave, reduceGame, SAVE_KEY, type Action, type GameState, type QuestId } from './game';
 import { Icon, JournalArt } from './Art';
+import { TownMap } from './TownMap';
 import { ScrollView } from './ScrollView';
 import { PaintedPerson } from './PaintedArt';
 import { GiftPanel } from './GiftPanel';
 import { ScrollExportPanel } from './ScrollExportPanel';
-import { CHAPTERS, GUIDE_STOPS, SCENE_CENTER, personPosition, personPose, sceneAt, type ChapterId } from './layout';
+import { CHAPTERS, GUIDE_STOPS, SCENE_CENTER, personPosition, personPose, sceneAt, type ChapterId, type ScrollViewport } from './layout';
 import { CountrysidePanel } from './CountrysidePanel';
 import { TracePanel, BreezePanel } from './PlayStoryPanels';
 import { GatePanel } from './GatePanel';
@@ -18,7 +19,7 @@ import { RiverAudio } from './audio';
 import { downloadFile, exportPostcard } from './export';
 import { REACTION_MS, type SceneReaction } from './reactions';
 
-type Modal = { kind: 'character'; id: CharacterId } | { kind: 'page' | 'gift'; id: PageId } | { kind: 'scrollExport' | 'album' | 'bag' | 'nearby' | 'settings' | 'rope' | 'tea' | 'summary' | 'about' | 'reset' | 'harbor' | 'gate' | 'time' | 'countryside' | 'trace' | 'breeze' } | null;
+type Modal = { kind: 'character'; id: CharacterId } | { kind: 'page' | 'gift'; id: PageId } | { kind: 'scrollExport' | 'album' | 'bag' | 'nearby' | 'settings' | 'rope' | 'tea' | 'summary' | 'about' | 'reset' | 'harbor' | 'gate' | 'time' | 'countryside' | 'trace' | 'breeze' | 'map' } | null;
 const QUEST_NAMES: Record<QuestId,string>={paper:'一纸春风',boat:'这一船日常',purse:'谁的香囊',harbor:'半步相让',gate:'认得归路',countryside:'这一程，不催',trace:'柳下初笔',breeze:'借一阵风'};
 
 function Sheet({ title, eyebrow, children, close, wide=false, notification, dismiss, footer }: { title: string; eyebrow?: string; children: ReactNode; close: ()=>void; wide?: boolean; notification?:string; dismiss?:()=>void; footer?:ReactNode }) {
@@ -50,6 +51,7 @@ export function App() {
   },[]);
   const [saveBlocked,setSaveBlocked]=useState(!!loaded.damaged);
   const [modal,setModal]=useState<Modal>(null);
+  const [viewport,setViewport]=useState<ScrollViewport|null>(null);
   const [center,setCenter]=useState(SCENE_CENTER.paper);
   const [toast,setToast]=useState(loaded.error??'');
   const [feedback,setFeedback]=useState<SceneReaction|null>(null);
@@ -85,12 +87,17 @@ export function App() {
   },[game.started,game.settings.hints,game.progress.visited.length,modal,hidden]);
   useEffect(()=>{const requested=new URLSearchParams(location.search).get('scene');if(requested){if(Object.hasOwn(SCENE_CENTER,requested))setCenter(SCENE_CENTER[requested as ChapterId]);else setToast('这段画卷尚未收录，已回到虹桥两岸。');}},[]);
   const act=(action:Action)=>{const prev=gameRef.current,next=reduceGame(prev,action);gameRef.current=next;observeProgress(prev,next);setGame(next);};
-  const open=(m:Modal)=>{if(m?.kind==='album')study.emit('journal_opened',{page_count:gameRef.current.journal.length});if(!modal)lastFocus.current=document.activeElement as HTMLElement;setModal(m);setHint(false);};
+  const open=(m:Modal)=>{if(m?.kind==='map'){setViewport(null);act({type:'MAP_OPEN'});study.emit('play_detail',{what:'map',outcome:'opened'});}if(m?.kind==='album')study.emit('journal_opened',{page_count:gameRef.current.journal.length});if(!modal)lastFocus.current=document.activeElement as HTMLElement;setModal(m);setHint(false);};
   const close=()=>{if(modal?.kind==='trace'&&gameRef.current.progress.quests.trace.step<4)study.emit('play_detail',{what:'trace',outcome:'left'});if(modal?.kind==='breeze'&&gameRef.current.progress.quests.breeze.step<5)study.emit('play_detail',{what:'ugoki',outcome:'left'});setModal(null);requestAnimationFrame(()=>lastFocus.current?.focus({preventScroll:true}));};
   const visitStop=(x:number)=>{
     setCenter(x);setModal(null);setHint(false);
     requestAnimationFrame(()=>document.querySelector<HTMLElement>('.scroll-surface')?.focus({preventScroll:true}));
   };
+  const mapGo=(x:number)=>{study.emit('play_detail',{what:'map',outcome:'tapped'});visitStop(x);};
+  useEffect(()=>{
+    if(!game.started||!game.claimed.includes('paper')||game.progress.map.opened||game.progress.map.hinted||!game.settings.hints||modal||hidden||saveBlocked)return;
+    act({type:'MAP_HINT'});setToast('想找河边等你的人，可以展开地名旁的「地图」。');
+  },[game.started,game.claimed,game.progress.map.opened,game.progress.map.hinted,game.settings.hints,modal,hidden,saveBlocked]);
   const person=(id:CharacterId)=>{act({type:'VISIT',id});open({kind:'character',id});};
   const focusPerson=(id:CharacterId)=>{setCenter(personPosition(id,game).x);person(id);};
   const notice=(text:string)=>{setToast(text);audio.current?.ring();};
@@ -104,7 +111,7 @@ export function App() {
   const showCountryside=['fields','ferry'].includes(scene)||['active','ready','replay'].includes(game.progress.quests.countryside.status);
   const damaged=saveBlocked&&loaded.damaged;
   const subtitle=modal?.kind==='character'?CHARACTERS[modal.id].role:modal?.kind==='page'?PAGES.find(p=>p.id===modal.id)?.subtitle:undefined;
-  const titles:Record<string,string>={scrollExport:'把长卷带走',gift:'寄一页春色',album:'我的拾光画册',bag:'随身行囊',nearby:'这一带的相遇',settings:'随心入画',rope:'把绳索理一理',tea:'为客人配一席茶',summary:'今日，记下了什么',about:'关于这卷人间',reset:'重新走进画中',harbor:'半步相让',gate:'认得归路',countryside:'这一程，不催',trace:'柳下初笔',breeze:'借一阵风',time:'回看一段春日'};
+  const titles:Record<string,string>={map:'汴河长卷地图',scrollExport:'把长卷带走',gift:'寄一页春色',album:'我的拾光画册',bag:'随身行囊',nearby:'这一带的相遇',settings:'随心入画',rope:'把绳索理一理',tea:'为客人配一席茶',summary:'今日，记下了什么',about:'关于这卷人间',reset:'重新走进画中',harbor:'半步相让',gate:'认得归路',countryside:'这一程，不催',trace:'柳下初笔',breeze:'借一阵风',time:'回看一段春日'};
   const title=modal?.kind==='character'?CHARACTERS[modal.id].name:modal?.kind==='page'?PAGES.find(p=>p.id===modal.id)?.title??'画页':modal?titles[modal.kind]:'';
 
   function characterPanel(id:CharacterId) {
@@ -166,7 +173,7 @@ export function App() {
   return <main className={`game-shell ${game.settings.reduced||systemReduced?'reduced':''} ${hidden?'paused':''} ${!game.started?'welcome':''}`} data-time={time}>
     <header className="topbar"><button className="brand" onClick={()=>open({kind:'about'})} aria-label="关于汴河拾光"><span className="brand-seal">拾光</span><span><b>清明上河图</b><small>汴河拾光</small></span></button><div className="location-heading"><span className="ink-rule"/><span>卷一 · 虹桥两岸</span><span className="ink-rule"/></div><div className="top-actions"><button className="time-label time-button" aria-label={`回看时段，当前${currentTime.label}`} onClick={()=>open({kind:'time'})}><Icon name="sun" size={18}/><span>春日 · {currentTime.label}</span></button><button className="round-button" aria-label={game.settings.sound?'关闭声音':'开启声音'} aria-pressed={game.settings.sound} onClick={()=>act({type:'SETTINGS',settings:{sound:!game.settings.sound}})}><Icon name={game.settings.sound?'sound':'mute'} size={20}/></button><button className="round-button" aria-label="设置" onClick={()=>open({kind:'settings'})}><Icon name="settings" size={20}/></button></div></header>
     <section className="painting-frame" aria-label="汴河春日画卷">{SESSION_MODE&&<span className="session-badge">试玩会</span>}
-      <ScrollView game={game} center={center} setCenter={setCenter} onPerson={person} onEnvironment={environment} feedback={feedback} locked={!!modal}/>
+      <ScrollView game={game} center={center} setCenter={setCenter} onPerson={person} onEnvironment={environment} feedback={feedback} locked={!!modal} onViewChange={modal?.kind==='map'?setViewport:undefined} onMap={()=>open({kind:'map'})}/>
       {!game.started&&<div className="welcome-copy"><div className="welcome-kicker"><span/> 一卷千年，今日入画</div><h1>汴河<span>拾光</span></h1><p className="welcome-poem">过一座桥，遇几位故人。<br/>在一河烟火里，留下你的春日。</p><button className="enter-button" onClick={()=>{act({type:'START'});setCenter(SCENE_CENTER.paper);}}><span>入画</span><Icon name="arrow" size={24}/></button><p className="welcome-footnote">自由漫游 · 轻故事 · 无需登录</p><div className="vertical-inscription">一河烟火，众人相成。<span>清明上河图 · 春日卷</span></div></div>}
       {game.started&&hint&&<div className="idle-hint"><span>纸铺的少年正扶着被风翻起的画纸。</span><button onClick={()=>focusPerson('liu')}>去帮帮他</button><button aria-label="关闭提示" onClick={()=>{setHint(false);act({type:'SETTINGS',settings:{hints:false}});}}><Icon name="close" size={16}/></button></div>}
       {saveBlocked&&<button className="storage-warning" onClick={()=>open({kind:'settings'})}>原存档需要处理 · 点此备份</button>}
@@ -174,6 +181,7 @@ export function App() {
     <footer className="bottom-bar"><div className="bottom-motto"><span className="tiny-flower">✳</span><div><p>繁华深处，皆是日常。</p><small>{game.started?`已记下 ${game.journal.length} 页春日`:'把一座城，慢慢看进心里'}</small></div></div><nav className="main-nav" aria-label="画中工具"><button onClick={()=>open({kind:'album'})}><Icon name="book"/><span>画册</span>{game.journal.length>0&&<small>{String(game.journal.length).padStart(2,'0')}</small>}</button><span className="nav-divider"/><button onClick={()=>open({kind:'bag'})}><Icon name="bag"/><span>行囊</span></button><span className="nav-divider"/><button onClick={()=>{if(!game.started)act({type:'START'});open({kind:'nearby'});}}><Icon name="compass"/><span>附近</span></button></nav><div className="chapter-nav" aria-label="画卷位置">{CHAPTERS.map(({id,name,x})=><button key={id} className={scene===id?'active':''} aria-label={`前往${name}`} aria-current={scene===id?'location':undefined} onClick={()=>{if(!game.started)act({type:'START'});setCenter(x);}}><i/>{name}</button>)}</div></footer>
     {toast&&!modal&&<div className="toast" role="status"><Icon name="leaf" size={18}/><span>{toast}</span><button aria-label="收起消息" onClick={()=>setToast('')}><Icon name="close" size={16}/></button></div>}
     {modal&&<Sheet key={modal.kind==='character'?'character':modal.kind} title={title} eyebrow={subtitle} close={close} wide={modal.kind==='album'} notification={toast} dismiss={()=>setToast('')} footer={modal.kind==='gift'||modal.kind==='scrollExport'?null:modal.kind==='page'?<div className="button-row"><button className="primary-button" onClick={()=>void exportPage(modal.id)} disabled={exporting}>{exporting?'正在装裱……':'保存留念图'}</button><ActionButton secondary onClick={()=>open({kind:'gift',id:modal.id})}>送给朋友</ActionButton><button className="text-button" onClick={()=>open({kind:'album'})}>回到画册</button></div>:undefined}>
+      {modal.kind==='map'&&<TownMap game={game} view={viewport} onGo={mapGo}/>}
       {modal.kind==='time'&&<><p className="section-note">故事把春日带向前，也能回看已经走过的光景。</p><div className="time-choices" role="group" aria-label="选择已到达的时段"><button className="secondary-button" aria-pressed={(game.settings.timeChoice??'auto')==='auto'} onClick={()=>act({type:'SETTINGS',settings:{timeChoice:'auto'}})}>随故事流转</button>{TIMES.map(t=><button key={t.id} className="secondary-button" disabled={!reachedTimes(game).includes(t.id)} aria-pressed={game.settings.timeChoice===t.id} onClick={()=>act({type:'SETTINGS',settings:{timeChoice:t.id}})}>{t.label}{!reachedTimes(game).includes(t.id)&&' · 尚未到达'}</button>)}</div><p className="fine-print">时段只在故事结束时向前推进。回看不改变文钱、画册和相遇；没有关店或错过的期限。</p><ActionButton secondary onClick={close}>回到画卷</ActionButton></>}
       {modal.kind==='character'&&characterPanel(modal.id)}
       {modal.kind==='trace'&&<TracePanel game={game} act={act} onPage={()=>open({kind:'page',id:'willow-trace'})} close={close}/>}
@@ -183,7 +191,7 @@ export function App() {
       {modal.kind==='harbor'&&<HarborPanel game={game} act={act} onPage={()=>open({kind:'page',id:'harbor-space'})} close={close}/>}
       {modal.kind==='rope'&&<RopeGame game={game} act={act} notice={notice} done={()=>open({kind:'character',id:'zhou'})}/>}
       {modal.kind==='tea'&&<TeaGame act={act} notice={notice} done={()=>open({kind:'character',id:'he'})}/>}
-      {modal.kind==='nearby'&&<><p className="section-note">不用赶路，挑一件此刻想参与的小事。</p><div className="nearby-list">{showCountryside&&<button onClick={()=>{setCenter(SCENE_CENTER.fields);open({kind:'countryside'});}}><span className="nearby-number">渡</span><div><small>乡野渡船人 · {game.claimed.includes('countryside')?'已相熟，可重逢':game.progress.quests.countryside.step>0?'继续这段相遇':'可参与'}</small><h3>这一程，不催</h3><p>隔着一段水，先向老邻居应一声。</p></div><Icon name="arrow"/></button>}{showGate&&<button onClick={()=>{setCenter(SCENE_CENTER.gate);open({kind:'gate'});}}><span className="nearby-number">门</span><div><small>初次入城的阿芦 · {game.claimed.includes('gate')?'已相熟，可重逢':game.progress.quests.gate.step>0?'继续这段相遇':'可参与'}</small><h3>认得归路</h3><p>陪她读一张路条，认准与阿姊相约的地方。</p></div><Icon name="arrow"/></button>}{showHarbor&&<button onClick={()=>{setCenter(SCENE_CENTER.harbor);open({kind:'harbor'});}}><span className="nearby-number">港</span><div><small>货港脚夫 · {game.claimed.includes('harbor')?'已相熟，可重逢':game.progress.quests.harbor.step>0?'继续这段相遇':'可参与'}</small><h3>半步相让</h3><p>给后来的人，留一处落担的空地。</p></div><Icon name="arrow"/></button>}{([{id:'liu',quest:'paper',text:'春风翻起一角画纸，少年正腾不开手。'},{id:'zhou',quest:'boat',text:'船缓缓靠岸，一担新茶等着有人接手。'},{id:'he',quest:'purse',text:'茶汤正温。一只香囊，落在了空凳旁。'}] as const).map(item=><button key={item.id} onClick={()=>focusPerson(item.id)}><span className="nearby-number">{item.id==='liu'?'壹':item.id==='zhou'?'贰':'叁'}</span><div><small>{CHARACTERS[item.id].role} · {game.claimed.includes(item.quest)?'已相熟，可重逢':'可参与'}</small><h3>{QUEST_NAMES[item.quest]}</h3><p>{item.text}</p></div><Icon name="arrow"/></button>)}</div>
+      {modal.kind==='nearby'&&<><button className="secondary-button town-map-nearby" onClick={()=>open({kind:'map'})}>展开长卷地图</button><p className="section-note">不用赶路，挑一件此刻想参与的小事。</p><div className="nearby-list">{showCountryside&&<button onClick={()=>{setCenter(SCENE_CENTER.fields);open({kind:'countryside'});}}><span className="nearby-number">渡</span><div><small>乡野渡船人 · {game.claimed.includes('countryside')?'已相熟，可重逢':game.progress.quests.countryside.step>0?'继续这段相遇':'可参与'}</small><h3>这一程，不催</h3><p>隔着一段水，先向老邻居应一声。</p></div><Icon name="arrow"/></button>}{showGate&&<button onClick={()=>{setCenter(SCENE_CENTER.gate);open({kind:'gate'});}}><span className="nearby-number">门</span><div><small>初次入城的阿芦 · {game.claimed.includes('gate')?'已相熟，可重逢':game.progress.quests.gate.step>0?'继续这段相遇':'可参与'}</small><h3>认得归路</h3><p>陪她读一张路条，认准与阿姊相约的地方。</p></div><Icon name="arrow"/></button>}{showHarbor&&<button onClick={()=>{setCenter(SCENE_CENTER.harbor);open({kind:'harbor'});}}><span className="nearby-number">港</span><div><small>货港脚夫 · {game.claimed.includes('harbor')?'已相熟，可重逢':game.progress.quests.harbor.step>0?'继续这段相遇':'可参与'}</small><h3>半步相让</h3><p>给后来的人，留一处落担的空地。</p></div><Icon name="arrow"/></button>}{([{id:'liu',quest:'paper',text:'春风翻起一角画纸，少年正腾不开手。'},{id:'zhou',quest:'boat',text:'船缓缓靠岸，一担新茶等着有人接手。'},{id:'he',quest:'purse',text:'茶汤正温。一只香囊，落在了空凳旁。'}] as const).map(item=><button key={item.id} onClick={()=>focusPerson(item.id)}><span className="nearby-number">{item.id==='liu'?'壹':item.id==='zhou'?'贰':'叁'}</span><div><small>{CHARACTERS[item.id].role} · {game.claimed.includes(item.quest)?'已相熟，可重逢':'可参与'}</small><h3>{QUEST_NAMES[item.quest]}</h3><p>{item.text}</p></div><Icon name="arrow"/></button>)}</div>
         {game.claimed.includes('paper')&&<details className="text-route play-story-invitations" open={game.progress.quests.trace.step>0&&game.progress.quests.trace.step<4||game.progress.quests.breeze.step>0&&game.progress.quests.breeze.step<5?true:undefined}><summary>纸铺与柳荫下 · 两段新相遇</summary><p>第一幅小画留好了，还能与故人再做一点小事。</p><div className="text-route-buttons"><button onClick={()=>{setCenter(SCENE_CENTER.paper);open({kind:'trace'});}}>柳下初笔 · 跟沈砚描一枝柳{game.claimed.includes('trace')?' · 已留画页':''}</button><button onClick={()=>{setCenter(SCENE_CENTER.paper);open({kind:'breeze'});}}>借一阵风 · 陪小柳晾画{game.claimed.includes('breeze')?' · 已留画页':''}</button></div></details>}
         <details className="scroll-tour">
           <summary>长卷导览</summary>
