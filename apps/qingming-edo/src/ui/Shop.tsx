@@ -9,6 +9,7 @@ import { sound } from '../engine/sound';
 import { Face } from './Face';
 import { Glossed } from './Glossed';
 import { Cg } from './Cg';
+import { useSheetFocus } from './sheetFocus';
 
 // 買い物 (spec §11): 喜助's tea and a sweet, 青葉屋's title slips. Paying is a plain, sure step
 // (engine/shop.ts): the price is shown on the button, and a light purse simply cannot pay.
@@ -38,6 +39,7 @@ export function Shop({ kind, save, tod, rain, onSave, onToast, onClose }: { kind
   useEffect(() => {
     sheet.current?.scrollTo({ top: 0 });
   }, [lines, at]);
+  useSheetFocus(sheet, [lines, at, kind]);
   const purse = save.wallet.balanceMinor;
 
   if (kind === 'tea') {

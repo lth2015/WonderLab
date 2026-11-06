@@ -1,5 +1,6 @@
 import { Glossed } from './Glossed';
 import { Face } from './Face';
+import { useSheetFocus } from './sheetFocus';
 import { study } from '../engine/study';
 import { useEffect, useRef, useState } from 'react';
 import { characterById, ROLES } from '../content/world';
@@ -39,6 +40,7 @@ export function Talk({ who, done, complete, onClose }: { who: string; done: stri
   useEffect(() => {
     sheet.current?.scrollTo({ top: 0 });
   }, [said, asking]);
+  useSheetFocus(sheet, [said, asking, waiting]);
 
   const ask = async (topic: TalkTopic) => {
     if (talkOff) {
