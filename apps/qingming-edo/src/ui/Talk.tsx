@@ -22,7 +22,7 @@ type Said = { text: string; live: boolean };
 /** Once the server says the feature is off (no key), stop asking for this visit. */
 let talkOff = false;
 
-export function Talk({ who, done, complete, onClose }: { who: string; done: string[]; complete: string[]; onClose(): void }) {
+export function Talk({ who, done, complete, hour, rain, onClose }: { who: string; done: string[]; complete: string[]; hour: 'morning' | 'noon' | 'evening'; rain: boolean; onClose(): void }) {
   const [turn, setTurn] = useState(0);
   // 人のこと: the list of people to ask about is open; each is asked once a visit
   const [asking, setAsking] = useState(false);
@@ -60,7 +60,7 @@ export function Talk({ who, done, complete, onClose }: { who: string; done: stri
       const res = await fetch(`${API}/edo/talk`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ who, topic, done, turn }),
+        body: JSON.stringify({ who, topic, done, turn, hour, rain }),
         signal: ctl.signal,
       });
       if (res.status === 503) talkOff = true;

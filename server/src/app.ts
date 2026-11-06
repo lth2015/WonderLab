@@ -185,7 +185,7 @@ export async function buildServer({ config, chat, usage: givenUsage, aiReady = t
       const t = parseTalk(req.body);
       if (!t) return reply.code(400).send({ error: 'input' });
       if (!talkBudget.take(req.ip)) return reply.code(429).send({ error: 'limited' });
-      const res = await edoChat(talkMessages(t.who, t.topic, t.done, t.turn), { maxTokens: 900, temperature: null, timeoutMs: config.EDO_TALK_TIMEOUT_MS });
+      const res = await edoChat(talkMessages(t.who, t.topic, t.done, t.turn, t.hour, t.rain), { maxTokens: 900, temperature: null, timeoutMs: config.EDO_TALK_TIMEOUT_MS });
       if (res.status !== 'ok') {
         req.log.warn({ code: res.code, status: res.status }, 'edo talk did not answer');
         return reply.code(502).send({ error: res.status });
