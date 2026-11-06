@@ -190,6 +190,8 @@ export function App() {
     const was = lastCounts.current;
     if (pageCount > was.pageCount) sound.cue('page');
     if (balance > was.balance) setTimeout(() => sound.cue('coin'), pageCount > was.pageCount ? 700 : 0);
+    // paying (一服, 題箋): one coin set down
+    if (balance < was.balance) sound.cue('pay');
     lastCounts.current = { pageCount, balance };
   }, [pageCount, balance]);
   useEffect(() => {

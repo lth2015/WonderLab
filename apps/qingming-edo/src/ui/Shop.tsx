@@ -5,6 +5,7 @@ import { SLIP_PRICE, SLIPS_FOR_SALE, TEA_PRICE } from '../content/shop';
 import { characterById, ROLES } from '../content/world';
 import { buySlip, buyTea, ownsSlip } from '../engine/shop';
 import { study } from '../engine/study';
+import { sound } from '../engine/sound';
 import { Face } from './Face';
 import { Glossed } from './Glossed';
 import { Cg } from './Cg';
@@ -46,6 +47,7 @@ export function Shop({ kind, save, tod, rain, onSave, onToast, onClose }: { kind
       onSave(r.save);
       study.emit('play_detail', { what: 'shop', outcome: 'bought' });
       onToast(`${TEA_PRICE}文を払った。`);
+      setTimeout(() => sound.cue('pour'), 350);
       setLines([{ by: 'kisuke', text: 'はいよ、茶と菓子。熱いから気をつけな。' }, { by: 'narration', text: '縁台に腰をおろして、湯気の立つ茶をすする。' }, ...r.moment.lines]);
       setAt(0);
     };
