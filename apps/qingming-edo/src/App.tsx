@@ -767,7 +767,7 @@ export function App() {
 
       {shop && <Shop kind={shop} save={save} tod={tod} rain={raining(save)} onSave={(next) => setSave(next)} onToast={setToast} onClose={() => setShop(null)} />}
       {talk && (
-        <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} complete={Object.keys(save.progress.quests).filter((q) => questState(save, q) === 'complete')} onClose={() => setTalk(null)} />
+        <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} complete={Object.keys(save.progress.quests).filter((q) => questState(save, q) === 'complete')} hour={tod} rain={raining(save)} onClose={() => setTalk(null)} />
       )}
       {game && (() => {
         const done = () => {

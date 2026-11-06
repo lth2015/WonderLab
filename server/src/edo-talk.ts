@@ -101,24 +101,31 @@ export const PERSONAS: Record<string, Persona> = {
   },
 };
 
+/** The hour and weather the player sees now (the app sends them; default: a clear morning). */
+export type TalkHour = 'morning' | 'noon' | 'evening';
+const HOUR_TEXT: Record<TalkHour, string> = { morning: '朝', noon: '昼', evening: '夕方' };
+
 const TOPIC_TEXT: Record<TalkTopic, string> = {
-  today: '今朝の日本橋の町のようす（天気、往来、季節は春）',
+  today: 'いまの日本橋の町のようす（天気、往来、季節は春）',
   work: '自分の仕事や店のこと',
   earlier: 'この見習いと今日あったこと',
 };
 
 /** The request, as the app may send it. Anything else is refused. */
-export function parseTalk(body: unknown): { who: string; topic: TalkTopic; done: TalkStory[]; turn: number } | null {
-  const b = body as { who?: unknown; topic?: unknown; done?: unknown; turn?: unknown } | null;
+export function parseTalk(body: unknown): { who: string; topic: TalkTopic; done: TalkStory[]; turn: number; hour: TalkHour; rain: boolean } | null {
+  const b = body as { who?: unknown; topic?: unknown; done?: unknown; turn?: unknown; hour?: unknown; rain?: unknown } | null;
   // own keys only: `in` would also let "constructor" or "__proto__" through
   if (!b || typeof b.who !== 'string' || !Object.hasOwn(PERSONAS, b.who)) return null;
   if (typeof b.topic !== 'string' || !(TALK_TOPICS as readonly string[]).includes(b.topic)) return null;
   const done = Array.isArray(b.done) ? b.done.filter((d): d is TalkStory => (TALK_STORIES as readonly string[]).includes(d as string)) : [];
   const turn = typeof b.turn === 'number' && Number.isInteger(b.turn) ? Math.min(Math.max(b.turn, 0), 5) : 0;
-  return { who: b.who, topic: b.topic as TalkTopic, done: [...new Set(done)], turn };
+  // older apps send neither: a clear morning, as before
+  const hour: TalkHour = typeof b.hour === 'string' && Object.hasOwn(HOUR_TEXT, b.hour) ? (b.hour as TalkHour) : 'morning';
+  const rain = b.rain === true;
+  return { who: b.who, topic: b.topic as TalkTopic, done: [...new Set(done)], turn, hour, rain };
 }
 
-export function talkMessages(who: string, topic: TalkTopic, done: TalkStory[], turn: number): ChatMessage[] {
+export function talkMessages(who: string, topic: TalkTopic, done: TalkStory[], turn: number, hour: TalkHour = 'morning', rain = false): ChatMessage[] {
   const p = PERSONAS[who];
   const memories = done.map((d) => p.memories[d]).filter(Boolean);
   const system = [
@@ -126,6 +133,7 @@ export function talkMessages(who: string, topic: TalkTopic, done: TalkStory[], t
     `人物：${p.who}`,
     `話し方：${p.voice}`,
     `ふだん：${p.work}`,
+    `いま：${HOUR_TEXT[hour]}。${rain ? '雨が降っている。' : '晴れている。'}このときに合うことだけを言う。`,
     memories.length ? `この相手（絵師の見習い）とのこと：${memories.join(' ')}` : '相手は絵師の見習い。',
     '決まり：',
     '- 読みやすい現代日本語に、人物らしい江戸の言い回しを少し添える。',
