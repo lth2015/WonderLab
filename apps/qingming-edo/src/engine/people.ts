@@ -1,5 +1,7 @@
 import type { SaveData } from '../contract';
+import { LOST } from '../content/lost';
 import { PEOPLE } from '../content/people';
+import { MOMENTS, momentFlag } from '../content/shop';
 import { HOTSPOTS, PAGES, PAGE_TITLES } from '../content/world';
 import { hasFlag } from './state';
 import { visibleSpots } from './story';
@@ -11,6 +13,10 @@ export interface Acquaintance {
   shared: string[];
   /** Where they can be found now (a visible spot), if anywhere. */
   spotId: string | null;
+  /** このごろの様子: what the player saw of their day from the tea-house bench (一服). */
+  lately: string[];
+  /** The lost things the player gave back to them. */
+  returned: string[];
 }
 
 const storyTitle = (quest: string) => {
@@ -29,6 +35,10 @@ export function acquaintances(s: SaveData): Acquaintance[] {
       level: (f?.level ?? 0) as 0 | 1 | 2,
       shared: (f?.events ?? []).map(storyTitle).filter((t): t is string => !!t),
       spotId: here?.id ?? null,
+      lately: MOMENTS.filter((m) => m.who === id && hasFlag(s, momentFlag(m.id))).map((m) =>
+        m.lines.map((l) => (l.by === 'narration' ? l.text : `「${l.text}」`)).join(''),
+      ),
+      returned: LOST.filter((t) => t.owner === id && hasFlag(s, `lost_back_${t.id}`)).map((t) => t.name),
     };
   });
 }
