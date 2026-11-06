@@ -24,6 +24,17 @@ export function People({ save, onVisit }: { save: SaveData; onVisit(spotId: stri
             </p>
             <p className="small">{PROFILE[p.id as keyof typeof PROFILE]}</p>
             {p.shared.length > 0 && <p className="small shared">ともにしたこと：{p.shared.map((t) => `「${t}」`).join('')}</p>}
+            {p.returned.length > 0 && <p className="small">返した落とし物：{p.returned.join('、')}</p>}
+            {p.lately.length > 0 && (
+              <div className="lately">
+                <p className="small lately-h">このごろの様子</p>
+                {p.lately.map((t) => (
+                  <p key={t} className="small lately-t">
+                    {t}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
           {p.spotId ? (
             <button type="button" onClick={() => onVisit(p.spotId!)}>

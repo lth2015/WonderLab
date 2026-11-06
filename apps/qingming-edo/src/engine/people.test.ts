@@ -45,3 +45,18 @@ describe('人物帳', () => {
     expect(acquaintances(s).find((p) => p.id === 'sokichi')!.spotId).toBe('h-sokichi');
   });
 });
+
+describe('人物帳とその後', () => {
+  it('what was seen from the bench and the things given back go into the person’s page', async () => {
+    const { buyTea } = await import('./shop');
+    let s = apply(newSave(), [...done('kaze'), ...done('dougu'), { type: 'setFlag', flag: 'met_kinji' }]);
+    s = buyTea(s)!.save; // 清太's papers
+    s = buyTea(s)!.save; // 金次 calls for tea
+    const kinji = acquaintances(s).find((p) => p.id === 'kinji')!;
+    expect(kinji.lately).toHaveLength(1);
+    expect(kinji.lately[0]).toMatch(/天秤棒.*「喜助さん、一杯！/);
+    expect(acquaintances(s).find((p) => p.id === 'seita')!.lately[0]).toMatch(/文鎮/);
+    s = apply(s, [{ type: 'setFlag', flag: 'lost_back_netsuke' }]);
+    expect(acquaintances(s).find((p) => p.id === 'kinji')!.returned).toEqual(['亀の根付']);
+  });
+});

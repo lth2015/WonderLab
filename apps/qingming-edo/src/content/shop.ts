@@ -21,14 +21,17 @@ export const slipFlag = (id: string) => `slip_${id}`;
  */
 export interface Moment {
   id: string;
+  /** Whose day it shows: kept in their 人物帳 once seen (このごろの様子). */
+  who?: string;
   when?: Condition;
   lines: Line[];
 }
 const done = (q: string): Condition => ({ quest: q, is: 'complete' });
 export const MOMENTS: Moment[] = [
-  { id: 'kaze', when: done('kaze'), lines: [{ by: 'narration', text: '向かいの青葉屋の店先。清太が、今日は並べた紙を文鎮でしっかり押さえている。風が吹いても、もう一枚も飛ばない。' }] },
+  { id: 'kaze', who: 'seita', when: done('kaze'), lines: [{ by: 'narration', text: '向かいの青葉屋の店先。清太が、今日は並べた紙を文鎮でしっかり押さえている。風が吹いても、もう一枚も飛ばない。' }] },
   {
     id: 'kinji',
+    who: 'kinji',
     when: done('dougu'),
     lines: [
       { by: 'narration', text: '売り声が遠くから近づいてきて、茶店の前で天秤棒が下りた。' },
@@ -37,27 +40,29 @@ export const MOMENTS: Moment[] = [
   },
   {
     id: 'oharu',
+    who: 'oharu',
     when: done('tenugui'),
     lines: [
       { by: 'narration', text: 'お使いの途中のお春が、足を止めて小声で教えてくれた。' },
       { by: 'oharu', text: 'ご隠居さま、今日もあの手拭いでした。……それだけ、お伝えしたくて。' },
     ],
   },
-  { id: 'kame', when: done('kashi'), lines: [{ by: 'narration', text: '河岸のほうから亀吉が駆けてきて、喜助に団子を一本ねだり、また舟のほうへ駆けていった。' }] },
-  { id: 'ihei', when: done('fumi'), lines: [{ by: 'narration', text: '伊兵衛が通りかかる。懐の文を確かめるように胸に手を当てて、飛脚屋のほうへ歩いていった。' }] },
-  { id: 'neko', when: done('neko'), lines: [{ by: 'narration', text: 'こはくが縁台に飛びのって、膝のそばで丸くなった。茶が冷めるまで、動けなくなった。' }] },
+  { id: 'kame', who: 'kamekichi', when: done('kashi'), lines: [{ by: 'narration', text: '河岸のほうから亀吉が駆けてきて、喜助に団子を一本ねだり、また舟のほうへ駆けていった。' }] },
+  { id: 'ihei', who: 'ihei', when: done('fumi'), lines: [{ by: 'narration', text: '伊兵衛が通りかかる。懐の文を確かめるように胸に手を当てて、飛脚屋のほうへ歩いていった。' }] },
+  { id: 'neko', who: 'kisuke', when: done('neko'), lines: [{ by: 'narration', text: 'こはくが縁台に飛びのって、膝のそばで丸くなった。茶が冷めるまで、動けなくなった。' }] },
   {
     id: 'inkyo',
+    who: 'inkyo',
     when: done('inkyo'),
     lines: [
       { by: 'narration', text: 'ご隠居が縁台の端に腰をおろし、杖を膝に立てかけた。' },
       { by: 'inkyo', text: '今日もな、川端まで行ってきたよ。……あんたと歩いた道だ。' },
     ],
   },
-  { id: 'yube', when: { all: [done('yube'), { time: 'evening' }] }, lines: [{ by: 'narration', text: '日が傾くと、喜助が自分で提灯に火を入れはじめた。「今日は自分で点けるよ」と笑っている。' }] },
-  { id: 'ame', when: { all: [done('ame'), { rain: true }] }, lines: [{ by: 'narration', text: '軒先で雨宿りの人たちが、喜助の貸した傘の話をしている。あの日の三本は、ちゃんと戻ってきたらしい。' }] },
+  { id: 'yube', who: 'kisuke', when: { all: [done('yube'), { time: 'evening' }] }, lines: [{ by: 'narration', text: '日が傾くと、喜助が自分で提灯に火を入れはじめた。「今日は自分で点けるよ」と笑っている。' }] },
+  { id: 'ame', who: 'kisuke', when: { all: [done('ame'), { rain: true }] }, lines: [{ by: 'narration', text: '軒先で雨宿りの人たちが、喜助の貸した傘の話をしている。あの日の三本は、ちゃんと戻ってきたらしい。' }] },
   { id: 'ai', when: { all: [done('ai'), { time: 'morning' }] }, lines: [{ by: 'narration', text: '通りの先、紺屋の干し場で、染めたての藍が朝の風にゆっくり揺れている。' }] },
-  { id: 'hashi', when: done('hashi'), lines: [{ by: 'narration', text: '通りの向こうで宗吉が足を止めた。こちらに気づいて、小さくうなずき、また歩いていった。' }] },
+  { id: 'hashi', who: 'sokichi', when: done('hashi'), lines: [{ by: 'narration', text: '通りの向こうで宗吉が足を止めた。こちらに気づいて、小さくうなずき、また歩いていった。' }] },
 ];
 /** When every moment has been seen: the time of day, quietly. */
 export const QUIET: Record<'morning' | 'noon' | 'evening' | 'rain', Line[]> = {

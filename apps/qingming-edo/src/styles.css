@@ -1975,3 +1975,16 @@ button.term[aria-expanded="true"] {
   mix-blend-mode: multiply;
   pointer-events: none;
 }
+.person .lately {
+  clear: both;
+  border-left: 3px solid #d9c9a3;
+  padding-left: 8px;
+  margin-top: 2px;
+}
+.person .lately p {
+  margin: 0 0 4px;
+}
+.person .lately-h {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
