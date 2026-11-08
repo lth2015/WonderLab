@@ -1,6 +1,7 @@
 import type { SaveData } from '../contract';
 import { LOST } from '../content/lost';
-import { HOTSPOTS } from '../content/world';
+import { characterById, HOTSPOTS, ROLES } from '../content/world';
+import { acquaintances } from './people';
 import { hasFlag } from './state';
 import { nearbyAll } from './story';
 
@@ -14,10 +15,12 @@ export const MAP_PX_PER_UNIT = 0.2;
 export const MAP_ROW_H = 140; // 700 units
 
 export interface MapMark {
-  kind: 'ask' | 'lost';
+  kind: 'ask' | 'lost' | 'person';
   x: number;
   y: number;
   label: string;
+  /** For a person: who (their portrait is drawn). */
+  who?: string;
 }
 
 /** Where someone has a request waiting (or a story under way), and where a lost thing is said to be. */
@@ -38,6 +41,16 @@ export function mapMarks(s: SaveData): MapMark[] {
     marks.push({ kind: 'lost', x: t.at.x + (t.id.length % 2 ? 90 : -90), y: t.at.y - 40, label: `落とし物のうわさ：${t.place}のあたり` });
   }
   return marks;
+}
+
+/** The people the player has met, where they are now (人物帳 acquaintances with a visible spot). */
+export function personMarks(s: SaveData): MapMark[] {
+  return acquaintances(s)
+    .filter((p) => p.spotId)
+    .map((p) => {
+      const h = HOTSPOTS.find((x) => x.id === p.spotId)!;
+      return { kind: 'person' as const, who: p.id, x: h.anchor.x, y: h.anchor.y, label: `${characterById.get(p.id)?.displayName ?? p.id}（${ROLES[p.id] ?? ''}）` };
+    });
 }
 
 /** Map row and x/y in the map image (px) for a scene point. */

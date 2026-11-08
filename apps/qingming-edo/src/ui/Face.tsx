@@ -4,6 +4,7 @@
 
 const FACES = import.meta.glob('../assets/faces/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
 const url = (who: string) => FACES[`../assets/faces/${who}.webp`];
+export const faceUrl = url;
 
 export const hasFace = (who: string) => Boolean(url(who));
 

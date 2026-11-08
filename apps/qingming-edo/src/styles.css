@@ -1988,3 +1988,20 @@ button.term[aria-expanded="true"] {
   font-weight: 600;
   color: var(--ink-soft);
 }
+.map-person-bg {
+  fill: #fff6e2;
+  stroke: #6b5a3e;
+  stroke-width: 2;
+}
+.map-ask.on-person circle {
+  stroke-width: 2;
+}
+.map-key.person {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #6b5a3e;
+  background: #fff6e2;
+  vertical-align: -2px;
+}
