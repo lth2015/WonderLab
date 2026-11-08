@@ -54,6 +54,53 @@ export const FALLBACK: Record<string, Record<TalkTopic, string>> = {
   },
 };
 
+/**
+ * 今日の町のこと, when the script answers: the evening and the rain have their own word
+ * (the base lines above are the morning and noon). The rain wins over the hour.
+ */
+export const TODAY_AT: Record<string, { evening: string; rain: string }> = {
+  seita: {
+    evening: '夕方は、紙を片づける時刻なんです。日が傾くと、紙の色がほんの少し黄ばんで見えるのが好きで。',
+    rain: '雨の日は紙を奥へしまって、店先は戸を半分だけ。湿気は紙の大敵ですから、今日は気が抜けません。',
+  },
+  okon: {
+    evening: '日が暮れると、通りの音がひとつずつ減っていくだろう。うちも、道具に布をかけておしまいさ。',
+    rain: '雨だと客足は落ちるけど、そのぶん手入れがはかどるのさ。漆は、湿り気がちょうどいいくらいでね。',
+  },
+  kinji: {
+    evening: '夕方は売れ残りとの勝負よ。この時刻に声を張ると、晩のおかずを探しに来る人がいるんだ。',
+    rain: '雨の日の振売りは骨が折れるぜ。天秤棒の荷に笠をかぶせて、軒から軒へ渡り歩くのさ。',
+  },
+  kisuke: {
+    evening: '夕方は、帰りがけの客が一杯だけ飲んでいくんだ。朝より話が長くなるのは、なんでだろうね。',
+    rain: '雨の日は、軒先に雨宿りの人が寄ってくる。茶を一杯出すと、たいてい晴れるまで話していくよ。',
+  },
+  oharu: {
+    evening: '夕方のお使いは急ぎ足です。暗くなる前に、言付けを全部届けておきたくて。',
+    rain: '雨の日は、包みを濡らさないように胸に抱えて走るんです。届け先で「よく濡らさなかったね」って言われると、うれしくて。',
+  },
+  sokichi: {
+    evening: '……夕方は、影が長い。人の形が、地面にもう一つできる。描くなら今だ。',
+    rain: '……雨の日は、色が沈む。そのぶん、線がよく見える。',
+  },
+  omatsu: {
+    evening: '夕方の河岸は静かなもんさ。舟も片づいて、残った魚を安く分けてやる時刻だよ。',
+    rain: '雨の河岸は、足もとが滑ってね。亀吉にも、石段では走るなって言ってあるんだけど。',
+  },
+  ihei: {
+    evening: '夕方は帳面を締める時刻でね。今日の銭が合うと、肩の荷がひとつ下りるんだ。',
+    rain: '雨の日は得意先回りが大変だよ。そろばんの包みだけは、濡らすわけにいかないからね。',
+  },
+};
+
+/** The script's 今日の町のこと for the hour and the weather the player sees. */
+export function todayLine(who: string, hour: 'morning' | 'noon' | 'evening', rain: boolean): string | undefined {
+  const at = TODAY_AT[who];
+  if (at && rain) return at.rain;
+  if (at && hour === 'evening') return at.evening;
+  return FALLBACK[who]?.today;
+}
+
 export const TALK_CLOSE: Record<string, string> = {
   seita: 'あ、番頭さんが呼んでる。また寄ってくださいね。',
   okon: 'さて、手入れの続きをしなくちゃ。また顔を見せておくれ。',

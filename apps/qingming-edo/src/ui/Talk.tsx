@@ -5,7 +5,7 @@ import { study } from '../engine/study';
 import { useEffect, useRef, useState } from 'react';
 import { characterById, ROLES } from '../content/world';
 import { aboutLine, aboutWhom } from '../content/about';
-import { FALLBACK, TALK_CLOSE, TALK_TOPICS, TALK_TURNS, type TalkTopic } from '../content/talk';
+import { FALLBACK, TALK_CLOSE, TALK_TOPICS, TALK_TURNS, todayLine, type TalkTopic } from '../content/talk';
 
 // 即興のひとこと (spec §12): after a story, stay and talk a little. The player
 // picks a topic (never types); the server voices the person with a model, and
@@ -42,9 +42,12 @@ export function Talk({ who, done, complete, hour, rain, onClose }: { who: string
   }, [said, asking]);
   useSheetFocus(sheet, [said, asking, waiting]);
 
+  // the script's line: 今日の町のこと follows the hour and the rain
+  const script = (topic: TalkTopic) => (topic === 'today' ? todayLine(who, hour, rain) : FALLBACK[who]?.[topic]) ?? '……';
+
   const ask = async (topic: TalkTopic) => {
     if (talkOff) {
-      setSaid({ text: FALLBACK[who]?.[topic] ?? '……', live: false });
+      setSaid({ text: script(topic), live: false });
       setTurn((t) => t + 1);
       return;
     }
@@ -55,7 +58,7 @@ export function Talk({ who, done, complete, hour, rain, onClose }: { who: string
     setShowWait(false);
     const waitTimer = setTimeout(() => setShowWait(true), SHOW_WAIT_AFTER_MS);
     const giveUp = setTimeout(() => ctl.abort(), GIVE_UP_MS);
-    let out: Said = { text: FALLBACK[who]?.[topic] ?? '……', live: false };
+    let out: Said = { text: script(topic), live: false };
     try {
       const res = await fetch(`${API}/edo/talk`, {
         method: 'POST',
