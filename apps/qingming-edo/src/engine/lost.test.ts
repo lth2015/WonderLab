@@ -7,7 +7,7 @@ import { HOTSPOTS, SCENE_W } from '../content/world';
 import type { SaveData } from '../contract';
 import { apply, hasFlag, newSave } from './state';
 import { entryFor, visibleSpots } from './story';
-import { mapMarks, MAP_ROWS, MAP_ROW_UNITS, toMap } from './townMap';
+import { mapMarks, MAP_ROWS, MAP_ROW_UNITS, personMarks, toMap } from './townMap';
 import { questById } from '../content/world';
 
 const open = (s: SaveData, id: string) => (NODES[id].effects ? apply(s, NODES[id].effects!) : s);
@@ -89,5 +89,12 @@ describe('町の絵図', () => {
     expect(asks.length).toBeGreaterThan(0);
     expect(new Set(asks.map((m) => `${m.x},${m.y}`)).size).toBe(asks.length);
   });
-});
 
+  it('shows the people met where they are now, with their portrait', () => {
+    expect(personMarks(newSave()).map((m) => m.who)).toEqual(['sokichi']);
+    const s = apply(done(newSave(), 'kaze'), [{ type: 'setFlag', flag: 'met_seita' }]);
+    const seita = personMarks(s).find((m) => m.who === 'seita')!;
+    expect(seita.label).toContain('清太');
+    expect(seita.x).toBe(HOTSPOTS.find((h) => h.id === 'h-seita')!.anchor.x);
+  });
+});
