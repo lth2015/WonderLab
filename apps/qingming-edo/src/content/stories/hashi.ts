@@ -104,6 +104,7 @@ const nodes: Record<string, DialogueNode> = {
     { by: 'ihei', text: '得意先を一つ回ったら、すぐに参ります。' },
   ]),
   'sokichi.hashi.gather': {
+    cg: 'hashi',
     lines: [
       { by: 'narration', text: '昼すぎ、橋のたもとの空き地に、一人、また一人と人が集まってきた。' },
       { by: 'okon', text: 'ほら金次、もっと寄りな。弁当箱、見えるように持って。' },
@@ -122,6 +123,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'hashi.with': {
+    cg: 'hashi',
     effects: [{ type: 'setFlag', flag: 'hashi_with' }, ...quest.completionEffects],
     page: { pageId: 'p08-hashi', compositionId: 'hashi-with' },
     lines: [
