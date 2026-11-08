@@ -10,6 +10,9 @@ describe('物語の画', () => {
     expect(NODES['kisuke.ame.done'].cg).toBe('ame');
     expect(NODES['kame.found'].cg).toBe('kashi');
     expect(NODES['kisuke.yube.done'].cg).toBe('yube');
+    expect(NODES['sokichi.hashi.gather'].cg).toBe('hashi');
+    // 宗吉 is in the picture: not for the ending where he stands beside the player
+    expect(NODES['hashi.side'].cg).toBeUndefined();
     // 作爺さん's room is indoors: no street picture there
     expect(NODES['yube.tell'].cg).toBeUndefined();
     expect(cgUrl('ippuku')).toBeTruthy();
