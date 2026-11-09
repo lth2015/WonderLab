@@ -4,11 +4,14 @@ import { Icon } from './Art';
 import type { GameState } from './game';
 import { PaintedLandscape } from './PaintedArt';
 import type { SceneReaction } from './reactions';
+import { lyingThings } from './lost';
 import { ORIGIN, PERSON_HEIGHT, ROLL_MAX, ROLL_MIN, ROLL_WIDTH, TILE, TILES, WORLD_HEIGHT, personPosition, pickHotspot, regionAt, sceneAt, type HitTarget, type ScrollViewport } from './layout';
 
-export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked, onViewChange, onMap }: {
+export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, feedback, locked, onViewChange, onMap, onLost }: {
   game: GameState; center: number; setCenter: (x: number) => void;
   onPerson: (id: CharacterId) => void; onEnvironment: (id: string) => void; feedback: SceneReaction | null; locked: boolean; onViewChange?: (view:ScrollViewport)=>void; onMap?:()=>void;
+  /** 汴河拾遗: a lost thing lying in the painting was picked up. */
+  onLost?: (id: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 1200, height: 700 });
@@ -79,6 +82,15 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
             const featured=(scene==='paper'&&id==='liu')||(scene==='bridge'&&id==='zhou')||(scene==='tea'&&id==='he');
             return <button key={id} className={`person-hotspot ${featured?'featured':''}`} style={{ left:(x+ORIGIN)*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={e=>hit(e,{kind:'person',id})} aria-label={`与${c.name}交谈，${c.role}`}>
               <span className="person-label"><span className="conversation-mark">···</span>{c.name}</span><span className="person-ring"/>
+            </button>;
+          })}
+          {/* 汴河拾遗: small things lying in the painting, glinting now and then (lost.ts) */}
+          {onLost && lyingThings(game).filter(t => Math.abs(t.x - actual) < half + 400).map(t => {
+            const heard = game.progress.lost.heard.includes(t.id);
+            return <button key={t.id} type="button" className="lost-thing" style={{ left:(t.x+ORIGIN)*scale - Math.max(22, t.w*scale/2), top:(t.y-t.h)*scale - Math.max(0, 22 - t.h*scale/2), width:Math.max(44, t.w*scale), height:Math.max(44, t.h*scale) }}
+              onClick={() => onLost(t.id)} aria-label={heard ? `拾起${CHARACTERS[t.owner].name}的${t.name}` : '地上有个小东西，拾起来看看'}>
+              <img src={`${import.meta.env.BASE_URL}art/china/lost/${t.id}.webp`} alt="" width={t.w*scale} height={t.h*scale} draggable={false}/>
+              <span className="lost-glint" aria-hidden="true"/>
             </button>;
           })}
           {ENVIRONMENT.map(env => <button key={env.id} className={`environment-hotspot ${feedback?.id===env.id?'activated':''}`} style={{left:(env.x+ORIGIN)*scale,top:env.y*scale}} onClick={e=>hit(e,{kind:'environment',id:env.id})} aria-label={env.label}><span className="environment-dot"/><span className="environment-label">{env.label}</span></button>)}

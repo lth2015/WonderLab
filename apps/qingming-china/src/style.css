@@ -261,3 +261,17 @@
 .town-map-list ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .town-map-list button{width:100%;min-height:44px;border:1px solid var(--line);padding:10px 12px;line-height:1.7;text-align:left;font-size:var(--body-size);overflow-wrap:anywhere}
 .town-map-row:focus-visible,.town-map-open:focus-visible,.town-map-list button:focus-visible{outline:3px solid #8b593d;outline-offset:3px}
+
+/* 汴河拾遗 (C5): a small thing lying in the painting, glinting now and then */
+.lost-thing{position:absolute;pointer-events:auto;display:flex;align-items:flex-end;justify-content:center;padding:0;background:transparent;z-index:1;min-width:44px;min-height:44px}
+.lost-thing img{display:block;pointer-events:none;filter:drop-shadow(0 1px 0 #6a5d4433)}
+.lost-glint{position:absolute;left:50%;top:30%;width:14px;height:14px;margin:-7px 0 0 -7px;opacity:0;pointer-events:none;background:radial-gradient(circle,#fffbe8 0 18%,#fff6d0aa 30%,transparent 62%);animation:lost-glint 7s ease-in-out infinite}
+.lost-thing:nth-of-type(2n) .lost-glint{animation-delay:2.4s}
+.lost-thing:nth-of-type(3n) .lost-glint{animation-delay:4.1s}
+@keyframes lost-glint{0%,86%,100%{opacity:0;transform:scale(.4)}91%{opacity:1;transform:scale(1.25)}95%{opacity:.4;transform:scale(.8)}}
+.lost-thing:focus-visible{outline:2px solid var(--red);outline-offset:3px;border-radius:50%}
+.lost-word{margin-top:10px;padding:10px 12px;border-left:3px solid #c9b48a;background:#f4ecd6;line-height:1.8}
+.lost-carried{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.lost-carried li{display:flex;align-items:center;gap:10px}
+.lost-carried img{width:34px;height:34px;object-fit:contain}
+.lost-icon{width:30px;height:30px;object-fit:contain}

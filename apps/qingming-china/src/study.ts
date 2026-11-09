@@ -7,7 +7,7 @@ export type ErrorCode = 'save_read_failed' | 'save_write_failed' | 'save_import_
 type Events = {
   world_entered: { source: 'direct' | 'journal' };
   first_interaction_completed: { interaction_id: QuestId | 'tea' | 'observation'; elapsed_ms: number };
-  play_detail: { what: 'trace' | 'ugoki' | 'map'; outcome: 'traced' | 'tapped' | 'left' | 'miss' | 'caught' | 'opened' };
+  play_detail: { what: 'trace' | 'ugoki' | 'map' | 'lost'; outcome: 'traced' | 'tapped' | 'left' | 'miss' | 'caught' | 'opened' | 'hinted' | 'found' | 'returned' };
   story_started: { story_id: QuestId };
   story_completed: { story_id: QuestId; first_completion: boolean };
   journal_opened: { page_count: number };
@@ -26,7 +26,7 @@ const page = inList(PAGES.map(p => p.id));
 const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
   world_entered: { source: inList(['direct', 'journal']) },
   first_interaction_completed: { interaction_id: inList([...quests, 'tea', 'observation']), elapsed_ms: positive },
-  play_detail: { what: inList(['trace', 'ugoki', 'map']), outcome: inList(['traced', 'tapped', 'left', 'miss', 'caught', 'opened']) },
+  play_detail: { what: inList(['trace', 'ugoki', 'map', 'lost']), outcome: inList(['traced', 'tapped', 'left', 'miss', 'caught', 'opened', 'hinted', 'found', 'returned']) },
   story_started: { story_id: inList(quests) },
   story_completed: { story_id: inList(quests), first_completion: v => typeof v === 'boolean' },
   journal_opened: { page_count: v => positive(v) && (v as number) <= PAGES.length },

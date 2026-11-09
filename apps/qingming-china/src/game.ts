@@ -3,6 +3,7 @@ import type { TimeChoice } from './time';
 import { PAGES, type PageId, type CharacterId } from './content';
 
 import { windIsLight } from './playStories';
+import { isLostId } from './lost';
 import { SAVE_KEY } from './session';
 export { SAVE_KEY } from './session';
 export type QuestId = 'paper' | 'boat' | 'purse' | 'harbor' | 'gate' | 'countryside' | 'trace' | 'breeze';
@@ -10,11 +11,12 @@ type Quest = { status: QuestStatus; step: number };
 export interface GameState {
   schemaVersion: 1; worldId: 'qingming-china'; saveVersion: 5; updatedAt: string;
   started: boolean; wallet: number; journal: PageId[]; claimed: QuestId[];
-  progress: { map: { opened: boolean; hinted: boolean }; quests: Record<QuestId, Quest>; ropes: number[]; clues: string[]; visited: CharacterId[]; tea: boolean; route: 'deliver' | 'observe' | null; favorite: PageId | null; purchases: string[]; observations: string[]; designs: Partial<Record<PageId, { close: boolean; decoration: string }>> };
+  progress: { map: { opened: boolean; hinted: boolean }; lost: { seen: CharacterId[]; heard: string[]; found: string[]; returned: string[] }; quests: Record<QuestId, Quest>; ropes: number[]; clues: string[]; visited: CharacterId[]; tea: boolean; route: 'deliver' | 'observe' | null; favorite: PageId | null; purchases: string[]; observations: string[]; designs: Partial<Record<PageId, { close: boolean; decoration: string }>> };
   settings: { timeChoice?: TimeChoice; reduced: boolean; largeText: boolean; hints: boolean; sound: boolean; ambience: number; effects: number };
 }
 export type Action =
   | { type: 'MAP_OPEN' } | { type: 'MAP_HINT' }
+  | { type: 'LOST_SEEN'; who: CharacterId } | { type: 'LOST_HEAR'; id: string } | { type: 'LOST_FIND'; id: string } | { type: 'LOST_RETURN'; id: string }
   | { type: 'START' } | { type: 'VISIT'; id: CharacterId } | { type: 'PRESS_PAPER' }
   | { type: 'SKETCH'; view: 'hands' | 'boats' | 'bridge'; close?: boolean; decoration?: string }
   | { type: 'ROPE'; rope: number; target: number } | { type: 'TAG'; tag: string }
@@ -36,7 +38,7 @@ export type Action =
 
 export function initialState(): GameState {
   return { schemaVersion: 1, worldId: 'qingming-china', saveVersion: 5, updatedAt: new Date().toISOString(), started: false,
-    wallet: 60, journal: [], claimed: [], progress: { map: { opened:false, hinted:false }, quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 }, harbor: { status: 'unseen', step: 0 }, gate: { status: 'unseen', step: 0 }, countryside: { status: 'unseen', step: 0 }, trace: { status: 'unseen', step: 0 }, breeze: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
+    wallet: 60, journal: [], claimed: [], progress: { map: { opened:false, hinted:false }, lost: { seen: [], heard: [], found: [], returned: [] }, quests: { paper: { status: 'unseen', step: 0 }, boat: { status: 'unseen', step: 0 }, purse: { status: 'unseen', step: 0 }, harbor: { status: 'unseen', step: 0 }, gate: { status: 'unseen', step: 0 }, countryside: { status: 'unseen', step: 0 }, trace: { status: 'unseen', step: 0 }, breeze: { status: 'unseen', step: 0 } }, ropes: [], clues: [], visited: [], tea: false, route: null, favorite: null, purchases: [], observations: [], designs: {} },
     settings: { timeChoice: 'auto', reduced: false, largeText: false, hints: true, sound: false, ambience: 0.3, effects: 0.4 } };
 }
 function addPage(s: GameState, id: PageId) { if (!s.journal.includes(id)) s.journal.push(id); }
@@ -51,6 +53,11 @@ export function reduceGame(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'MAP_OPEN': p.map.opened = true; break;
     case 'MAP_HINT': if (!p.map.opened) p.map.hinted = true; break;
+    // 汴河拾遗 (lost.ts): the order is kept here too, so a stale tap cannot skip a step
+    case 'LOST_SEEN': if (!p.lost.seen.includes(action.who)) p.lost.seen.push(action.who); break;
+    case 'LOST_HEAR': if (isLostId(action.id) && !p.lost.heard.includes(action.id)) p.lost.heard.push(action.id); break;
+    case 'LOST_FIND': if (isLostId(action.id) && s.claimed.includes('paper') && !p.lost.found.includes(action.id)) p.lost.found.push(action.id); break;
+    case 'LOST_RETURN': if (p.lost.found.includes(action.id) && !p.lost.returned.includes(action.id)) p.lost.returned.push(action.id); break;
     case 'START': s.started = true; break;
     case 'VISIT': {
       if (!p.visited.includes(action.id)) p.visited.push(action.id);
@@ -165,11 +172,16 @@ export function parseSave(raw: string): GameState {
   const s = v as GameState;
   const p = s.progress;
   if (!Object.hasOwn(p, 'map')) p.map = { opened:false, hinted:false };
+  // saves from before 汴河拾遗 gain only an empty ledger; nothing else changes
+  if (!Object.hasOwn(p, 'lost')) p.lost = { seen: [], heard: [], found: [], returned: [] };
   if (!Object.hasOwn(s.settings, 'timeChoice')) s.settings.timeChoice = 'auto';
   if (!Object.prototype.hasOwnProperty.call(p, 'designs')) p.designs = {};
   if (!['auto', 'morning', 'noon', 'evening'].includes(s.settings.timeChoice!) || typeof s.started !== 'boolean' || !strings(s.claimed) || !s.claimed.every(x => questIds.includes(x)) ||
     !s.journal.every(id => PAGES.some(page => page.id === id)) || new Set(s.journal).size !== s.journal.length ||
     !p.map || typeof p.map.opened !== 'boolean' || typeof p.map.hinted !== 'boolean' ||
+    !p.lost || !strings(p.lost.seen) || !p.lost.seen.every(x => characterIds.includes(x)) ||
+    !(['heard', 'found', 'returned'] as const).every(k => strings(p.lost[k]) && p.lost[k].every(isLostId) && new Set(p.lost[k]).size === p.lost[k].length) ||
+    !p.lost.returned.every(id => p.lost.found.includes(id)) ||
     !p.quests || !questIds.every(id => p.quests[id] && statuses.includes(p.quests[id].status) && Number.isInteger(p.quests[id].step) && p.quests[id].step >= 0 && p.quests[id].step <= questSteps[id]) ||
     !Array.isArray(p.ropes) || !p.ropes.every(n => [0, 1, 2].includes(n)) || new Set(p.ropes).size !== p.ropes.length ||
     !strings(p.clues) || !p.clues.every(x => ['he', 'cheng'].includes(x)) || new Set(p.clues).size !== p.clues.length ||
