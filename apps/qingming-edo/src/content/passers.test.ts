@@ -6,7 +6,7 @@ import { HOTSPOTS } from './world';
 
 describe('通りすがりの人と話す', () => {
   it('each talking passer-by walks the street, has a portrait and three things to ask about their work', () => {
-    expect(Object.keys(PASSERS)).toHaveLength(6);
+    expect(Object.keys(PASSERS)).toHaveLength(9);
     for (const [id, p] of Object.entries(PASSERS)) {
       const h = HOTSPOTS.find((x) => x.targetId === id);
       expect(h?.walker, id).toBeTruthy();

@@ -15,6 +15,10 @@ export const CROWD: { id: string; x: number; y: number; flip: boolean }[] = [
   { id: 'crowd2-apprentice', x: 9550, y: 614, flip: true },
   { id: 'crowd1-parasol', x: 10780, y: 610, flip: false },
   { id: 'crowd1-porter', x: 12300, y: 624, flip: true },
+  // three more who stop and talk of their trade (owner 2026-11-10); appended, so the others keep their pattern
+  { id: 'crowd3-hikyaku', x: 1700, y: 612, flip: false },
+  { id: 'crowd3-daiku', x: 6900, y: 610, flip: true },
+  { id: 'crowd3-ameuri', x: 11100, y: 612, flip: false },
 ];
 
 /**
