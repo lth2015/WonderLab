@@ -356,6 +356,8 @@ NODES['kisuke.done3'].choices!.push({ label: `一服する（${TEA_PRICE}文）`
 // after 夕暮れの灯 his evening word is always the lamps: the tea house stays open then too
 NODES['kisuke.yube.after'].choices = [{ label: '少し話す', talk: true }, { label: `一服する（${TEA_PRICE}文）`, shop: 'tea' }];
 for (const id of ['seita.done', 'seita.again']) NODES[id].choices!.push({ label: '題箋を見る', shop: 'slips' });
+// after 橋のたもと, 宗吉 can look back over the day with the player (ui/Epilogue.tsx)
+NODES['sokichi.hashi.after'].choices!.push({ label: '今日の町をふりかえる', epilogue: true });
 
 // 朝・昼・夕で言うことが変わる (owner: 多开发内容; demo feedback 「剧情太少」). A person's
 // everyday word after their story has a morning and an evening version; noon is the

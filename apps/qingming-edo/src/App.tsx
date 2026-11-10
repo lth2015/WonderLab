@@ -23,6 +23,7 @@ import { TownMap } from './ui/TownMap';
 import { Face } from './ui/Face';
 import { Shop } from './ui/Shop';
 import { Cg } from './ui/Cg';
+import { Epilogue } from './ui/Epilogue';
 import { ownsSlip, retitle, slipStyles } from './engine/shop';
 import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
@@ -45,7 +46,7 @@ function unknownScene(): boolean {
 /** Shown whenever the time bell is rung, so the event is there without sound too. */
 const BELL_LINE = '石町のほうから、時の鐘が遠く聞こえてくる。';
 
-type Panel = 'journal' | 'items' | 'nearby' | 'settings' | 'map' | null;
+type Panel = 'journal' | 'items' | 'nearby' | 'settings' | 'map' | 'epilogue' | null;
 const IDLE_MS = 8000; // spec §6
 
 function storage(): Storage | null {
@@ -361,6 +362,13 @@ export function App() {
   const choose = (i: number) => {
     const c = NODES[dialogue!.node].choices![i];
     if (c.effects && !recallRef.current) commit(c.effects);
+    if (c.epilogue) {
+      if (ON_CLOSE[baseNode(dialogue!.node)]) commit(ON_CLOSE[baseNode(dialogue!.node)]);
+      setDialogue(null);
+      study.emit('play_detail', { what: 'epilogue', outcome: 'opened' });
+      setPanel('epilogue');
+      return;
+    }
     if (c.shop) {
       if (ON_CLOSE[baseNode(dialogue!.node)]) commit(ON_CLOSE[baseNode(dialogue!.node)]);
       setDialogue(null);
@@ -788,6 +796,7 @@ export function App() {
       {sketch && <Sketch subject={sketch} styles={slipStyles(save)} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}
 
       {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} onRetitle={(pageId, style) => setSave(retitle(saveRef.current, pageId, style))} onVisit={(spotId) => goTo(spotId, false)} />}
+      {panel === 'epilogue' && <Epilogue save={save} onJournal={() => setPanel('journal')} onClose={() => setPanel(null)} />}
       {panel === 'map' && (
         <TownMap
           save={save}
