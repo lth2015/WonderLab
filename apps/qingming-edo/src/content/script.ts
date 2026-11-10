@@ -10,7 +10,7 @@ import { STORIES } from './stories';
 import { RUMOR_RANK, RUMORS } from './rumors';
 import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
 import { TEA_PRICE } from './shop';
-import { GLIMPSE_Q, PASSERS, passerFlag } from './passers';
+import { GLIMPSE_Q, PASSERS, favorFlag, passerFlag } from './passers';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
 
@@ -363,7 +363,15 @@ for (const [id, p] of Object.entries(PASSERS)) {
   NODES[`pass.${id}`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.hello }], choices: ask, effects: [{ type: 'setFlag', flag: passerFlag(id) }] };
   // met again: they remember the player
   NODES[`pass.${id}.again`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.again }], choices: ask };
-  p.topics.forEach((t, i) => (NODES[`pass.${id}.${i}`] = { lines: t.a.map((text) => ({ by: id, text })), next: `pass.${id}.more` }));
+  const f = p.favor;
+  // after the answer that leads to it, a passer's small ask (App turns `.favor` into the ask or back to the questions)
+  p.topics.forEach((t, i) => (NODES[`pass.${id}.${i}`] = { lines: t.a.map((text) => ({ by: id, text })), next: f?.after === i ? `pass.${id}.favor` : `pass.${id}.more` }));
+  if (f) {
+    NODES[`pass.${id}.favor`] = { lines: [{ by: id, text: p.more }], choices: ask };
+    NODES[`pass.${id}.favor.ask`] = { lines: [{ by: id, text: f.ask }], choices: [{ label: f.offer, next: `pass.${id}.favor.yes` }, { label: 'ごめんなさい、わかりません', next: `pass.${id}.more` }] };
+    NODES[`pass.${id}.favor.yes`] = { lines: f.thanks.map((text) => ({ by: id, text })), effects: [{ type: 'setFlag', flag: favorFlag(id) }], next: `pass.${id}.more` };
+    NODES[`favor.${id}`] = { lines: [{ by: f.who, text: f.told }], effects: [{ type: 'setFlag', flag: `${favorFlag(id)}_told` }] };
+  }
   NODES[`pass.${id}.more`] = { lines: [{ by: id, text: p.more }], choices: ask };
   NODES[`pass.${id}.bye`] = { lines: [{ by: id, text: p.bye }] };
   // 落とし物を見かけたか: App turns `.seen` into one of these as it opens (passers.ts glimpseNode)
@@ -495,6 +503,11 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = (()
   });
   all.sokichi = [...(all.sokichi ?? []), { rank: RUMOR_RANK.sokichi - 0.5, when: { all: [...LOST.map((t) => ({ flag: `lost_back_${t.id}` })), { not: { flag: 'lost_allback' } }] }, node: 'lost.allback' }];
   // うわさ: after every request, before the person's everyday word (content/rumors.ts RUMOR_RANK)
+  // a passer pointed to them comes by: they mention it once, among their rumors
+  for (const [id, p] of Object.entries(PASSERS)) {
+    const f = p.favor;
+    if (f) all[f.who] = [...(all[f.who] ?? []), { rank: RUMOR_RANK[f.who] + 0.9, when: { all: [{ quest: f.needs, is: 'complete' }, { flag: favorFlag(id) }, { not: { flag: `${favorFlag(id)}_told` } }] }, node: `favor.${id}` }];
+  }
   RUMORS.forEach((r, i) => {
     const when: Condition = { all: [{ quest: r.needs, is: 'complete' }, { quest: r.after, is: 'complete' }, { not: { flag: `rumor_${r.id}` } }] };
     all[r.who] = [...(all[r.who] ?? []), { rank: RUMOR_RANK[r.who] + i / 100, when, node: `rumor.${r.id}` }];

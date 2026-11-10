@@ -24,7 +24,27 @@ export interface PasserTalk {
   glimpse: string;
   /** and their word when nothing is left lying in the street. */
   none: string;
+  /** A small thing they ask, after one answer, once the player knows who can help (see Favor). */
+  favor?: Favor;
   bye: string;
+}
+
+/**
+ * 路人のちょっとした頼み: after the answer to topic `after`, the passer asks something only a
+ * person of the stories can help with. Pointing them there is all the player does; the next
+ * time that person is spoken to, they mention the passer came by (once). Nothing is paid.
+ */
+export interface Favor {
+  after: number;
+  /** The person who can help, and their story, done first (so the player knows them). */
+  who: string;
+  needs: string;
+  ask: string;
+  /** What the player says, and the passer's thanks. */
+  offer: string;
+  thanks: string[];
+  /** What `who` says of it afterwards. */
+  told: string;
 }
 
 export const PASSERS: Record<string, PasserTalk> = {
@@ -42,6 +62,13 @@ export const PASSERS: Record<string, PasserTalk> = {
     ],
     glimpse: 'そういえば、歩いておるときに目に留まったものがある。',
     none: 'いや、気づかなんだ。町は、きれいなものだな。',
+    favor: {
+      after: 2, who: 'seita', needs: 'kaze',
+      ask: '国元の妹は、役者絵より名所絵が好きでな。江戸の景色の、よい刷りのものを探しておる。',
+      offer: '紙屋の青葉屋さんなら、版元にくわしいと思います',
+      thanks: ['紙屋か。なるほど、紙を扱う者なら、刷りのよしあしもわかろう。', 'かたじけない。さっそく寄ってみる。'],
+      told: '黒羽織のお侍さまが、名所絵のことを聞きにみえました。版元をお教えしたら、国元の妹御に送るのだと、それはうれしそうで。……あなたのご紹介だそうですね。',
+    },
     bye: 'では、また町で会おう。',
   },
   'pass-monk': {
@@ -90,6 +117,13 @@ export const PASSERS: Record<string, PasserTalk> = {
     ],
     glimpse: 'あっ、それなら……お使いの途中で見ました。',
     none: 'いいえ、見てないです。……すみません、急いでいて。',
+    favor: {
+      after: 1, who: 'omatsu', needs: 'kashi',
+      ask: 'あの……向こう岸の河岸の、おまつさんというお得意さまのお宅、ご存じですか。初めてのお届けで……。',
+      offer: 'おまつさんなら、向こう岸の河岸で魚を売っています',
+      thanks: ['河岸で、魚を……！ お店じゃなくて、河岸なんですね。', '助かりました！ これで番頭さんに叱られずにすみます。'],
+      told: '呉服屋の小僧さんが、反物を届けに来たよ。道をあんたに聞いたって、汗びっしょりでさ。……亀吉の晴れ着だよ。まだ内緒だけどね。',
+    },
     bye: 'では、急ぎますので！ 失礼します！',
   },
   'pass-parasol': {
@@ -138,6 +172,13 @@ export const PASSERS: Record<string, PasserTalk> = {
     ],
     glimpse: '走りながらだが、ちらっと見たぜ。',
     none: 'いや、見てねえな。走ってると、足もとは見えねえのさ。',
+    favor: {
+      after: 1, who: 'ihei', needs: 'fumi',
+      ask: 'そうだ、ひとつ聞きてえ。両替屋の伊兵衛って手代に、郷から返事の文が来てるんだが、どこの両替屋だか知らねえか。',
+      offer: '伊兵衛さんなら、この通りの両替屋の手代さんです',
+      thanks: ['この通りか！ 灯台もと暗しだ、よその町ばかり探してたぜ。', '郷からの返事ってのは、待つほうも急ぎなもんだ。すぐ届けてくる。'],
+      told: '郷の母から、返事が届きました。飛脚さんが、あなたに道を聞いたと言っていました。……字が、前より少しだけ、ふるえていました。',
+    },
     bye: 'じゃあな！ 文を出すときは、うちの飛脚屋へ。',
   },
   'pass-daiku': {
@@ -154,6 +195,13 @@ export const PASSERS: Record<string, PasserTalk> = {
     ],
     glimpse: '見たぜ。大工は、目の端で寸法を測る癖があるからな。',
     none: 'いや、見てねえ。普請場の木っ端なら、山ほど落ちてるがな。',
+    favor: {
+      after: 2, who: 'okon', needs: 'dougu',
+      ask: '……そういや、鉋の刃がひとつ欠けちまってな。いい刃を置いてる道具屋を知らねえか。',
+      offer: '道具屋くれ竹のおかみさんなら、きっと',
+      thanks: ['くれ竹か。名前は聞いたことがある。古い道具を大事にする店だってな。', 'ありがとよ。普請の帰りに寄ってみる。'],
+      told: '大工さんが、鉋の刃を見に来たよ。あんたに聞いたって。……刃の研ぎ方を見りゃわかる。いい棟梁についてる人だね。',
+    },
     bye: 'さて、日が高いうちに柱を一本立てちまわねえと。',
   },
   'pass-ameuri': {
@@ -193,4 +241,15 @@ export function glimpseNode(save: SaveData, id: string): string {
   if (!lying.length) return `pass.${id}.seen.none`;
   const k = Math.max(0, Object.keys(PASSERS).indexOf(id));
   return `pass.${id}.seen.${lying[k % lying.length].id}`;
+}
+
+export const favorFlag = (id: string) => `favor_${id}`;
+
+/**
+ * Where `pass.<id>.favor` goes, decided as it opens: the ask, while the player knows who can
+ * help and has not yet pointed them there; otherwise straight back to the questions.
+ */
+export function favorNode(save: SaveData, id: string): string {
+  const f = PASSERS[id]?.favor;
+  return f && questState(save, f.needs) === 'complete' && !hasFlag(save, favorFlag(id)) ? `pass.${id}.favor.ask` : `pass.${id}.more`;
 }
