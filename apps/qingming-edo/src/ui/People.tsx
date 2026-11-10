@@ -3,13 +3,18 @@ import { NAJIMI, PROFILE } from '../content/people';
 import { characterById, ROLES } from '../content/world';
 import { acquaintances } from '../engine/people';
 import { Face } from './Face';
+import { PASSERS, passerFlag } from '../content/passers';
+import { hasFlag } from '../engine/state';
 
 // 人物帳: the people met, with their portrait, how well they know the player, and the
 // stories shared. 会いに行く moves the street to where they are now.
 
 export function People({ save, onVisit }: { save: SaveData; onVisit(spotId: string): void }) {
   const people = acquaintances(save);
+  // passers-by the player stopped to talk with (content/passers.ts)
+  const passers = Object.entries(PASSERS).filter(([id]) => hasFlag(save, passerFlag(id)));
   return (
+    <>
     <ul className="people">
       {people.map((p) => (
         <li key={p.id} className="person">
@@ -46,5 +51,22 @@ export function People({ save, onVisit }: { save: SaveData; onVisit(spotId: stri
         </li>
       ))}
     </ul>
+    {passers.length > 0 && (
+      <section className="passers-met" aria-labelledby="passers-h">
+        <h3 id="passers-h">通りで言葉を交わした人</h3>
+        <ul>
+          {passers.map(([id, p]) => (
+            <li key={id}>
+              <Face who={id} />
+              <span>
+                <b>{p.name}</b>
+                <small>{p.role}</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+    </>
   );
 }

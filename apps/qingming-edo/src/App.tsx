@@ -24,7 +24,7 @@ import { Face } from './ui/Face';
 import { Shop } from './ui/Shop';
 import { Cg } from './ui/Cg';
 import { Epilogue } from './ui/Epilogue';
-import { PASSERS, passerName, passerRole } from './content/passers';
+import { PASSERS, passerFlag, passerName, passerRole } from './content/passers';
 import { ownsSlip, retitle, slipStyles } from './engine/shop';
 import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
@@ -301,7 +301,7 @@ export function App() {
         setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), spot.walker ? 3200 : 1400);
         if (spot.walker) study.emit('play_detail', { what: 'passer', outcome: 'tapped' });
         // 通りすがりの人と話す: they stop (the street holds still while the dialogue is open) and talk of their work
-        if (spot.walker && PASSERS[id]) return openNode(`pass.${id}`);
+        if (spot.walker && PASSERS[id]) return openNode(hasFlag(saveRef.current, passerFlag(id)) ? `pass.${id}.again` : `pass.${id}`);
         // 町の写生: after the first page, some places can be drawn (once each)
         const k = sketchOfSpot(id);
         const cur = saveRef.current;

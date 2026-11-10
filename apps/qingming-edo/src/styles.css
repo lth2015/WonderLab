@@ -2067,3 +2067,34 @@ button.term[aria-expanded="true"] {
 .rm .epilogue .epi-card {
   animation: none;
 }
+.passers-met h3 {
+  margin: 16px 0 8px;
+  font-size: 1rem;
+}
+.passers-met ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12em, 1fr));
+  gap: 8px;
+}
+.passers-met li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.passers-met .face {
+  float: none;
+  width: 52px;
+  height: 52px;
+  margin: 0;
+}
+.passers-met span {
+  display: flex;
+  flex-direction: column;
+}
+.passers-met small {
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
