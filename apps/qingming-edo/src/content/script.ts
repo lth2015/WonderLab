@@ -10,7 +10,7 @@ import { STORIES } from './stories';
 import { RUMOR_RANK, RUMORS } from './rumors';
 import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
 import { TEA_PRICE } from './shop';
-import { PASSERS, passerFlag } from './passers';
+import { GLIMPSE_Q, PASSERS, passerFlag } from './passers';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
 
@@ -359,13 +359,18 @@ NODES['kisuke.yube.after'].choices = [{ label: '少し話す', talk: true }, { l
 for (const id of ['seita.done', 'seita.again']) NODES[id].choices!.push({ label: '題箋を見る', shop: 'slips' });
 // 通りすがりの人と話す (content/passers.ts): a passer-by stops and talks about their work
 for (const [id, p] of Object.entries(PASSERS)) {
-  const ask: Choice[] = [...p.topics.map((t, i) => ({ label: t.q, next: `pass.${id}.${i}` })), { label: '引き止めてごめんなさい', next: `pass.${id}.bye` }];
+  const ask: Choice[] = [...p.topics.map((t, i) => ({ label: t.q, next: `pass.${id}.${i}` })), { label: GLIMPSE_Q, next: `pass.${id}.seen` }, { label: '引き止めてごめんなさい', next: `pass.${id}.bye` }];
   NODES[`pass.${id}`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.hello }], choices: ask, effects: [{ type: 'setFlag', flag: passerFlag(id) }] };
   // met again: they remember the player
   NODES[`pass.${id}.again`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.again }], choices: ask };
   p.topics.forEach((t, i) => (NODES[`pass.${id}.${i}`] = { lines: t.a.map((text) => ({ by: id, text })), next: `pass.${id}.more` }));
   NODES[`pass.${id}.more`] = { lines: [{ by: id, text: p.more }], choices: ask };
   NODES[`pass.${id}.bye`] = { lines: [{ by: id, text: p.bye }] };
+  // 落とし物を見かけたか: App turns `.seen` into one of these as it opens (passers.ts glimpseNode)
+  NODES[`pass.${id}.seen`] = { lines: [{ by: id, text: p.none }], next: `pass.${id}.more` };
+  NODES[`pass.${id}.seen.none`] = NODES[`pass.${id}.seen`];
+  for (const t of LOST)
+    NODES[`pass.${id}.seen.${t.id}`] = { lines: [{ by: id, text: p.glimpse }, { by: 'narration', text: `${t.place}のあたりで、何か小さなものが光っていたそうだ。` }], next: `pass.${id}.more` };
 }
 
 // after 橋のたもと, 宗吉 can look back over the day with the player (ui/Epilogue.tsx)

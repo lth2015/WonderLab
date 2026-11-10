@@ -1,5 +1,5 @@
 // 江戸編：通りすがりの人と話す。新しい存档で、(1) 一覧から魚売りを呼び止め、名前・立ち絵・仕事の話を
-// 二つ聞いて別れる、(2) 通りを歩く人足を直接タップして、その人が立ち止まり（歩く動きが止まる）、
+// 二つ聞き、落とし物のことも聞いて（最初の故事の前なので、見ていない）別れる、(2) 通りを歩く人足を直接タップして、その人が立ち止まり（歩く動きが止まる）、
 // 話し終えるとまた歩き出すこと、もう一度呼び止めると覚えていること、人物帳に残ることを見る。
 //   node apps/qingming-edo/e2e/passers.cjs <url> [shot-dir]
 const { chromium } = require('playwright');
@@ -24,13 +24,17 @@ if (!URL) throw new Error('usage: node passers.cjs <url> [shot-dir]');
   for (let i = 0; i < 4 && !(await d.locator('.choices').count()); i++) { await d.getByRole('button', { name: /^次へ$/ }).click(); await p.waitForTimeout(120); }
   ok(/魚売り/.test(await d.locator('.speaker').innerText()) && (await d.locator('img.face').count()) === 1, 'the fishmonger speaks, with his portrait');
   const qs = await d.locator('.choices button').allInnerTexts();
-  ok(qs.length === 4 && qs.some((q) => /仕入れ/.test(q)), `questions about his work: ${qs.join(' / ')}`);
+  ok(qs.length === 5 && qs.some((q) => /仕入れ/.test(q)), `questions about his work: ${qs.join(' / ')}`);
   await d.locator('.choices button').filter({ hasText: '仕入れ' }).click(); await p.waitForTimeout(200);
   const ans = await d.locator('.said').innerText();
   ok(/魚河岸/.test(ans), `answer: ${ans.slice(0, 24)}…`);
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/passer-talk.png` });
   for (let i = 0; i < 4 && !(await d.locator('.choices').count()); i++) { await d.getByRole('button', { name: /^次へ$/ }).click(); await p.waitForTimeout(120); }
   await d.locator('.choices button').filter({ hasText: 'おすすめ' }).click(); await p.waitForTimeout(200);
+  for (let i = 0; i < 4 && !(await d.locator('.choices').count()); i++) { await d.getByRole('button', { name: /^次へ$/ }).click(); await p.waitForTimeout(120); }
+  // before the first story nothing lies in the street, so he has seen nothing
+  await d.locator('.choices button').filter({ hasText: '落とし物' }).click(); await p.waitForTimeout(200);
+  ok(/見てねえ/.test(await d.locator('.said').innerText()), `asked about lost things: ${await d.locator('.said').innerText()}`);
   for (let i = 0; i < 4 && !(await d.locator('.choices').count()); i++) { await d.getByRole('button', { name: /^次へ$/ }).click(); await p.waitForTimeout(120); }
   await d.locator('.choices button').filter({ hasText: '引き止めて' }).click(); await p.waitForTimeout(200);
   ok(/じゃあな/.test(await d.locator('.said').innerText()), 'his parting word');

@@ -4,6 +4,10 @@
 // asked in any order, as often as liked; a parting word. Scripted; nothing changes.
 // ご隠居 also walks the street but is a person of the stories, so he keeps his one word.
 
+import type { SaveData } from '../contract';
+import { hasFlag, questState } from '../engine/state';
+import { LOST } from './lost';
+
 export interface PasserTalk {
   /** Shown as the speaker (they are not in the 人物帳). */
   name: string;
@@ -16,6 +20,10 @@ export interface PasserTalk {
   /** The word that brings the questions back after an answer. */
   more: string;
   topics: { q: string; a: string[] }[];
+  /** 落とし物を見かけたか (the fourth question): their word before telling where something glinted, */
+  glimpse: string;
+  /** and their word when nothing is left lying in the street. */
+  none: string;
   bye: string;
 }
 
@@ -32,6 +40,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: '刀は重くないですか', a: ['重いとも。二本差せば、米を一升ずつ腰に下げているようなものだ。', 'だが、抜くことはまずない。抜かずに済ませるのが武士の腕だと、父に教わった。'] },
       { q: '国元へのお土産は決まりましたか', a: ['それよ。母上には浅草海苔、妹には錦絵と決めておる。', '……絵師の見習いなら、よい錦絵を置いている店を知らんか。'] },
     ],
+    glimpse: 'そういえば、歩いておるときに目に留まったものがある。',
+    none: 'いや、気づかなんだ。町は、きれいなものだな。',
     bye: 'では、また町で会おう。',
   },
   'pass-monk': {
@@ -46,6 +56,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: '一日にどれくらい歩くんですか', a: ['朝から昼まで、日本橋から神田のあたりまで。', '足を運ぶことも、経を読むのと同じ修行です。'] },
       { q: '断られることもありますか', a: ['よくあります。それもまた修行です。', '閉まる戸にも、頭を下げてから次へまいります。'] },
     ],
+    glimpse: '……下を向いて歩くことが多いもので、目に入りました。',
+    none: '……いいえ。今日は、何も落ちてはいないようです。',
     bye: 'よい一日を。',
   },
   'pass-fishmonger': {
@@ -60,6 +72,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: '今日のおすすめは', a: ['春の鯵だね。脂がのってきて、たたきにすりゃあたまらねえ。', '今日はいい鯛も一尾ある。祝いごとのある家に、声をかけて回るのさ。'] },
       { q: '売れ残ったらどうするの', a: ['干物にするか、なじみの煮売り屋に安く渡す。', '……でも、売れ残らねえように声を張るのが腕ってもんよ。'] },
     ],
+    glimpse: 'おう、それなら見たぜ。売り歩いてりゃ、町じゅう目に入るからな。',
+    none: 'いや、見てねえな。落ちてりゃ、とっくに誰かが拾ってらあ。',
     bye: 'じゃあな！ 鯵が食いたくなったら呼んでくれ。',
   },
   'pass-apprentice': {
@@ -74,6 +88,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: 'その箱は何を運んでいるの', a: ['お得意さまに届ける反物です。箱ごと落としたら、ひと月分のお小遣いでも足りません。', 'お代を預かって帰るときは、もっと胸がどきどきします。'] },
       { q: 'いつか番頭さんに？', a: ['……なれたら、いいなあ。手代、番頭と上がっていくには、十年も二十年もかかるんです。', 'でも、いつか自分の店に暖簾を掛けるのが夢です。'] },
     ],
+    glimpse: 'あっ、それなら……お使いの途中で見ました。',
+    none: 'いいえ、見てないです。……すみません、急いでいて。',
     bye: 'では、急ぎますので！ 失礼します！',
   },
   'pass-parasol': {
@@ -88,6 +104,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: 'お家は何のお店？', a: ['小間物屋です。櫛や簪、紅や白粉を商っています。', '流行りの柄はすぐ変わるから、こうして町を歩いて、みなさんの髪をこっそり見ているんですよ。'] },
       { q: 'その日傘は', a: ['うちのお店で扱っている品です。持って歩くと、どこで買えるのかって、よく聞かれるんですよ。', '……これも、商いのうちです。'] },
     ],
+    glimpse: 'ええ、ひとつ。日傘の下からだと、足もとがよく見えるんですよ。',
+    none: 'いいえ。今日は何も。',
     bye: 'では、ごきげんよう。',
   },
   'pass-porter': {
@@ -102,6 +120,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: '重くない？', a: ['重いさ。だが、腰と脚でかつぐのがこつでな。腕で持つと、三日で体が壊れる。', '紐の締め方ひとつで、荷が軽くも重くもなるんだ。'] },
       { q: '仕事はどうやって見つけるの', a: ['朝、口入れ屋に顔を出すと、その日の仕事を回してくれる。', '河岸に舟の多い日は、取り合いだ。早起きは三文の得ってのは、ほんとうさ。'] },
     ],
+    glimpse: '荷をかついでると、下ばっかり見てるからな。ひとつ見たぜ。',
+    none: 'いや、見てねえ。荷が重くて、それどころじゃねえや。',
     bye: 'さて、もうひと踏ん張りだ。',
   },
   'pass-hikyaku': {
@@ -116,6 +136,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: 'その箱には何が入ってるの', a: ['文と、ちょっとした荷よ。商いの知らせもあれば、母親から息子への便りもある。', '中身は読まねえ。それが飛脚の決まりさ。'] },
       { q: 'どうしてそんなに速く走れるの', a: ['こつがあってな。足を前に出すんじゃなく、体を少し前に倒すんだ。そうすりゃ足が勝手についてくる。', 'あとは草鞋の紐をきつく締めること。ゆるいと、すぐに足を痛める。'] },
     ],
+    glimpse: '走りながらだが、ちらっと見たぜ。',
+    none: 'いや、見てねえな。走ってると、足もとは見えねえのさ。',
     bye: 'じゃあな！ 文を出すときは、うちの飛脚屋へ。',
   },
   'pass-daiku': {
@@ -130,6 +152,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: 'その曲がった物差しは', a: ['曲尺よ。これ一本で、長さも直角も、柱の太さの割り出しもできる。', '親方は、目盛りの擦り減り方を見れば、大工の腕がわかると言うんだ。'] },
       { q: '大工になるにはどれくらいかかるの', a: ['弟子入りして十年だ。最初の三年は、鉋の刃を研ぐのと、木っ端拾いばかりさ。', '江戸は火事が多いから、大工の仕事はなくならねえ。……ありがたいことかどうかは、わからねえがな。'] },
     ],
+    glimpse: '見たぜ。大工は、目の端で寸法を測る癖があるからな。',
+    none: 'いや、見てねえ。普請場の木っ端なら、山ほど落ちてるがな。',
     bye: 'さて、日が高いうちに柱を一本立てちまわねえと。',
   },
   'pass-ameuri': {
@@ -144,6 +168,8 @@ export const PASSERS: Record<string, PasserTalk> = {
       { q: '誰がいちばん買ってくれるの', a: ['そりゃあ子どもさ。でも、子どもに買ってやる親や、じいさんばあさんも多いよ。', '茶店の前で売ると、喜助さんとこのお客がつられて買ってくれる。持ちつ持たれつだね。'] },
       { q: 'どうして笠をかぶってるの', a: ['日に当たると、飴がやわらかくなっちまうからね。盆にも小さな日よけを掛けることがある。', '……本当は、俺の頭が日に弱いってのもあるがね。'] },
     ],
+    glimpse: '見た見た。飴を買いに来る子どもが、指さして教えてくれたのさ。',
+    none: 'いや、見てないねえ。落ちてたら、子どもらが先に拾ってるよ。',
     bye: 'じゃあね！ 今度は買っておくれよ。',
   },
 };
@@ -153,3 +179,18 @@ export const passerFlag = (id: string) => `talked_${id}`;
 
 export const passerName = (id: string) => PASSERS[id]?.name;
 export const passerRole = (id: string) => PASSERS[id]?.role;
+
+/** The fourth question: 落とし物を見かけませんでしたか. */
+export const GLIMPSE_Q = 'この辺で、落とし物を見かけませんでしたか';
+
+/**
+ * Where `pass.<id>.seen` goes, decided as it opens: one of the things still lying in the street
+ * (each passer tells of a different one), or `.none`. It only says where something glinted:
+ * whose it is, and the ？ on the map, still come from the owner.
+ */
+export function glimpseNode(save: SaveData, id: string): string {
+  const lying = questState(save, 'kaze') === 'complete' ? LOST.filter((t) => !hasFlag(save, `lost_found_${t.id}`)) : [];
+  if (!lying.length) return `pass.${id}.seen.none`;
+  const k = Math.max(0, Object.keys(PASSERS).indexOf(id));
+  return `pass.${id}.seen.${lying[k % lying.length].id}`;
+}
