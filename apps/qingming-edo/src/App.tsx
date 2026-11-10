@@ -241,6 +241,7 @@ export function App() {
       // 探し物 in the play log: heard of, found, given back
       const lostStep = /^lost\.[a-z]+\.(hint|find|back)$/.exec(id)?.[1];
       if (lostStep && !inRecall) study.emit('play_detail', { what: 'lost', outcome: lostStep === 'hint' ? 'hinted' : lostStep === 'find' ? 'found' : 'returned' });
+      if (lostStep === 'find' && !inRecall) sound.cue('find');
       // a passing moment (the cat leaping away): a note over the street, so the street stays in view
       if (n.brief && !inRecall) {
         if (next !== saveRef.current) setSave(next);
