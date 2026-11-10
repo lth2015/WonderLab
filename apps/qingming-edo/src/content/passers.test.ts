@@ -29,3 +29,13 @@ describe('通りすがりの人と話す', () => {
     }
   });
 });
+
+describe('通りすがりの人は覚えている', () => {
+  it('the first talk is remembered; met again they greet the player as someone they know', () => {
+    for (const [id, p] of Object.entries(PASSERS)) {
+      expect(NODES[`pass.${id}`].effects).toEqual([{ type: 'setFlag', flag: `talked_${id}` }]);
+      expect(NODES[`pass.${id}.again`].lines[1].text).toBe(p.again);
+      expect(NODES[`pass.${id}.again`].choices).toEqual(NODES[`pass.${id}`].choices);
+    }
+  });
+});

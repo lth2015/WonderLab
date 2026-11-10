@@ -1,6 +1,6 @@
 // 江戸編：通りすがりの人と話す。新しい存档で、(1) 一覧から魚売りを呼び止め、名前・立ち絵・仕事の話を
 // 二つ聞いて別れる、(2) 通りを歩く人足を直接タップして、その人が立ち止まり（歩く動きが止まる）、
-// 話し終えるとまた歩き出すことを見る。
+// 話し終えるとまた歩き出すこと、もう一度呼び止めると覚えていること、人物帳に残ることを見る。
 //   node apps/qingming-edo/e2e/passers.cjs <url> [shot-dir]
 const { chromium } = require('playwright');
 const [URL, SHOTS] = process.argv.slice(2);
@@ -51,6 +51,20 @@ if (!URL) throw new Error('usage: node passers.cjs <url> [shot-dir]');
   await d.locator('.choices button').filter({ hasText: '引き止めて' }).click(); await p.waitForTimeout(200);
   await d.getByRole('button', { name: /^閉じる$/ }).click(); await p.waitForTimeout(3600);
   ok(/running/.test(await state()), `he walks on afterwards (${await state()})`);
+  // (3) met again, they remember; the 人物帳 keeps who was talked with
+  await p.getByRole('button', { name: '近くのこと' }).click(); await p.waitForTimeout(200);
+  if (!(await f.evaluate((x) => x.open))) await f.locator('summary').click();
+  await f.locator('li button').filter({ hasText: /^魚売り/ }).click(); await p.waitForTimeout(400);
+  await d.getByRole('button', { name: /^次へ$/ }).click(); await p.waitForTimeout(150);
+  ok(/また会ったな/.test(await d.locator('.said').innerText()), 'met again, he remembers the player');
+  for (let i = 0; i < 4 && !(await d.locator('.choices').count()); i++) { await d.getByRole('button', { name: /^次へ$/ }).click(); await p.waitForTimeout(120); }
+  await d.locator('.choices button').filter({ hasText: '引き止めて' }).click(); await p.waitForTimeout(200);
+  await d.getByRole('button', { name: /^閉じる$/ }).click(); await p.waitForTimeout(300);
+  await p.getByRole('button', { name: /^絵巻帳/ }).click();
+  await p.getByRole('button', { name: '町の人' }).click(); await p.waitForTimeout(300);
+  const met = await p.locator('.passers-met li b').allInnerTexts();
+  ok(met.includes('魚売り') && met.includes('通りがかりの武士'), `the 人物帳 keeps who was talked with: ${met.join('、')}`);
+  if (SHOTS) await p.screenshot({ path: `${SHOTS}/passers-met.png`, fullPage: false });
   console.log(`page errors ${errs.length ? errs.join(' | ') : 'none'}`);
   await b.close();
   if (bad.length || errs.length) process.exit(1);

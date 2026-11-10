@@ -11,6 +11,8 @@ export interface PasserTalk {
   /** What happens as they stop, then their first word. */
   stop: string;
   hello: string;
+  /** Their greeting when met again (after the first talk). */
+  again: string;
   /** The word that brings the questions back after an answer. */
   more: string;
   topics: { q: string; a: string[] }[];
@@ -23,6 +25,7 @@ export const PASSERS: Record<string, PasserTalk> = {
     role: '国元から江戸詰めの侍',
     stop: '黒羽織の武士が、扇子を閉じて足を止めた。',
     hello: 'おう、絵師の見習いか。わしは国元から江戸詰めに来ておる者だ。何か用か。',
+    again: 'おう、また会ったな、絵師の見習い。今日は非番でな、またぶらぶらしておる。',
     more: 'ほかに聞きたいことはあるか。',
     topics: [
       { q: '江戸詰めって、何をするんですか', a: ['藩のお屋敷で、殿のご用を勤める。といっても、毎日忙しいわけではない。', '非番の日は、こうして町を歩いておる。国元の者に江戸の様子を書き送るのも、務めのうちよ。'] },
@@ -36,6 +39,7 @@ export const PASSERS: Record<string, PasserTalk> = {
     role: '托鉢して歩く僧',
     stop: '笠の僧が杖を止め、静かに頭を下げた。',
     hello: '……何か、ご用でしょうか。',
+    again: '……また、お会いしましたね。今日も、よく歩いておられる。',
     more: 'ほかにも、何か。',
     topics: [
       { q: '托鉢って、何をしているんですか', a: ['家々の前に立って経を読み、施しをいただきます。米ひとつかみでも、銭一文でも、ありがたいものです。', 'いただいたものは寺の暮らしと、困っている人のために使います。'] },
@@ -49,6 +53,7 @@ export const PASSERS: Record<string, PasserTalk> = {
     role: '天秤棒の棒手振り',
     stop: '魚売りが、天秤棒をかついだまま足を止めた。',
     hello: 'へい、らっしゃい！ ……なんだ、買うんじゃねえのか。ま、いいや。何だい。',
+    again: 'おう、また会ったな！ 今日も魚は活きがいいぜ。',
     more: 'ほかにも何かあるかい。魚が傷まねえうちに頼むぜ。',
     topics: [
       { q: '魚はどこで仕入れるの', a: ['日本橋の魚河岸よ。夜明け前に舟が着いて、そこで買い付けるんだ。', '仕入れたら、天秤棒でかついで町じゅうを売り歩く。昼までに売り切るのが勝負さ。'] },
@@ -62,6 +67,7 @@ export const PASSERS: Record<string, PasserTalk> = {
     role: '呉服屋の丁稚',
     stop: '箱を抱えた丁稚が、つんのめるように足を止めた。',
     hello: 'は、はいっ。……あ、お客さまじゃないんですね。手短にお願いします、番頭さんに叱られるので。',
+    again: 'あっ、この前の！ ……今日も急ぎなので、手短にお願いします。',
     more: 'ほかにも、ですか？ 手短に……。',
     topics: [
       { q: 'どこのお店の人？', a: ['呉服屋の丁稚です。十の年に奉公に上がって、もう三年になります。', '朝は店の掃除、昼はお使い、夜はそろばんの稽古です。'] },
@@ -75,6 +81,7 @@ export const PASSERS: Record<string, PasserTalk> = {
     role: '小間物屋の娘',
     stop: '日傘を持った娘が、こちらに気づいて足を止めた。',
     hello: 'あら、こんにちは。いいお天気ですね。',
+    again: 'あら、また会いましたね。今日もお稽古の帰りなんです。',
     more: 'ほかにも、何か？',
     topics: [
       { q: 'どちらへ？', a: ['三味線のお稽古です。月に六度、お師匠さんのところへ通っているんです。'] },
@@ -88,6 +95,7 @@ export const PASSERS: Record<string, PasserTalk> = {
     role: '問屋の荷を運ぶ人足',
     stop: '大きな荷を背負った人足が、足を止めて息をついた。',
     hello: 'ふう……。なんだい、話なら、ひと息つく間だけな。',
+    again: 'よう、また会ったな。今日も荷は重いぜ。',
     more: 'ほかにもあるかい。',
     topics: [
       { q: '何を運んでいるの', a: ['問屋の荷だよ。中身は木綿だ。問屋の蔵から河岸の舟まで、一日に何度も行き来するのさ。'] },
@@ -97,6 +105,9 @@ export const PASSERS: Record<string, PasserTalk> = {
     bye: 'さて、もうひと踏ん張りだ。',
   },
 };
+
+/** Set once the player has talked with them (for 又会ったな, and the 人物帳). */
+export const passerFlag = (id: string) => `talked_${id}`;
 
 export const passerName = (id: string) => PASSERS[id]?.name;
 export const passerRole = (id: string) => PASSERS[id]?.role;

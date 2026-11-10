@@ -10,7 +10,7 @@ import { STORIES } from './stories';
 import { RUMOR_RANK, RUMORS } from './rumors';
 import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
 import { TEA_PRICE } from './shop';
-import { PASSERS } from './passers';
+import { PASSERS, passerFlag } from './passers';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
 
@@ -360,7 +360,9 @@ for (const id of ['seita.done', 'seita.again']) NODES[id].choices!.push({ label:
 // 通りすがりの人と話す (content/passers.ts): a passer-by stops and talks about their work
 for (const [id, p] of Object.entries(PASSERS)) {
   const ask: Choice[] = [...p.topics.map((t, i) => ({ label: t.q, next: `pass.${id}.${i}` })), { label: '引き止めてごめんなさい', next: `pass.${id}.bye` }];
-  NODES[`pass.${id}`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.hello }], choices: ask };
+  NODES[`pass.${id}`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.hello }], choices: ask, effects: [{ type: 'setFlag', flag: passerFlag(id) }] };
+  // met again: they remember the player
+  NODES[`pass.${id}.again`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.again }], choices: ask };
   p.topics.forEach((t, i) => (NODES[`pass.${id}.${i}`] = { lines: t.a.map((text) => ({ by: id, text })), next: `pass.${id}.more` }));
   NODES[`pass.${id}.more`] = { lines: [{ by: id, text: p.more }], choices: ask };
   NODES[`pass.${id}.bye`] = { lines: [{ by: id, text: p.bye }] };
