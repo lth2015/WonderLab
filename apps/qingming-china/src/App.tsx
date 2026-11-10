@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { CHARACTERS, ENVIRONMENT, PAGES, type CharacterId, type PageId } from './content';
 import { boatSummary, initialState, parseSave, readSave, reduceGame, SAVE_KEY, type Action, type GameState, type QuestId } from './game';
 import { Icon, JournalArt } from './Art';
@@ -93,7 +93,7 @@ export function App() {
   const open=(m:Modal)=>{if(m?.kind==='map'){setViewport(null);act({type:'MAP_OPEN'});study.emit('play_detail',{what:'map',outcome:'opened'});}if(m?.kind==='album')study.emit('journal_opened',{page_count:gameRef.current.journal.length});if(!modal)lastFocus.current=document.activeElement as HTMLElement;setModal(m);setHint(false);};
   const close=()=>{if(modal?.kind==='trace'&&gameRef.current.progress.quests.trace.step<4)study.emit('play_detail',{what:'trace',outcome:'left'});if(modal?.kind==='breeze'&&gameRef.current.progress.quests.breeze.step<5)study.emit('play_detail',{what:'ugoki',outcome:'left'});setModal(null);requestAnimationFrame(()=>lastFocus.current?.focus({preventScroll:true}));};
   const visitStop=(x:number)=>{
-    setCenter(x);setModal(null);setHint(false);
+    setCenter(x);setModal(null);setHint(false);setToast(`已到达：${GUIDE_STOPS.find(s=>s.x===x)?.name??'画卷街巷'}。可用附近入口寻找相遇。`);
     requestAnimationFrame(()=>document.querySelector<HTMLElement>('.scroll-surface')?.focus({preventScroll:true}));
   };
   const mapGo=(x:number)=>{study.emit('play_detail',{what:'map',outcome:'tapped'});visitStop(x);};

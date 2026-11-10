@@ -80,7 +80,7 @@ export function ScrollView({ game, center, setCenter, onPerson, onEnvironment, f
             const c=CHARACTERS[id];
             const {x,y}=personPosition(id,game);
             const featured=(scene==='paper'&&id==='liu')||(scene==='bridge'&&id==='zhou')||(scene==='tea'&&id==='he');
-            return <button key={id} className={`person-hotspot ${featured?'featured':''}`} style={{ left:(x+ORIGIN)*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={e=>hit(e,{kind:'person',id})} aria-label={`与${c.name}交谈，${c.role}`}>
+            return <button key={id} className={`person-hotspot ${featured?'featured':''} ${targetPerson===id?'located':''}`} style={{ left:(x+ORIGIN)*scale, top:(y-PERSON_HEIGHT*.48)*scale, width:Math.max(48,PERSON_HEIGHT*.64*scale), height:Math.max(48,PERSON_HEIGHT*scale) }} onClick={e=>hit(e,{kind:'person',id})} aria-label={`与${c.name}交谈，${c.role}`}>
               <span className="person-label"><span className="conversation-mark">···</span>{c.name}</span><span className="person-ring"/>
             </button>;
           })}
