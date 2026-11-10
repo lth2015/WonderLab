@@ -11,6 +11,9 @@ describe('物語の画', () => {
     expect(NODES['kame.found'].cg).toBe('kashi');
     expect(NODES['kisuke.yube.done'].cg).toBe('yube');
     expect(NODES['sokichi.hashi.gather'].cg).toBe('hashi');
+    expect(NODES['neko.bench'].cg).toBe('neko-bench');
+    expect(NODES['neko.boat'].cg).toBe('neko-boat');
+    expect(NODES['sokichi.ai.found'].cg).toBe('ai');
     // 宗吉 is in the picture: not for the ending where he stands beside the player
     expect(NODES['hashi.side'].cg).toBeUndefined();
     // 作爺さん's room is indoors: no street picture there

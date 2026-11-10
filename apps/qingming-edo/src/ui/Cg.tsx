@@ -6,7 +6,7 @@
 const CG = import.meta.glob('../assets/cg/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
 export const cgUrl = (id: string): string | undefined => CG[`../assets/cg/${id}.webp`];
 /** Where each picture's subject sits (vertical), so it stays above the words. */
-const FOCUS: Record<string, string> = { ippuku: '72%', inkyo: '88%', ame: '62%', kashi: '78%', yube: '62%', hashi: '70%' };
+const FOCUS: Record<string, string> = { ippuku: '72%', inkyo: '88%', ame: '62%', kashi: '78%', yube: '62%', hashi: '70%', 'neko-bench': '76%', 'neko-boat': '72%', ai: '62%' };
 /** Pictures painted at their own hour (夕暮れの灯 is dusk already): not tinted again. */
 const OWN_LIGHT = new Set(['yube']);
 
