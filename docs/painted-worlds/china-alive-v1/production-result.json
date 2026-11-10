@@ -1,0 +1,20 @@
+[
+  {
+    "url": "http://127.0.0.1:5189/",
+    "fourteen_walkers_six_idle_people": true,
+    "reaction_expires": true,
+    "paper_story_and_normal_export": true,
+    "gift_stays_static_and_png_matches_preview": true,
+    "page_errors": [],
+    "http_errors": []
+  },
+  {
+    "url": "http://127.0.0.1:5187/qingming/",
+    "fourteen_walkers_six_idle_people": true,
+    "reaction_expires": true,
+    "paper_story_and_normal_export": true,
+    "gift_stays_static_and_png_matches_preview": true,
+    "page_errors": [],
+    "http_errors": []
+  }
+]

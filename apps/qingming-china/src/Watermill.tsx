@@ -4,11 +4,37 @@ import { Waterwheel } from './Waterwheel';
 const art = (file: string) => `${import.meta.env.BASE_URL}art/china/${file}`;
 /** Pixel coordinates in scroll-16; keep the exact tile projection and overlap. */
 export const MILL = { tileX: 8400, scaleX: 1201 / 1024, scaleY: 1200 / 1024, left: 8940, right: 9340 };
+const frontFramePath='M589 624 L631 630 L632 642 L588 636 Z M532 647 L628 657 L630 670 L532 660 Z M537 658 L550 660 L548 778 L537 776 Z M617 668 L631 670 L631 785 L618 786 Z M548 711 L619 724 L620 738 L548 725 Z M615 746 L649 723 L653 730 L626 751 Z M530 653 L470 699 L474 706 L539 662 Z M648 489 L691 485 L753 507 L752 518 L688 499 L648 501 Z';
 const streams = [
   'M719 518 C734 546 749 588 751 618 S750 682 742 718 Q736 756 731 789',
   'M729 517 C744 550 760 597 762 632 S756 701 753 735 L759 794',
   'M739 523 C750 548 768 598 770 636 S762 710 771 761 L777 792',
 ];
+
+/** A source-composed, fixed frame for pictures: no load state, effects or live canvas. */
+export function WatermillFrame() {
+  const id='scroll-still-mill';
+  return <g transform={`translate(${MILL.tileX} 0) scale(${MILL.scaleX} ${MILL.scaleY})`}>
+    <defs>
+      <clipPath id={`${id}-front`}><path d={frontFramePath}/><ellipse cx={605} cy={615} rx={8.5} ry={9.5}/></clipPath>
+      <linearGradient id={`${id}-waterline`} x1="0" y1="762" x2="0" y2="787" gradientUnits="userSpaceOnUse"><stop offset="0" stopColor="white"/><stop offset=".3" stopColor="white"/><stop offset="1" stopColor="black"/></linearGradient>
+      <mask id={`${id}-immersed`} maskUnits="userSpaceOnUse" x="440" y="430" width="380" height="390"><rect x="440" y="430" width="380" height="390" fill={`url(#${id}-waterline)`}/></mask>
+      <mask id={`${id}-rivulets`} maskUnits="userSpaceOnUse" x="690" y="505" width="110" height="300">{streams.map((d,i)=><path key={d} d={d} fill="none" stroke="white" strokeWidth={18-i*4} opacity={.82-i*.1}/>)}</mask>
+      <pattern id={`${id}-waterpaint`} width="18" height="144" patternUnits="userSpaceOnUse"><image href={art('watermill/fall-texture-v2.webp')} width="18" height="144"/></pattern>
+    </defs>
+    <image href={art('watermill/backplate-v1.webp')} x={464} y={456} width={340} height={356}/>
+    <ellipse cx={620} cy={778} rx={73} ry={6} fill="#354037" opacity=".16"/>
+    <g mask={`url(#${id}-immersed)`}>
+      <g transform="translate(624 610)" opacity={.35}><image href={art('watermill/face-v2.webp')} x={-140.25} y={-165} width={280.5} height={330}/></g>
+      <svg x={565} y={440} width={225} height={355} viewBox="0 0 180 284" overflow="hidden"><image href={art('watermill/buckets-v2.webp')} width={1260} height={1704}/></svg>
+      <image href={art('watermill/face-v2.webp')} x={605-140.25} y={615-165} width={280.5} height={330} opacity={.93}/>
+      <path d="M718 520 A139 163 0 0 1 686 748" fill="none" stroke="#213c32" strokeWidth={11} opacity=".11"/>
+    </g>
+    <g clipPath={`url(#${id}-front)`}><image href={art('scroll/scroll-16.webp')} width={1024} height={1024}/></g>
+    <g mask={`url(#${id}-rivulets)`}><image href={art('scroll/scroll-16.webp')} width={1024} height={1024} opacity=".35"/><rect x={690} y={350} width={110} height={600} fill={`url(#${id}-waterpaint)`} opacity=".8"/></g>
+    <path d="M709 800q13-4 24-1m6 2q23-2 43 1m-64 6q22 3 39 0" fill="none" stroke="#ced6c1" strokeWidth=".8"/>
+  </g>;
+}
 
 /** Mounted near the mill only. Failed/unfinished layers leave the original painting intact. */
 export function Watermill({ running, reduced }: { running: boolean; reduced: boolean }) {
@@ -22,7 +48,7 @@ export function Watermill({ running, reduced }: { running: boolean; reduced: boo
     <defs>
       <clipPath id={`${id}-front`}>
         {/* Bearing blocks and posts keep their original pixels; the blurred old hub is excluded. */}
-        <path d="M589 624 L631 630 L632 642 L588 636 Z M532 647 L628 657 L630 670 L532 660 Z M537 658 L550 660 L548 778 L537 776 Z M617 668 L631 670 L631 785 L618 786 Z M548 711 L619 724 L620 738 L548 725 Z M615 746 L649 723 L653 730 L626 751 Z M530 653 L470 699 L474 706 L539 662 Z M648 489 L691 485 L753 507 L752 518 L688 499 L648 501 Z"/>
+        <path d={frontFramePath}/>
         <ellipse cx={605} cy={615} rx={8.5} ry={9.5}/>
       </clipPath>
       <linearGradient id={`${id}-waterline`} x1="0" y1="762" x2="0" y2="787" gradientUnits="userSpaceOnUse">

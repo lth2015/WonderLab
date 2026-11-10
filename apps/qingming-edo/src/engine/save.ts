@@ -87,6 +87,7 @@ export function migrate(raw: unknown): SaveData | 'newer' {
       timeChoice: st.timeChoice === 'morning' || st.timeChoice === 'noon' || st.timeChoice === 'evening' ? st.timeChoice : 'auto',
       ...(okLevels(st.sound) ? { sound: { ambient: st.sound.ambient, ui: st.sound.ui, music: st.sound.music } } : {}),
       ...(st.soundOn === true ? { soundOn: true } : {}),
+      ...(st.rain === true ? { rain: true } : {}),
     },
   };
 }

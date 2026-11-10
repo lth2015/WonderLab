@@ -52,6 +52,16 @@ describe('試遊の記録 (same schema as the China work)', () => {
     expect(r.emit('guide_stop_selected', { stop_id: 'somewhere else' })).toBe(false);
     expect(r.snapshot().events.map((e) => e.type)).toEqual(['guide_stop_selected']);
   });
+  it('play details (how the newer ways are used) keep only their fixed words', () => {
+    const r = createStudy('test', 'b1');
+    expect(r.emit('play_detail', { what: 'trace', outcome: 'skipped' })).toBe(true);
+    expect(r.emit('play_detail', { what: 'ugoki', outcome: 'miss' })).toBe(true);
+    expect(r.emit('play_detail', { what: 'trace', outcome: 'a long note' as never })).toBe(false);
+    expect(r.emit('play_detail', { what: 'save contents' as never, outcome: 'opened' })).toBe(false);
+    const ev = r.snapshot().events;
+    expect(ev.map((e) => `${e.what}:${e.outcome}`)).toEqual(['trace:skipped', 'ugoki:miss']);
+    expect(Object.keys(ev[0]).sort()).toEqual(['build_id', 'elapsed_ms', 'environment', 'event_id', 'occurred_at', 'outcome', 'schema_version', 'session_id', 'type', 'what', 'world_id']);
+  });
 });
 
 describe('試遊会 (?session=1): the log survives a reload', () => {

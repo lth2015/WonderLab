@@ -16,11 +16,12 @@ import type { SoundLevels, TimeOfDay } from '../contract';
 export const DEFAULT_LEVELS: SoundLevels = { ambient: 0.35, ui: 0.6, music: 0.35 };
 export const LEVEL_STEPS = [0, 0.35, 0.6, 1] as const;
 
-export type Cue = 'tap' | 'turn' | 'react' | 'page' | 'coin' | 'open' | 'close';
+export type Cue = 'tap' | 'turn' | 'react' | 'page' | 'coin' | 'pay' | 'pour' | 'find' | 'open' | 'close';
 
 /** Where water can be heard, in scene units: centre, reach, loudness. */
 const WATER = [
   { x: 13300, r: 1100, g: 1 }, // the river under the bridge
+  { x: 15200, r: 1200, g: 0.9 }, // along the far bank's quay (河岸の朝)
   { x: 6000, r: 1300, g: 0.8 }, // the canal bank and jetty
   { x: 1125, r: 600, g: 0.35 }, // the garden pond
 ];
@@ -172,6 +173,18 @@ class SoundEngine {
       case 'coin': // two coins meeting
         this.bell(out, t, 2310, 0.12, 0.5);
         this.bell(out, t + 0.11, 2650, 0.1, 0.45);
+        break;
+      case 'pay': // one coin set down on wood: lower and shorter than being paid
+        this.knock(out, t, 610, 0.08);
+        this.bell(out, t + 0.02, 1980, 0.06, 0.3);
+        break;
+      case 'find': // a small thing picked up: one light high bell, softer than coins
+        this.bell(out, t, 3120, 0.07, 0.6);
+        break;
+      case 'pour': // tea poured into a cup: a falling stream, then a few small drops
+        this.sweep(out, t, 0.9, 1500, 650, 0.07);
+        this.burst(out, t + 0.95, 0.05, 1900, 2.5, 0.05);
+        this.burst(out, t + 1.12, 0.04, 2200, 2.5, 0.035);
         break;
     }
   }

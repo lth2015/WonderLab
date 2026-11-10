@@ -85,3 +85,193 @@
 .mill-ripple-wheel{animation-delay:-.7s;animation-duration:2.8s}
 .mill-rear-rotation{transform-origin:0 0;animation:mill-turn 28s linear infinite}
 .mill-paused .mill-rear-rotation{animation-play-state:paused}
+
+/* Gift paper: the prepared bitmap is the same file saved or sent to a friend. */
+.gift-panel{max-width:620px;margin:auto}
+.gift-scene-label{display:grid;gap:10px;margin:20px 0}
+.gift-scene-label select{width:100%;min-width:0;padding:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+.gift-kinds{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 12px}
+.gift-kinds button{padding:10px 18px;border:1px solid var(--line);min-height:44px}
+.gift-kinds button[aria-pressed=true]{background:#d9dec6;border-color:#7e8a6a}
+.gift-lines{min-width:0;border:0;padding:0;margin:16px 0 24px}
+.gift-lines legend{margin-bottom:12px}
+.gift-lines label{display:flex;align-items:flex-start;gap:12px;border:1px solid var(--line);padding:14px;margin:8px 0;line-height:1.7;cursor:pointer}
+.gift-lines label.selected{background:#e4e7d3;border-color:#7e8a6a}
+.gift-lines input{flex:0 0 auto;margin-top:7px;accent-color:#7e8a6a}
+.gift-preview{margin:24px auto;max-width:500px}
+.gift-preview>div>svg,.gift-preview>img{display:block;width:100%;height:auto}
+.gift-preview figcaption{margin-top:14px;text-align:center;line-height:1.8}
+.gift-error{padding:16px;border:1px solid var(--line);margin:16px 0}
+.gift-error p{margin-bottom:12px}
+.gift-link{display:grid;gap:10px;margin-top:16px}
+.gift-link input{width:100%;min-width:0;padding:10px;background:var(--paper);border:1px solid var(--line);color:var(--ink)}
+
+/* One decision per step; the gift's actions stay visible on short screens. */
+.sheet[open]:has(.gift-panel){display:flex;flex-direction:column;overflow:hidden}
+.sheet:has(.gift-panel) .sheet-head{flex:0 0 auto}
+.sheet:has(.gift-panel) .sheet-content{display:flex;flex:1;min-height:0;overflow:hidden;padding-bottom:0}
+.gift-panel{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;width:100%}
+.gift-steps{display:flex;gap:18px;list-style:none;margin:0 0 12px;padding:0;color:var(--muted);flex:0 0 auto}
+.gift-steps li[aria-current=step]{color:var(--ink);border-bottom:1px solid var(--red)}
+.gift-step-body{overflow:auto;min-height:0;min-width:0;flex:1;overscroll-behavior:contain}
+.gift-step-title{font-size:1rem;font-weight:400;margin:0 0 12px}
+.gift-lines label{padding:10px;line-height:1.5}
+.gift-lines{margin-bottom:12px}
+.gift-kinds{margin-top:0}
+.gift-scene-thumb>svg{display:block;width:100%;height:auto;max-height:28svh}
+.gift-preview{margin:0 auto 10px}
+.gift-preview img,.gift-preview>div>svg{width:auto;max-width:100%;height:auto;max-height:32svh;margin:auto}
+.gift-preview figcaption{margin-top:10px;line-height:1.6}
+.gift-actions{flex:0 0 auto;position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);padding:12px 0 16px;z-index:1}
+.gift-actions .button-row{margin:0;gap:10px;flex-wrap:wrap}
+.gift-actions .button-row+.button-row{margin-top:6px}
+.gift-actions .primary-button,.gift-actions .secondary-button{padding:10px 14px}
+.gift-link-options{margin:10px 0;font-size:.9rem}
+
+/* World anchors belong to SVG attributes. Motion only affects local inner groups. */
+.walk-route{animation:quay-walk var(--walk-duration) linear infinite;animation-delay:var(--walk-delay);transform-origin:0 0}
+.walk-facing{animation:quay-turn var(--walk-duration) steps(1,end) infinite;animation-delay:var(--walk-delay);transform-origin:0 0}
+.walk-gait{animation:quiet-step .9s ease-in-out infinite;transform-origin:0 0}
+.person-idle{animation:person-breathe 6.4s ease-in-out infinite;animation-delay:var(--idle-delay,0s);transform-origin:0 0}
+.motion-sleep *{animation-play-state:paused!important}
+@keyframes quay-walk{0%,100%{transform:translate(var(--walk-from-x),var(--walk-from-y))}25%,75%{transform:translate(0,0)}50%{transform:translate(var(--walk-to-x),var(--walk-to-y))}}
+@keyframes quay-turn{0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)}}
+@keyframes quiet-step{0%,100%{transform:translateY(0) rotate(-.2deg)}50%{transform:translateY(-.7px) rotate(.2deg)}}
+@keyframes person-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.003,1.006)}}
+.painted-willow{transform-origin:680px 375px}
+.reaction-static{display:none}
+.reaction-fall,.reaction-ripple,.reaction-breeze,.reaction-lift,.reaction-bird,.reaction-dust,.reaction-chime{animation-duration:1.4s;animation-delay:var(--delay,0s);animation-fill-mode:both}
+.reaction-fall{animation-name:ink-fall;animation-timing-function:ease-out}
+.reaction-ripple{animation-name:ink-ripple;transform-origin:0 0}
+.reaction-breeze{animation-name:ink-breeze}
+.reaction-lift{animation-name:ink-lift;animation-timing-function:ease-out}
+.reaction-bird{animation-name:ink-flight;animation-timing-function:ease-out}
+.reaction-dust{animation-name:ink-dust;animation-timing-function:ease-out}
+.reaction-chime{animation-name:ink-chime}
+@keyframes ink-fall{0%{opacity:0;transform:translate(0,0) rotate(-10deg)}15%{opacity:.85}100%{opacity:0;transform:translate(var(--drift),var(--fall)) rotate(36deg)}}
+@keyframes ink-ripple{0%{opacity:0;transform:scale(.55)}20%{opacity:.8}100%{opacity:0;transform:scale(1.7)}}
+@keyframes ink-breeze{0%{opacity:0;transform:translateX(-30px)}20%{opacity:.8}100%{opacity:0;transform:translateX(45px)}}
+@keyframes ink-lift{0%{opacity:0;transform:translateY(0)}25%{opacity:.85}100%{opacity:0;transform:translateY(-72px)}}
+@keyframes ink-flight{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}100%{opacity:0;transform:translate(90px,-100px)}}
+@keyframes ink-dust{0%{opacity:0;transform:translate(0,0) scale(.7)}20%{opacity:.55}100%{opacity:0;transform:translate(var(--drift),-36px) scale(1.5)}}
+@keyframes ink-chime{0%{opacity:0;transform:scale(.65)}20%{opacity:.9}100%{opacity:0;transform:scale(1.6)}}
+.reduced .reaction-particles{display:none}
+.reduced .reaction-static{display:inline}
+@media(prefers-reduced-motion:reduce){.reaction-particles{display:none}.reaction-static{display:inline}}
+
+/* Keep return actions in view while only the content of a long sheet scrolls. */
+.sheet[open]{display:flex;flex-direction:column;overflow:hidden;max-height:90svh}
+.sheet-head{flex:0 0 auto;position:relative;background:var(--paper)}
+.sheet-content{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.dialog-notice{position:relative;top:auto;flex:0 0 auto}
+.sheet-foot{flex:0 0 auto;position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);padding:10px 30px max(10px,env(safe-area-inset-bottom));text-align:center;z-index:2}
+.sheet-foot>.text-button{width:100%}
+.sheet-foot .button-row{margin:0;gap:10px;align-items:center}
+.sheet-foot .text-button{flex-basis:100%}
+.sheet-foot .primary-button,.sheet-foot .secondary-button{padding:10px 14px}
+.sheet-content{padding-top:16px;padding-bottom:16px}
+.settings-fold{margin:0;border-bottom:1px solid var(--line)}
+.settings-fold>summary,.album-waiting>summary,.page-caption>summary{display:list-item;cursor:pointer;min-height:44px;padding:10px 0;font-size:var(--body-size);line-height:1.5}
+.settings-fold>summary{padding:8px 0;line-height:1.35}
+.settings-fold>p{margin:10px 0}
+.settings-fold .button-row{margin:12px 0}
+.settings-fold .settings-bottom{margin:0 0 10px;padding:0;border:0}
+.session-panel.settings-fold{margin-bottom:10px;padding:0 12px}
+.settings-list>label{padding:5px 0}
+.album-waiting{margin-top:16px;border-top:1px solid var(--line)}
+.album-waiting>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.album-waiting button{min-height:48px;padding:10px;text-align:left;border:1px solid var(--line);line-height:1.6}
+.album-waiting small{display:block;color:var(--muted)}
+.sheet:has(.postcard) .postcard-art>.journal-art{max-height:22svh;width:100%}
+.sheet:has(.postcard) .postcard{padding-bottom:16px}
+.page-caption{text-align:left;margin-top:8px}
+.album-card .album-art>.journal-art{max-height:16svh}
+.sheet:has(.album-grid) .panel-bottom{padding-top:12px;margin-top:12px}
+.album-export-button{margin-bottom:16px;width:100%}
+.sheet[open]:has(.scroll-export-panel){display:flex;flex-direction:column;overflow:hidden}
+.sheet:has(.scroll-export-panel) .sheet-content{display:flex;flex:1;min-height:0;overflow:hidden;padding-bottom:0}
+.scroll-export-panel{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}
+.scroll-export-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.scroll-export-body>.section-note{margin-top:8px}
+.scroll-mode-list{border:0;padding:0;margin:16px 0;min-width:0}
+.scroll-mode-list legend{font-size:var(--body-size);margin-bottom:8px}
+.scroll-mode-list label{display:flex;align-items:flex-start;gap:12px;padding:12px;border:1px solid var(--line);margin-bottom:10px;cursor:pointer}
+.scroll-mode-list input{flex:0 0 auto;margin-top:6px;accent-color:#657862}
+.scroll-mode-list b{display:block;font-size:var(--body-size);font-weight:400}
+.scroll-mode-list small{display:block;margin-top:4px;font-size:max(14px,calc(var(--body-size)*.75));line-height:1.6;color:#767d65}
+.scroll-export-actions{display:flex;flex-direction:column;flex:0 0 auto;background:var(--paper);border-top:1px solid var(--line);padding:12px 0 max(8px,env(safe-area-inset-bottom));gap:8px}
+.scroll-export-actions .button-row{margin:0}
+.scroll-export-actions .primary-button,.scroll-export-actions .secondary-button{padding:10px 14px}
+.scroll-job-status{padding:16px 0}
+.scroll-job-status progress{width:100%;height:12px;accent-color:#657862;margin:16px 0}
+.scroll-result-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;list-style:none;padding:0;margin:16px 0}
+.scroll-result-list button{width:100%;min-width:0;letter-spacing:0}
+.scroll-result-list small{display:block;text-align:center;margin-top:6px;font-size:12px;line-height:1.6;color:#767d65}
+.scroll-export-about{margin:10px 0}
+.scroll-export-about summary{cursor:pointer;min-height:44px;padding:8px 0;font-size:max(14px,calc(var(--body-size)*.75));line-height:1.5;color:#767d65}
+.nearby-list{margin-top:10px}
+.nearby-list>button{min-height:80px;padding:8px 0}
+.nearby-list h3{margin:4px 0}
+.scroll-tour,.text-route{margin-top:6px;padding-top:4px}
+.scroll-tour>summary,.text-route>summary{min-height:44px;padding:10px 0}
+@media(max-width:760px){
+  .sheet-foot{padding-left:22px;padding-right:22px}
+  .sheet-foot .button-row>.primary-button{min-width:0}
+  .album-grid{gap:14px}
+  .album-intro{margin-bottom:16px}
+}
+
+/* Two quiet paper-shop stories: the board has its own touch area; the page still scrolls. */
+.play-story-line{margin:1rem 0;padding:1rem 1.2rem;background:#7183690c;border-left:2px solid #a69b79;line-height:1.9}
+.play-story-actions{display:flex;flex-direction:column;gap:.8rem;margin:1rem 0}
+.play-story-actions .fine-print{margin:0}
+.trace-board{border:1px solid #b8aa8566;background:#f7f0df;border-radius:4px;overflow:hidden;margin:1rem 0}
+.trace-board svg{display:block;width:100%;height:auto;aspect-ratio:8/5;touch-action:none;user-select:none;cursor:crosshair}
+.breeze-picture{max-width:360px;margin:auto}
+.breeze-picture .breeze-sheet{transform-box:view-box;transform-origin:160px 79px;transition:transform .9s ease}
+.breeze-picture.gust .breeze-sheet{transform:skewX(-4deg) scaleY(.92)}
+.wind-status{margin:0;padding:.7rem 1rem;border-left:3px solid #aa8e64;background:#aa8e6410}
+.wind-status.light{border-color:#718369;background:#71836912}
+@media(prefers-reduced-motion:reduce){.breeze-picture .breeze-sheet{transition:none;transform:none}}
+
+/* The same painting folded into four rows; image fetched only when the map opens. */
+.scene-caption{max-width:calc(100% - 48px)}
+.scene-caption>div{min-width:0}
+.scene-caption p{overflow-wrap:anywhere}
+.town-map-open{pointer-events:auto;flex:0 0 auto;min-width:48px;min-height:44px;border:1px solid #a99a77;background:#f1ead9ed;color:#555f4f;border-radius:3px;padding:7px 9px;font-size:15px;letter-spacing:1px}
+.town-map-open:hover{background:#fff7e4}
+.town-map-nearby{width:100%;margin-bottom:12px}
+.town-map{min-width:0}
+.town-map-rows{display:grid;gap:14px}
+.town-map-row{display:block;width:100%;min-width:0;border:1px solid #b6aa8a;background:#ebe3ce;text-align:left;padding:0}
+.town-map-caption{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;padding:8px 10px;font-size:var(--body-size);line-height:1.6;color:#555e4e}
+.town-map-caption b{font-weight:400}
+.town-map-caption>span{font-size:.8em;color:#66755f}
+.town-map-row svg{display:block;width:100%;height:auto;aspect-ratio:5/1}
+.town-map-here{fill:#f8edba33;stroke:#fff9d3;stroke-width:4;paint-order:stroke;filter:drop-shadow(0 0 2px #4c6048)}
+.town-map-mark circle{fill:#687b62;stroke:#f7efda;stroke-width:2}
+.town-map-mark text{fill:#fff9e8;font-size:30px;font-family:serif}
+.town-map-mark.lost circle{fill:#a76c43}
+.town-map-legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0;color:#636f59;font-size:var(--body-size)}
+.town-map-legend>span{display:inline-flex;align-items:center;gap:7px}
+.town-map-legend i{width:18px;height:14px;display:inline-block;border:2px solid #819375;background:#dbe1c5}
+.town-map-legend b{border-radius:50%;background:#687b62;color:#fff7e3;padding:1px 5px;font-size:.85em;font-weight:400}
+.town-map-list{border-top:1px solid var(--line)}
+.town-map-list>summary{cursor:pointer;min-height:44px;padding:12px 0;font-size:var(--body-size);line-height:1.6}
+.town-map-list ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.town-map-list button{width:100%;min-height:44px;border:1px solid var(--line);padding:10px 12px;line-height:1.7;text-align:left;font-size:var(--body-size);overflow-wrap:anywhere}
+.town-map-row:focus-visible,.town-map-open:focus-visible,.town-map-list button:focus-visible{outline:3px solid #8b593d;outline-offset:3px}
+
+/* 汴河拾遗 (C5): a small thing lying in the painting, glinting now and then */
+.lost-thing{position:absolute;pointer-events:auto;display:flex;align-items:flex-end;justify-content:center;padding:0;background:transparent;z-index:1;min-width:44px;min-height:44px}
+.lost-thing img{display:block;pointer-events:none;filter:drop-shadow(0 1px 0 #6a5d4433)}
+.lost-glint{position:absolute;left:50%;top:30%;width:14px;height:14px;margin:-7px 0 0 -7px;opacity:0;pointer-events:none;background:radial-gradient(circle,#fffbe8 0 18%,#fff6d0aa 30%,transparent 62%);animation:lost-glint 7s ease-in-out infinite}
+.lost-thing:nth-of-type(2n) .lost-glint{animation-delay:2.4s}
+.lost-thing:nth-of-type(3n) .lost-glint{animation-delay:4.1s}
+@keyframes lost-glint{0%,86%,100%{opacity:0;transform:scale(.4)}91%{opacity:1;transform:scale(1.25)}95%{opacity:.4;transform:scale(.8)}}
+.lost-thing:focus-visible{outline:2px solid var(--red);outline-offset:3px;border-radius:50%}
+.lost-word{margin-top:10px;padding:10px 12px;border-left:3px solid #c9b48a;background:#f4ecd6;line-height:1.8}
+.lost-carried{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.lost-carried li{display:flex;align-items:center;gap:10px}
+.lost-carried img{width:34px;height:34px;object-fit:contain}
+.lost-icon{width:30px;height:30px;object-fit:contain}

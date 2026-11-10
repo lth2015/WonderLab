@@ -1,0 +1,29 @@
+[
+  {
+    "viewport": [
+      360,
+      740
+    ],
+    "large_text": true,
+    "both_modes_visible": true,
+    "all_four_save_buttons_above_footer": true
+  },
+  {
+    "viewport": [
+      390,
+      844
+    ],
+    "large_text": true,
+    "both_modes_visible": true,
+    "all_four_save_buttons_above_footer": true
+  },
+  {
+    "viewport": [
+      1280,
+      800
+    ],
+    "large_text": true,
+    "both_modes_visible": true,
+    "all_four_save_buttons_above_footer": true
+  }
+]

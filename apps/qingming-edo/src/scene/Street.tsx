@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import type { HotspotDef } from '../contract';
-import { SCENE, SCENE_H, SCENE_W } from '../content/world';
+import { AMBIENT_REACTION, SCENE, SCENE_H, SCENE_W } from '../content/world';
 import { clampCamera, isDrag, resolveTap } from '../engine/hit';
-import { PaintedStreet, SCENE_X0, SECTIONS, type Poses } from './painted';
+import { InkyoSprite, PaintedStreet, SCENE_X0, SECTIONS, type Poses } from './painted';
 
 export interface StreetApi {
   /** Brings scene x to the middle of the view (≤300 ms, instant when motion is reduced). */
   focus(x: number): void;
+  /** Where a walking passer-by is drawn now (scene x of their middle), or null if not on the street. */
+  walkerX(walker: string): number | null;
 }
 
 export interface StreetProps {
@@ -25,9 +27,21 @@ export interface StreetProps {
   onActivity(): void;
   /** 様子を見る: a soft ink ring under one spot for a moment (spec §7: never a standing marker). */
   cue?: { spotId: string; key: number } | null;
+  /** A new player: show once that the street moves, until the first drag (roadmap #158 1A). */
+  dragHint?: boolean;
   /** The scene x at the middle of the view, whenever it moves (for the sound). */
   onCamera?(x: number): void;
+  /**
+   * ご隠居の散歩: someone walking with the player, from `from` leftwards to `to`, at their own
+   * slow pace. They walk while the view is with them or ahead (to the left); if the player goes
+   * back past them, they wait. At each stop they pause and say something; at `to` they arrive.
+   */
+  companion?: { from: number; to: number; stops: { x: number; say: string }[] } | null;
+  onCompanion?(e: { say: string } | { arrived: true } | { behind: true }): void;
 }
+
+/** Scene units a second: the passers-by's pace (about a minute and a half to the bench). */
+export const COMPANION_SPEED = 22;
 
 const START_X = 12505;
 /** The painting's top is empty sky (where the far layer shows); this much is left off-screen. */
@@ -45,7 +59,26 @@ function topFor(zoom: number, s: number, h: number): number {
 const ZOOM = 2;
 const ZOOM_FOCUS_Y = 470;
 
-export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera, cue }: StreetProps) {
+export function Street({ apiRef, spots, poses, reacting, reduceMotion, interactive, talking, zoomed, onTap, onActivity, onCamera, cue, dragHint, companion, onCompanion }: StreetProps) {
+  // the street moves: told once, a moment after arriving, gone at the first drag
+  const [dragged, setDragged] = useState(false);
+  const [hintShown, setHintShown] = useState(false);
+  useEffect(() => {
+    if (!dragHint || dragged) return;
+    const show = setTimeout(() => setHintShown(true), 2200);
+    // said once is enough: it goes by itself after a while
+    const done = setTimeout(() => setDragged(true), 2200 + 8000);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(done);
+    };
+  }, [dragHint, dragged]);
+  // a dialogue, game or panel takes the screen: the street stops where it is
+  useEffect(() => {
+    if (!interactive) cancelAnimationFrame(anim.current);
+  }, [interactive]);
+  // a mouse over something that can be opened: a pointing hand and a faint ring (never on touch)
+  const [hover, setHover] = useState<string | null>(null);
   // a tap that found nothing still gets an answer: a small ink ripple where the finger was
   const [ripple, setRipple] = useState<{ x: number; y: number; k: number } | null>(null);
   useEffect(() => {
@@ -55,6 +88,62 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   }, [ripple]);
   const onCam = useRef(onCamera);
   onCam.current = onCamera;
+  const onComp = useRef(onCompanion);
+  onComp.current = onCompanion;
+  const live_ = useRef(interactive);
+  live_.current = interactive;
+  // the companion's place is kept here and drawn straight onto its group (no re-render a frame)
+  const compEl = useRef<SVGGElement>(null);
+  const compX = useRef<number | null>(null);
+  useEffect(() => {
+    if (!companion) {
+      compX.current = null;
+      return;
+    }
+    compX.current ??= companion.from;
+    // stops already behind them (they walk leftwards) are not said again
+    const said = new Set(companion.stops.filter((st) => st.x >= compX.current!).map((st) => st.x));
+    let last = performance.now();
+    let waitUntil = 0;
+    let toldBehind = false;
+    let raf = 0;
+    const tick = (t: number) => {
+      const dt = Math.min(0.1, (t - last) / 1000);
+      last = t;
+      const x = compX.current!;
+      const viewL = cam.current ?? 0;
+      // with them or ahead of them: the left edge of the view is not past them
+      const together = viewL < x + 30;
+      const moving = live_.current && together && t >= waitUntil && x > companion.to;
+      let nx = x;
+      if (moving) {
+        nx = Math.max(companion.to, x - COMPANION_SPEED * dt);
+        const stop = companion.stops.find((st) => !said.has(st.x) && st.x < x && st.x >= nx);
+        if (stop) {
+          said.add(stop.x);
+          nx = stop.x;
+          waitUntil = t + 3500;
+          onComp.current?.({ say: stop.say });
+        }
+      }
+      compX.current = nx;
+      const el = compEl.current;
+      if (el) {
+        el.setAttribute('transform', `translate(${nx.toFixed(1)} 0)`);
+        el.dataset.moving = moving ? 'yes' : 'no';
+      }
+      // left behind: the view has gone on so far that he is off its right edge (said once a walk)
+      const viewR = viewL + size.current.w / size.current.scale;
+      if (!toldBehind && viewR < nx - 20) {
+        toldBehind = true;
+        onComp.current?.({ behind: true });
+      }
+      if (nx <= companion.to) return onComp.current?.({ arrived: true });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [companion]);
   const box = useRef<HTMLDivElement>(null);
   const layers = useRef<(HTMLDivElement | null)[]>([]);
   const cam = useRef<number | null>(null); // left edge, scene units
@@ -68,13 +157,21 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   const zoomNow = useRef(1);
   const savedCenter = useRef<number | null>(null);
   // sections drawn: the ones in view and one either side (loaded by section, decision #14)
-  const [sections, setSections] = useState<[number, number]>([SECTIONS - 3, SECTIONS - 1]);
+  // the first guess is where play starts, not the right end: the scroll grew past the
+  // bridge (roadmap #158 item 4) and the far bank must not load with the first screen
+  const [sections, setSections] = useState<[number, number]>(() => {
+    const k = Math.floor(START_X / 1000);
+    return [Math.max(0, k - 1), Math.min(SECTIONS - 1, k + 1)];
+  });
 
+  // past either end of the scroll: the street gives a little, then springs back (spec §7)
+  const over = useRef(0); // scene units beyond the end, drawn only
+  const overAnim = useRef(0);
   const paint = useCallback(() => {
     const s = size.current.scale;
-    const x = cam.current ?? 0;
+    const x = (cam.current ?? 0) + over.current;
     if (box.current) {
-      box.current.dataset.cam = x.toFixed(1); // read by the browser checks
+      box.current.dataset.cam = (cam.current ?? 0).toFixed(1); // read by the browser checks (the real camera, not the stretch)
       box.current.dataset.top = top.current.toFixed(1);
     }
     SCENE.layers.forEach((l, i) => {
@@ -124,6 +221,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     const target = zoomed ? ZOOM : 1;
     if (target === zoomNow.current) return;
     cancelAnimationFrame(zoomAnim.current);
+    cancelAnimationFrame(anim.current); // a glide must not carry over into (or out of) the close-up
     const { w, h } = size.current;
     const s0 = size.current.scale;
     const top0 = top.current;
@@ -171,12 +269,19 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
         };
         anim.current = requestAnimationFrame(step);
       },
+      walkerX(walker: string) {
+        const img = box.current?.querySelector(`[data-walker="${walker}"] image`);
+        if (!img || !box.current) return null;
+        const r = img.getBoundingClientRect();
+        const b = box.current.getBoundingClientRect();
+        return (cam.current ?? 0) + ((r.left + r.right) / 2 - b.left) / size.current.scale;
+      },
     }),
     [reduceMotion, setCam],
   );
 
   // ---------------------------------------------------------------- input
-  const drag = useRef<{ id: number; x0: number; y0: number; cam0: number; dragging: boolean } | null>(null);
+  const drag = useRef<{ id: number; x0: number; y0: number; cam0: number; dragging: boolean; trail: { t: number; x: number }[] } | null>(null);
 
   const toScene = (clientX: number, clientY: number) => {
     const r = box.current!.getBoundingClientRect();
@@ -188,33 +293,103 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     onActivity();
     if (!interactive || drag.current) return;
     cancelAnimationFrame(anim.current);
-    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, cam0: cam.current ?? 0, dragging: false };
+    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, cam0: cam.current ?? 0, dragging: false, trail: [{ t: e.timeStamp, x: e.clientX }] };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
-    if (!d || d.id !== e.pointerId) return;
+    if (!d || d.id !== e.pointerId) {
+      if (e.pointerType === 'mouse' && interactive) {
+        const p = toScene(e.clientX, e.clientY);
+        const id = resolveTap(spots.map(live), p.x, p.y, size.current.scale)[0]?.id ?? null;
+        setHover((h) => (h === id ? h : id));
+      }
+      return;
+    }
     const dx = e.clientX - d.x0;
-    if (!d.dragging && isDrag(dx, e.clientY - d.y0)) d.dragging = true;
+    if (!d.dragging && isDrag(dx, e.clientY - d.y0)) {
+      d.dragging = true;
+      setDragged(true);
+      setHover(null);
+    }
+    d.trail.push({ t: e.timeStamp, x: e.clientX });
+    if (d.trail.length > 6) d.trail.shift();
     // The finger and the street move together, in the same direction (spec §7).
-    if (d.dragging) setCam(d.cam0 - dx / size.current.scale);
+    if (d.dragging) {
+      const want = d.cam0 - dx / size.current.scale;
+      setCam(want);
+      const beyond = want - (cam.current ?? 0);
+      over.current = reduceMotion ? 0 : Math.sign(beyond) * 60 * (1 - Math.exp(-Math.abs(beyond) / 120));
+      paint();
+    }
+  };
+  /** Let go past an end: back to the edge in ~200 ms. */
+  const springBack = () => {
+    cancelAnimationFrame(overAnim.current);
+    const from = over.current;
+    if (!from) return;
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / 200);
+      over.current = from * (1 - (1 - (1 - k) ** 3));
+      paint();
+      if (k < 1) overAnim.current = requestAnimationFrame(step);
+    };
+    overAnim.current = requestAnimationFrame(step);
+  };
+  /** After a flick the street glides on a little and slows (not with 動きを減らす). */
+  const glide = (d: NonNullable<typeof drag.current>, t: number) => {
+    const recent = d.trail.filter((p) => t - p.t < 90);
+    if (reduceMotion || recent.length < 2) return;
+    const a = recent[0];
+    const b = recent[recent.length - 1];
+    if (b.t - a.t < 8) return;
+    let v = -((b.x - a.x) / (b.t - a.t)) / size.current.scale; // scene units per ms
+    if (Math.abs(v) < 0.15) return;
+    v = Math.max(-2.2, Math.min(2.2, v));
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(32, now - last);
+      last = now;
+      const before = cam.current ?? 0;
+      setCam(before + v * dt);
+      v *= Math.exp(-dt / 160);
+      // stop when slow, or held at either end
+      if (Math.abs(v) > 0.02 && cam.current !== before) anim.current = requestAnimationFrame(step);
+    };
+    anim.current = requestAnimationFrame(step);
   };
   const onPointerUp = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
-    if (d.dragging || !interactive) return;
+    if (over.current) return springBack(); // held at an end: no glide, just back to the edge
+    if (d.dragging) return glide(d, e.timeStamp);
+    if (!interactive) return;
     const p = toScene(e.clientX, e.clientY);
-    const hits = resolveTap(spots, p.x, p.y, size.current.scale);
+    const hits = resolveTap(spots.map(live), p.x, p.y, size.current.scale);
     if (!hits.length) setRipple({ x: p.x, y: p.y, k: performance.now() });
     onTap(hits);
   };
   const onPointerCancel = () => {
     drag.current = null;
+    springBack();
+  };
+  const onPointerLeave = () => setHover(null);
+  /** A hotspot on a walking passer-by: its area follows the walker as drawn now. */
+  const live = (h: HotspotDef): HotspotDef => {
+    if (!h.walker) return h;
+    const img = box.current?.querySelector(`[data-walker="${h.walker}"] image`);
+    if (!img) return h;
+    const r = img.getBoundingClientRect();
+    const a = toScene(r.left, r.top);
+    const b = toScene(r.right, r.bottom);
+    return { ...h, anchor: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, hitArea: { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y } };
   };
   const onWheel = (e: React.WheelEvent) => {
     if (!interactive) return;
     onActivity();
+    setDragged(true);
     setCam((cam.current ?? 0) + (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) / size.current.scale);
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -222,6 +397,7 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       onActivity();
       e.preventDefault();
+      setDragged(true);
       setCam((cam.current ?? 0) + (e.key === 'ArrowLeft' ? -160 : 160));
     }
   };
@@ -235,6 +411,16 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
   );
 
   const cueSpot = cue ? spots.find((h) => h.id === cue.spotId) : undefined;
+  /** Where a ring goes under a spot: under a person's feet (a wide tap area, like 清太's with his papers, is not where he stands). */
+  const ringAt = (h: HotspotDef) => {
+    const bottom = h.hitArea.y + h.hitArea.h - 6;
+    const person = h.kind !== 'ambient';
+    const r = Math.max((person ? Math.min(h.hitArea.w, 60) : h.hitArea.w) / 2 + 8, 28);
+    return { cx: person ? h.anchor.x : h.hitArea.x + h.hitArea.w / 2, cy: person ? Math.min(bottom, h.anchor.y + 45) : bottom, rx: r, ry: r * 0.3 };
+  };
+  const hoverFound = hover && interactive && !cueSpot ? spots.find((h) => h.id === hover) : undefined;
+  const hoverSpot = hoverFound && live(hoverFound);
+  const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const layerStyle = (w: number): React.CSSProperties => ({ width: w, height: SCENE_H, transformOrigin: '0 0' });
 
   return (
@@ -248,6 +434,9 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onPointerLeave={onPointerLeave}
+      data-hover={hover && interactive ? 'yes' : undefined}
+      data-still={interactive ? undefined : 'yes'}
       onWheel={onWheel}
       onKeyDown={onKeyDown}
       data-scale={scale.toFixed(3)}
@@ -267,20 +456,18 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
             poses={poses}
             sections={sections}
             glints={spots
-              .filter((h) => h.kind === 'ambient' && reacting.has(h.targetId))
-              .map((h) => ({ id: h.id, ...h.hitArea }))}
+              .filter((h) => h.kind === 'ambient' && !h.walker && reacting.has(h.targetId))
+              .map((h) => ({ id: h.id, ...h.hitArea, reaction: AMBIENT_REACTION[h.targetId] }))}
+            stopped={spots.filter((h) => h.walker && h.kind === 'ambient' && reacting.has(h.targetId)).map((h) => h.walker!)}
           />
-          {cueSpot && (
-            <ellipse
-              key={`cue-${cue!.key}`}
-              className="cue-ring"
-              cx={cueSpot.hitArea.x + cueSpot.hitArea.w / 2}
-              cy={cueSpot.hitArea.y + cueSpot.hitArea.h - 6}
-              rx={Math.max(cueSpot.hitArea.w / 2 + 10, 34)}
-              ry={Math.max(cueSpot.hitArea.w / 2 + 10, 34) * 0.3}
-            />
+          {companion && (
+            <g ref={compEl} className="companion" data-walker="inkyo-walk" transform={`translate(${compX.current ?? companion.from} 0)`}>
+              <InkyoSprite />
+            </g>
           )}
+          {cueSpot && <ellipse key={`cue-${cue!.key}`} className="cue-ring" {...ringAt(cueSpot)} />}
           {ripple && <circle key={ripple.k} className="tap-ripple" cx={ripple.x} cy={ripple.y} r={16 / scale} />}
+          {hoverSpot && <ellipse className="hover-ring" {...ringAt(hoverSpot)} />}
         </svg>
       </div>
 
@@ -299,6 +486,13 @@ export function Street({ apiRef, spots, poses, reacting, reduceMotion, interacti
         </svg>
       </div>
       </div>
+      {dragHint && hintShown && !dragged && interactive && !cue && (
+        <p className="drag-hint" aria-hidden="true">
+          <span>←</span>
+          {coarse ? '指で通りを左右に動かせます' : 'ドラッグや ← → キーで通りを動かせます'}
+          <span>→</span>
+        </p>
+      )}
     </div>
   );
 }

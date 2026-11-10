@@ -10,7 +10,7 @@ import type { ChatMessage } from './tokenstars.js';
 
 export const TALK_TOPICS = ['today', 'work', 'earlier'] as const;
 export type TalkTopic = (typeof TALK_TOPICS)[number];
-export const TALK_STORIES = ['kaze', 'dougu', 'tenugui'] as const;
+export const TALK_STORIES = ['kaze', 'dougu', 'tenugui', 'kashi', 'fumi', 'hashi', 'neko'] as const;
 export type TalkStory = (typeof TALK_STORIES)[number];
 
 interface Persona {
@@ -28,6 +28,7 @@ export const PERSONAS: Record<string, Persona> = {
     work: '漉き上がった紙を店先にならべ、番頭さんに叱られないよう気を配っている。',
     memories: {
       kaze: '今朝、風で店先の紙が飛びかけたとき、この見習いが文鎮で押さえてくれた。',
+      hashi: '橋のたもとの空き地で、この見習いが町の皆を一枚の絵に描いた。自分も皆といっしょに描かれた。',
     },
   },
   okon: {
@@ -37,6 +38,7 @@ export const PERSONAS: Record<string, Persona> = {
     memories: {
       kaze: '見習いが青葉屋の紙を押さえるところを見ていた。',
       dougu: '金次の父の代からの弁当箱を塗り直し、見習いといっしょに印の布で包んで返した。',
+      hashi: 'この見習いに誘われて、金次も連れて橋のたもとへ行き、町の皆と一枚の絵に描かれた。',
     },
   },
   kinji: {
@@ -45,6 +47,7 @@ export const PERSONAS: Record<string, Persona> = {
     work: '朝の商いをすませ、米屋の前でひと休みしている。',
     memories: {
       dougu: '父の代からの弁当箱がきれいに塗り直されて戻ってきた。届けてくれたのはこの見習いか、使いのお春。',
+      hashi: 'お紺に呼ばれて橋のたもとへ行き、あの弁当箱を持って、町の皆と一枚の絵に描かれた。描いたのはこの見習い。',
     },
   },
   kisuke: {
@@ -53,6 +56,8 @@ export const PERSONAS: Record<string, Persona> = {
     work: '朝から茶を出し、通りの往来をながめている。',
     memories: {
       tenugui: '見習いが茶を運ぶのを手伝い、忘れ物の手拭いの持ち主をいっしょに見つけた。',
+      hashi: 'この見習いに誘われて、茶を持って橋のたもとへ行き、皆と一枚の絵に描かれた。',
+      neko: '飼い猫の三毛「こはく」が朝から帰らなかった日、この見習いが堀の河岸まで探しに行き、急がずに連れて帰ってくれた。',
     },
   },
   oharu: {
@@ -62,6 +67,7 @@ export const PERSONAS: Record<string, Persona> = {
     memories: {
       dougu: 'お紺に頼まれて、金次に包みを届けたことがある。',
       tenugui: 'ご隠居の、亡くなったおかみさんが染めた手拭いを、見習いが見つけてくれた。',
+      hashi: '喜助に声をかけられて、橋のたもとで皆と一枚の絵に描かれた。',
     },
   },
   sokichi: {
@@ -72,28 +78,54 @@ export const PERSONAS: Record<string, Persona> = {
       kaze: '見習いが絵巻帳の最初の一頁を描いた。',
       dougu: '見習いが道具を届ける一頁を描いた。',
       tenugui: '見習いが手拭いの一件を一頁に残した。',
+      hashi: '見習いが、手を貸した町の人たちを橋のたもとに集めて、一枚に描いた。',
+    },
+  },
+  omatsu: {
+    who: '河岸の魚売り、おまつ。六十すぎ。目が少し弱い。孫の亀吉と暮らす。',
+    voice: '世話焼きで、ぽんぽんと物を言うが、根はやさしい。下町の言葉。',
+    work: '日本橋の向こう岸の河岸で、朝の舟から上がる魚を売っている。',
+    memories: {
+      kashi: '孫の亀吉が舟の荷揚げを見に行って見えなくなったとき、この見習いが見つけてくれた。亀吉の父も昔は舟の荷を揚げていた。',
+      hashi: 'この見習いに誘われて、亀吉と橋のたもとへ行き、町の皆と一枚の絵に描かれた。',
+    },
+  },
+  ihei: {
+    who: '両替屋の手代、伊兵衛。三十すぎ。郷に母がいる。',
+    voice: 'まじめで遠慮がち。ていねいな商人言葉。',
+    work: 'そろばんの包みを抱えて、両替屋と得意先のあいだを行き来している。',
+    memories: {
+      fumi: '郷の母への文を米屋の前で落とし、この見習いが拾って届けてくれた。商いがうまくいかないことまで書いてしまい、出しそびれていた。',
+      hashi: 'この見習いに誘われて、橋のたもとで町の皆と一枚の絵に描かれた。母への次の文に書くつもりだ。',
     },
   },
 };
 
+/** The hour and weather the player sees now (the app sends them; default: a clear morning). */
+export type TalkHour = 'morning' | 'noon' | 'evening';
+const HOUR_TEXT: Record<TalkHour, string> = { morning: '朝', noon: '昼', evening: '夕方' };
+
 const TOPIC_TEXT: Record<TalkTopic, string> = {
-  today: '今朝の日本橋の町のようす（天気、往来、季節は春）',
+  today: 'いまの日本橋の町のようす（天気、往来、季節は春）',
   work: '自分の仕事や店のこと',
   earlier: 'この見習いと今日あったこと',
 };
 
 /** The request, as the app may send it. Anything else is refused. */
-export function parseTalk(body: unknown): { who: string; topic: TalkTopic; done: TalkStory[]; turn: number } | null {
-  const b = body as { who?: unknown; topic?: unknown; done?: unknown; turn?: unknown } | null;
+export function parseTalk(body: unknown): { who: string; topic: TalkTopic; done: TalkStory[]; turn: number; hour: TalkHour; rain: boolean } | null {
+  const b = body as { who?: unknown; topic?: unknown; done?: unknown; turn?: unknown; hour?: unknown; rain?: unknown } | null;
   // own keys only: `in` would also let "constructor" or "__proto__" through
   if (!b || typeof b.who !== 'string' || !Object.hasOwn(PERSONAS, b.who)) return null;
   if (typeof b.topic !== 'string' || !(TALK_TOPICS as readonly string[]).includes(b.topic)) return null;
   const done = Array.isArray(b.done) ? b.done.filter((d): d is TalkStory => (TALK_STORIES as readonly string[]).includes(d as string)) : [];
   const turn = typeof b.turn === 'number' && Number.isInteger(b.turn) ? Math.min(Math.max(b.turn, 0), 5) : 0;
-  return { who: b.who, topic: b.topic as TalkTopic, done: [...new Set(done)], turn };
+  // older apps send neither: a clear morning, as before
+  const hour: TalkHour = typeof b.hour === 'string' && Object.hasOwn(HOUR_TEXT, b.hour) ? (b.hour as TalkHour) : 'morning';
+  const rain = b.rain === true;
+  return { who: b.who, topic: b.topic as TalkTopic, done: [...new Set(done)], turn, hour, rain };
 }
 
-export function talkMessages(who: string, topic: TalkTopic, done: TalkStory[], turn: number): ChatMessage[] {
+export function talkMessages(who: string, topic: TalkTopic, done: TalkStory[], turn: number, hour: TalkHour = 'morning', rain = false): ChatMessage[] {
   const p = PERSONAS[who];
   const memories = done.map((d) => p.memories[d]).filter(Boolean);
   const system = [
@@ -101,6 +133,7 @@ export function talkMessages(who: string, topic: TalkTopic, done: TalkStory[], t
     `人物：${p.who}`,
     `話し方：${p.voice}`,
     `ふだん：${p.work}`,
+    `いま：${HOUR_TEXT[hour]}。${rain ? '雨が降っている。' : '晴れている。'}このときに合うことだけを言う。`,
     memories.length ? `この相手（絵師の見習い）とのこと：${memories.join(' ')}` : '相手は絵師の見習い。',
     '決まり：',
     '- 読みやすい現代日本語に、人物らしい江戸の言い回しを少し添える。',

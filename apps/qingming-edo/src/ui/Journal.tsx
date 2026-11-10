@@ -1,40 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JournalEntry, SaveData } from '../contract';
-import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage, validJournalEntry } from '../content/world';
+import { PAGE_SLOTS, PAGE_TITLES, parseKaze, parseSketch, questOfPage, validJournalEntry, parseUgoki, UGOKI_PEOPLE } from '../content/world';
 import { TIMES } from '../engine/time';
 import { study } from '../engine/study';
 import { replayable } from '../engine/story';
+import { slipStyles } from '../engine/shop';
 import { PageArt, pageToPng } from '../scene/PageArt';
 import { PaintedPageScene } from '../scene/painted';
 
 import { ScrollExport } from './ScrollExport';
+import { People } from './People';
+import { COMMENT, COMMENT_BY_COMPOSITION, PLACE, RECALL_NOTE } from '../content/pageText';
 import { GIFT_KINDS, type GiftKind } from '../content/gift';
 // 絵巻帳 (spec §6, §10, §18): only what actually happened. A page, once made,
 // stays even if the save dialog is closed. Saving the clear image is free.
 
-const COMMENT: Record<string, string> = {
-  hands: '手は嘘をつかん。紙を揃える指に、あの男の朝が出ている。',
-  shopfront: '店先は町の顔だ。紙が静まった今の店を、よく留めた。',
-  street: '人は止まらん。その流れの中で、紙は一枚も飛ばなかった。それでいい。',
-};
-const PLACE: Record<string, string> = {
-  'p01-kaze': '日本橋北詰・朝　青葉屋の店先',
-  'p01-kaze-b': '日本橋北詰・朝　青葉屋の店先',
-  'dougu-deliver': '日本橋・朝　米屋の前',
-  'dougu-entrust': '日本橋・朝　くれ竹の店先',
-  'tenugui-return': '日本橋・朝　茶店「喜の字」の前',
-};
-/** 宗吉's word on a page, by its composition (or, for 一頁目, its subject). */
-const COMMENT_BY_COMPOSITION: Record<string, string> = {
-  'dougu-deliver': '渡した手と、受け取った手。その間にあるものが描けている。',
-  'dougu-entrust': '届けた者は描かれていない。だが、託した人の思いは残っている。',
-  'tenugui-return': '探していたのは布ではなかったな。布にしみた、人の朝だ。',
-};
-
 function comment(entry: JournalEntry): string | null {
   const k = parseKaze(entry.compositionId);
   const sk = parseSketch(entry.compositionId);
-  return k ? COMMENT[k.subject] : sk ? sk.sketch.comment : (COMMENT_BY_COMPOSITION[entry.compositionId] ?? null);
+  const ug = parseUgoki(entry.compositionId);
+  return k ? COMMENT[k.subject] : sk ? sk.sketch.comment : ug ? UGOKI_PEOPLE[ug.key].word : (COMMENT_BY_COMPOSITION[entry.compositionId] ?? null);
 }
 const CREDIT = '清明上河図：江戸編';
 /** The one scene a link may name (spec §16): the work's address plus ?scene=nihonbashi, nothing else. */
@@ -50,23 +35,24 @@ function Page({ entry, idPrefix, note }: { entry: JournalEntry; idPrefix: string
   const common = { titleStyle: entry.titleStyle, title: PAGE_TITLES[entry.pageId], credit: CREDIT, idPrefix, note };
   if (k) return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={PLACE[entry.pageId]} {...common} />;
   const sk = parseSketch(entry.compositionId);
-  const place = sk ? `日本橋・${TIMES.find((t) => t.id === sk.tod)!.label}　${sk.sketch.place}` : PLACE[entry.compositionId];
+  const ug = parseUgoki(entry.compositionId);
+  const place = sk ? `日本橋・${TIMES.find((t) => t.id === sk.tod)!.label}　${sk.sketch.place}` : ug ? `日本橋　通りの往来　${UGOKI_PEOPLE[ug.key].who}` : PLACE[entry.compositionId];
   return <PageArt scene={<PaintedPageScene composition={entry.compositionId} />} place={place} {...common} />;
 }
 
-const RECALL_NOTE: Record<string, string> = {
-  kaze: '別のものを描けば、もう一枚の頁が残ります。',
-  dougu: 'もう一つの届け方を選べば、別の朝の頁が残ります。',
-  tenugui: 'あの朝のことを、もう一度たどります。',
-};
-
-export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void }) {
+export function Journal({ save, onClose, onToast, onRecall, onRetitle, onVisit }: { save: SaveData; onClose(): void; onToast(t: string): void; onRecall(quest: string): void; onRetitle(pageId: string, style: string): void; onVisit(spotId: string): void }) {
   const [open, setOpen] = useState<JournalEntry | null>(null);
   const [scroll, setScroll] = useState(false);
+  // 頁 or 町の人 (人物帳)
+  const [tab, setTab] = useState<'pages' | 'people'>('pages');
   // 贈る画: the word chosen for a friend, or none (the page as it is)
   const [gift, setGift] = useState<string | null>(null);
   const [giftKind, setGiftKind] = useState<GiftKind['id']>(GIFT_KINDS[0].id);
-  useEffect(() => setGift(null), [open]);
+  const [giftOpen, setGiftOpen] = useState(false);
+  useEffect(() => {
+    setGift(null);
+    setGiftOpen(false);
+  }, [open]);
   const big = useRef<HTMLDivElement>(null);
   // a page this version cannot draw is left out rather than breaking the book (review F01)
   const pages = save.journal.pages.filter((p) => validJournalEntry(p.pageId, p.compositionId));
@@ -167,7 +153,7 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
   if (open) {
     const said = comment(open);
     return (
-      <div className="panel" role="dialog" aria-labelledby="page-h">
+      <div className={`panel page-view${giftOpen ? ' gifting' : ''}`} role="dialog" aria-labelledby="page-h">
         <h2 id="page-h">{PAGE_TITLES[open.pageId]}</h2>
         <div className="page-big" ref={big}>
           <Page entry={open} idPrefix="big" note={gift ?? undefined} />
@@ -191,9 +177,29 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
             作品のリンクをコピー
           </button>
         </div>
-        <details className="gift" open={gift !== null || undefined}>
+        {slipStyles(save).length > 3 && (
+          <details className="retitle">
+            <summary>題箋を貼りかえる</summary>
+            <div className="seg" role="group" aria-label="題箋">
+              {slipStyles(save).map((t) => (
+                <button
+                  type="button"
+                  key={t.id}
+                  aria-pressed={open.titleStyle === t.id}
+                  onClick={() => {
+                    onRetitle(open.pageId, t.id);
+                    setOpen({ ...open, titleStyle: t.id });
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </details>
+        )}
+        <details className="gift" open={giftOpen || undefined} onToggle={(e) => setGiftOpen((e.currentTarget as HTMLDetailsElement).open)}>
           <summary>贈る画にする</summary>
-          <p className="small">この頁に一言を添えて、誰かに送る画にします。進み具合や所持金は入りません。</p>
+          <p className="small">一言を添えると、上の画がそのまま贈る画になります（進み具合や所持金は入りません）。</p>
           <div className="seg" role="group" aria-label="言葉の種類">
             {GIFT_KINDS.map((k) => (
               <button type="button" key={k.id} aria-pressed={giftKind === k.id} onClick={() => setGiftKind(k.id)}>
@@ -213,7 +219,6 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
               <span>言葉を添えない（元の頁）</span>
             </label>
           </div>
-          <p className="small">言葉を選ぶと、上の画がそのまま贈る画になります。「画像を保存」「共有する」で送れます。</p>
         </details>
         {(() => {
           const q = questOfPage(open.pageId);
@@ -227,7 +232,7 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
             </div>
           );
         })()}
-        <button type="button" className="ghost" onClick={() => setOpen(null)}>
+        <button type="button" className="ghost panel-foot" onClick={() => setOpen(null)}>
           絵巻帳に戻る
         </button>
       </div>
@@ -243,9 +248,47 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
     );
   }
 
+  const tabs = (
+    <div className="seg journal-tabs" role="group" aria-label="絵巻帳の中身">
+      <button type="button" aria-pressed={tab === 'pages'} onClick={() => setTab('pages')}>
+        頁
+      </button>
+      <button
+        type="button"
+        aria-pressed={tab === 'people'}
+        onClick={() => {
+          if (tab !== 'people') study.emit('play_detail', { what: 'people', outcome: 'opened' });
+          setTab('people');
+        }}
+      >
+        町の人
+      </button>
+    </div>
+  );
+  if (tab === 'people') {
+    return (
+      <div className="panel" role="dialog" aria-labelledby="journal-h">
+        <h2 id="journal-h">絵巻帳</h2>
+        {tabs}
+        <p className="small">出会った人と、ともにしたこと。なじみは、一緒に何かをするたびに深まります。</p>
+        <People
+          save={save}
+          onVisit={(spot) => {
+            study.emit('play_detail', { what: 'people', outcome: 'visit' });
+            onVisit(spot);
+          }}
+        />
+        <button type="button" className="primary panel-foot" onClick={onClose}>
+          町に戻る
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="panel" role="dialog" aria-labelledby="journal-h">
       <h2 id="journal-h">絵巻帳</h2>
+      {tabs}
       <p className="small">
         {pages.length} / {PAGE_SLOTS} 頁{pages.length >= PAGE_SLOTS && '　一冊になりました'}
       </p>
@@ -271,7 +314,7 @@ export function Journal({ save, onClose, onToast, onRecall }: { save: SaveData; 
       <button type="button" onClick={() => setScroll(true)}>
         長巻を画にする
       </button>
-      <button type="button" className="primary" onClick={onClose}>
+      <button type="button" className="primary panel-foot" onClick={onClose}>
         町に戻る
       </button>
     </div>

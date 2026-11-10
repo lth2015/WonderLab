@@ -18,6 +18,15 @@ export function reachedTimes(s: SaveData): TimeOfDay[] {
   return out;
 }
 
+/** 雨 (owner's demo feedback 「场景简单」): the weather can be chosen once the town's evening is open. */
+export function rainOpen(s: SaveData): boolean {
+  return questState(s, 'dougu') === 'complete' && questState(s, 'tenugui') === 'complete';
+}
+/** Rain shown now: chosen, and open. */
+export function raining(s: SaveData): boolean {
+  return rainOpen(s) && s.settings.rain === true;
+}
+
 /** The time shown: the player's choice if reached, otherwise the latest reached. */
 export function timeOf(s: SaveData): TimeOfDay {
   const reached = reachedTimes(s);

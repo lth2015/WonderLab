@@ -1,0 +1,9 @@
+{
+  "cancel_aborts_all_four_pending_sources": true,
+  "source_failure_aborts_unused_prefetch": true,
+  "retry_recovers": true,
+  "canvas_released_in_both_cases": true,
+  "save_unchanged": true,
+  "without_requestIdleCallback_fallback": true,
+  "page_errors": []
+}

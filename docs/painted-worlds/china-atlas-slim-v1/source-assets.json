@@ -1,0 +1,30 @@
+[
+  {
+    "name": "characters",
+    "file": "characters-v1.webp",
+    "bytes": 501694,
+    "sha256": "b2ade05c95f5556121ab7fa828cc2459bbd2f6daf59e801bd233826127793c01",
+    "unchanged": true
+  },
+  {
+    "name": "boats",
+    "file": "boats-v1.webp",
+    "bytes": 431154,
+    "sha256": "e2464b609d531639e7280dda638d973e875a57b1e7eb38de7068ec25d79ba93f",
+    "unchanged": true
+  },
+  {
+    "name": "props",
+    "file": "props-v1.webp",
+    "bytes": 465930,
+    "sha256": "8faf4a549fe9e70f44e466fde17dd59b3aab593e7ec487b9b83c359c9662557d",
+    "unchanged": true
+  },
+  {
+    "name": "willow",
+    "file": "willow-v1.webp",
+    "bytes": 846620,
+    "sha256": "f506647fab8132c7de22f6a0ac46b92710606ca4bbf5e95ecce90943b357c65a",
+    "unchanged": true
+  }
+]

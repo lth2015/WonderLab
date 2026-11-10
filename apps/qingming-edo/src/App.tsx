@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
-import { AMBIENT, AMBIENT_LABEL, GUIDE_STOPS, HOTSPOTS, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
+import { AMBIENT_LABEL, ambientText, spotLabel, frameOf, GUIDE_STOPS, HOTSPOTS, UGOKI_PEOPLE, INKYO_BENCH, INKYO_STOPS, INKYO_WALK, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
 import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
-import { entryFor, nearby, visibleSpots } from './engine/story';
-import { reachedTimes, TIMES, timeOf } from './engine/time';
+import { entryFor, nearbyAll, visibleSpots } from './engine/story';
+import { openChapters } from './engine/chapters';
+import { rainOpen, raining, reachedTimes, TIMES, timeOf } from './engine/time';
 import { levelsOf, sound } from './engine/sound';
 import { hasPlayableProgress, observeProgress, study } from './engine/study';
 import { SESSION_MODE } from './engine/session';
@@ -17,6 +18,16 @@ import { Sketch } from './ui/Sketch';
 import { Wrap } from './ui/Wrap';
 import { Tea } from './ui/Tea';
 import { Tenugui } from './ui/Tenugui';
+import { Trace } from './ui/Trace';
+import { TownMap } from './ui/TownMap';
+import { Face } from './ui/Face';
+import { Shop } from './ui/Shop';
+import { Cg } from './ui/Cg';
+import { Epilogue } from './ui/Epilogue';
+import { PASSERS, passerName, passerRole } from './content/passers';
+import { ownsSlip, retitle, slipStyles } from './engine/shop';
+import { SLIPS_FOR_SALE } from './content/shop';
+import { LOST } from './content/lost';
 import { Talk } from './ui/Talk';
 import { Glossed } from './ui/Glossed';
 import { useModalFocus } from './ui/modalFocus';
@@ -36,7 +47,7 @@ function unknownScene(): boolean {
 /** Shown whenever the time bell is rung, so the event is there without sound too. */
 const BELL_LINE = '石町のほうから、時の鐘が遠く聞こえてくる。';
 
-type Panel = 'journal' | 'items' | 'nearby' | 'settings' | null;
+type Panel = 'journal' | 'items' | 'nearby' | 'settings' | 'map' | 'epilogue' | null;
 const IDLE_MS = 8000; // spec §6
 
 function storage(): Storage | null {
@@ -84,9 +95,11 @@ export function App() {
   const [candidates, setCandidates] = useState<HotspotDef[] | null>(null);
   const [sketch, setSketch] = useState<Subject | null>(null);
   const [talk, setTalk] = useState<string | null>(null);
+  // 買い物 (ui/Shop.tsx): 喜助's tea, 青葉屋's title slips
+  const [shop, setShop] = useState<'tea' | 'slips' | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [timeMenu, setTimeMenu] = useState(false);
-  const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui'; then: string | null } | null>(null);
+  const [game, setGame] = useState<{ id: 'wrap' | 'tea' | 'tenugui' | 'trace'; then: string | null; trace?: string } | null>(null);
   const [toast, setToast] = useState<string | null>(
     boot.kind === 'corrupt'
       ? '記録が読めなかったため、元の記録を退避して最初から始めます。'
@@ -110,11 +123,16 @@ export function App() {
   }, [cue]);
   const dismissedHint = useRef<string | null>(null);
   const street = useRef<StreetApi>(null);
+  const inkyoFrom = useRef<number | null>(null);
+  /** 動く人を描く: who was caught and where (`parasol-10642`), for the page made next. */
+  const ugokiCatch = useRef<string | null>(null);
+  /** 動く人を描く without tapping in time (keyboard, switch, or a slow hand): wait for this passer-by to enter the frame. */
+  const [waitCatch, setWaitCatch] = useState<{ walker: string; key: string; until: number } | null>(null);
   const lastActivity = useRef(performance.now());
 
   const systemReduced = useSystemReducedMotion();
   const reduceMotion = save.settings.reduceMotion || systemReduced;
-  const busy = !!(dialogue || candidates || sketch || game || panel || talk);
+  const busy = !!(dialogue || candidates || sketch || game || panel || talk || shop);
   // panels hold the keyboard while open; Escape closes the menu panels (journal,
   // items, nearby, settings). Games and the sketch close with their own buttons.
   useModalFocus(panel ?? (sketch ? `sketch-${sketch}` : game ? `game-${game.id}` : null), panel ? () => setPanel(null) : null);
@@ -174,11 +192,19 @@ export function App() {
     const was = lastCounts.current;
     if (pageCount > was.pageCount) sound.cue('page');
     if (balance > was.balance) setTimeout(() => sound.cue('coin'), pageCount > was.pageCount ? 700 : 0);
+    // paying (一服, 題箋): one coin set down
+    if (balance < was.balance) sound.cue('pay');
     lastCounts.current = { pageCount, balance };
   }, [pageCount, balance]);
   useEffect(() => {
     if (panel === 'journal') study.emit('journal_opened', { page_count: saveRef.current.journal.pages.length });
-  }, [panel]);
+    if (panel === 'nearby') study.emit('play_detail', { what: 'nearby', outcome: 'opened' });
+    if (panel === 'map') {
+      study.emit('play_detail', { what: 'map', outcome: 'opened' });
+      // once the map has been opened, the notes below stop pointing at it
+      if (!hasFlag(saveRef.current, 'map_seen')) commit([{ type: 'setFlag', flag: 'map_seen' }]);
+    }
+  }, [panel, commit]);
   const sheetOpen = !!(panel || sketch || game);
   const lastSheet = useRef(sheetOpen);
   useEffect(() => {
@@ -214,8 +240,19 @@ export function App() {
         return setDialogue(null);
       }
       let next = n.effects && !inRecall ? apply(saveRef.current, n.effects) : saveRef.current;
+      // 探し物 in the play log: heard of, found, given back
+      const lostStep = /^lost\.[a-z]+\.(hint|find|back)$/.exec(id)?.[1];
+      if (lostStep && !inRecall) study.emit('play_detail', { what: 'lost', outcome: lostStep === 'hint' ? 'hinted' : lostStep === 'find' ? 'found' : 'returned' });
+      if (lostStep === 'find' && !inRecall) sound.cue('find');
+      if (/^pass\.[a-z-]+\.\d$/.test(id)) study.emit('play_detail', { what: 'passer', outcome: 'asked' });
+      // a passing moment (the cat leaping away): a note over the street, so the street stays in view
+      if (n.brief && !inRecall) {
+        if (next !== saveRef.current) setSave(next);
+        setToast(n.lines[0].text);
+        return setDialogue(null);
+      }
       // a node may leave a journal page: made once, kept even if the dialogue is closed early
-      if (n.page && !inRecall) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId.replace('{tod}', timeOf(next)), titleStyle: 'plain', madeAt: new Date().toISOString() });
+      if (n.page && !inRecall) next = addPage(next, { pageId: n.page.pageId, compositionId: n.page.compositionId.replace('{tod}', timeOf(next)).replace('{catch}', ugokiCatch.current ?? defaultCatch()), titleStyle: 'plain', madeAt: new Date().toISOString() });
       if (inRecall) {
         // a memory is not where the player stands: bring the speaker into view
         const who = linesOf(n, true).find((l) => l.by !== 'narration')?.by;
@@ -224,7 +261,7 @@ export function App() {
       }
       if (n.page && inRecall) {
         const before = next;
-        next = addRecallPage(next, n.page.pageId, n.page.compositionId);
+        next = addRecallPage(next, n.page.pageId, n.page.compositionId.replace('{catch}', defaultCatch()));
         if (next !== before) setToast('回想のなかで、もう一枚の頁が残った。');
       }
       if (next !== saveRef.current) setSave(next);
@@ -237,17 +274,39 @@ export function App() {
     (spot: HotspotDef) => {
       setCandidates(null);
       setHint(null);
+      setWaitCatch(null); // touching something else ends the waiting
+      // ご隠居の散歩: he sets off from where he was walking when asked (the tap's live place)
+      if (spot.id === 'h-inkyo') inkyoFrom.current = spot.anchor.x;
+      // 動く人を描く: a passer-by tapped while the lesson is on — inside their frame, the page
+      if (spot.walker && hasFlag(saveRef.current, 'ugoki_look') && questState(saveRef.current, 'ugoki') !== 'complete') {
+        const key = Object.keys(UGOKI_PEOPLE).find((k) => UGOKI_PEOPLE[k].walker === spot.walker);
+        const f = key ? frameOf(spot.walker) : null;
+        if (key && f) {
+          sound.cue('tap');
+          if (spot.anchor.x >= f.lo && spot.anchor.x <= f.hi) {
+            ugokiCatch.current = `${key}-${Math.round(spot.anchor.x)}`;
+            study.emit('play_detail', { what: 'ugoki', outcome: 'caught' });
+            return openNode('ugoki.caught');
+          }
+          study.emit('play_detail', { what: 'ugoki', outcome: 'miss' });
+          return setToast('枠の外だ。その人が枠に入ったところで、もう一度。');
+        }
+      }
       if (spot.kind === 'ambient') {
         sound.cue('react');
         study.emit('first_interaction_completed', { interaction_id: 'observation', elapsed_ms: study.elapsed() }, 'first-interaction');
         const id = spot.targetId;
         setReacting((r) => new Set(r).add(id));
-        setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), 1400);
+        // a passer-by spoken to stands still while the word is read
+        setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), spot.walker ? 3200 : 1400);
+        if (spot.walker) study.emit('play_detail', { what: 'passer', outcome: 'tapped' });
+        // 通りすがりの人と話す: they stop (the street holds still while the dialogue is open) and talk of their work
+        if (spot.walker && PASSERS[id]) return openNode(`pass.${id}`);
         // 町の写生: after the first page, some places can be drawn (once each)
         const k = sketchOfSpot(id);
         const cur = saveRef.current;
         if (k && questState(cur, 'kaze') === 'complete' && !cur.journal.pages.some((p) => p.pageId === sketchPageId(k.id))) return openNode(`sk.${k.id}`);
-        setToast(AMBIENT[id] ?? null);
+        setToast(ambientText(id, timeOf(cur)) ?? null);
         return;
       }
       sound.cue('tap');
@@ -276,7 +335,7 @@ export function App() {
       setDialogue(null);
       return;
     }
-    if (dialogue && ON_CLOSE[dialogue.node]) commit(ON_CLOSE[dialogue.node]);
+    if (dialogue && ON_CLOSE[baseNode(dialogue.node)]) commit(ON_CLOSE[baseNode(dialogue.node)]);
     setDialogue(null);
   };
 
@@ -307,9 +366,22 @@ export function App() {
   const choose = (i: number) => {
     const c = NODES[dialogue!.node].choices![i];
     if (c.effects && !recallRef.current) commit(c.effects);
+    if (c.epilogue) {
+      if (ON_CLOSE[baseNode(dialogue!.node)]) commit(ON_CLOSE[baseNode(dialogue!.node)]);
+      setDialogue(null);
+      study.emit('play_detail', { what: 'epilogue', outcome: 'opened' });
+      setPanel('epilogue');
+      return;
+    }
+    if (c.shop) {
+      if (ON_CLOSE[baseNode(dialogue!.node)]) commit(ON_CLOSE[baseNode(dialogue!.node)]);
+      setDialogue(null);
+      setShop(c.shop);
+      return;
+    }
     if (c.talk) {
       const n = NODES[dialogue!.node];
-      if (ON_CLOSE[dialogue!.node]) commit(ON_CLOSE[dialogue!.node]);
+      if (ON_CLOSE[baseNode(dialogue!.node)]) commit(ON_CLOSE[baseNode(dialogue!.node)]);
       setDialogue(null);
       setTalk(n.lines.find((l) => l.by !== 'narration')?.by ?? null);
       return;
@@ -319,7 +391,7 @@ export function App() {
       setSketch(c.sketch);
     } else if (c.game) {
       setDialogue(null);
-      setGame({ id: c.game, then: c.next ?? null });
+      setGame({ id: c.game, then: c.next ?? null, trace: c.trace });
     } else if (c.next) {
       // in 回想, turning the request down simply ends the memory
       if (recallRef.current && /declined$/.test(c.next)) return endRecall();
@@ -348,7 +420,23 @@ export function App() {
   };
 
   // ---------------------------------------------------------------- idle hint
-  const nb = useMemo(() => nearby(save), [save]);
+  // 「近くのこと」 near where the player is: read the camera when the list is (re)made
+  /** The part of the street in view now (scene units), for the map. */
+  const streetView = () => {
+    const el = document.querySelector<HTMLElement>('.street');
+    const cam = Number(el?.dataset.cam);
+    const scale = Number(el?.dataset.scale) || 1;
+    return Number.isFinite(cam) && el ? { x0: cam, w: el.getBoundingClientRect().width / scale } : null;
+  };
+  const camMid = () => {
+    const el = document.querySelector<HTMLElement>('.street');
+    const cam = Number(el?.dataset.cam);
+    const scale = Number(el?.dataset.scale) || 1;
+    return Number.isFinite(cam) && el ? cam + el.getBoundingClientRect().width / scale / 2 : undefined;
+  };
+  const nbAll = useMemo(() => nearbyAll(save, camMid()), [save, panel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nb = nbAll.slice(0, 3);
+  const nbMore = nbAll.slice(3);
   const activity = useCallback(() => {
     lastActivity.current = performance.now();
     setHint(null);
@@ -396,6 +484,70 @@ export function App() {
   };
 
   const spots = useMemo(() => visibleSpots(save), [save]);
+  // 動く人を描く, the waiting way: watch the chosen passer-by and draw them once inside the frame
+  const ugokiOn = hasFlag(save, 'ugoki_look') && questState(save, 'ugoki') !== 'complete' && !raining(save);
+  const waitToCatch = (spot: HotspotDef) => {
+    const key = Object.keys(UGOKI_PEOPLE).find((k) => UGOKI_PEOPLE[k].walker === spot.walker);
+    const f = key && spot.walker ? frameOf(spot.walker) : null;
+    if (!key || !f || !spot.walker) return;
+    setPanel(null);
+    setHint(null);
+    street.current?.focus((f.lo + f.hi) / 2);
+    setWaitCatch({ walker: spot.walker, key, until: Date.now() + 60_000 });
+    setToast(`${UGOKI_PEOPLE[key].who}が枠に入るのを、筆を構えて待っている……`);
+  };
+  useEffect(() => {
+    if (!waitCatch || busy) return;
+    const f = frameOf(waitCatch.walker)!;
+    const t = setInterval(() => {
+      const x = street.current?.walkerX(waitCatch.walker) ?? null;
+      if (x !== null && x >= f.lo + 4 && x <= f.hi - 4) {
+        clearInterval(t);
+        setWaitCatch(null);
+        ugokiCatch.current = `${waitCatch.key}-${Math.round(x)}`;
+        study.emit('play_detail', { what: 'ugoki', outcome: 'caught' });
+        openNode('ugoki.caught');
+      } else if (Date.now() > waitCatch.until) {
+        clearInterval(t);
+        setWaitCatch(null);
+        setToast('その人は、しばらく通りそうにない。ほかの人を待ってみよう。');
+      }
+    }, 120);
+    return () => clearInterval(t);
+  }, [waitCatch, busy, openNode]);
+  // ご隠居の散歩: he walks with the player once asked, until he reaches the bench
+  const walking = hasFlag(save, 'inkyo_walk') && !hasFlag(save, 'inkyo_arrived') && questState(save, 'inkyo') !== 'complete';
+  const companion = useMemo(() => (walking ? { from: inkyoFrom.current ?? INKYO_WALK.from, to: INKYO_BENCH.x, stops: INKYO_STOPS } : null), [walking]);
+  const onCompanion = useCallback(
+    (e: { say: string } | { arrived: true } | { behind: true }) => {
+      if ('say' in e) return setToast(e.say);
+      if ('behind' in e) return void study.emit('play_detail', { what: 'companion', outcome: 'behind' });
+      study.emit('play_detail', { what: 'companion', outcome: 'arrived' });
+      commit([{ type: 'setFlag', flag: 'inkyo_arrived' }]);
+      openNode('inkyo.arrive');
+    },
+    [commit, openNode],
+  );
+  // 章: when a story's end opens the next batch, say so once the dialogue is closed (never on load)
+  const chapters = openChapters(save);
+  const shownChapters = useRef(chapters);
+  useEffect(() => {
+    if (busy || chapters <= shownChapters.current) return;
+    shownChapters.current = chapters;
+    study.emit('play_detail', { what: 'chapter', outcome: 'opened' });
+    // until the player has found the map, say once where it is (it is only a small 図 by the place name)
+    const map = hasFlag(saveRef.current, 'map_seen') ? '' : '左上の「図」を押すと、町の絵図で場所もわかる。';
+    setTimeout(() => setToast(`町に、新しい頼みごとが増えたようだ。「近くのこと」をのぞいてみよう。${map}`), 400);
+  }, [chapters, busy]);
+  // 探し物: the first time someone speaks of a loss, say that the map now marks the place (never on load)
+  const heardLost = LOST.filter((t) => hasFlag(save, `lost_hint_${t.id}`)).length;
+  const shownLost = useRef(heardLost);
+  useEffect(() => {
+    if (busy || heardLost <= shownLost.current) return;
+    const first = shownLost.current === 0;
+    shownLost.current = heardLost;
+    if (first) setTimeout(() => setToast('落とし物のあたりが、町の絵図（左上の「図」）に「？」で記された。'), 400);
+  }, [heardLost, busy]);
   const tod = timeOf(save);
   useEffect(() => sound.setTime(tod), [tod]);
   const reached = reachedTimes(save);
@@ -429,7 +581,10 @@ export function App() {
   return (
     <div className="app">
       <header className="top">
-        <span className="place">日本橋北詰</span>
+        <button type="button" className="place map-open" onClick={() => setPanel('map')} disabled={!entered} aria-label="町の絵図を開く（日本橋北詰）">
+          <span className="map-open-name">日本橋北詰</span>
+          <span className="map-open-mark" aria-hidden="true">図</span>
+        </button>
         {SESSION_MODE && <span className="session-badge">試遊会</span>}
         {reached.length > 1 ? (
           <button type="button" className="time ghost" aria-expanded={timeMenu} onClick={() => setTimeMenu((m) => !m)}>
@@ -458,6 +613,20 @@ export function App() {
             ))}
           </div>
         )}
+        {rainOpen(save) && (
+          <button
+            type="button"
+            className="time ghost weather"
+            aria-pressed={raining(save)}
+            aria-label={raining(save) ? '雨（押すと晴れに）' : '晴れ（押すと雨に）'}
+            onClick={() => {
+              study.emit('play_detail', { what: 'weather', outcome: raining(save) ? 'clear' : 'rain' });
+              setSave({ ...save, settings: { ...save.settings, rain: !raining(save) }, updatedAt: new Date().toISOString() });
+            }}
+          >
+            {raining(save) ? '雨' : '晴'}
+          </button>
+        )}
         <button type="button" className="ghost sound-toggle" aria-pressed={soundOn} onClick={toggleSound} aria-label={soundOn ? '音を止める' : '音を出す'} title={soundOn ? '音を止める' : '音を出す'}>
           <span aria-hidden="true">♪</span>
         </button>
@@ -466,7 +635,8 @@ export function App() {
         </button>
       </header>
 
-      <main className={`stage tod-${tod}`}>
+      <main className={`stage tod-${tod}${raining(save) ? ' rain' : ''}`}>
+        {raining(save) && <div className="rain-layer" aria-hidden="true" />}
         <Street
           apiRef={street}
           spots={spots}
@@ -474,12 +644,15 @@ export function App() {
           reacting={reacting}
           reduceMotion={reduceMotion}
           interactive={entered && !busy}
-          talking={!!(dialogue || candidates || talk)}
+          talking={!!(dialogue || candidates || talk || shop)}
           zoomed={zoomed}
           onTap={onTap}
           cue={cue}
+          dragHint={!hasPlayableProgress(save)}
           onActivity={activity}
           onCamera={(x) => sound.place(x)}
+          companion={companion}
+          onCompanion={onCompanion}
         />
 
         {!entered && (
@@ -549,7 +722,7 @@ export function App() {
           <p className="sheet-title">どれに声をかけますか</p>
           {candidates.map((c) => (
             <button type="button" key={c.id} className="choice" onClick={() => openTarget(c)}>
-              {characterById.get(c.targetId)?.displayName ?? AMBIENT[c.targetId] ?? '紙'}
+              {spotLabel(c)}
             </button>
           ))}
           <button type="button" className="ghost" onClick={() => setCandidates(null)}>
@@ -558,16 +731,32 @@ export function App() {
         </div>
       )}
 
+      {node?.cg && line && <Cg id={node.cg} tod={tod} rain={raining(save)} />}
       {node && line && (
-        <div className={`sheet dialogue${recall ? ' recall' : ''}`} role="dialog" aria-live="polite" aria-label={recall ? '回想' : '会話'}>
+        <div
+          className={`sheet dialogue${recall ? ' recall' : ''}`}
+          role="dialog"
+          aria-live="polite"
+          aria-label={recall ? '回想' : '会話'}
+          onClick={(e) => {
+            // a tap anywhere on the sheet turns the line (1A); closing, choices, 難語 and their notes keep their own buttons
+            if (atLast && (node.choices || !node.next)) return;
+            if ((e.target as HTMLElement).closest('button, a, [role="note"], input')) return;
+            if (window.getSelection()?.toString()) return;
+            advance();
+          }}
+        >
           {recall && <p className="recall-tag">回想　— 文は増えません</p>}
-          {line.by !== 'narration' && (
-            <p className="speaker">
-              {characterById.get(line.by)?.displayName}
-              <small>{ROLES[line.by]}</small>
-            </p>
-          )}
-          <Glossed className={line.by === 'narration' ? 'narration' : 'said'} text={line.text} />
+          <div className="line-body">
+            {line.by !== 'narration' && <Face who={line.by} />}
+            {line.by !== 'narration' && (
+              <p className="speaker">
+                {characterById.get(line.by)?.displayName ?? passerName(line.by)}
+                <small>{ROLES[line.by] ?? passerRole(line.by)}</small>
+              </p>
+            )}
+            <Glossed className={line.by === 'narration' ? 'narration' : 'said'} text={line.text} />
+          </div>
           {atLast && node.choices ? (
             <div className="choices">
               {node.choices.map((c, i) => (
@@ -589,8 +778,9 @@ export function App() {
         </div>
       )}
 
+      {shop && <Shop kind={shop} save={save} tod={tod} rain={raining(save)} onSave={(next) => setSave(next)} onToast={setToast} onClose={() => setShop(null)} />}
       {talk && (
-        <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} onClose={() => setTalk(null)} />
+        <Talk who={talk} done={TALK_STORIES.filter((q) => questState(save, q) === 'complete')} complete={Object.keys(save.progress.quests).filter((q) => questState(save, q) === 'complete')} hour={tod} rain={raining(save)} onClose={() => setTalk(null)} />
       )}
       {game && (() => {
         const done = () => {
@@ -604,26 +794,55 @@ export function App() {
         };
         if (game.id === 'wrap') return <Wrap onDone={done} onCancel={cancel} />;
         if (game.id === 'tea') return <Tea onDone={done} onCancel={cancel} />;
+        if (game.id === 'trace') return <Trace sketchId={game.trace!} tod={timeOf(save)} onDone={done} onCancel={cancel} />;
         return <Tenugui onDone={done} onCancel={cancel} />;
       })()}
-      {sketch && <Sketch subject={sketch} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}
+      {sketch && <Sketch subject={sketch} styles={slipStyles(save)} onDone={finishSketch} onCancel={() => { setSketch(null); if (recallRef.current) endRecall(); }} reduceMotion={reduceMotion} />}
 
-      {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} />}
+      {panel === 'journal' && <Journal save={save} onClose={() => setPanel(null)} onToast={setToast} onRecall={startRecall} onRetitle={(pageId, style) => setSave(retitle(saveRef.current, pageId, style))} onVisit={(spotId) => goTo(spotId, false)} />}
+      {panel === 'epilogue' && <Epilogue save={save} onJournal={() => setPanel('journal')} onClose={() => setPanel(null)} />}
+      {panel === 'map' && (
+        <TownMap
+          save={save}
+          view={streetView()}
+          onGo={(x) => {
+            setPanel(null);
+            setHint(null);
+            street.current?.focus(x);
+          }}
+          onClose={() => setPanel(null)}
+        />
+      )}
       {panel === 'items' && (
         <div className="panel" role="dialog" aria-labelledby="items-h">
           <h2 id="items-h">持ち物</h2>
           <p className="purse">
             所持金 <strong>{save.wallet.balanceMinor}</strong> 文
           </p>
-          <p className="small">文はこの町の中だけで使うお金です。金額は遊びのための調整値で、1805年の物価ではありません。</p>
-          {hasFlag(save, 'dougu_carry') && questState(save, 'dougu') !== 'complete' ? (
-            <ul className="list">
-              <li>お紺から預かった包み（金次さんの弁当箱・箸箱・砥石）</li>
-            </ul>
-          ) : (
-            <p>持ち物はまだありません。</p>
+          <p className="small">文はこの町の中だけで使うお金です。茶店の喜助のところで一服したり、青葉屋の清太から記念の題箋を買ったりできます。金額は遊びのための調整値で、1805年の物価ではありません。</p>
+          {SLIPS_FOR_SALE.some((x) => ownsSlip(save, x.id)) && (
+            <p className="small">買った題箋：{SLIPS_FOR_SALE.filter((x) => ownsSlip(save, x.id)).map((x) => x.label).join('、')}（絵巻帳の頁で貼りかえられます）</p>
           )}
-          <button type="button" className="primary" onClick={() => setPanel(null)}>
+          {(() => {
+            const carried = [
+              ...(hasFlag(save, 'dougu_carry') && questState(save, 'dougu') !== 'complete' ? ['お紺から預かった包み（金次さんの弁当箱・箸箱・砥石）'] : []),
+              // 探し物: found, not yet given back
+              ...LOST.filter((t) => hasFlag(save, `lost_found_${t.id}`) && !hasFlag(save, `lost_back_${t.id}`)).map((t) => `拾った${t.name}（${t.place}で）`),
+            ];
+            return carried.length ? (
+              <ul className="list">
+                {carried.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>持ち物はまだありません。</p>
+            );
+          })()}
+          {LOST.some((t) => hasFlag(save, `lost_back_${t.id}`)) && (
+            <p className="small">持ち主に返した落とし物：{LOST.filter((t) => hasFlag(save, `lost_back_${t.id}`)).map((t) => t.name).join('、')}</p>
+          )}
+          <button type="button" className="primary panel-foot" onClick={() => setPanel(null)}>
             町に戻る
           </button>
         </div>
@@ -644,6 +863,20 @@ export function App() {
               ))}
             </ul>
           )}
+          {nbMore.length > 0 && (
+            <details className="fold more" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && study.emit('play_detail', { what: 'nearby_more', outcome: 'opened' })}>
+              <summary>ほかの頼みごと（{nbMore.length}）</summary>
+              <ul className="list compact">
+                {nbMore.map((n) => (
+                  <li key={n.id}>
+                    <button type="button" onClick={() => goTo(n.spotId, false)}>
+                      {n.text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
           <details className="guide">
             <summary>通りの案内</summary>
             <p className="small">橋のたもとから町はずれの川端まで。行きたいところを選ぶと、その場所へ通りが動きます。</p>
@@ -659,19 +892,34 @@ export function App() {
               })()}
             </nav>
           </details>
-          <h3>この通りの人と物</h3>
+          <details className="fold">
+            <summary>この通りの人と物（文字で選ぶ）</summary>
           <ul className="list compact">
             {spots
-              .filter((s) => s.kind !== 'ambient')
+              // a lost thing is in the list once its owner has spoken of it (before that, only a sharp eye finds it)
+              // a passer-by who talks can be called to from the list too (keyboard, reading aloud)
+              .filter((s) => (s.kind !== 'ambient' || (s.walker && PASSERS[s.targetId])) && !(s.targetId.startsWith('lost_') && !hasFlag(save, `lost_hint_${s.targetId.slice(5)}`)))
               .map((s) => (
                 <li key={s.id}>
                   <button type="button" onClick={() => goTo(s.id, true)}>
-                    {s.kind === 'character' ? `${characterById.get(s.targetId)!.displayName}（${ROLES[s.targetId]}）` : '青葉屋の店先の紙'}
+                    {spotLabel(s)}
+                    {s.kind === 'ambient' && '（呼び止めて話す）'}
                   </button>
                 </li>
               ))}
+            {ugokiOn &&
+              spots
+                .filter((s) => s.kind === 'ambient' && s.walker && Object.values(UGOKI_PEOPLE).some((u) => u.walker === s.walker))
+                .map((s) => (
+                  <li key={s.id}>
+                    <button type="button" onClick={() => waitToCatch(s)}>
+                      {AMBIENT_LABEL[s.targetId]}
+                      <span className="small">（枠を通るのを待って描く）</span>
+                    </button>
+                  </li>
+                ))}
             {spots
-              .filter((s) => s.kind === 'ambient')
+              .filter((s) => s.kind === 'ambient' && !s.walker)
               .map((s) => (
                 <li key={s.id}>
                   <button type="button" onClick={() => goTo(s.id, true)}>
@@ -681,7 +929,8 @@ export function App() {
                 </li>
               ))}
           </ul>
-          <button type="button" className="primary" onClick={() => setPanel(null)}>
+          </details>
+          <button type="button" className="primary panel-foot" onClick={() => setPanel(null)}>
             町に戻る
           </button>
         </div>
@@ -723,9 +972,16 @@ export function App() {
   );
 }
 
+/** `okon.again@evening` → `okon.again`: a time-of-day word closes like its base node. */
+const baseNode = (id: string) => id.split('@')[0];
+
 /** The lines a node shows; in 回想 the ones about being paid are left out. */
 function linesOf(n: (typeof NODES)[string], inRecall: boolean) {
   return inRecall ? n.lines.filter((l) => !l.reward) : n.lines;
 }
 
-
+/** 動く人を描く in 回想 (nobody is caught there): the parasol girl in the middle of her frame. */
+function defaultCatch(): string {
+  const f = frameOf(UGOKI_PEOPLE.parasol.walker)!;
+  return `parasol-${Math.round((f.lo + f.hi) / 2)}`;
+}

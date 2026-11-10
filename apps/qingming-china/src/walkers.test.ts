@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BRIDGE_WALKERS } from './walkers';
+import { BRIDGE_WALKERS, WALKERS, walkRoute } from './walkers';
 
 // Independently traced deck boundaries on river-v1.webp (2172×724), not the
 // underside of the arch or the front beam. This fixture catches the reported
@@ -25,5 +25,23 @@ describe('painted bridge grounding', () => {
       expect(onDeck((walker.x+shoe)*ratio,walker.y*ratio),
         `${walker.id} feet (${walker.x}, ${walker.y}) must rest on the bridge floor`).toBe(true);
     }
+  });
+  it('keeps both shoes on the floor throughout every return route, including the slopes',()=>{
+    BRIDGE_WALKERS.forEach((walker,index)=>{
+      const route=walkRoute(walker,index),ratio=2172/3600;
+      for(const [dx,dy] of [[route.fromX,route.fromY],[route.toX,route.toY]])for(let t=0;t<=1;t+=.05){
+        for(const shoe of [-walker.height*.2,walker.height*.2]){
+          expect(onDeck((walker.x+dx*t+shoe)*ratio,(walker.y+dy*t)*ratio),`${walker.id} must stay grounded at ${dx*t}`).toBe(true);
+        }
+      }
+    });
+  });
+  it('starts each route in the direction the painted face points and returns by the same path',()=>{
+    WALKERS.forEach((walker,index)=>{
+      const route=walkRoute(walker,index);
+      expect(Math.sign(route.toX-route.fromX)).toBe(walker.flip?-1:1);
+      expect(route.toX).toBe(-route.fromX);expect(route.seconds).toBeGreaterThanOrEqual(28);
+      expect([route.fromY,route.toY,route.delay].every(Number.isFinite)).toBe(true);
+    });
   });
 });

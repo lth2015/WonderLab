@@ -1,0 +1,143 @@
+{
+  "output_pixels": [
+    800,
+    640
+  ],
+  "row_tiles": [
+    [
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    [
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  ],
+  "files": [
+    {
+      "path": "apps/qingming-china/public/art/china/map/china-map.webp",
+      "bytes": 106410,
+      "sha256": "36bf1fc9d88c7419eb590a4fcaaac29bbcb450f0370da2ea02bedd85e6eb4146"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-00.webp",
+      "bytes": 108666,
+      "sha256": "41215099d22e597fb1f30c68d1ce8e9bdfeef297e54df5598e7b188365dfd90e"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-01.webp",
+      "bytes": 154534,
+      "sha256": "eb882e921bc46a91a092ed17d46e68b60ebcf625fb5e4ac9a572205f27c83bfc"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-02.webp",
+      "bytes": 181288,
+      "sha256": "83af16b4e1f5c4bbc631547fa961bafaf090d2aa0d4f143d2995402e45a60171"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-03.webp",
+      "bytes": 173590,
+      "sha256": "bb47a3695b69bc7d6b544535975b3d9b5620dc322b35de4bd9937eeab948f4bf"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-04.webp",
+      "bytes": 165796,
+      "sha256": "f5c5dc961db2c2a71f15f159ffe26f7dac59021fef4a6da6d2fe7e4ce7ee1877"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-05.webp",
+      "bytes": 200076,
+      "sha256": "932a398ac8c32e2962e27506f342f0476bb8d71fb73418157a695c4a2fb54149"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-06.webp",
+      "bytes": 210640,
+      "sha256": "000db2493909c74ba7c1b3af007b4a3ea0249e6d80c346a3e9767d18ab80586e"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-07.webp",
+      "bytes": 219796,
+      "sha256": "d7f234a8418896059db53d323efb7b84195db36be0370d0342603d4ca4c8ee7b"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-08.webp",
+      "bytes": 230334,
+      "sha256": "e3a0cf82302e55ae3303f35a8b909f1408c2b9a5cd91ddec81c4eda6afe3c83b"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-09.webp",
+      "bytes": 166008,
+      "sha256": "39c6d802c3884806a0a50c2b597bd19ca95c76504555ae895e24eec4ba9fa622"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-10.webp",
+      "bytes": 181322,
+      "sha256": "31b6cc844276059bf2488973be549ffc4e04946dc2496ece3c7b4193422b724d"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-11.webp",
+      "bytes": 185080,
+      "sha256": "596b56862ba415bf3386dd7505d8f8b7ff645dccb2ca998320e645bb704814e3"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-12.webp",
+      "bytes": 261808,
+      "sha256": "b00dcfb9c9a37548ba71974f97f901bf4219d77934fa9bf8cf85f7863a57bc35"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-13.webp",
+      "bytes": 240922,
+      "sha256": "402541bd9d7242e8417941beee40970c3b19058960211dfac3ab71affe3619f4"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-14.webp",
+      "bytes": 224242,
+      "sha256": "7b76d3b507ffcf15f53fc6b193c670b9c2da5c81863195ae0de35d9352954ae3"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-15.webp",
+      "bytes": 217778,
+      "sha256": "2c1f2e3aeaed045bea9d590658ba0145737018c666e90dfe3876d9f394f74d68"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-16.webp",
+      "bytes": 213698,
+      "sha256": "9dc7ec70894a01b15e0f7f1b91347f5c28022d39922c2fdd3d4567ec794a4e91"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-17.webp",
+      "bytes": 186214,
+      "sha256": "713b8101d2f3f7d916b7ec21fd1836556bcde3044da84913e7b1de932a1c5a28"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-18.webp",
+      "bytes": 170706,
+      "sha256": "894d793e865974c78b19a8790749cfdac24707d38580ccebe9ee861f00d03c4c"
+    },
+    {
+      "path": "apps/qingming-china/public/art/china/scroll/scroll-19.webp",
+      "bytes": 125448,
+      "sha256": "8682a0de12168b43875fb5ede405164427156e15c299d5a476492d442f8627f6"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ export type ErrorCode = 'save_read_failed' | 'save_write_failed' | 'save_import_
 type Events = {
   world_entered: { source: 'direct' | 'journal' };
   first_interaction_completed: { interaction_id: QuestId | 'tea' | 'observation'; elapsed_ms: number };
+  play_detail: { what: 'trace' | 'ugoki' | 'map' | 'lost'; outcome: 'traced' | 'tapped' | 'left' | 'miss' | 'caught' | 'opened' | 'hinted' | 'found' | 'returned' };
   story_started: { story_id: QuestId };
   story_completed: { story_id: QuestId; first_completion: boolean };
   journal_opened: { page_count: number };
@@ -20,11 +21,12 @@ type Events = {
 export type StudyEvent = { event_id: string; session_id: string; schema_version: 1; occurred_at: string; elapsed_ms: number; environment: string; world_id: 'qingming-china'; build_id: string; type: keyof Events; [key: string]: unknown };
 const inList = (xs: readonly unknown[]) => (v: unknown) => xs.includes(v);
 const positive = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
-const quests: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate', 'countryside'];
+const quests: QuestId[] = ['paper', 'boat', 'purse', 'harbor', 'gate', 'countryside', 'trace', 'breeze'];
 const page = inList(PAGES.map(p => p.id));
 const schemas: Record<keyof Events, Record<string, (v: unknown) => boolean>> = {
   world_entered: { source: inList(['direct', 'journal']) },
   first_interaction_completed: { interaction_id: inList([...quests, 'tea', 'observation']), elapsed_ms: positive },
+  play_detail: { what: inList(['trace', 'ugoki', 'map', 'lost']), outcome: inList(['traced', 'tapped', 'left', 'miss', 'caught', 'opened', 'hinted', 'found', 'returned']) },
   story_started: { story_id: inList(quests) },
   story_completed: { story_id: inList(quests), first_completion: v => typeof v === 'boolean' },
   journal_opened: { page_count: v => positive(v) && (v as number) <= PAGES.length },

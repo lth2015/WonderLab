@@ -14,10 +14,14 @@ const PIC_Y = 40;
 const PIC_W = PAGE_W - 80;
 const PIC_H = PAGE_H - 140;
 
-const SLIP: Record<string, { fill: string; text: string }> = {
+const SLIP: Record<string, { fill: string; text: string; dots?: string }> = {
   plain: { fill: '#f8f3e6', text: INK },
   indigo: { fill: WASH.indigo, text: PAPER },
   vermilion: { fill: WASH.vermilion, text: PAPER },
+  // 記念の題箋 (bought at 青葉屋)
+  kinsunago: { fill: '#e6cf8e', text: INK, dots: '#b8902f' },
+  wakakusa: { fill: '#b7c48d', text: INK },
+  sakura: { fill: '#efd2d2', text: INK, dots: '#d79a9e' },
 };
 
 export interface PageArtProps {
@@ -53,6 +57,11 @@ export function PageArt({ scene, titleStyle, title, place, credit, idPrefix = 'p
       </g>
       {/* 題箋 */}
       <rect x={PAGE_W - 108} y={56} width={52} height={[...title].length * 34 + 30} fill={slip.fill} stroke={INK} strokeWidth={1.2} />
+      {slip.dots &&
+        // 金砂子 / 花びら: a fixed scatter (the same on every page and in every export)
+        Array.from({ length: Math.round(([...title].length * 34 + 30) / 7) }, (_, i) => (
+          <circle key={i} cx={PAGE_W - 104 + ((i * 37) % 44)} cy={60 + ((i * 53) % ([...title].length * 34 + 22))} r={0.9 + ((i * 7) % 3) * 0.6} fill={slip.dots} opacity={0.75} />
+        ))}
       <VText x={PAGE_W - 82} y={66} text={title} size={28} fill={slip.text} gap={1.2} />
       {note ? (
         wrapNote(note).map((line, i, all) => (

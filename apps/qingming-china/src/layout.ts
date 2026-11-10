@@ -5,6 +5,7 @@ import type { GameState } from './game';
 // 0–3600 × 1200, for art, feet, camera and hit areas. The long scroll extends it
 // on both sides: local x runs from ROLL_MIN (the city's quiet west end) to
 // ROLL_MAX (the countryside where the scroll begins). Saves hold ids, never x.
+export type ScrollViewport = { from: number; to: number; center: number };
 export const WORLD_WIDTH = 3600;
 export const WORLD_HEIGHT = 1200;
 export const PERSON_HEIGHT = WORLD_HEIGHT * 90 / 700;

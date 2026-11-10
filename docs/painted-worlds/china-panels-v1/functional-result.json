@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "folded_archive_export_import_and_invalid_file_preserve_save",
+    "folded_study_export",
+    "about_escape_focus_and_reset_cancel_preserve_save",
+    "full_album_fifteen_pages_fixed_page_save_and_gift_return_focus",
+    "folded_host_export_confirmation_next_player_isolation",
+    "damaged_save_recovery_auto_open_and_backup",
+    "partial_rope_progress_survives_fixed_close",
+    "harbor_gate_countryside_long_dialogues_fixed_return"
+  ],
+  "page_errors": [],
+  "limits": "Headless Chromium; device safe-area values and real native share not physically verified."
+}

@@ -1,14 +1,20 @@
-import type { CharacterDef, HotspotDef, ItemDef, PageDef, QuestDef, SceneDef, WorldDef } from '../contract';
+import type { CharacterDef, Condition, HotspotDef, ItemDef, PageDef, QuestDef, SceneDef, WorldDef } from '../contract';
 import { SCHEMA_VERSION, WORLD_ID } from '../contract';
+import { STORIES } from './stories';
+import { LOST, LOST_OPEN } from './lost';
+export { SHELTERS } from './stories/ame';
+export { INKYO_BENCH, INKYO_STOPS, INKYO_WALK } from './stories/inkyo';
+export { frameOf, parseUgoki, UGOKI_PEOPLE } from './stories/ugoki';
 
 // 日本橋北詰付近の創作街区 (spec §5, §8). Every shop, name, relation and event
 // here is fiction; none is presented as a shop seen in『熈代勝覧』.
 //
-// Scene units: the street is 14000 × 700 (fourteen sections of 1000), shop floors near y = 540.
-// It reads right to left like a scroll (spec §7): play starts at the bridge
-// on the right, and the street goes on to the left.
+// Scene units: the street is 16000 × 700 (sixteen sections of 1000), shop floors near y = 540.
+// It reads right to left like a scroll (spec §7). Play starts at the paper shop
+// by the bridge; across the bridge (14000–16000, roadmap #158 item 4) lies the
+// far bank's morning quay, and the street goes on to the left.
 
-export const SCENE_W = 14000;
+export const SCENE_W = 16000;
 export const SCENE_H = 700;
 export const GROUND_Y = 540;
 
@@ -21,6 +27,7 @@ export const CHARACTERS: CharacterDef[] = [
   { ...fictionChar(), id: 'kisuke', sceneId: 'nihonbashi-kita', displayName: '喜助', scriptId: 'kisuke' },
   { ...fictionChar(), id: 'kinji', sceneId: 'nihonbashi-kita', displayName: '金次', scriptId: 'kinji' },
   { ...fictionChar(), id: 'oharu', sceneId: 'nihonbashi-kita', displayName: 'お春', scriptId: 'oharu' },
+  ...STORIES.flatMap((s) => s.characters ?? []),
 ];
 export const characterById = new Map(CHARACTERS.map((c) => [c.id, c]));
 
@@ -32,9 +39,14 @@ export const ROLES: Record<string, string> = {
   kisuke: '茶店「喜の字」の主人',
   kinji: '振売り',
   oharu: '町の使い',
+  ...Object.assign({}, ...STORIES.map((s) => s.roles ?? {})),
 };
 
 const notPressed = { not: { flag: 'paper_pressed' } };
+// 亀吉 hides by the boats while he is being looked for, then stands by おまつ
+// 母への文: the letter lies on the road once 風のいたずら is done; 伊兵衛 can be caught while it is carried
+// 夕暮れの灯: a lamp can be lit while the flame is carried, in the evening, until it is lit
+// 朝の藍: an indigo thing can be found while looking, in the morning, until it is found
 
 // Read off the gridded painting (docs/painted-worlds/art/edo/README.md); people
 // stand where scene/painted.tsx SPOTS puts their feet.
@@ -46,6 +58,21 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'h-kisuke', targetId: 'kisuke', kind: 'character', anchor: { x: 11650, y: 500 }, hitArea: { x: 11628, y: 452, w: 44, h: 94 }, priority: 5 },
   { id: 'h-oharu', targetId: 'oharu', kind: 'character', anchor: { x: 11400, y: 535 }, hitArea: { x: 11380, y: 488, w: 40, h: 94 }, priority: 5 },
   { id: 'h-kinji', targetId: 'kinji', kind: 'character', anchor: { x: 7480, y: 525 }, hitArea: { x: 7452, y: 480, w: 56, h: 92 }, priority: 5 },
+  { id: 'a-kashi-willow', targetId: 'kashi-willow', kind: 'ambient', anchor: { x: 14300, y: 240 }, hitArea: { x: 14230, y: 120, w: 150, h: 230 }, priority: 1 },
+  { id: 'a-kashi-steps', targetId: 'kashi-steps', kind: 'ambient', anchor: { x: 14310, y: 465 }, hitArea: { x: 14220, y: 410, w: 190, h: 110 }, priority: 2 },
+  { id: 'a-kashi-baskets', targetId: 'kashi-baskets', kind: 'ambient', anchor: { x: 14860, y: 395 }, hitArea: { x: 14780, y: 350, w: 170, h: 70 }, priority: 2 },
+  { id: 'a-kashi-boats', targetId: 'kashi-boats', kind: 'ambient', anchor: { x: 15150, y: 540 }, hitArea: { x: 14950, y: 500, w: 420, h: 90 }, priority: 2 },
+  { id: 'a-kashi-reeds', targetId: 'kashi-reeds', kind: 'ambient', anchor: { x: 15830, y: 440 }, hitArea: { x: 15740, y: 380, w: 180, h: 110 }, priority: 1 },
+  // 通りすがりの人 (demo feedback 「交互太少、人不能动」): the walking passers-by say a word when
+  // tapped, and stop for a moment. The area follows the walker as drawn (Street live()); the
+  // static one is where each starts (scene/painted.tsx CROWD); who is out when matches outAt there.
+  { id: 'a-pass-samurai', targetId: 'pass-samurai', kind: 'ambient', anchor: { x: 880, y: 567 }, hitArea: { x: 863, y: 522, w: 34, h: 90 }, priority: 4, walker: 'crowd2-samurai', visibleWhen: { rain: false } },
+  { id: 'a-pass-elder', targetId: 'pass-elder', kind: 'ambient', anchor: { x: 2300, y: 565 }, hitArea: { x: 2283, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-elder', visibleWhen: { all: [{ rain: false }, { all: [{ time: 'noon' }, { not: { all: [{ flag: 'inkyo_walk' }, { not: { quest: 'inkyo', is: 'complete' } }] } }] }] } },
+  { id: 'a-pass-monk', targetId: 'pass-monk', kind: 'ambient', anchor: { x: 3750, y: 563 }, hitArea: { x: 3733, y: 518, w: 34, h: 90 }, priority: 4, walker: 'crowd1-monk', visibleWhen: { rain: false } },
+  { id: 'a-pass-fishmonger', targetId: 'pass-fishmonger', kind: 'ambient', anchor: { x: 5650, y: 565 }, hitArea: { x: 5633, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd2-fishmonger', visibleWhen: { all: [{ rain: false }, { not: { time: 'evening' } }] } },
+  { id: 'a-pass-apprentice', targetId: 'pass-apprentice', kind: 'ambient', anchor: { x: 9550, y: 569 }, hitArea: { x: 9533, y: 524, w: 34, h: 90 }, priority: 4, walker: 'crowd2-apprentice', visibleWhen: { all: [{ rain: false }, { not: { time: 'evening' } }] } },
+  { id: 'a-pass-parasol', targetId: 'pass-parasol', kind: 'ambient', anchor: { x: 10780, y: 565 }, hitArea: { x: 10763, y: 520, w: 34, h: 90 }, priority: 4, walker: 'crowd1-parasol', visibleWhen: { rain: false } },
+  { id: 'a-pass-porter', targetId: 'pass-porter', kind: 'ambient', anchor: { x: 12300, y: 579 }, hitArea: { x: 12283, y: 534, w: 34, h: 90 }, priority: 4, walker: 'crowd1-porter', visibleWhen: { all: [{ rain: false }, { time: 'noon' }] } },
   // the first help: one tap on the blowing papers (spec §9 一頁目)
   { id: 'h-papers', targetId: 'papers', kind: 'prop', anchor: { x: 12420, y: 522 }, hitArea: { x: 12378, y: 504, w: 90, h: 40 }, priority: 8, visibleWhen: notPressed },
   // ambient reactions on things in the painting (spec §5: 8 or more)
@@ -79,6 +106,18 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'a-bench', targetId: 'bench', kind: 'ambient', anchor: { x: 452, y: 510 }, hitArea: { x: 370, y: 488, w: 165, h: 45 }, priority: 2 },
   { id: 'a-plum2', targetId: 'plum2', kind: 'ambient', anchor: { x: 1910, y: 350 }, hitArea: { x: 1830, y: 280, w: 160, h: 140 }, priority: 2 },
   { id: 'a-pond', targetId: 'pond', kind: 'ambient', anchor: { x: 1125, y: 375 }, hitArea: { x: 1000, y: 300, w: 250, h: 150 }, priority: 1 },
+  // the stories in their own files (content/stories)
+  ...STORIES.flatMap((s) => s.hotspots ?? []),
+  // 探し物 (content/lost.ts): small, so the area to tap is generous
+  ...LOST.map((t) => ({
+    id: `h-lost-${t.id}`,
+    targetId: `lost_${t.id}`,
+    kind: 'prop' as const,
+    anchor: { x: t.at.x, y: t.at.y - 5 },
+    hitArea: { x: t.at.x - 22, y: t.at.y - 26, w: 44, h: 34 },
+    priority: 7,
+    visibleWhen: { all: [LOST_OPEN, { not: { flag: `lost_found_${t.id}` } }] } as Condition,
+  })),
 ];
 
 export const SCENE: SceneDef = {
@@ -92,7 +131,10 @@ export const SCENE: SceneDef = {
   hotspots: HOTSPOTS,
   ambienceId: 'street-morning',
   // right to left, as the scroll reads: the bridge end first
-  sections: Array.from({ length: 14 }, (_, i) => ({ id: `s${13 - i}`, x0: (13 - i) * 1000, x1: (14 - i) * 1000 })),
+  sections: Array.from({ length: SCENE_W / 1000 }, (_, i) => {
+    const k = SCENE_W / 1000 - 1 - i;
+    return { id: `s${k}`, x0: k * 1000, x1: (k + 1) * 1000 };
+  }),
 };
 
 export const WORLD: WorldDef = {
@@ -103,9 +145,91 @@ export const WORLD: WorldDef = {
   scenes: [SCENE],
 };
 
+/** Some things read differently in the morning and the evening (owner: 多开发内容). */
+export const AMBIENT_AT: Partial<Record<'morning' | 'evening', Record<string, string>>> = {
+  morning: {
+    'willow': '朝露をふくんだ柳の葉が、ときどききらりと光る。',
+    'river': '朝もやの向こうを、堀の水がゆっくり流れていく。',
+    'steam': '朝いちばんの湯が、勢いよく湯気を立てている。',
+    'pond': '朝の池に、薄い霧がかかっている。',
+    'well': '井戸端で、朝の水を汲む音がつづいている。',
+    'kashi-boats': '一番舟が着いたらしい。籠がつぎつぎに岸へ渡されていく。',
+    'pass-samurai': '武士が朝の空を見上げた。「よい日和だ。お勤めの前に、少し歩こう」',
+    'pass-monk': '朝の托鉢の僧が、鈴をひとつ鳴らして通り過ぎた。',
+    'pass-fishmonger': '魚売りが籠をかついで駆けていく。「朝のうちに売り切らなきゃ！」',
+    'pass-apprentice': '丁稚が眠そうな目で使いに出ていく。「朝いちばんのお使いだ」',
+    'pass-parasol': '日傘の娘が、朝の光をよけて歩いていく。「今日は芝居見物なの」',
+  },
+  evening: {
+    'willow': '夕風に、柳の枝が長い影を落としている。',
+    'river': '堀の水面に、夕焼けの色がにじんでいる。',
+    'boat': '荷を下ろした舟が、静かに岸につながれている。',
+    'giboshi': '擬宝珠が、夕日を受けて鈍く光っている。',
+    'noren-aoba': '青葉屋の暖簾が、もうすぐしまわれる。',
+    'steam': '夕方の茶釜は、湯気が少し細い。',
+    'well': '井戸端に、夕餉の水を汲む桶が並んでいる。',
+    'pond': '池の水面に、一番星が映っている。',
+    'bench': '縁台に座ると、川風が少し冷たい。',
+    'kashi-boats': '戻ってきた舟が、岸に並んで揺れている。',
+    'kashi-steps': '石段の下で、夕方の水がひたひたと鳴る。',
+    'pass-samurai': '武士が家路を急いでいる。「日が落ちる前に、屋敷へ戻らねば」',
+    'pass-monk': '僧が夕日に手を合わせて、寺のほうへ歩いていく。',
+    'pass-parasol': '娘が傘をたたみながら笑った。「もう日傘はいらないわね」',
+  },
+};
+export function ambientText(id: string, time: 'morning' | 'noon' | 'evening'): string | undefined {
+  return (time !== 'noon' && AMBIENT_AT[time]?.[id]) || AMBIENT[id];
+}
+
+/**
+ * What a tap on a thing in the painting visibly does (roadmap #158 1A, owner's demo
+ * feedback 2026-11-02: 「交互太少、場景簡単」). Drawn over the painting for ~1.4 s;
+ * nothing moves with 動きを減らす.
+ */
+export type Reaction = 'leaves' | 'petals' | 'wind' | 'ripple' | 'steam' | 'birds' | 'dust' | 'bubbles';
+export const AMBIENT_REACTION: Record<string, Reaction> = {
+  'willow': 'leaves', 'willow2': 'leaves', 'willow-end': 'leaves', 'kashi-willow': 'leaves',
+  'plum': 'petals', 'plum2': 'petals', 'flowers': 'petals',
+  'noren-aoba': 'wind', 'noren-kure': 'wind', 'cloth-banner': 'wind', 'banner': 'wind', 'dye-cloth': 'wind', 'cloth-shop': 'wind',
+  'river': 'ripple', 'pond': 'ripple', 'jetty': 'ripple', 'boat': 'ripple', 'well': 'ripple',
+  'kashi-boats': 'ripple', 'kashi-steps': 'ripple', 'kashi-reeds': 'ripple',
+  'steam': 'steam',
+  'giboshi': 'birds', 'lantern': 'birds', 'garden': 'birds', 'bench': 'birds', 'timber': 'birds',
+  'barrel': 'dust', 'cart': 'dust', 'ricebales': 'dust', 'pottery': 'dust', 'cooper': 'dust', 'cargo': 'dust', 'kashi-baskets': 'dust',
+  'dye-vats': 'bubbles',
+};
+
 /** Short captions for ambient reactions; read aloud too (sound is optional, spec §13). */
+/** What each thing (not a person, not scenery) is called in the lists: the first page's papers, and the stories' things. */
+export const PROP_LABEL: Record<string, string> = {
+  papers: '青葉屋の店先の紙',
+  ...Object.fromEntries(LOST.map((t) => [`lost_${t.id}`, `${t.place}の落とし物`])),
+  ...Object.assign({}, ...STORIES.map((s) => s.labels ?? {})),
+};
+
+/** A hotspot's name for the lists and the 'which one?' sheet: a person, a thing, or a part of the scene. */
+export function spotLabel(h: HotspotDef): string {
+  if (h.kind === 'character') {
+    const c = CHARACTERS.find((x) => x.id === h.targetId);
+    return c ? `${c.displayName}（${ROLES[h.targetId]}）` : h.targetId;
+  }
+  return (h.kind === 'ambient' ? AMBIENT_LABEL[h.targetId] : PROP_LABEL[h.targetId]) ?? h.targetId;
+}
+
 export const AMBIENT_LABEL: Record<string, string> = {
+  'pass-samurai': '通りがかりの武士',
+  'pass-elder': '杖をついたご隠居',
+  'pass-monk': '托鉢の僧',
+  'pass-fishmonger': '魚売り',
+  'pass-apprentice': '使いの丁稚',
+  'pass-parasol': '日傘の娘',
+  'pass-porter': '荷を運ぶ人足',
   'willow': '川端の柳',
+  'kashi-willow': '向こう岸の柳',
+  'kashi-steps': '河岸の石段',
+  'kashi-baskets': '空の籠と樽',
+  'kashi-boats': 'つながれた荷舟',
+  'kashi-reeds': '河岸のはずれ',
   'boat': '川の荷舟',
   'giboshi': '橋の擬宝珠',
   'noren-aoba': '青葉屋の暖簾',
@@ -137,6 +261,18 @@ export const AMBIENT_LABEL: Record<string, string> = {
   'pond': '庭の池',
 };
 export const AMBIENT: Record<string, string> = {
+  'pass-samurai': '武士が足を止めた。「江戸の町は、何度歩いても飽きぬな」',
+  'pass-elder': 'ご隠居がつぶやいた。「わしの若いころは、この通りもまだ狭かったのう」',
+  'pass-monk': '托鉢の僧が、静かに頭を下げて通り過ぎた。',
+  'pass-fishmonger': '魚売りが声を張った。「鯵だよ、活きのいい鯵だよ！」',
+  'pass-apprentice': '丁稚が包みを抱えて小走りに行く。「急げ、急げ。番頭さんに叱られる」',
+  'pass-parasol': '日傘の娘が、くるりと傘を回した。「いいお天気ですね」',
+  'pass-porter': '人足が額の汗をぬぐった。「この荷が済んだら、ひと休みだ」',
+  'kashi-willow': '橋のたもとの柳が、川風にゆれている。',
+  'kashi-steps': '水際まで石段が下りている。舟から上がる人の足が、ここで乾く。',
+  'kashi-baskets': '空の籠と樽が積んである。もうすぐ、これが魚でいっぱいになる。',
+  'kashi-boats': '荷舟が何艘も岸につないである。縄がきしむ音がする。',
+  'kashi-reeds': '河岸のはずれ。葦の向こうは、ひろい水だけだ。',
   'willow': '川風に、柳の枝がそよいだ。',
   'boat': '荷を積んだ舟が、岸につながれている。',
   'giboshi': '欄干の擬宝珠が、朝の光を返している。',
@@ -216,10 +352,11 @@ export const QUESTS: QuestDef[] = [
     ],
     replayPolicy: 'memory-only',
   },
+  ...STORIES.map((s) => s.quest),
 ];
 export const questById = new Map(QUESTS.map((q) => [q.id, q]));
 
-/** Spec §11 仮設定. 'balance': game values, not 1805 prices. Not on sale yet. */
+/** Spec §11 仮設定. 'balance': game values, not 1805 prices. Sold in content/shop.ts. */
 export const ITEMS: ItemDef[] = [
   { id: 'tea-sweet', displayName: '茶と菓子', currencyId: 'mon', priceMinor: 6, evidenceType: 'balance', sourceRefs: [], reviewStatus: 'reviewed' },
   { id: 'title-slip', displayName: '記念の題箋', currencyId: 'mon', priceMinor: 12, evidenceType: 'balance', sourceRefs: [], reviewStatus: 'reviewed' },
@@ -243,8 +380,15 @@ export const TITLE_STYLES = [
   { id: 'indigo', label: '藍の題箋' },
   { id: 'vermilion', label: '朱の題箋' },
 ] as const;
+/** 記念の題箋 (spec §11, 12文 each): sold at 青葉屋 (content/shop.ts), once each. */
+export const SLIPS_FOR_SALE = [
+  { id: 'kinsunago', label: '金砂子の題箋', note: '金の粉を散らした、晴れの日の題箋。' },
+  { id: 'wakakusa', label: '若草の題箋', note: '春の土手の、やわらかな緑。' },
+  { id: 'sakura', label: '桜の題箋', note: '薄紅に、花びらの透かし。' },
+] as const;
 
-export const PAGE_SLOTS = 12; // spec §5: 絵巻帳12頁
+// spec §5: 絵巻帳12頁; 河岸の朝 (roadmap #158 item 4), 母への文, 夕暮れの灯 and 朝の藍 each add a page and its other ending; so do 橋のたもと, 茶店の猫, ご隠居の散歩, 動く人を描く and 雨宿り
+export const PAGE_SLOTS = 30;
 
 export const PAGES: PageDef[] = [
   { id: 'p01-kaze', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
@@ -253,6 +397,7 @@ export const PAGES: PageDef[] = [
   // left by 回想: another composition, or the other ending (engine/state.ts addRecallPage)
   { id: 'p01-kaze-b', triggerId: 'kaze', compositionId: 'kaze-{subject}-{framing}', captionId: 'kaze', sourceRefs: [] },
   { id: 'p02-dougu-b', triggerId: 'dougu', compositionId: 'dougu-{deliver|entrust}', captionId: 'dougu', sourceRefs: [] },
+  ...STORIES.flatMap((s) => s.pages),
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -261,6 +406,7 @@ export const PAGE_TITLES: Record<string, string> = {
   'p03-tenugui': 'あの人の手拭い',
   'p01-kaze-b': '風のいたずら（もう一枚）',
   'p02-dougu-b': 'いつもの道具（もう一つの朝）',
+  ...Object.assign({}, ...STORIES.map((s) => s.titles)),
 };
 
 /**
@@ -279,6 +425,42 @@ export const SKETCHES = [
   { id: 'bench', spots: ['willow-end', 'bench'], title: '川端の縁台', place: '町はずれの川端', view: { x0: 260, y0: 130, w: 420 }, comment: '町の終わりまで歩いたか。賑わいの後の静けさも、町のうちだ。' },
 ] as const;
 export type SketchId = (typeof SKETCHES)[number]['id'];
+
+/**
+ * なぞり描き (demo feedback 「交互太少」): before a sketch page is made, the player traces
+ * two lines of the place with a finger — scene points along a roof, a hull, a trunk.
+ * Read off gridded crops of each sketch view (scene units).
+ */
+export const TRACES: Record<string, { x: number; y: number }[][]> = {
+  boat: [
+    [{ x: 13130, y: 590 }, { x: 13200, y: 627 }, { x: 13300, y: 642 }, { x: 13400, y: 600 }, { x: 13490, y: 502 }],
+    [{ x: 13350, y: 402 }, { x: 13520, y: 385 }],
+  ],
+  well: [
+    [{ x: 10507, y: 350 }, { x: 10535, y: 310 }, { x: 10660, y: 310 }, { x: 10690, y: 350 }],
+    [{ x: 10517, y: 437 }, { x: 10667, y: 432 }, { x: 10667, y: 495 }],
+  ],
+  cooper: [
+    [{ x: 4250, y: 413 }, { x: 4255, y: 474 }, { x: 4290, y: 480 }, { x: 4322, y: 474 }, { x: 4322, y: 413 }],
+    [{ x: 4330, y: 297 }, { x: 4530, y: 295 }],
+  ],
+  jetty: [
+    [{ x: 5212, y: 392 }, { x: 5230, y: 430 }, { x: 5285, y: 442 }, { x: 5370, y: 430 }, { x: 5437, y: 375 }],
+    [{ x: 5242, y: 360 }, { x: 5242, y: 450 }],
+  ],
+  dye: [
+    [{ x: 3255, y: 370 }, { x: 3290, y: 359 }, { x: 3350, y: 359 }, { x: 3395, y: 370 }],
+    [{ x: 3227, y: 227 }, { x: 3470, y: 227 }],
+  ],
+  pond: [
+    [{ x: 1015, y: 465 }, { x: 1160, y: 417 }, { x: 1310, y: 350 }],
+    [{ x: 1030, y: 257 }, { x: 1210, y: 262 }],
+  ],
+  bench: [
+    [{ x: 367, y: 495 }, { x: 530, y: 502 }],
+    [{ x: 480, y: 205 }, { x: 495, y: 280 }, { x: 520, y: 345 }, { x: 540, y: 430 }, { x: 550, y: 525 }],
+  ],
+};
 export const sketchPageId = (id: string) => `p-sk-${id}`;
 /** `sketch-<id>-<time>`: the place and the time of day it was drawn. */
 export function parseSketch(composition: string): { sketch: (typeof SKETCHES)[number]; tod: 'morning' | 'noon' | 'evening' } | null {
@@ -355,13 +537,17 @@ export function parseKaze(compositionId: string): { subject: Subject; framing: F
  * current one kept). Codex review F01.
  */
 export function validJournalEntry(pageId: string, compositionId: string): boolean {
+  for (const st of STORIES) {
+    const v = st.valid(pageId, compositionId);
+    if (v !== null) return v;
+  }
   if (pageId === 'p01-kaze' || pageId === 'p01-kaze-b') return parseKaze(compositionId) !== null;
   if (pageId === 'p02-dougu' || pageId === 'p02-dougu-b') return compositionId === 'dougu-deliver' || compositionId === 'dougu-entrust';
   if (pageId === 'p03-tenugui') return compositionId === 'tenugui-return';
   const sk = parseSketch(compositionId);
   return !!sk && sketchPageId(sk.sketch.id) === pageId;
 }
-export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);
+export const TITLE_STYLE_IDS: readonly string[] = [...TITLE_STYLES, ...SLIPS_FOR_SALE].map((t) => t.id);
 
 /**
  * 通りの案内 (Codex review L02): stops along the whole roll, right (the bridge)
@@ -371,6 +557,7 @@ export const TITLE_STYLE_IDS: readonly string[] = TITLE_STYLES.map((t) => t.id);
  * every sketch place has a stop (docs/handoff/edo-guide-stops-2026-11-01 on collab).
  */
 export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[] = [
+  { id: 'mukou', name: '向こう岸の河岸', note: 'おまつと朝の荷揚げ', x: 14760 },
   { id: 'bridge', name: '日本橋', note: '橋と荷舟のいる水辺', x: 13420 },
   { id: 'aoba', name: '青葉屋の店先', note: '清太と宗吉のいる紙屋', x: 12510 },
   { id: 'teahouse', name: '茶店「喜の字」', note: '喜助とお春のいる茶店', x: 11530 },
@@ -381,4 +568,21 @@ export const GUIDE_STOPS: { id: string; name: string; note: string; x: number }[
   { id: 'dye', name: '紺屋の干し場', note: '藍甕と布の干し場', x: 3250 },
   { id: 'garden', name: '水辺の庭', note: '池と庭木を眺める', x: 1120 },
   { id: 'end', name: '町はずれの川端', note: '柳の下の縁台でひと休み', x: 450 },
+];
+
+export { CROWD, walkOf, outAt } from './crowd';
+
+// ---------------------------------------------------------------- 章
+
+/**
+ * Which stories open together (engine/chapters.ts). The first three after 風のいたずら are on the
+ * bridge-end street; then the far bank, the morning lesson and the cat; then the times and the
+ * weather; the gathering at the bridge last.
+ */
+export const CHAPTERS: string[][] = [
+  ['kaze'],
+  ['dougu', 'tenugui', 'fumi'],
+  ['kashi', 'ai', 'neko'],
+  ['yube', 'inkyo', 'ame', 'ugoki'],
+  ['hashi'],
 ];

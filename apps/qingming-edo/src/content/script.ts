@@ -1,36 +1,18 @@
 import type { Condition, Effect } from '../contract';
-import { AMBIENT, PAGE_SLOTS, questById, SKETCHES, sketchPageId, type Subject } from './world';
+import { AMBIENT, PAGE_SLOTS, questById, SKETCHES, sketchPageId } from './world';
 
 // 台本 (spec §8, §12). Readable modern Japanese with a light Edo touch; each
 // person has their own voice rather than one loud Edo dialect for everyone.
 // Five states per person: 初回、依頼中、完了後、再会、断られた時.
 
-export type Speaker = string; // a character id, or 'narration'
-
-/** `reward`: a line about being paid, left out in 回想 (replays never pay). */
-export interface Line { by: Speaker; text: string; reward?: boolean }
-export interface Choice {
-  label: string;
-  next?: string;
-  effects?: Effect[];
-  /** Opens the sketch for this subject (spec §9 一頁目). */
-  sketch?: Subject;
-  /** Stays to talk a little (即興のひとこと, ui/Talk.tsx). */
-  talk?: boolean;
-  /** Opens a short game; on success the dialogue goes on at `next` (spec §10). */
-  game?: 'wrap' | 'tea' | 'tenugui';
-}
-export interface DialogueNode {
-  lines: Line[];
-  /** Applied once when the node opens. */
-  effects?: Effect[];
-  choices?: Choice[];
-  next?: string;
-  /** A journal page this node leaves (made once; spec §9). */
-  page?: { pageId: string; compositionId: string };
-  /** In 回想, where the scene goes on when the original sends the player walking elsewhere. */
-  recallNext?: string;
-}
+export type { Speaker, Line, Choice, DialogueNode } from './types';
+import { STORIES } from './stories';
+import { RUMOR_RANK, RUMORS } from './rumors';
+import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
+import { TEA_PRICE } from './shop';
+import { PASSERS } from './passers';
+import type { Rule } from './stories/types';
+import type { Line, Choice, DialogueNode } from './types';
 
 const PRESS: Effect[] = [
   { type: 'setFlag', flag: 'paper_pressed' },
@@ -337,6 +319,20 @@ export const NODES: Record<string, DialogueNode> = {
   },
 };
 
+// the stories in their own files (content/stories), in page order
+for (const st of STORIES) Object.assign(NODES, st.nodes);
+
+// 探し物 (content/lost.ts): the owner's word, the find (a note over the street), the giving back
+for (const t of LOST) {
+  NODES[`lost.${t.id}.hint`] = { effects: [{ type: 'setFlag', flag: `lost_hint_${t.id}` }], lines: t.hint };
+  NODES[`lost.${t.id}.find`] = { brief: true, effects: [{ type: 'setFlag', flag: `lost_found_${t.id}` }], lines: [{ by: 'narration', text: t.find }] };
+  NODES[`lost.${t.id}.back`] = { effects: [{ type: 'setFlag', flag: `lost_back_${t.id}` }], lines: t.back };
+}
+NODES['lost.allback'] = { effects: [{ type: 'setFlag', flag: 'lost_allback' }], lines: LOST_ALL_BACK };
+
+// 町のうわさ (content/rumors.ts): each said once
+for (const r of RUMORS) NODES[`rumor.${r.id}`] = { effects: [{ type: 'setFlag', flag: `rumor_${r.id}` }], lines: r.lines };
+
 // 町の写生: tapping one of the places offers to draw it, until its page is made
 for (const k of SKETCHES) {
   NODES[`sk.${k.id}`] = {
@@ -344,7 +340,7 @@ for (const k of SKETCHES) {
       { by: 'narration', text: AMBIENT[k.spots[0]] },
       { by: 'narration', text: `${k.title}。足を止めて、この景色を写しておこうか。` },
     ],
-    choices: [{ label: 'この景色を写す', next: `sk.${k.id}.made` }, { label: '眺めるだけにする' }],
+    choices: [{ label: 'この景色を写す', game: 'trace', trace: k.id, next: `sk.${k.id}.made` }, { label: '眺めるだけにする' }],
   };
   NODES[`sk.${k.id}.made`] = {
     page: { pageId: sketchPageId(k.id), compositionId: `sketch-${k.id}-{tod}` }, // drawn in the time shown
@@ -353,8 +349,59 @@ for (const k of SKETCHES) {
 }
 
 // After a story, the person can be talked with a little more (即興のひとこと).
-for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again']) {
+for (const id of ['seita.done', 'seita.again', 'okon.done', 'okon.again', 'kinji.done', 'kinji.done.entrust', 'kisuke.done3', 'oharu.done3', 'sokichi.done', 'sokichi.full', 'sokichi.full.again', ...STORIES.flatMap((st) => st.talk ?? [])]) {
   NODES[id].choices = [{ label: '少し話す', talk: true }];
+}
+// 買い物 (spec §11): a rest at 喜助's tea house, title slips at 青葉屋 (content/shop.ts)
+NODES['kisuke.done3'].choices!.push({ label: `一服する（${TEA_PRICE}文）`, shop: 'tea' });
+// after 夕暮れの灯 his evening word is always the lamps: the tea house stays open then too
+NODES['kisuke.yube.after'].choices = [{ label: '少し話す', talk: true }, { label: `一服する（${TEA_PRICE}文）`, shop: 'tea' }];
+for (const id of ['seita.done', 'seita.again']) NODES[id].choices!.push({ label: '題箋を見る', shop: 'slips' });
+// 通りすがりの人と話す (content/passers.ts): a passer-by stops and talks about their work
+for (const [id, p] of Object.entries(PASSERS)) {
+  const ask: Choice[] = [...p.topics.map((t, i) => ({ label: t.q, next: `pass.${id}.${i}` })), { label: '引き止めてごめんなさい', next: `pass.${id}.bye` }];
+  NODES[`pass.${id}`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.hello }], choices: ask };
+  p.topics.forEach((t, i) => (NODES[`pass.${id}.${i}`] = { lines: t.a.map((text) => ({ by: id, text })), next: `pass.${id}.more` }));
+  NODES[`pass.${id}.more`] = { lines: [{ by: id, text: p.more }], choices: ask };
+  NODES[`pass.${id}.bye`] = { lines: [{ by: id, text: p.bye }] };
+}
+
+// after 橋のたもと, 宗吉 can look back over the day with the player (ui/Epilogue.tsx)
+NODES['sokichi.hashi.after'].choices!.push({ label: '今日の町をふりかえる', epilogue: true });
+
+// 朝・昼・夕で言うことが変わる (owner: 多开发内容; demo feedback 「剧情太少」). A person's
+// everyday word after their story has a morning and an evening version; noon is the
+// base node. Variants copy the base node (its choices, such as 少し話す) with new lines,
+// and are named `${base}@${time}` (engine/story.ts entryFor picks them).
+const AT_TIME: Record<string, Partial<Record<'morning' | 'evening', Line>>> = {
+  'seita.again': {
+    morning: { by: 'seita', text: '朝の紙は湿り気が少なくて、手ざわりがいいんです。今日も一枚ずつ並べてます。' },
+    evening: { by: 'seita', text: 'もう店じまいの支度です。今日は一枚も飛ばずにすみました。おかげさまで。' },
+  },
+  'okon.again': {
+    morning: { by: 'okon', text: '朝いちばんは、漆のにおいがいちばん澄んでるんだよ。' },
+    evening: { by: 'okon', text: '夕方になると、手入れに持ち込まれる道具が増えるのさ。一日よく働いた道具だからね。' },
+  },
+  'kinji.done': {
+    morning: { by: 'kinji', text: 'これから一回り行ってくるよ。弁当箱は、ちゃんと包んで持ってる。' },
+    evening: { by: 'kinji', text: '今日もよく売れた。空の籠は軽いけど、足はくたくただ。' },
+  },
+  'kinji.done.entrust': {
+    morning: { by: 'kinji', text: 'お春ちゃんが届けてくれた包み、今朝あけたよ。いい塗り直しだ。' },
+    evening: { by: 'kinji', text: '一日売り歩いて、帰りにこの通りを通ると、なんだかほっとするんだ。' },
+  },
+  'kisuke.done3': {
+    morning: { by: 'kisuke', text: '朝の一番茶だ。湯がやわらかいうちに飲んでいきな。' },
+    evening: { by: 'kisuke', text: '夕方の客は長居するんだ。一日の話を、ここに置いていくのさ。' },
+  },
+  'oharu.done3': {
+    morning: { by: 'oharu', text: '朝のお使いは早いほうがいいんです。今日は用事が三つもあって。' },
+    evening: { by: 'oharu', text: 'お使いは今日はおしまい。手拭い、ちゃんと首に巻いてますよ。' },
+  },
+};
+for (const st of STORIES) Object.assign(AT_TIME, st.atTime ?? {});
+for (const [base, byTime] of Object.entries(AT_TIME)) {
+  for (const [t, line] of Object.entries(byTime)) NODES[`${base}@${t}`] = { ...NODES[base], lines: [line!] };
 }
 
 /** Where each finished story is replayed from in 回想. */
@@ -362,10 +409,12 @@ export const RECALL_START: Record<string, string> = {
   kaze: 'kaze.pressed',
   dougu: 'okon.ask',
   tenugui: 'oharu.ask',
+  ...Object.fromEntries(STORIES.map((st) => [st.quest.id, st.recallStart])),
 };
 
+
 /** Which node a person opens with: the first rule that holds (spec §8 五状態). */
-export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
+const BASE_ENTRIES: Record<string, { rank?: number; when?: Condition; node: string }[]> = {
   seita: [
     { when: { all: [{ quest: 'kaze', is: 'complete' }, { flag: 'seita_seen_done' }] }, node: 'seita.again' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'seita.done' },
@@ -375,8 +424,8 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { node: 'seita.first' },
   ],
   sokichi: [
-    { when: { flag: 'book_full' }, node: 'sokichi.full.again' },
-    { when: { pagesAtLeast: PAGE_SLOTS }, node: 'sokichi.full' },
+    { rank: 400, when: { flag: 'book_full' }, node: 'sokichi.full.again' },
+    { rank: 410, when: { pagesAtLeast: PAGE_SLOTS }, node: 'sokichi.full' },
     { when: { quest: 'kaze', is: 'complete' }, node: 'sokichi.done' },
     { when: { flag: 'kaze_page' }, node: 'kaze.reward' },
     { when: { flag: 'paper_pressed' }, node: 'sokichi.ask' },
@@ -414,12 +463,46 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = {
     { when: { quest: 'kaze', is: 'complete' }, node: 'oharu.ask' },
     { node: 'oharu.first' },
   ],
+
   // the papers themselves: one tap helps (spec §6 10〜30秒)
   papers: [{ node: 'kaze.pressed' }],
 };
+/**
+ * Which node a person opens with: the first rule that holds (spec §8 五状態). Each story's
+ * rules are merged in by rank; rules here without a rank come after them, in their order.
+ */
+export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = (() => {
+  const all: Record<string, Rule[]> = {};
+  for (const [t, rules] of Object.entries(BASE_ENTRIES)) all[t] = rules.map((r, i) => ({ ...r, rank: r.rank ?? 1000 + i }));
+  for (const st of STORIES) for (const [t, rules] of Object.entries(st.entries)) all[t] = [...(all[t] ?? []), ...rules];
+  // 探し物: giving a found thing back comes before the rumors; the owner's word about the loss
+  // after them, once their own thanks has been read
+  LOST.forEach((t, i) => {
+    const r = RUMOR_RANK[t.owner] - 0.9 + i / 100;
+    all[t.owner] = [
+      ...(all[t.owner] ?? []),
+      { rank: r, when: { all: [{ flag: `lost_found_${t.id}` }, { not: { flag: `lost_back_${t.id}` } }] }, node: `lost.${t.id}.back` },
+      { rank: RUMOR_RANK[t.owner] + 0.5 + i / 100, when: { all: [LOST_OPEN, { quest: t.needs, is: 'complete' }, ...(t.seen ? [{ flag: t.seen }] : []), { not: { flag: `lost_hint_${t.id}` } }, { not: { flag: `lost_found_${t.id}` } }] }, node: `lost.${t.id}.hint` },
+    ];
+    all[`lost_${t.id}`] = [{ rank: 100, node: `lost.${t.id}.find` }];
+  });
+  all.sokichi = [...(all.sokichi ?? []), { rank: RUMOR_RANK.sokichi - 0.5, when: { all: [...LOST.map((t) => ({ flag: `lost_back_${t.id}` })), { not: { flag: 'lost_allback' } }] }, node: 'lost.allback' }];
+  // うわさ: after every request, before the person's everyday word (content/rumors.ts RUMOR_RANK)
+  RUMORS.forEach((r, i) => {
+    const when: Condition = { all: [{ quest: r.needs, is: 'complete' }, { quest: r.after, is: 'complete' }, { not: { flag: `rumor_${r.id}` } }] };
+    all[r.who] = [...(all[r.who] ?? []), { rank: RUMOR_RANK[r.who] + i / 100, when, node: `rumor.${r.id}` }];
+  });
+  return Object.fromEntries(Object.entries(all).map(([t, rules]) => [t, [...rules].sort((a, b) => a.rank - b.rank).map(({ rank: _rank, ...r }) => r)]));
+})();
+
 
 /** Effects applied when a node is closed after being read (e.g. 再会 markers). */
 export const ON_CLOSE: Record<string, Effect[]> = {
   'seita.done': [{ type: 'setFlag', flag: 'seita_seen_done' }],
   'okon.done': [{ type: 'setFlag', flag: 'okon_seen_done' }],
+  'kisuke.done3': [{ type: 'setFlag', flag: 'kisuke_seen_done' }],
+  'kinji.done': [{ type: 'setFlag', flag: 'kinji_seen_done' }],
+  'kinji.done.entrust': [{ type: 'setFlag', flag: 'kinji_seen_done' }],
+  'oharu.done3': [{ type: 'setFlag', flag: 'oharu_seen_done' }],
+  'kame.done': [{ type: 'setFlag', flag: 'kame_seen_done' }],
 };

@@ -1,12 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// These tests are about each story's own steps; the chapters that open stories one batch at a
+// time have their own tests (engine/chapters.test.ts). Here every story counts as open.
+vi.mock('./chapters', async (orig) => ({ ...(await orig<typeof import('./chapters')>()), questOpen: () => true }));
 import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
+import { PASSERS } from '../content/passers';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
-import { characterById, GUIDE_STOPS, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
+import { characterById, frameOf, parseUgoki, UGOKI_PEOPLE, GUIDE_STOPS, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
 import { clampCamera, effectiveArea, isDrag, resolveTap } from './hit';
 import { exportText, importText, load, persist, SAVE_KEY } from './save';
 import { addPage, addRecallPage, apply, hasFlag as hasFlagFn, newSave, questState, test } from './state';
-import { entryFor, nearby, visibleSpots } from './story';
+import { entryFor, nearby, nearbyAll, visibleSpots } from './story';
 import { reachedTimes, timeOf } from './time';
 import { DEFAULT_LEVELS, LEVEL_STEPS, levelsOf } from './sound';
 
@@ -291,9 +296,20 @@ describe('朝・昼・夕', () => {
     expect(timeOf({ ...s, settings: { ...s.settings, timeChoice: 'evening' } })).toBe('noon');
     expect(reachedTimes(all3())).toEqual(['morning', 'noon', 'evening']);
   });
-  it('no story waits on the time of day', () => {
-    // every entry rule reads flags and quests only, never the time
-    expect(JSON.stringify(ENTRIES)).not.toMatch(/morning|noon|evening|timeChoice/);
+  it('no story can be missed because of the time of day (spec §11)', () => {
+    // A rule may name a time only for a story whose prerequisites already unlock that time
+    // (夕暮れの灯 needs いつもの道具 and あの人の手拭い, which open 夕), so the player can always
+    // switch to it from the time menu; and 「近くのこと」 says so when another time is shown.
+    const timed = Object.entries(ENTRIES).filter(([, rules]) => JSON.stringify(rules).match(/"time"/));
+    expect(timed.map(([who]) => who).sort()).toEqual(['kisuke', 'sokichi']);
+    // 朝 is open from the start; 夕 only through the stories 夕暮れの灯 already requires
+    expect(JSON.stringify(ENTRIES.kisuke)).not.toMatch(/morning|noon/);
+    expect(JSON.stringify(ENTRIES.sokichi)).not.toMatch(/evening|noon/);
+    expect(JSON.stringify(ENTRIES)).not.toMatch(/timeChoice/);
+    expect(reachedTimes(all3())).toContain('evening');
+    const shownMorning = apply(all3(), [{ type: 'setFlag', flag: 'yube_fire' }]);
+    const m = { ...shownMorning, settings: { ...shownMorning.settings, timeChoice: 'morning' as const } };
+    expect(nearbyAll(m).find((n) => n.id === 'yube-light')?.text).toContain('夕方になったら');
   });
   it('an old save without a time choice loads as auto', () => {
     const old = { ...newSave(), settings: { reduceMotion: false, textScale: 1 } };
@@ -308,7 +324,8 @@ describe('script integrity', () => {
       if (n.next) expect(NODES[n.next], `${id} → ${n.next}`).toBeDefined();
       for (const c of n.choices ?? []) if (c.next) expect(NODES[c.next], `${id} → ${c.next}`).toBeDefined();
       if (n.page) expect(PAGES.some((p) => p.id === n.page!.pageId), `${id}: ${n.page.pageId}`).toBe(true);
-      for (const l of n.lines) if (l.by !== 'narration') expect(characterById.get(l.by), `${id}: ${l.by}`).toBeDefined();
+      // a speaker is a person of the town, or a passer-by who stopped to talk (content/passers.ts)
+      for (const l of n.lines) if (l.by !== 'narration') expect(characterById.get(l.by) ?? PASSERS[l.by], `${id}: ${l.by}`).toBeDefined();
     }
     for (const rules of Object.values(ENTRIES)) for (const r of rules) expect(NODES[r.node]).toBeDefined();
     for (const k of Object.keys(ON_CLOSE)) expect(NODES[k]).toBeDefined();
@@ -327,7 +344,13 @@ describe('script integrity', () => {
   });
 
   it('children never get anything but a script (spec §8)', () => {
-    for (const c of characterById.values()) expect(c.isChild).toBe(false); // none yet; revisit when one is added
+    const children = [...characterById.values()].filter((c) => c.isChild).map((c) => c.id);
+    expect(children).toEqual(['kamekichi']); // 亀吉 (河岸の朝)
+    for (const id of children) {
+      // no generated talk: no 「少し話す」 on any node the child opens, and no talk lines at all
+      for (const rule of ENTRIES[id]) expect(NODES[rule.node].choices?.some((c) => c.talk) ?? false).toBe(false);
+      expect(FALLBACK[id]).toBeUndefined();
+    }
   });
 });
 
@@ -481,7 +504,7 @@ describe('町の写生', () => {
     expect(nearby(newSave()).some((n) => n.id === 'sketches')).toBe(false);
     let s = done();
     // make room: the other stories are finished too
-    s = apply(s, [...questById.get('dougu')!.completionEffects, ...questById.get('tenugui')!.completionEffects]);
+    s = apply(s, [{ type: 'setFlag', flag: 'paper_pressed' }, ...['dougu', 'tenugui', 'fumi', 'kashi', 'hashi', 'inkyo'].flatMap((q) => questById.get(q)!.completionEffects)]);
     expect(nearby(s).find((n) => n.id === 'sketches')?.spotId).toBe('a-boat');
     s = addPage(s, { pageId: sketchPageId('boat'), compositionId: 'sketch-boat-noon', titleStyle: 'plain', madeAt: new Date().toISOString() });
     expect(nearby(s).find((n) => n.id === 'sketches')?.text).toContain('あと6か所');
@@ -567,5 +590,449 @@ describe('通りの案内', () => {
       expect(g.x).toBeLessThanOrEqual(SCENE_W);
       expect([...g.note].length).toBeLessThanOrEqual(20);
     }
+  });
+});
+
+describe('河岸の朝 (across the bridge)', () => {
+  const asked = () => open(open(afterKaze(), 'omatsu.ask'), 'omatsu.search');
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('おまつ only asks once 風のいたずら is done; before, she just says hello', () => {
+    expect(entryFor('omatsu', newSave())).toBe('omatsu.first');
+    expect(entryFor('omatsu', afterKaze())).toBe('omatsu.ask');
+    expect(nearby(afterKaze(), 14700).some((n) => n.id === 'kashi' && n.spotId === 'h-omatsu')).toBe(true); // standing on the far bank
+    let s = open(open(afterKaze(), 'omatsu.ask'), 'omatsu.declined');
+    expect(entryFor('omatsu', s)).toBe('omatsu.ask.again');
+    expect(questState(s, 'kashi')).toBe('discovered');
+  });
+
+  it('亀吉 can be found only while he is being looked for, and the hint points at the boats, not at him', () => {
+    expect(spot(afterKaze(), 'h-kame-hidden')).toBe(false);
+    const s = asked();
+    expect(spot(s, 'h-kame-hidden')).toBe(true);
+    expect(spot(s, 'h-kame')).toBe(false);
+    expect(questState(s, 'kashi')).toBe('active');
+    const hint = nearby(s, 14700).find((n) => n.id === 'kashi-search');
+    expect(hint?.spotId).toBe('a-kashi-boats');
+    expect(entryFor('kamekichi', s)).toBe('kame.found');
+    expect(entryFor('omatsu', s)).toBe('omatsu.searching');
+  });
+
+  it('bringing him straight back: 20文 once, a page, and he stands by おまつ', () => {
+    let s = open(open(asked(), 'kame.found'), 'kame.now');
+    expect(questState(s, 'kashi')).toBe('complete');
+    expect(s.wallet.balanceMinor).toBe(72 + 20);
+    expect(s.journal.pages.find((p) => p.pageId === 'p04-kashi')?.compositionId).toBe('kashi-now');
+    expect(s.progress.familiarity.omatsu?.level).toBe(1);
+    expect(s.progress.familiarity.kamekichi?.level).toBe(1);
+    expect(spot(s, 'h-kame-hidden')).toBe(false);
+    expect(spot(s, 'h-kame')).toBe(true);
+    s = open(s, 'kame.now'); // again: nothing more
+    expect(s.wallet.balanceMinor).toBe(92);
+    expect(s.journal.pages.filter((p) => p.pageId.startsWith('p04'))).toHaveLength(1);
+    expect(entryFor('omatsu', s)).toBe('omatsu.done');
+    expect(entryFor('kamekichi', s)).toBe('kame.done');
+  });
+
+  it('watching the unloading first: the same 20文, the other page, and おまつ remembers it', () => {
+    const s = open(open(asked(), 'kame.found'), 'kame.watch');
+    expect(s.wallet.balanceMinor).toBe(92);
+    expect(s.journal.pages.find((p) => p.pageId === 'p04-kashi')?.compositionId).toBe('kashi-watch');
+    expect(entryFor('omatsu', s)).toBe('omatsu.done.watch');
+  });
+
+  it('closing the dialogue at the choice keeps him findable; the hint says to take him home', () => {
+    const s = open(asked(), 'kame.found');
+    expect(questState(s, 'kashi')).toBe('active');
+    expect(entryFor('kamekichi', s)).toBe('kame.found');
+    expect(nearby(s, 14700).find((n) => n.id === 'kashi-home')?.spotId).toBe('h-kame-hidden');
+  });
+
+  it('回想 leaves the other ending as one more page, paying nothing', () => {
+    let s = open(open(asked(), 'kame.found'), 'kame.now');
+    s = addRecallPage(s, 'p04-kashi', 'kashi-watch');
+    expect(s.journal.pages.find((p) => p.pageId === 'p04-kashi-b')?.compositionId).toBe('kashi-watch');
+    expect(s.wallet.balanceMinor).toBe(92);
+    expect(RECALL_START.kashi).toBe('omatsu.ask');
+    expect(NODES['omatsu.search'].recallNext).toBe('kame.found');
+  });
+
+  it('everything across the bridge is inside the scene, and the book now holds every page', () => {
+    for (const h of HOTSPOTS.filter((h) => h.id.includes('kame') || h.id.includes('omatsu') || h.id.includes('kashi'))) {
+      expect(h.hitArea.x).toBeGreaterThan(14000);
+      expect(h.hitArea.x + h.hitArea.w).toBeLessThanOrEqual(SCENE_W);
+    }
+    expect(PAGES.length).toBe(PAGE_SLOTS);
+    expect(PAGE_TITLES['p04-kashi']).toBe('河岸の朝');
+  });
+});
+
+describe('母への文 (catch a walking man)', () => {
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+  const carrying = () => open(open(afterKaze(), 'fumi.found'), 'fumi.carry');
+
+  it('the letter lies on the road only after 風のいたずら, and 伊兵衛 can be stopped only while it is carried', () => {
+    expect(spot(newSave(), 'h-fumi')).toBe(false);
+    expect(spot(afterKaze(), 'h-fumi')).toBe(true);
+    expect(spot(afterKaze(), 'h-ihei')).toBe(false);
+    const s = carrying();
+    expect(spot(s, 'h-fumi')).toBe(false);
+    expect(spot(s, 'h-ihei')).toBe(true);
+    expect(questState(s, 'fumi')).toBe('active');
+    expect(HOTSPOTS.find((h) => h.id === 'h-ihei')?.walker).toBe('crowd1-merchant');
+    expect(nearby(s, 7900)[0]).toMatchObject({ id: 'fumi-carry', spotId: 'h-ihei' });
+  });
+
+  it('either word pays 16文 once and leaves its own page', () => {
+    for (const [end, comp] of [['ihei.send', 'fumi-send'], ['ihei.rewrite', 'fumi-rewrite']] as const) {
+      let s = open(open(carrying(), 'ihei.receive'), end);
+      expect(questState(s, 'fumi')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(72 + 16);
+      expect(s.journal.pages.find((p) => p.pageId === 'p05-fumi')?.compositionId).toBe(comp);
+      s = open(s, end);
+      expect(s.wallet.balanceMinor).toBe(88);
+      expect(spot(s, 'h-ihei')).toBe(true); // he still walks by, and remembers
+      expect(entryFor('ihei', s)).toBe(end === 'ihei.send' ? 'ihei.done.send' : 'ihei.done.rewrite');
+    }
+  });
+
+  it('回想 adds the other word as one more page, paying nothing', () => {
+    let s = open(open(carrying(), 'ihei.receive'), 'ihei.send');
+    s = addRecallPage(s, 'p05-fumi', 'fumi-rewrite');
+    expect(s.journal.pages.find((p) => p.pageId === 'p05-fumi-b')?.compositionId).toBe('fumi-rewrite');
+    expect(s.wallet.balanceMinor).toBe(88);
+  });
+
+  it('「近くのこと」 offers the stories nearest to the player first', () => {
+    const s = afterKaze();
+    expect(nearby(s, 7900).map((n) => n.id)).toContain('fumi');
+    expect(nearby(s, 14700).map((n) => n.id)).toContain('kashi');
+    expect(nearby(s, 14700).map((n) => n.id)).not.toContain('fumi');
+  });
+});
+
+describe('夕暮れの灯 (evening: light three lamps)', () => {
+  const evening = () => {
+    const s = afterKaze();
+    return apply(s, [...questById.get('dougu')!.completionEffects, ...questById.get('tenugui')!.completionEffects]);
+  };
+  const at = (s: SaveData, t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('喜助 asks in the evening only, and only once 夕 is open', () => {
+    expect(entryFor('kisuke', afterKaze())).not.toBe('kisuke.yube.ask');
+    expect(entryFor('kisuke', evening())).toBe('kisuke.yube.ask'); // auto shows the latest time: 夕
+    expect(entryFor('kisuke', at(evening(), 'morning'))).not.toBe('kisuke.yube.ask');
+    expect(nearbyAll(at(evening(), 'morning')).find((n) => n.id === 'yube')?.text).toContain('「夕」');
+  });
+
+  it('a lamp can be lit only with the flame, in the evening, and once', () => {
+    let s = evening();
+    expect(spot(s, 'h-lamp2')).toBe(false);
+    s = open(open(s, 'kisuke.yube.ask'), 'kisuke.yube.fire');
+    expect(spot(s, 'h-lamp2')).toBe(true);
+    expect(spot(at(s, 'noon'), 'h-lamp2')).toBe(false);
+    expect(nearby(s, 7800).find((n) => n.id === 'yube-light')?.text).toContain('あと3つ');
+    s = open(s, 'yube.light2');
+    expect(spot(s, 'h-lamp2')).toBe(false);
+    expect(nearby(s).find((n) => n.id === 'yube-light')?.text).toContain('あと2つ');
+  });
+
+  it('all three lit, either way of ending pays 14文 once and leaves its page', () => {
+    for (const [end, comp] of [['yube.tell', 'yube-tell'], ['yube.watch', 'yube-watch']] as const) {
+      let s = open(open(evening(), 'kisuke.yube.ask'), 'kisuke.yube.fire');
+      for (const n of [1, 2, 3]) s = open(s, `yube.light${n}`);
+      expect(entryFor('kisuke', s)).toBe('kisuke.yube.done');
+      const before = s.wallet.balanceMinor;
+      s = open(open(s, 'kisuke.yube.done'), end);
+      expect(questState(s, 'yube')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(before + 14);
+      expect(s.journal.pages.find((p) => p.pageId === 'p06-yube')?.compositionId).toBe(comp);
+      s = open(s, end);
+      expect(s.wallet.balanceMinor).toBe(before + 14);
+      expect(entryFor('kisuke', s)).toBe('kisuke.yube.after');
+      expect(entryFor('kisuke', at(s, 'noon'))).toBe('kisuke.done3'); // his day-time words again
+    }
+  });
+});
+
+describe('朝・昼・夕 everyday words', () => {
+  it('a person greets differently in the morning and the evening, and closes like the base word', () => {
+    let s = open(open(afterKaze(), 'okon.wrapped'), 'okon.entrust');
+    s = apply(s, [{ type: 'setFlag', flag: 'okon_seen_done' }]);
+    const at = (t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+    expect(entryFor('okon', at('noon'))).toBe('okon.again');
+    expect(entryFor('okon', at('morning'))).toBe('okon.again@morning');
+    expect(NODES['okon.again@morning'].lines[0].text).toContain('朝');
+  });
+});
+
+describe('朝の藍 (morning: find three indigo things)', () => {
+  const at = (s: SaveData, t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('宗吉 asks in the morning once the first page is made; at other times he says to come in the morning', () => {
+    expect(entryFor('sokichi', at(afterKaze(), 'morning'))).toBe('sokichi.ai.ask');
+    expect(entryFor('sokichi', at(afterKaze(), 'noon'))).not.toBe('sokichi.ai.ask');
+    expect(nearbyAll(at(afterKaze(), 'noon')).find((n) => n.id === 'ai')?.text).toContain('「朝」');
+    // an old save with the twelve-page book already full still gets the lesson
+    const full = apply(at(afterKaze(), 'morning'), [{ type: 'setFlag', flag: 'book_full' }]);
+    expect(entryFor('sokichi', full)).toBe('sokichi.ai.ask');
+  });
+
+  it('the indigo things can be found only while looking, in the morning, once each', () => {
+    let s = open(open(at(afterKaze(), 'morning'), 'sokichi.ai.ask'), 'sokichi.ai.look');
+    expect(spot(s, 'h-ai2')).toBe(true);
+    expect(spot(at(s, 'noon'), 'h-ai2')).toBe(false);
+    s = open(s, 'ai.seen2');
+    expect(spot(s, 'h-ai2')).toBe(false);
+    expect(nearby(s).find((n) => n.id === 'ai-find')?.text).toContain('あと2つ');
+  });
+
+  it('either painting leaves its own page, pays nothing, and 宗吉 remembers', () => {
+    for (const [end, comp] of [['ai.vat', 'ai-vat'], ['ai.cloth', 'ai-cloth']] as const) {
+      let s = open(open(at(afterKaze(), 'morning'), 'sokichi.ai.ask'), 'sokichi.ai.look');
+      for (const n of [1, 2, 3]) s = open(s, `ai.seen${n}`);
+      expect(entryFor('sokichi', s)).toBe('sokichi.ai.found');
+      const money = s.wallet.balanceMinor;
+      s = open(open(s, 'sokichi.ai.found'), end);
+      expect(questState(s, 'ai')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money);
+      expect(s.journal.pages.find((p) => p.pageId === 'p07-ai')?.compositionId).toBe(comp);
+      expect(s.progress.familiarity.sokichi?.events).toContain('ai');
+      expect(entryFor('sokichi', s)).toBe('sokichi.done');
+    }
+  });
+});
+
+describe('橋のたもと (invite four, draw everyone)', () => {
+  const ready = () =>
+    apply(afterKaze(), ['dougu', 'tenugui', 'fumi', 'kashi'].flatMap((q) => [{ type: 'setFlag', flag: q === 'fumi' ? 'fumi_send' : q === 'kashi' ? 'kashi_now' : `${q}_x` } as Effect, ...questById.get(q)!.completionEffects]));
+
+  it('宗吉 asks only when the four stories are done', () => {
+    expect(entryFor('sokichi', afterKaze())).not.toBe('sokichi.hashi.ask');
+    const three = apply(afterKaze(), ['dougu', 'tenugui', 'kashi'].flatMap((q) => questById.get(q)!.completionEffects));
+    expect(entryFor('sokichi', three)).not.toBe('sokichi.hashi.ask');
+    expect(entryFor('sokichi', ready())).toBe('sokichi.hashi.ask');
+    expect(nearby(ready(), 12640).some((n) => n.id === 'hashi')).toBe(true);
+  });
+
+  it('each of the four is invited once, then 宗吉 gathers everyone', () => {
+    let s = open(open(ready(), 'sokichi.hashi.ask'), 'sokichi.hashi.go');
+    expect(entryFor('sokichi', s)).toBe('sokichi.hashi.waiting');
+    // nearest first: from the far bank, おまつ
+    expect(nearby(s, 14700).find((n) => n.id === 'hashi-invite')?.spotId).toBe('h-omatsu');
+    expect(nearby(s).find((n) => n.id === 'hashi-invite')?.text).toContain('あと4人');
+    for (const who of ['okon', 'kisuke', 'omatsu', 'ihei']) {
+      expect(entryFor(who, s)).toBe(`${who}.hashi`);
+      s = open(s, `${who}.hashi`);
+      expect(entryFor(who, s)).not.toBe(`${who}.hashi`);
+    }
+    expect(nearby(s).find((n) => n.id === 'hashi-done')?.spotId).toBe('h-sokichi');
+    expect(entryFor('sokichi', s)).toBe('sokichi.hashi.gather');
+  });
+
+  it('either picture leaves its own page, pays nothing, and the four remember', () => {
+    for (const [end, comp] of [['hashi.with', 'hashi-with'], ['hashi.side', 'hashi-side']] as const) {
+      let s = open(open(ready(), 'sokichi.hashi.ask'), 'sokichi.hashi.go');
+      for (const who of ['okon', 'kisuke', 'omatsu', 'ihei']) s = open(s, `${who}.hashi`);
+      const money = s.wallet.balanceMinor;
+      s = open(open(s, 'sokichi.hashi.gather'), end);
+      expect(questState(s, 'hashi')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money);
+      expect(s.journal.pages.find((p) => p.pageId === 'p08-hashi')?.compositionId).toBe(comp);
+      for (const who of ['sokichi', 'okon', 'kisuke', 'omatsu', 'ihei']) expect(s.progress.familiarity[who]?.events).toContain('hashi');
+      expect(entryFor('sokichi', s)).toBe('sokichi.hashi.after');
+      expect(entryFor('okon', s)).not.toBe('okon.hashi');
+      expect(nearby(s).some((n) => n.id.startsWith('hashi'))).toBe(false);
+    }
+  });
+});
+
+describe('茶店の猫 (follow the cat, wait beside it)', () => {
+  const tenuguiDone = () => apply(afterKaze(), [...questById.get('tenugui')!.completionEffects]);
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('喜助 asks on a later visit, after his thanks for the towel', () => {
+    expect(entryFor('kisuke', tenuguiDone())).not.toBe('kisuke.neko.ask');
+    const s = apply(tenuguiDone(), ON_CLOSE['kisuke.done3']);
+    expect(entryFor('kisuke', s)).toBe('kisuke.neko.ask');
+    expect(nearby(s, 11650).some((n) => n.id === 'neko')).toBe(true);
+  });
+
+  it('the cat is at one place at a time; a tap sends it on, with a note and no dialogue', () => {
+    let s = open(open(apply(tenuguiDone(), ON_CLOSE['kisuke.done3']), 'kisuke.neko.ask'), 'kisuke.neko.go');
+    const at = () => ['h-neko1', 'h-neko2', 'h-neko3', 'h-nekohome'].filter((id) => spot(s, id));
+    expect(at()).toEqual(['h-neko1']);
+    expect(NODES['neko.hop1'].brief).toBe(true);
+    s = open(s, entryFor('neko1', s)!);
+    expect(at()).toEqual(['h-neko2']);
+    expect(nearby(s).find((n) => n.id === 'neko-2')?.spotId).toBe('h-neko2');
+    s = open(s, entryFor('neko2', s)!);
+    expect(at()).toEqual(['h-neko3']);
+    // reaching for it changes nothing; waiting beside it does
+    s = open(s, 'neko.reach');
+    expect(at()).toEqual(['h-neko3']);
+    s = open(s, 'neko.wait');
+    expect(at()).toEqual([]);
+    expect(entryFor('kisuke', s)).toBe('kisuke.neko.back');
+  });
+
+  it('either picture pays 10文 once, leaves its page, and the cat stays by the tea house', () => {
+    for (const [end, comp] of [['neko.bench', 'neko-bench'], ['neko.boat', 'neko-boat']] as const) {
+      let s = open(open(apply(tenuguiDone(), ON_CLOSE['kisuke.done3']), 'kisuke.neko.ask'), 'kisuke.neko.go');
+      for (const n of ['neko.hop1', 'neko.hop2', 'neko.wait', 'kisuke.neko.back']) s = open(s, n);
+      const money = s.wallet.balanceMinor;
+      s = open(s, end);
+      expect(questState(s, 'neko')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money + 10);
+      expect(open(s, end).wallet.balanceMinor).toBe(money + 10);
+      expect(s.journal.pages.find((p) => p.pageId === 'p09-neko')?.compositionId).toBe(comp);
+      expect(spot(s, 'h-nekohome')).toBe(true);
+      // once the town has wind of lost things, he mentions the bell first, then his day-time words
+      expect(entryFor('kisuke', s)).toBe('lost.suzu.hint');
+      expect(entryFor('kisuke', open(s, 'lost.suzu.hint'))).toBe('kisuke.done3');
+      expect(nearby(s).some((n) => n.id.startsWith('neko'))).toBe(false);
+    }
+  });
+});
+
+describe('ご隠居の散歩 (walk with him at his pace)', () => {
+  const at = (s: SaveData, t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+  const tenuguiDone = () => apply(afterKaze(), [...questById.get('tenugui')!.completionEffects]);
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('the elder passer-by can be asked at noon once his towel is back', () => {
+    expect(spot(at(afterKaze(), 'noon'), 'h-inkyo')).toBe(false);
+    expect(spot(at(tenuguiDone(), 'noon'), 'h-inkyo')).toBe(true);
+    expect(spot(at(tenuguiDone(), 'morning'), 'h-inkyo')).toBe(false);
+    expect(entryFor('inkyo', at(tenuguiDone(), 'noon'))).toBe('inkyo.ask');
+    expect(HOTSPOTS.find((h) => h.id === 'h-inkyo')?.walker).toBe('crowd2-elder');
+  });
+
+  it('while walking he is the companion, not the passer-by; a word to him is a note', () => {
+    let s = open(open(at(tenuguiDone(), 'noon'), 'inkyo.ask'), 'inkyo.go');
+    expect(spot(s, 'h-inkyo')).toBe(false);
+    expect(spot(s, 'a-pass-elder')).toBe(false);
+    expect(spot(s, 'h-inkyo-walk')).toBe(true);
+    expect(entryFor('inkyo', s)).toBe('inkyo.walking');
+    expect(NODES['inkyo.walking'].brief).toBe(true);
+    expect(nearby(s, 1500).find((n) => n.id === 'inkyo-walk')?.spotId).toBe('a-bench');
+    s = apply(s, [{ type: 'setFlag', flag: 'inkyo_arrived' }]);
+    expect(spot(s, 'h-inkyo-walk')).toBe(false);
+    expect(spot(s, 'h-inkyo-bench')).toBe(true);
+    expect(entryFor('inkyo', s)).toBe('inkyo.arrive');
+  });
+
+  it('either way of staying leaves its page, pays nothing, and he goes back to his walk', () => {
+    for (const [end, comp] of [['inkyo.listen', 'inkyo-listen'], ['inkyo.quiet', 'inkyo-quiet']] as const) {
+      let s = apply(open(open(at(tenuguiDone(), 'noon'), 'inkyo.ask'), 'inkyo.go'), [{ type: 'setFlag', flag: 'inkyo_arrived' }]);
+      const money = s.wallet.balanceMinor;
+      s = open(open(s, 'inkyo.arrive'), end);
+      expect(questState(s, 'inkyo')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money);
+      expect(s.journal.pages.find((p) => p.pageId === 'p10-inkyo')?.compositionId).toBe(comp);
+      expect(spot(s, 'h-inkyo-bench')).toBe(false);
+      expect(spot(s, 'a-pass-elder')).toBe(true);
+      expect(nearby(s, 1500).some((n) => n.id.startsWith('inkyo'))).toBe(false);
+    }
+  });
+});
+
+describe('近くのこと with many stories', () => {
+  it('the list shows three; every other offer waits under ほかの頼みごと, none is lost', () => {
+    const s = apply(afterKaze(), ['dougu', 'tenugui', 'fumi', 'kashi'].flatMap((q) => questById.get(q)!.completionEffects));
+    const all = nearbyAll(s, 12640);
+    expect(nearby(s, 12640)).toEqual(all.slice(0, 3));
+    for (const id of ['hashi', 'yube', 'ai', 'inkyo', 'sketches']) expect(all.some((n) => n.id === id), id).toBe(true);
+    expect(new Set(all.map((n) => n.id)).size).toBe(all.length);
+  });
+});
+
+describe('動く人を描く (catch a walking person inside a frame)', () => {
+  const at = (s: SaveData, t: 'morning' | 'noon' | 'evening') => ({ ...s, settings: { ...s.settings, timeChoice: t } });
+  const aiDone = () => apply(afterKaze(), [{ type: 'setFlag', flag: 'ai_vat' }, ...questById.get('ai')!.completionEffects]);
+
+  it('every passer-by has a frame in the middle of their way, wide enough to catch them', () => {
+    for (const [key, u] of Object.entries(UGOKI_PEOPLE)) {
+      const f = frameOf(u.walker)!;
+      expect(f, key).toBeTruthy();
+      expect(f.hi - f.lo, key).toBeGreaterThanOrEqual(90); // 22 units a second: four seconds inside
+      const mid = Math.round((f.lo + f.hi) / 2);
+      expect(parseUgoki(`ugoki-${key}-${mid}`)?.key).toBe(key);
+      expect(parseUgoki(`ugoki-${key}-${f.hi + 200}`), 'outside the frame is not a page').toBeNull();
+    }
+    expect(parseUgoki('ugoki-merchant-8000')).toBeNull();
+  });
+
+  it('宗吉 asks after the morning indigo (not in the morning), then waits', () => {
+    expect(entryFor('sokichi', at(afterKaze(), 'noon'))).not.toBe('sokichi.ugoki.ask');
+    expect(entryFor('sokichi', at(aiDone(), 'noon'))).toBe('sokichi.ugoki.ask');
+    expect(entryFor('sokichi', at(aiDone(), 'morning'))).not.toBe('sokichi.ugoki.ask');
+    const s = open(open(at(aiDone(), 'noon'), 'sokichi.ugoki.ask'), 'sokichi.ugoki.go');
+    expect(entryFor('sokichi', s)).toBe('sokichi.ugoki.waiting');
+    expect(nearby(s, 10780).some((n) => n.id === 'ugoki-catch')).toBe(true);
+  });
+
+  it('the catch leaves its page and 宗吉 remembers; no money', () => {
+    let s = open(open(at(aiDone(), 'noon'), 'sokichi.ugoki.ask'), 'sokichi.ugoki.go');
+    const money = s.wallet.balanceMinor;
+    s = apply(s, NODES['ugoki.caught'].effects!);
+    expect(questState(s, 'ugoki')).toBe('complete');
+    expect(s.wallet.balanceMinor).toBe(money);
+    expect(NODES['ugoki.caught'].page).toEqual({ pageId: 'p11-ugoki', compositionId: 'ugoki-{catch}' });
+    expect(s.progress.familiarity.sokichi?.events).toContain('ugoki');
+    expect(entryFor('sokichi', s)).not.toBe('sokichi.ugoki.waiting');
+  });
+});
+
+describe('雨宿り (rain: carry three umbrellas)', () => {
+  const open2 = () => apply(afterKaze(), ['dougu', 'tenugui'].flatMap((q) => questById.get(q)!.completionEffects));
+  const wet = (s: SaveData, rain = true) => ({ ...s, settings: { ...s.settings, rain } });
+  const spot = (s: SaveData, id: string) => visibleSpots(s).some((h) => h.id === id);
+
+  it('the weather opens with the evening; rain is only rain once open', () => {
+    expect(test(wet(afterKaze()), { rain: true })).toBe(false);
+    expect(test(wet(open2()), { rain: true })).toBe(true);
+    expect(test(open2(), { rain: false })).toBe(true);
+    expect(nearbyAll(open2()).find((n) => n.id === 'ame')?.text).toContain('「雨」に');
+  });
+
+  it('in the rain the passers-by are under the eaves; three people wait for umbrellas', () => {
+    const s = wet(open2());
+    expect(spot(s, 'a-pass-samurai')).toBe(false);
+    expect(spot(open2(), 'a-pass-samurai')).toBe(true);
+    for (const n of [1, 2, 3]) expect(spot(s, `h-ame${n}`)).toBe(true);
+    expect(entryFor('ame1', s)).toBe('ame.shelter1');
+    expect(NODES['ame.shelter1'].brief).toBe(true);
+    expect(entryFor('kisuke', s)).toBe('kisuke.ame.ask');
+    expect(entryFor('kisuke', open2())).not.toBe('kisuke.ame.ask');
+  });
+
+  it('each umbrella once; then either page, no money, and the eaves are empty', () => {
+    for (const [end, comp] of [['ame.street', 'ame-street'], ['ame.eave', 'ame-eave']] as const) {
+      let s = open(open(wet(open2()), 'kisuke.ame.ask'), 'kisuke.ame.go');
+      expect(entryFor('kisuke', s)).toBe('kisuke.ame.waiting');
+      for (const n of [1, 2, 3]) {
+        expect(entryFor(`ame${n}`, s)).toBe(`ame.give${n}`);
+        s = open(s, `ame.give${n}`);
+        expect(spot(s, `h-ame${n}`)).toBe(false);
+      }
+      expect(entryFor('kisuke', s)).toBe('kisuke.ame.done');
+      const money = s.wallet.balanceMinor;
+      s = open(open(s, 'kisuke.ame.done'), end);
+      expect(questState(s, 'ame')).toBe('complete');
+      expect(s.wallet.balanceMinor).toBe(money);
+      expect(s.journal.pages.find((p) => p.pageId === 'p12-ame')?.compositionId).toBe(comp);
+      expect([1, 2, 3].some((n) => spot(s, `h-ame${n}`))).toBe(false);
+    }
+  });
+
+  it('the weather survives a save and a bad value does not', () => {
+    const s = wet(open2());
+    const r = importText(exportText(s));
+    expect(r.ok && r.save.settings.rain).toBe(true);
+    const bad = importText(exportText({ ...s, settings: { ...s.settings, rain: 'yes' as never } }));
+    expect(bad.ok && bad.save.settings.rain).toBeFalsy();
   });
 });

@@ -1,0 +1,430 @@
+{
+  "conditions": {
+    "viewport": [
+      390,
+      844
+    ],
+    "cache": "disabled",
+    "latency_ms": 100,
+    "download_bytes_per_second": 250000,
+    "runs_each": 3,
+    "browser": "headless Chromium; not a physical phone"
+  },
+  "median": {
+    "before": {
+      "background_painted_ms": 6069,
+      "willow_request_ms": 1553.6,
+      "art_requested_before_background_bytes": 3280538,
+      "art_total_bytes": 3280538,
+      "characters_loaded_ms": 13419.3
+    },
+    "after": {
+      "background_painted_ms": 6081.1,
+      "willow_request_ms": 6083.6,
+      "art_requested_before_background_bytes": 2433918,
+      "art_total_bytes": 3280538,
+      "characters_loaded_ms": 13407.3
+    }
+  },
+  "eventual_painting_rgba_identical": true,
+  "painting_sha256": "e117be8359beed22328c0a238a8f30e9d182aff2ded31020ec4c844e37692f4a",
+  "runs": [
+    {
+      "background_painted_ms": 6071.800000000745,
+      "willow_request_ms": 1553.800000000745,
+      "willow_bytes": 846620,
+      "art_requested_before_background_bytes": 3280538,
+      "art_total_bytes": 3280538,
+      "characters_loaded_ms": 13419.300000000745,
+      "assets": [
+        {
+          "file": "scroll-09.webp",
+          "bytes": 166008,
+          "start_ms": 1553,
+          "end_ms": 5605.800000000745
+        },
+        {
+          "file": "scroll-10.webp",
+          "bytes": 181322,
+          "start_ms": 1553,
+          "end_ms": 5996.5
+        },
+        {
+          "file": "scroll-11.webp",
+          "bytes": 185080,
+          "start_ms": 1553.199999999255,
+          "end_ms": 6044.300000000745
+        },
+        {
+          "file": "scroll-13.webp",
+          "bytes": 240922,
+          "start_ms": 1553.199999999255,
+          "end_ms": 7358
+        },
+        {
+          "file": "scroll-12.webp",
+          "bytes": 261808,
+          "start_ms": 1553.199999999255,
+          "end_ms": 7771.699999999255
+        },
+        {
+          "file": "boats-v1.webp",
+          "bytes": 431154,
+          "start_ms": 1553.4000000022352,
+          "end_ms": 10598.5
+        },
+        {
+          "file": "props-v1.webp",
+          "bytes": 465930,
+          "start_ms": 1553.4000000022352,
+          "end_ms": 12986.199999999255
+        },
+        {
+          "file": "characters-v1.webp",
+          "bytes": 501694,
+          "start_ms": 1553.6000000014901,
+          "end_ms": 13418.300000000745
+        },
+        {
+          "file": "willow-v1.webp",
+          "bytes": 846620,
+          "start_ms": 1553.800000000745,
+          "end_ms": 14810
+        }
+      ],
+      "variant": "before",
+      "run": 1
+    },
+    {
+      "background_painted_ms": 6081.099999997765,
+      "willow_request_ms": 6083.599999997765,
+      "willow_bytes": 846620,
+      "art_requested_before_background_bytes": 2433918,
+      "art_total_bytes": 3280538,
+      "characters_loaded_ms": 13391.599999997765,
+      "assets": [
+        {
+          "file": "scroll-09.webp",
+          "bytes": 166008,
+          "start_ms": 1543.5,
+          "end_ms": 5614.5
+        },
+        {
+          "file": "scroll-10.webp",
+          "bytes": 181322,
+          "start_ms": 1543.5999999977648,
+          "end_ms": 5968.099999997765
+        },
+        {
+          "file": "scroll-11.webp",
+          "bytes": 185080,
+          "start_ms": 1543.699999999255,
+          "end_ms": 6058.099999997765
+        },
+        {
+          "file": "scroll-12.webp",
+          "bytes": 261808,
+          "start_ms": 1543.699999999255,
+          "end_ms": 7774.199999999255
+        },
+        {
+          "file": "scroll-13.webp",
+          "bytes": 240922,
+          "start_ms": 1543.7999999970198,
+          "end_ms": 7324.099999997765
+        },
+        {
+          "file": "boats-v1.webp",
+          "bytes": 431154,
+          "start_ms": 1543.7999999970198,
+          "end_ms": 10480.599999997765
+        },
+        {
+          "file": "props-v1.webp",
+          "bytes": 465930,
+          "start_ms": 1543.8999999985099,
+          "end_ms": 13024.79999999702
+        },
+        {
+          "file": "characters-v1.webp",
+          "bytes": 501694,
+          "start_ms": 1543.8999999985099,
+          "end_ms": 13390.599999997765
+        },
+        {
+          "file": "willow-v1.webp",
+          "bytes": 846620,
+          "start_ms": 6083.599999997765,
+          "end_ms": 14800.29999999702
+        }
+      ],
+      "variant": "after",
+      "run": 1
+    },
+    {
+      "background_painted_ms": 6069,
+      "willow_request_ms": 1547.3999999985099,
+      "willow_bytes": 846620,
+      "art_requested_before_background_bytes": 3280538,
+      "art_total_bytes": 3280538,
+      "characters_loaded_ms": 13414.599999997765,
+      "assets": [
+        {
+          "file": "scroll-09.webp",
+          "bytes": 166008,
+          "start_ms": 1546.2999999970198,
+          "end_ms": 5643.099999997765
+        },
+        {
+          "file": "scroll-10.webp",
+          "bytes": 181322,
+          "start_ms": 1546.5,
+          "end_ms": 5990.79999999702
+        },
+        {
+          "file": "scroll-11.webp",
+          "bytes": 185080,
+          "start_ms": 1546.5999999977648,
+          "end_ms": 6039
+        },
+        {
+          "file": "scroll-12.webp",
+          "bytes": 261808,
+          "start_ms": 1546.699999999255,
+          "end_ms": 7755.099999997765
+        },
+        {
+          "file": "scroll-13.webp",
+          "bytes": 240922,
+          "start_ms": 1546.7999999970198,
+          "end_ms": 7346.699999999255
+        },
+        {
+          "file": "boats-v1.webp",
+          "bytes": 431154,
+          "start_ms": 1546.7999999970198,
+          "end_ms": 10484.29999999702
+        },
+        {
+          "file": "props-v1.webp",
+          "bytes": 465930,
+          "start_ms": 1547,
+          "end_ms": 13040.79999999702
+        },
+        {
+          "file": "characters-v1.webp",
+          "bytes": 501694,
+          "start_ms": 1547.199999999255,
+          "end_ms": 13413.099999997765
+        },
+        {
+          "file": "willow-v1.webp",
+          "bytes": 846620,
+          "start_ms": 1547.3999999985099,
+          "end_ms": 14804.699999999255
+        }
+      ],
+      "variant": "before",
+      "run": 2
+    },
+    {
+      "background_painted_ms": 6102.5,
+      "willow_request_ms": 6104.900000002235,
+      "willow_bytes": 846620,
+      "art_requested_before_background_bytes": 2433918,
+      "art_total_bytes": 3280538,
+      "characters_loaded_ms": 13407.300000000745,
+      "assets": [
+        {
+          "file": "scroll-09.webp",
+          "bytes": 166008,
+          "start_ms": 1549.199999999255,
+          "end_ms": 5618.699999999255
+        },
+        {
+          "file": "scroll-10.webp",
+          "bytes": 181322,
+          "start_ms": 1549.300000000745,
+          "end_ms": 6008.5
+        },
+        {
+          "file": "scroll-11.webp",
+          "bytes": 185080,
+          "start_ms": 1549.300000000745,
+          "end_ms": 6068.800000000745
+        },
+        {
+          "file": "scroll-13.webp",
+          "bytes": 240922,
+          "start_ms": 1549.4000000022352,
+          "end_ms": 7334.60000000149
+        },
+        {
+          "file": "scroll-12.webp",
+          "bytes": 261808,
+          "start_ms": 1549.4000000022352,
+          "end_ms": 7756
+        },
+        {
+          "file": "boats-v1.webp",
+          "bytes": 431154,
+          "start_ms": 1549.5,
+          "end_ms": 10490.300000000745
+        },
+        {
+          "file": "props-v1.webp",
+          "bytes": 465930,
+          "start_ms": 1549.5,
+          "end_ms": 13022.400000002235
+        },
+        {
+          "file": "characters-v1.webp",
+          "bytes": 501694,
+          "start_ms": 1549.6000000014901,
+          "end_ms": 13406.300000000745
+        },
+        {
+          "file": "willow-v1.webp",
+          "bytes": 846620,
+          "start_ms": 6104.900000002235,
+          "end_ms": 14810.300000000745
+        }
+      ],
+      "variant": "after",
+      "run": 2
+    },
+    {
+      "background_painted_ms": 6068.20000000298,
+      "willow_request_ms": 1553.6000000014901,
+      "willow_bytes": 846620,
+      "art_requested_before_background_bytes": 3280538,
+      "art_total_bytes": 3280538,
+      "characters_loaded_ms": 13421.10000000149,
+      "assets": [
+        {
+          "file": "scroll-09.webp",
+          "bytes": 166008,
+          "start_ms": 1552.300000000745,
+          "end_ms": 5644.5
+        },
+        {
+          "file": "scroll-10.webp",
+          "bytes": 181322,
+          "start_ms": 1552.5,
+          "end_ms": 5997.800000000745
+        },
+        {
+          "file": "scroll-11.webp",
+          "bytes": 185080,
+          "start_ms": 1552.6000000014901,
+          "end_ms": 6040
+        },
+        {
+          "file": "scroll-12.webp",
+          "bytes": 261808,
+          "start_ms": 1552.800000000745,
+          "end_ms": 7773.800000000745
+        },
+        {
+          "file": "scroll-13.webp",
+          "bytes": 240922,
+          "start_ms": 1552.9000000022352,
+          "end_ms": 7348.300000000745
+        },
+        {
+          "file": "boats-v1.webp",
+          "bytes": 431154,
+          "start_ms": 1553,
+          "end_ms": 10498.300000000745
+        },
+        {
+          "file": "props-v1.webp",
+          "bytes": 465930,
+          "start_ms": 1553.2000000029802,
+          "end_ms": 13042.900000002235
+        },
+        {
+          "file": "characters-v1.webp",
+          "bytes": 501694,
+          "start_ms": 1553.4000000022352,
+          "end_ms": 13419.900000002235
+        },
+        {
+          "file": "willow-v1.webp",
+          "bytes": 846620,
+          "start_ms": 1553.6000000014901,
+          "end_ms": 14811.60000000149
+        }
+      ],
+      "variant": "before",
+      "run": 3
+    },
+    {
+      "background_painted_ms": 6072.89999999851,
+      "willow_request_ms": 6075.599999997765,
+      "willow_bytes": 846620,
+      "art_requested_before_background_bytes": 2433918,
+      "art_total_bytes": 3280538,
+      "characters_loaded_ms": 13412.5,
+      "assets": [
+        {
+          "file": "scroll-09.webp",
+          "bytes": 166008,
+          "start_ms": 1554.699999999255,
+          "end_ms": 5624
+        },
+        {
+          "file": "scroll-10.webp",
+          "bytes": 181322,
+          "start_ms": 1554.8999999985099,
+          "end_ms": 5983.699999999255
+        },
+        {
+          "file": "scroll-11.webp",
+          "bytes": 185080,
+          "start_ms": 1554.8999999985099,
+          "end_ms": 6049.800000000745
+        },
+        {
+          "file": "scroll-12.webp",
+          "bytes": 261808,
+          "start_ms": 1555,
+          "end_ms": 7783.39999999851
+        },
+        {
+          "file": "scroll-13.webp",
+          "bytes": 240922,
+          "start_ms": 1555.0999999977648,
+          "end_ms": 7375.39999999851
+        },
+        {
+          "file": "boats-v1.webp",
+          "bytes": 431154,
+          "start_ms": 1555.0999999977648,
+          "end_ms": 10508.099999997765
+        },
+        {
+          "file": "props-v1.webp",
+          "bytes": 465930,
+          "start_ms": 1555.199999999255,
+          "end_ms": 13033.300000000745
+        },
+        {
+          "file": "characters-v1.webp",
+          "bytes": 501694,
+          "start_ms": 1555.3999999985099,
+          "end_ms": 13411.5
+        },
+        {
+          "file": "willow-v1.webp",
+          "bytes": 846620,
+          "start_ms": 6075.599999997765,
+          "end_ms": 14815.199999999255
+        }
+      ],
+      "variant": "after",
+      "run": 3
+    }
+  ],
+  "interpretation": "Only bytes requested before the complete visible background paint decrease. Eventual transfer is unchanged; source image files are unchanged."
+}

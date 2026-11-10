@@ -1,0 +1,10 @@
+{
+  "url": "http://127.0.0.1:5207/",
+  "checks": [
+    "lazy image; keyboard rows and marker list; collapsed-details focus; precise pointer/fold/view; focus return; 360px/150%; legacy save; game isolation and fixed telemetry",
+    "one-time reminder on new paper-story invitations; both C3 invitations remain reachable after declining one"
+  ],
+  "page_errors": [],
+  "http_errors": [],
+  "scope": "Headless system Chromium; desktop and phone viewports, 150% text. Not physical phone or Safari."
+}

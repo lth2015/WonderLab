@@ -1,4 +1,5 @@
 import type { Condition, Effect, Familiarity, JournalEntry, QuestState, SaveData } from '../contract';
+import { raining, timeOf } from './time';
 import { SCHEMA_VERSION, WORLD_ID } from '../contract';
 
 /** Spec §11: 初期所持金60文 (調整値, not a historical figure). */
@@ -38,6 +39,11 @@ export function test(s: SaveData, c: Condition | undefined): boolean {
     return Array.isArray(c.is) ? c.is.includes(st) : st === c.is;
   }
   if ('pagesAtLeast' in c) return s.journal.pages.length >= c.pagesAtLeast;
+  if ('rain' in c) return raining(s) === c.rain;
+  if ('time' in c) {
+    const t = timeOf(s);
+    return Array.isArray(c.time) ? c.time.includes(t) : c.time === t;
+  }
   return false;
 }
 
