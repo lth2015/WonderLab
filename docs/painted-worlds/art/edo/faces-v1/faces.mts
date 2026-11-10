@@ -31,6 +31,9 @@ const WHO: Record<string, [sprite: string, who: string, mood: string]> = {
   'pass-apprentice': ['crowd2-apprentice', 'an Edo shop apprentice boy about thirteen, small topknot, white headband, blue striped work kimono', 'eager and a little hurried'],
   'pass-parasol': ['crowd1-parasol', 'a young Edo townswoman about eighteen, elaborate hair with a gold comb, persimmon-orange flowered kimono', 'bright and friendly'],
   'pass-porter': ['crowd1-porter', 'a sturdy Edo porter in his thirties, checked headband, blue patterned work jacket, the straps of a heavy back-load over his shoulders', 'cheerful, catching his breath'],
+  'pass-hikyaku': ['crowd3-hikyaku', 'a young Edo courier (hikyaku) with a white headband, short indigo work kimono, lean and tanned', 'brisk, catching his breath, friendly'],
+  'pass-daiku': ['crowd3-daiku', 'an Edo carpenter in his twenties with a twisted headband, dark indigo happi coat with a plain collar', 'steady, a craftsman\'s quiet pride'],
+  'pass-ameuri': ['crowd3-ameuri', 'a cheerful Edo candy seller in his thirties wearing a small woven straw hat and a grey-and-white striped kimono', 'warm, smiling broadly'],
   inkyo: ['crowd2-elder', 'a retired Edo old gentleman in his seventies, white hair, thin face', 'mild and kindly'],
 };
 
