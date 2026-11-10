@@ -10,6 +10,7 @@ import { STORIES } from './stories';
 import { RUMOR_RANK, RUMORS } from './rumors';
 import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
 import { TEA_PRICE } from './shop';
+import { PASSERS } from './passers';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
 
@@ -356,6 +357,15 @@ NODES['kisuke.done3'].choices!.push({ label: `一服する（${TEA_PRICE}文）`
 // after 夕暮れの灯 his evening word is always the lamps: the tea house stays open then too
 NODES['kisuke.yube.after'].choices = [{ label: '少し話す', talk: true }, { label: `一服する（${TEA_PRICE}文）`, shop: 'tea' }];
 for (const id of ['seita.done', 'seita.again']) NODES[id].choices!.push({ label: '題箋を見る', shop: 'slips' });
+// 通りすがりの人と話す (content/passers.ts): a passer-by stops and talks about their work
+for (const [id, p] of Object.entries(PASSERS)) {
+  const ask: Choice[] = [...p.topics.map((t, i) => ({ label: t.q, next: `pass.${id}.${i}` })), { label: '引き止めてごめんなさい', next: `pass.${id}.bye` }];
+  NODES[`pass.${id}`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.hello }], choices: ask };
+  p.topics.forEach((t, i) => (NODES[`pass.${id}.${i}`] = { lines: t.a.map((text) => ({ by: id, text })), next: `pass.${id}.more` }));
+  NODES[`pass.${id}.more`] = { lines: [{ by: id, text: p.more }], choices: ask };
+  NODES[`pass.${id}.bye`] = { lines: [{ by: id, text: p.bye }] };
+}
+
 // after 橋のたもと, 宗吉 can look back over the day with the player (ui/Epilogue.tsx)
 NODES['sokichi.hashi.after'].choices!.push({ label: '今日の町をふりかえる', epilogue: true });
 

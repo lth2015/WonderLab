@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 // time have their own tests (engine/chapters.test.ts). Here every story counts as open.
 vi.mock('./chapters', async (orig) => ({ ...(await orig<typeof import('./chapters')>()), questOpen: () => true }));
 import { ENTRIES, NODES, ON_CLOSE, RECALL_START } from '../content/script';
+import { PASSERS } from '../content/passers';
 import { FALLBACK, TALK_CLOSE, TALK_TOPICS } from '../content/talk';
 import { characterById, frameOf, parseUgoki, UGOKI_PEOPLE, GUIDE_STOPS, HOTSPOTS, PAGE_SLOTS, PAGE_TITLES, PAGES, questById, questOfPage, SCENE_W, parseSketch, SKETCHES, sketchPageId } from '../content/world';
 import type { Effect, HotspotDef, SaveData } from '../contract';
@@ -323,7 +324,8 @@ describe('script integrity', () => {
       if (n.next) expect(NODES[n.next], `${id} → ${n.next}`).toBeDefined();
       for (const c of n.choices ?? []) if (c.next) expect(NODES[c.next], `${id} → ${c.next}`).toBeDefined();
       if (n.page) expect(PAGES.some((p) => p.id === n.page!.pageId), `${id}: ${n.page.pageId}`).toBe(true);
-      for (const l of n.lines) if (l.by !== 'narration') expect(characterById.get(l.by), `${id}: ${l.by}`).toBeDefined();
+      // a speaker is a person of the town, or a passer-by who stopped to talk (content/passers.ts)
+      for (const l of n.lines) if (l.by !== 'narration') expect(characterById.get(l.by) ?? PASSERS[l.by], `${id}: ${l.by}`).toBeDefined();
     }
     for (const rules of Object.values(ENTRIES)) for (const r of rules) expect(NODES[r.node]).toBeDefined();
     for (const k of Object.keys(ON_CLOSE)) expect(NODES[k]).toBeDefined();

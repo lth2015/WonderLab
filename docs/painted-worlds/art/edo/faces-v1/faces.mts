@@ -24,6 +24,13 @@ const WHO: Record<string, [sprite: string, who: string, mood: string]> = {
   omatsu: ['omatsu-smile', 'an elderly Edo fishwife in her late sixties, grey hair tied up simply, wrinkled kind face', 'warm grandmotherly smile'],
   kamekichi: ['kame-point', 'an Edo boy about eight years old, round face, short hair with a small topknot', 'bright, mischievous grin'],
   ihei: ['crowd1-merchant', 'an Edo money-changer\'s clerk in his thirties, tidy topknot, thoughtful face', 'courteous, a little homesick'],
+  // 通りすがりの人 (passers-by who stop to talk about their work)
+  'pass-samurai': ['crowd2-samurai', 'a provincial samurai in his thirties on duty in Edo, shaved pate with a neat topknot, black haori with small white crests over a grey striped hakama', 'composed, a little curious'],
+  'pass-monk': ['crowd1-monk', 'an elderly mendicant Buddhist monk wearing a wide woven sedge hat, dark grey robe with an ochre surplice', 'serene, gentle, eyes lowered'],
+  'pass-fishmonger': ['crowd2-fishmonger', 'a young Edo fishmonger with a blue-and-white checked headband, blue work jacket open at the chest, tanned', 'lively, about to call out his wares'],
+  'pass-apprentice': ['crowd2-apprentice', 'an Edo shop apprentice boy about thirteen, small topknot, white headband, blue striped work kimono', 'eager and a little hurried'],
+  'pass-parasol': ['crowd1-parasol', 'a young Edo townswoman about eighteen, elaborate hair with a gold comb, persimmon-orange flowered kimono', 'bright and friendly'],
+  'pass-porter': ['crowd1-porter', 'a sturdy Edo porter in his thirties, checked headband, blue patterned work jacket, the straps of a heavy back-load over his shoulders', 'cheerful, catching his breath'],
   inkyo: ['crowd2-elder', 'a retired Edo old gentleman in his seventies, white hair, thin face', 'mild and kindly'],
 };
 

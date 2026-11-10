@@ -33,7 +33,8 @@ def largest_blob(m):
     return out
 
 src, out = sys.argv[1], sys.argv[2]
-for n in 'sokichi seita okon kisuke kinji oharu omatsu kamekichi ihei inkyo'.split():
+import os
+for n in [x[5:-4] for x in sorted(os.listdir(src)) if x.startswith('face-') and x.endswith('.png')]:
     im = Image.open(f'{src}/face-{n}.png').convert('RGBA')
     a = np.array(im)
     small = np.array(Image.fromarray(a[:, :, 3]).resize((256, 256), Image.BOX)) > 24
