@@ -61,6 +61,11 @@ if (!URL || !SAVE) throw new Error('usage: node favors.cjs <url> <save.json> [sh
     await p.waitForTimeout(250);
   }
   ok(times === 1, `清太 says it once: ${heard.slice(0, 30)}…`);
+  await p.getByRole('button', { name: /^絵巻帳/ }).click();
+  await p.getByRole('button', { name: '町の人' }).click(); await p.waitForTimeout(300);
+  const done = await p.locator('.passers-met .favor-done').allInnerTexts();
+  ok(done.length === 1 && /清太/.test(done[0]), `the 人物帳 keeps it: ${done.join(' / ')}`);
+  if (SHOTS) await p.locator('.passers-met').screenshot({ path: `${SHOTS}/favor-book.png` });
   console.log(`page errors ${errs.length ? errs.join(' | ') : 'none'}`);
   await b.close();
   if (bad.length || errs.length) process.exit(1);

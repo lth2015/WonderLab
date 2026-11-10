@@ -3,7 +3,7 @@ import { NAJIMI, PROFILE } from '../content/people';
 import { characterById, ROLES } from '../content/world';
 import { acquaintances } from '../engine/people';
 import { Face } from './Face';
-import { PASSERS, passerFlag } from '../content/passers';
+import { PASSERS, favorFlag, passerFlag } from '../content/passers';
 import { hasFlag } from '../engine/state';
 
 // 人物帳: the people met, with their portrait, how well they know the player, and the
@@ -61,6 +61,7 @@ export function People({ save, onVisit }: { save: SaveData; onVisit(spotId: stri
               <span>
                 <b>{p.name}</b>
                 <small>{p.role}</small>
+                {p.favor && hasFlag(save, favorFlag(id)) && <small className="favor-done">頼まれて、{characterById.get(p.favor.who)?.displayName}さんを教えた</small>}
               </span>
             </li>
           ))}
