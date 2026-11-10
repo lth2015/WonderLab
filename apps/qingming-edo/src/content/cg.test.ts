@@ -17,4 +17,9 @@ describe('物語の画', () => {
     expect(NODES['yube.tell'].cg).toBeUndefined();
     expect(cgUrl('ippuku')).toBeTruthy();
   });
+
+  it('after 橋のたもと, 宗吉 offers to look back over the day', () => {
+    expect(NODES['sokichi.hashi.after'].choices!.some((c) => c.epilogue)).toBe(true);
+    expect(NODES['sokichi.hashi.after'].choices!.some((c) => c.talk)).toBe(true);
+  });
 });

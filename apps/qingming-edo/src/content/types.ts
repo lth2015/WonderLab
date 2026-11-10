@@ -17,6 +17,8 @@ export interface Choice {
   talk?: boolean;
   /** Opens a shop (ui/Shop.tsx): 喜助's tea, 青葉屋's title slips. */
   shop?: 'tea' | 'slips';
+  /** Opens 今日の町をふりかえる (ui/Epilogue.tsx). */
+  epilogue?: boolean;
   /** Opens a short game; on success the dialogue goes on at `next` (spec §10). */
   game?: 'wrap' | 'tea' | 'tenugui' | 'trace';
   /** なぞり描き: which sketch place is traced (with game 'trace'). */

@@ -1899,18 +1899,21 @@ button.term[aria-expanded="true"] {
 .person .line-body > p {
   margin-bottom: 2px;
 }
-.person .najimi span {
+.person .najimi span,
+.epilogue .najimi span {
   display: inline-block;
   font-size: 0.8125rem;
   padding: 0 8px;
   border-radius: 10px;
   border: 1px solid var(--line);
 }
-.person .najimi-1 {
+.person .najimi-1,
+.epilogue .najimi-1 {
   border-color: #b7a37c;
   background: #f1e6c9;
 }
-.person .najimi-2 {
+.person .najimi-2,
+.epilogue .najimi-2 {
   border-color: #9b3a26;
   color: #9b3a26;
   background: #f6e1d6;
@@ -2004,4 +2007,63 @@ button.term[aria-expanded="true"] {
   border: 2px solid #6b5a3e;
   background: #fff6e2;
   vertical-align: -2px;
+}
+
+/* ---------------------------------------------------------------- 今日の町をふりかえる */
+.epilogue .najimi {
+  margin: 0;
+}
+.epilogue .epi-count {
+  margin: 0;
+  text-align: right;
+}
+.epilogue .epi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  animation: epi-in 320ms var(--ease);
+}
+.epilogue .epi-card .line-body {
+  text-align: left;
+  align-self: stretch;
+}
+.epilogue .epi-face .face {
+  float: none;
+  width: 150px;
+  height: 150px;
+  margin: 0;
+}
+.epilogue .epi-name small {
+  margin-left: 10px;
+}
+.epilogue .epi-word {
+  max-width: 30em;
+}
+.epilogue .epi-lately {
+  max-width: 32em;
+  border-left: 3px solid #d9c9a3;
+  padding-left: 8px;
+  text-align: left;
+}
+.epilogue .epi-sum {
+  margin-top: 8px;
+}
+.epilogue .epi-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.epilogue .epi-nav button {
+  flex: 1;
+}
+@keyframes epi-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.rm .epilogue .epi-card {
+  animation: none;
 }
