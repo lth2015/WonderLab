@@ -12,11 +12,8 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
   for(const char of text){if(ctx.measureText(row+char).width>max){ctx.fillText(row,x,yy);row='';yy+=line;}row+=char;}
   if(row)ctx.fillText(row,x,yy);return yy;
 }
-export async function createPostcard(game: GameState, id: PageId, art: SVGSVGElement | null) {
+export async function exportPostcard(game: GameState, id: PageId, art: SVGSVGElement | null) {
   const page=PAGES.find(p=>p.id===id)!;
-  if (!art || !game.journal.includes(id)) throw new Error('画页还未准备好，记录已保留，请重新打开后重试。');
-  // Wait for device/web fonts before measuring or drawing the independent layout.
-  if (document.fonts) await document.fonts.ready;
   const canvas=document.createElement('canvas');canvas.width=1440;canvas.height=1800;
   try {
     const ctx=canvas.getContext('2d');if(!ctx)throw new Error('浏览器暂不能生成留念图片。');
