@@ -90,6 +90,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'neko.bench': {
+    cg: 'neko-bench',
     effects: [{ type: 'setFlag', flag: 'neko_bench' }, ...quest.completionEffects],
     page: { pageId: 'p09-neko', compositionId: 'neko-bench' },
     lines: [
@@ -99,6 +100,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'neko.boat': {
+    cg: 'neko-boat',
     effects: [{ type: 'setFlag', flag: 'neko_boat' }, ...quest.completionEffects],
     page: { pageId: 'p09-neko', compositionId: 'neko-boat' },
     lines: [

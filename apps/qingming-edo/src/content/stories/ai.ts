@@ -54,6 +54,7 @@ const nodes: Record<string, DialogueNode> = {
   'ai.seen2': SEEN(2, '藍甕のふちに、青い泡が浮いている。甕の底は、ほとんど黒に近い藍だ。'),
   'ai.seen3': SEEN(3, '干し場の布は、何度も浸けた濃い藍から、空のような薄い藍まで並んでいる。'),
   'sokichi.ai.found': {
+    cg: 'ai',
     lines: [
       { by: 'sokichi', text: '三つとも見てきたか。同じ藍でも、ずいぶん違っただろう。' },
       { by: 'sokichi', text: 'では、どれを描く。深いほうか、明るいほうか。' },
@@ -64,6 +65,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'ai.vat': {
+    cg: 'ai',
     effects: [{ type: 'setFlag', flag: 'ai_vat' }, ...quest.completionEffects],
     page: { pageId: 'p07-ai', compositionId: 'ai-vat' },
     lines: [
@@ -72,6 +74,7 @@ const nodes: Record<string, DialogueNode> = {
     ],
   },
   'ai.cloth': {
+    cg: 'ai',
     effects: [{ type: 'setFlag', flag: 'ai_cloth' }, ...quest.completionEffects],
     page: { pageId: 'p07-ai', compositionId: 'ai-cloth' },
     lines: [
