@@ -3,7 +3,7 @@ import { hasFace } from '../ui/Face';
 import type { SaveData } from '../contract';
 import { apply, newSave } from '../engine/state';
 import { LOST } from './lost';
-import { GLIMPSE_Q, PASSERS, glimpseNode } from './passers';
+import { GLIMPSE_Q, PASSERS, favorNode, glimpseNode } from './passers';
 import { NODES } from './script';
 import { HOTSPOTS } from './world';
 
@@ -26,7 +26,7 @@ describe('通りすがりの人と話す', () => {
       const open = NODES[`pass.${id}`];
       expect(open.lines[0].by).toBe('narration');
       expect(open.choices).toHaveLength(5);
-      for (let i = 0; i < 3; i++) expect(NODES[`pass.${id}.${i}`].next).toBe(`pass.${id}.more`);
+      for (let i = 0; i < 3; i++) expect(NODES[`pass.${id}.${i}`].next).toBe(PASSERS[id].favor?.after === i ? `pass.${id}.favor` : `pass.${id}.more`);
       expect(NODES[`pass.${id}.more`].choices).toEqual(open.choices);
       expect(NODES[`pass.${id}.bye`].lines[0].by).toBe(id);
     }
@@ -67,5 +67,35 @@ describe('通りすがりの人に落とし物のことを聞く', () => {
     expect(told.size).toBe(LOST.length);
     const left = found(s, LOST.slice(1).map((t) => t.id));
     for (const id of Object.keys(PASSERS)) expect(glimpseNode(left, id)).toBe(`pass.${id}.seen.${LOST[0].id}`);
+  });
+});
+
+describe('路人のちょっとした頼み', () => {
+  it('once the player knows who can help, the ask follows its answer; pointed there, that person mentions it once', async () => {
+    const { questById } = await import('./world');
+    const { entryFor } = await import('../engine/story');
+    const done = (s: SaveData, ...qs: string[]) => apply(s, qs.flatMap((q) => questById.get(q)!.completionEffects));
+    const favors = Object.entries(PASSERS).filter(([, p]) => p.favor);
+    expect(favors.length).toBeGreaterThanOrEqual(4);
+    for (const [id, p] of favors) {
+      const f = p.favor!;
+      expect(NODES[`pass.${id}.${f.after}`].next).toBe(`pass.${id}.favor`);
+      // not yet knowing them: straight back to the questions
+      expect(favorNode(done(newSave(), 'kaze'), id)).toBe(f.needs === 'kaze' ? `pass.${id}.favor.ask` : `pass.${id}.more`);
+      let s: SaveData = { ...done(newSave(), 'kaze', f.needs), settings: { ...newSave().settings, timeChoice: 'noon' } };
+      expect(favorNode(s, id)).toBe(`pass.${id}.favor.ask`);
+      const ask = NODES[`pass.${id}.favor.ask`];
+      expect(ask.choices![0].next).toBe(`pass.${id}.favor.yes`);
+      expect(ask.choices![1].next).toBe(`pass.${id}.more`);
+      expect(entryFor(f.who, s)).not.toBe(`favor.${id}`);
+      s = apply(s, NODES[`pass.${id}.favor.yes`].effects!);
+      expect(favorNode(s, id)).toBe(`pass.${id}.more`);
+      // other words of theirs may come first (a lost thing, a rumor): say those, then this one
+      for (let k = 0; k < 6 && entryFor(f.who, s) !== `favor.${id}` && NODES[entryFor(f.who, s)!]?.effects; k++) s = apply(s, NODES[entryFor(f.who, s)!].effects!);
+      expect(entryFor(f.who, s), id).toBe(`favor.${id}`);
+      expect(NODES[`favor.${id}`].lines[0].by).toBe(f.who);
+      s = apply(s, NODES[`favor.${id}`].effects!);
+      expect(entryFor(f.who, s), `${id} once`).not.toBe(`favor.${id}`);
+    }
   });
 });

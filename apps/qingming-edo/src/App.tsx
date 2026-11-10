@@ -24,7 +24,7 @@ import { Face } from './ui/Face';
 import { Shop } from './ui/Shop';
 import { Cg } from './ui/Cg';
 import { Epilogue } from './ui/Epilogue';
-import { PASSERS, glimpseNode, passerFlag, passerName, passerRole } from './content/passers';
+import { PASSERS, favorNode, glimpseNode, passerFlag, passerName, passerRole } from './content/passers';
 import { ownsSlip, retitle, slipStyles } from './engine/shop';
 import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
@@ -232,6 +232,9 @@ export function App() {
       // 落とし物を見かけたか: which thing a passer tells of depends on what still lies in the street
       const seen = /^pass\.([a-z-]+)\.seen$/.exec(id);
       if (seen) id = glimpseNode(saveRef.current, seen[1]);
+      // a passer's small ask comes once the player knows who can help, until they have been pointed there
+      const favor = /^pass\.([a-z-]+)\.favor$/.exec(id);
+      if (favor) id = favorNode(saveRef.current, favor[1]);
       const n = NODES[id];
       if (!n) return setDialogue(null);
       const inRecall = !!recallRef.current;
