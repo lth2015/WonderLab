@@ -1,0 +1,91 @@
+{
+  "checks": [
+    {
+      "width": 360,
+      "text_percent": 150,
+      "keyboard_all_stops": true,
+      "camera_centres_match": true,
+      "street_focus_returned": true,
+      "dialog_closes": true,
+      "save_unchanged": true,
+      "event_types": [
+        "world_entered"
+      ]
+    },
+    {
+      "width": 390,
+      "text_percent": 150,
+      "keyboard_all_stops": true,
+      "camera_centres_match": true,
+      "street_focus_returned": true,
+      "dialog_closes": true,
+      "save_unchanged": true,
+      "event_types": [
+        "world_entered"
+      ]
+    }
+  ],
+  "page_errors": [],
+  "stops": [
+    {
+      "id": "bridge",
+      "name": "日本橋",
+      "note": "橋と荷舟のいる水辺",
+      "x": 13420
+    },
+    {
+      "id": "aoba",
+      "name": "青葉屋の店先",
+      "note": "清太と宗吉のいる紙屋",
+      "x": 12510
+    },
+    {
+      "id": "teahouse",
+      "name": "茶店「喜の字」",
+      "note": "喜助とお春のいる茶店",
+      "x": 11530
+    },
+    {
+      "id": "well",
+      "name": "小路の井戸",
+      "note": "井戸と塀越しの梅",
+      "x": 10550
+    },
+    {
+      "id": "rice",
+      "name": "米屋の前",
+      "note": "米俵のそばで金次に会う",
+      "x": 7560
+    },
+    {
+      "id": "kashi",
+      "name": "堀の河岸",
+      "note": "小舟と杭の並ぶ堀沿い",
+      "x": 5350
+    },
+    {
+      "id": "cooper",
+      "name": "桶屋の店先",
+      "note": "桶の並ぶ手仕事の店先",
+      "x": 4250
+    },
+    {
+      "id": "dye",
+      "name": "紺屋の干し場",
+      "note": "藍甕と布の干し場",
+      "x": 3250
+    },
+    {
+      "id": "garden",
+      "name": "水辺の庭",
+      "note": "池と庭木を眺める",
+      "x": 1120
+    },
+    {
+      "id": "end",
+      "name": "町はずれの川端",
+      "note": "柳の下の縁台でひと休み",
+      "x": 450
+    }
+  ]
+}

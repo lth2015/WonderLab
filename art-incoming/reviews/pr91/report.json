@@ -1,0 +1,114 @@
+[
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "scene": "day",
+    "file": "desktop-day.png",
+    "state": {
+      "atmosphere": {
+        "timeOfDay": "day",
+        "weather": "lotus",
+        "palette": "serene",
+        "wind": 0.25,
+        "intensity": 0.5
+      },
+      "day": 0.999999653754484,
+      "dusk": 0,
+      "lotus": 0.999999653754484,
+      "lotusPresence": 0.9999379796090692,
+      "lotusVisible": true,
+      "fishCount": 1,
+      "engineTime": 30.194212000000313
+    },
+    "lotusResponse": 200,
+    "pageErrors": [],
+    "aiCalls": [],
+    "mode": "Visual fixture sets lotus and timeOfDay directly after UI input; not a language recognition check. Deterministic 30 seconds at 60 simulation steps per second; software WebGL; reduced motion. Landscape drawn after stepping. No realtime or device performance claim."
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "scene": "dusk",
+    "file": "desktop-dusk.png",
+    "state": {
+      "atmosphere": {
+        "timeOfDay": "dusk",
+        "weather": "lotus",
+        "palette": "serene",
+        "wind": 0.25,
+        "intensity": 0.5
+      },
+      "day": 3.462453960797618e-7,
+      "dusk": 0.999999653754484,
+      "lotus": 0.9999999999998799,
+      "lotusPresence": 0.9999999972617002,
+      "lotusVisible": true,
+      "fishCount": 1,
+      "engineTime": 60.19421199999861
+    },
+    "lotusResponse": 200,
+    "pageErrors": [],
+    "aiCalls": [],
+    "mode": "Visual fixture sets lotus and timeOfDay directly after UI input; not a language recognition check. Deterministic 30 seconds at 60 simulation steps per second; software WebGL; reduced motion. Landscape drawn after stepping. No realtime or device performance claim."
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "scene": "night",
+    "file": "desktop-night.png",
+    "state": {
+      "atmosphere": {
+        "timeOfDay": "night",
+        "weather": "lotus",
+        "palette": "serene",
+        "wind": 0.25,
+        "intensity": 0.5
+      },
+      "day": 1.1988591581639164e-13,
+      "dusk": 3.462453960797618e-7,
+      "lotus": 0.9999999999999933,
+      "lotusPresence": 0.9999999999998788,
+      "lotusVisible": true,
+      "fishCount": 1,
+      "engineTime": 90.19421199999691
+    },
+    "lotusResponse": 200,
+    "pageErrors": [],
+    "aiCalls": [],
+    "mode": "Visual fixture sets lotus and timeOfDay directly after UI input; not a language recognition check. Deterministic 30 seconds at 60 simulation steps per second; software WebGL; reduced motion. Landscape drawn after stepping. No realtime or device performance claim."
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scene": "day",
+    "file": "mobile-day.png",
+    "state": {
+      "atmosphere": {
+        "timeOfDay": "day",
+        "weather": "lotus",
+        "palette": "serene",
+        "wind": 0.25,
+        "intensity": 0.5
+      },
+      "day": 0.999999653754484,
+      "dusk": 0,
+      "lotus": 0.999999653754484,
+      "lotusPresence": 0.9999379796090692,
+      "lotusVisible": true,
+      "fishCount": 1,
+      "engineTime": 30.081927999999948
+    },
+    "lotusResponse": 200,
+    "pageErrors": [],
+    "aiCalls": [],
+    "mode": "Visual fixture sets lotus and timeOfDay directly after UI input; not a language recognition check. Deterministic 30 seconds at 60 simulation steps per second; software WebGL; reduced motion. Landscape drawn after stepping. No realtime or device performance claim."
+  }
+]

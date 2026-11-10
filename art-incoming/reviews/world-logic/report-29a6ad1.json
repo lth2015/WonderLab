@@ -1,0 +1,283 @@
+{
+  "source": "29a6ad13d5299ab233838b2f3fbfba07c882be2c",
+  "method": "Actual engine in isolated source archive; synthetic strokes and direct public scene commands; deterministic stepping; no physical-device performance or sound audition claim.",
+  "pageErrors": [],
+  "daySequential": {
+    "moon": true,
+    "planets": 0,
+    "clouds": 1
+  },
+  "dayQueued": {
+    "queuedBefore": 2,
+    "moon": true,
+    "planets": 1,
+    "cloudsAdded": 0
+  },
+  "galaxyByDay": {
+    "state": {
+      "timeOfDay": "day",
+      "weather": "galaxy",
+      "palette": "serene",
+      "wind": 0.25,
+      "intensity": 0.5
+    },
+    "day": 0.9999999709855161,
+    "galaxy": 0.9999999439828131,
+    "uGalaxy": 0.9999999439828131,
+    "nightVisibility": 0,
+    "audit": []
+  },
+  "firefliesByDay": {
+    "state": {
+      "timeOfDay": "day",
+      "weather": "fireflies",
+      "palette": "serene",
+      "wind": 0.25,
+      "intensity": 0.5
+    },
+    "day": 0.9999999999999933,
+    "fireflies": 0.7749999775137748,
+    "uFireflies": 0.7749999775137748
+  },
+  "soundsAfterSnow": {
+    "queuedCicadas": [
+      {
+        "kind": "cicada",
+        "delay": 1.3724515536604827
+      },
+      {
+        "kind": "cicada",
+        "delay": 6.967740817527243
+      }
+    ],
+    "played": [
+      {
+        "kind": "cicada",
+        "t": 253.3556653334271,
+        "snow": 0.26112959614566605,
+        "weather": "snow",
+        "opts": {
+          "pan": 0.45600000000000007,
+          "strength": 0.7
+        }
+      },
+      {
+        "kind": "cicada",
+        "t": 258.9556653334265,
+        "snow": 0.6776218972731534,
+        "weather": "snow",
+        "opts": {
+          "pan": -0.45599999999999996,
+          "strength": 0.35
+        }
+      }
+    ],
+    "ambient": {
+      "rain": 0,
+      "wind": 0.25,
+      "fireflies": 4.907958668772318e-12,
+      "snow": 0.7530558779773806,
+      "autumn": 0,
+      "dusk": 0
+    }
+  },
+  "scenes": [
+    {
+      "id": "willow",
+      "name": "柳",
+      "season": "春",
+      "declaredTime": "day",
+      "command": {
+        "timeOfDay": "day",
+        "weather": "clear",
+        "intensity": 0.5
+      },
+      "effectiveTime": "day",
+      "weatherMatches": true
+    },
+    {
+      "id": "blossom",
+      "name": "落花",
+      "season": "春",
+      "declaredTime": "day",
+      "command": {
+        "weather": "blossom",
+        "wind": 0.3,
+        "intensity": 0.7
+      },
+      "effectiveTime": "day",
+      "weatherMatches": true
+    },
+    {
+      "id": "rainbow",
+      "name": "虹",
+      "season": "春",
+      "declaredTime": "day",
+      "command": {
+        "weather": "rainbow",
+        "timeOfDay": "day",
+        "intensity": 0.5
+      },
+      "effectiveTime": "day",
+      "weatherMatches": true
+    },
+    {
+      "id": "lotus",
+      "name": "荷",
+      "season": "夏",
+      "declaredTime": "day",
+      "command": {
+        "weather": "lotus",
+        "timeOfDay": "day",
+        "intensity": 0.5
+      },
+      "effectiveTime": "day",
+      "weatherMatches": true
+    },
+    {
+      "id": "storm",
+      "name": "雷雨",
+      "season": "夏",
+      "declaredTime": null,
+      "command": {
+        "weather": "storm",
+        "intensity": 0.9,
+        "wind": 0.65
+      },
+      "effectiveTime": "inherited",
+      "weatherMatches": true
+    },
+    {
+      "id": "cicada",
+      "name": "鸣蝉",
+      "season": "夏",
+      "declaredTime": "night",
+      "command": {
+        "weather": "fireflies",
+        "timeOfDay": "night",
+        "wind": 0.45,
+        "intensity": 0.5
+      },
+      "effectiveTime": "night",
+      "weatherMatches": true
+    },
+    {
+      "id": "fireflies",
+      "name": "萤火",
+      "season": "夏",
+      "declaredTime": "night",
+      "command": {
+        "weather": "fireflies",
+        "intensity": 0.5
+      },
+      "effectiveTime": "night",
+      "weatherMatches": true
+    },
+    {
+      "id": "magpie",
+      "name": "惊鹊",
+      "season": "秋",
+      "declaredTime": "night",
+      "command": {
+        "weather": "moonlit",
+        "timeOfDay": "night",
+        "intensity": 0.7
+      },
+      "effectiveTime": "night",
+      "weatherMatches": true
+    },
+    {
+      "id": "autumn",
+      "name": "秋",
+      "season": "秋",
+      "declaredTime": "dusk",
+      "command": {
+        "weather": "autumn",
+        "wind": 0.55,
+        "palette": "melancholy",
+        "intensity": 0.7
+      },
+      "effectiveTime": "dusk",
+      "weatherMatches": true
+    },
+    {
+      "id": "moonlit",
+      "name": "月",
+      "season": "秋",
+      "declaredTime": "night",
+      "command": {
+        "weather": "moonlit",
+        "timeOfDay": "night",
+        "intensity": 0.5
+      },
+      "effectiveTime": "night",
+      "weatherMatches": true
+    },
+    {
+      "id": "lanterns",
+      "name": "河灯",
+      "season": "秋",
+      "declaredTime": "night",
+      "command": {
+        "weather": "lanterns",
+        "timeOfDay": "night",
+        "intensity": 0.5
+      },
+      "effectiveTime": "night",
+      "weatherMatches": true
+    },
+    {
+      "id": "shower",
+      "name": "流星",
+      "season": "冬",
+      "declaredTime": "night",
+      "command": {
+        "weather": "shower",
+        "timeOfDay": "night",
+        "intensity": 0.5
+      },
+      "effectiveTime": "night",
+      "weatherMatches": true
+    },
+    {
+      "id": "galaxy",
+      "name": "星河",
+      "season": "冬",
+      "declaredTime": "night",
+      "command": {
+        "weather": "galaxy",
+        "timeOfDay": "night",
+        "fish": "rest",
+        "intensity": 0.5
+      },
+      "effectiveTime": "night",
+      "weatherMatches": true
+    },
+    {
+      "id": "moonsnow",
+      "name": "雪",
+      "season": "冬",
+      "declaredTime": "night",
+      "command": {
+        "weather": "moonsnow",
+        "wind": 0.08,
+        "timeOfDay": "night",
+        "intensity": 0.5
+      },
+      "effectiveTime": "night",
+      "weatherMatches": true
+    }
+  ],
+  "resize": {
+    "fresh": {
+      "strands": 31,
+      "maxLength": 505.0859868884086,
+      "tipsBelowHorizon": 2
+    },
+    "resized": {
+      "strands": 31,
+      "maxLength": 505.0859868884086,
+      "tipsBelowHorizon": 2
+    }
+  }
+}

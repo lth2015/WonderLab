@@ -1,0 +1,1262 @@
+{
+  "source": "3d1c289",
+  "method": "Isolated actual browser engine with synthetic keyboard/branch strokes. Local scene API deliberately unavailable; no live AI requests. Deterministic time stepping is not device performance or audio audition.",
+  "pageErrors": [],
+  "branches": {
+    "beforeCount": 12,
+    "afterCount": 12,
+    "parsedCount": 12,
+    "latestRetained": true,
+    "latestTwelveMatch": true,
+    "beforeSeeds": [
+      585906880,
+      901915636,
+      925959955,
+      461994944,
+      190046104,
+      10041323,
+      641636605,
+      813824499,
+      805999647,
+      234583687,
+      242051017,
+      361931750
+    ],
+    "afterSeeds": [
+      901915636,
+      925959955,
+      461994944,
+      190046104,
+      10041323,
+      641636605,
+      813824499,
+      805999647,
+      234583687,
+      242051017,
+      361931750,
+      57146112
+    ],
+    "undoCount": 11,
+    "undoRestoredPrevious": false,
+    "reloadExpected": [
+      901915636,
+      925959955,
+      461994944,
+      190046104,
+      10041323,
+      641636605,
+      813824499,
+      805999647,
+      234583687,
+      242051017,
+      361931750,
+      813484378
+    ],
+    "reloaded": [
+      901915636,
+      925959955,
+      461994944,
+      190046104,
+      10041323,
+      641636605,
+      813824499,
+      805999647,
+      234583687,
+      242051017,
+      361931750,
+      813484378
+    ],
+    "reloadPreserved": true
+  },
+  "entries": [
+    {
+      "id": "willow",
+      "weather": "clear",
+      "timeOfDay": "day",
+      "hasWillow": true,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": "perched",
+      "pass": true
+    },
+    {
+      "id": "blossom",
+      "weather": "blossom",
+      "timeOfDay": "day",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "rainbow",
+      "weather": "rainbow",
+      "timeOfDay": "day",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "lotus",
+      "weather": "lotus",
+      "timeOfDay": "day",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [
+        {
+          "kind": "cicada",
+          "t": 18.454733333333568,
+          "weather": "lotus",
+          "opts": {
+            "pan": -0.45599999999999996,
+            "strength": 0.7
+          }
+        }
+      ],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "storm",
+      "weather": "storm",
+      "timeOfDay": "day",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "magpie",
+      "weather": "moonlit",
+      "timeOfDay": "night",
+      "hasWillow": true,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [
+        {
+          "kind": "wings",
+          "t": 4.300126666666657,
+          "weather": "moonlit",
+          "opts": {
+            "pan": 0.5519999999999999,
+            "strength": 0.8
+          }
+        }
+      ],
+      "magpiePhase": "away",
+      "pass": true
+    },
+    {
+      "id": "cicada",
+      "weather": "fireflies",
+      "timeOfDay": "night",
+      "hasWillow": true,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [
+        {
+          "kind": "cicada",
+          "t": 4.084325999999991,
+          "weather": "fireflies",
+          "opts": {
+            "pan": 0.45600000000000007,
+            "strength": 0.7
+          }
+        },
+        {
+          "kind": "cicada",
+          "t": 8.834326000000019,
+          "weather": "fireflies",
+          "opts": {
+            "pan": -0.45599999999999996,
+            "strength": 0.35
+          }
+        }
+      ],
+      "magpiePhase": "perched",
+      "pass": true
+    },
+    {
+      "id": "fireflies",
+      "weather": "fireflies",
+      "timeOfDay": "night",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "galaxy",
+      "weather": "galaxy",
+      "timeOfDay": "night",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "autumn",
+      "weather": "autumn",
+      "timeOfDay": "dusk",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "moonlit",
+      "weather": "moonlit",
+      "timeOfDay": "night",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "lanterns",
+      "weather": "lanterns",
+      "timeOfDay": "night",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "shower",
+      "weather": "shower",
+      "timeOfDay": "night",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    },
+    {
+      "id": "moonsnow",
+      "weather": "moonsnow",
+      "timeOfDay": "night",
+      "hasWillow": false,
+      "preserved": [
+        {
+          "seed": 91.68491775505049,
+          "found": true,
+          "honmei": true,
+          "originMatches": true
+        },
+        {
+          "seed": 44.90810926839227,
+          "found": true,
+          "honmei": false,
+          "originMatches": true
+        }
+      ],
+      "moonPreserved": true,
+      "sounds": [],
+      "magpiePhase": null,
+      "pass": true
+    }
+  ],
+  "moments": [
+    {
+      "name": "惊鹊",
+      "reducedMotion": "no-preference",
+      "calm": false,
+      "weather": "moonlit",
+      "timeOfDay": "night",
+      "sounds": [
+        {
+          "kind": "wings",
+          "t": 4.077449999997011,
+          "weather": "moonlit",
+          "opts": {
+            "pan": 0.5519999999999999,
+            "strength": 0.8
+          }
+        }
+      ],
+      "phases": [
+        {
+          "at": 0,
+          "phase": "alert"
+        },
+        {
+          "at": 0.5,
+          "phase": "alert"
+        },
+        {
+          "at": 1,
+          "phase": "alert"
+        },
+        {
+          "at": 1.5,
+          "phase": "alert"
+        },
+        {
+          "at": 2,
+          "phase": "alert"
+        },
+        {
+          "at": 2.5,
+          "phase": "alert"
+        },
+        {
+          "at": 3,
+          "phase": "alert"
+        },
+        {
+          "at": 3.5,
+          "phase": "alert"
+        },
+        {
+          "at": 4,
+          "phase": "leaving"
+        },
+        {
+          "at": 4.5,
+          "phase": "leaving"
+        },
+        {
+          "at": 5,
+          "phase": "leaving"
+        },
+        {
+          "at": 5.5,
+          "phase": "leaving"
+        },
+        {
+          "at": 6,
+          "phase": "leaving"
+        },
+        {
+          "at": 6.5,
+          "phase": "leaving"
+        },
+        {
+          "at": 7,
+          "phase": "leaving"
+        },
+        {
+          "at": 7.5,
+          "phase": "leaving"
+        },
+        {
+          "at": 8,
+          "phase": "leaving"
+        },
+        {
+          "at": 8.5,
+          "phase": "leaving"
+        },
+        {
+          "at": 9,
+          "phase": "leaving"
+        },
+        {
+          "at": 9.5,
+          "phase": "leaving"
+        },
+        {
+          "at": 10,
+          "phase": "leaving"
+        },
+        {
+          "at": 10.5,
+          "phase": "leaving"
+        },
+        {
+          "at": 11,
+          "phase": "leaving"
+        },
+        {
+          "at": 11.5,
+          "phase": "leaving"
+        }
+      ]
+    },
+    {
+      "name": "鸣蝉",
+      "reducedMotion": "no-preference",
+      "calm": false,
+      "weather": "fireflies",
+      "timeOfDay": "night",
+      "sounds": [
+        {
+          "kind": "cicada",
+          "t": 3.1034233333333274,
+          "weather": "fireflies",
+          "opts": {
+            "pan": 0.45600000000000007,
+            "strength": 0.7
+          }
+        },
+        {
+          "kind": "cicada",
+          "t": 9.320090000000043,
+          "weather": "fireflies",
+          "opts": {
+            "pan": -0.45599999999999996,
+            "strength": 0.35
+          }
+        }
+      ],
+      "phases": [
+        {
+          "at": 0,
+          "phase": "perched"
+        },
+        {
+          "at": 0.5,
+          "phase": "perched"
+        },
+        {
+          "at": 1,
+          "phase": "perched"
+        },
+        {
+          "at": 1.5,
+          "phase": "perched"
+        },
+        {
+          "at": 2,
+          "phase": "perched"
+        },
+        {
+          "at": 2.5,
+          "phase": "perched"
+        },
+        {
+          "at": 3,
+          "phase": "perched"
+        },
+        {
+          "at": 3.5,
+          "phase": "perched"
+        },
+        {
+          "at": 4,
+          "phase": "perched"
+        },
+        {
+          "at": 4.5,
+          "phase": "perched"
+        },
+        {
+          "at": 5,
+          "phase": "perched"
+        },
+        {
+          "at": 5.5,
+          "phase": "perched"
+        },
+        {
+          "at": 6,
+          "phase": "perched"
+        },
+        {
+          "at": 6.5,
+          "phase": "perched"
+        },
+        {
+          "at": 7,
+          "phase": "perched"
+        },
+        {
+          "at": 7.5,
+          "phase": "perched"
+        },
+        {
+          "at": 8,
+          "phase": "perched"
+        },
+        {
+          "at": 8.5,
+          "phase": "perched"
+        },
+        {
+          "at": 9,
+          "phase": "perched"
+        },
+        {
+          "at": 9.5,
+          "phase": "perched"
+        },
+        {
+          "at": 10,
+          "phase": "perched"
+        },
+        {
+          "at": 10.5,
+          "phase": "perched"
+        },
+        {
+          "at": 11,
+          "phase": "perched"
+        },
+        {
+          "at": 11.5,
+          "phase": "perched"
+        }
+      ]
+    },
+    {
+      "name": "惊鹊",
+      "reducedMotion": "reduce",
+      "calm": true,
+      "weather": "moonlit",
+      "timeOfDay": "night",
+      "sounds": [],
+      "phases": [
+        {
+          "at": 0,
+          "phase": "perched"
+        },
+        {
+          "at": 0.5,
+          "phase": "perched"
+        },
+        {
+          "at": 1,
+          "phase": "perched"
+        },
+        {
+          "at": 1.5,
+          "phase": "perched"
+        },
+        {
+          "at": 2,
+          "phase": "perched"
+        },
+        {
+          "at": 2.5,
+          "phase": "perched"
+        },
+        {
+          "at": 3,
+          "phase": "perched"
+        },
+        {
+          "at": 3.5,
+          "phase": "perched"
+        },
+        {
+          "at": 4,
+          "phase": "perched"
+        },
+        {
+          "at": 4.5,
+          "phase": "perched"
+        },
+        {
+          "at": 5,
+          "phase": "perched"
+        },
+        {
+          "at": 5.5,
+          "phase": "perched"
+        },
+        {
+          "at": 6,
+          "phase": "perched"
+        },
+        {
+          "at": 6.5,
+          "phase": "perched"
+        },
+        {
+          "at": 7,
+          "phase": "perched"
+        },
+        {
+          "at": 7.5,
+          "phase": "perched"
+        },
+        {
+          "at": 8,
+          "phase": "perched"
+        },
+        {
+          "at": 8.5,
+          "phase": "perched"
+        },
+        {
+          "at": 9,
+          "phase": "perched"
+        },
+        {
+          "at": 9.5,
+          "phase": "perched"
+        },
+        {
+          "at": 10,
+          "phase": "perched"
+        },
+        {
+          "at": 10.5,
+          "phase": "perched"
+        },
+        {
+          "at": 11,
+          "phase": "perched"
+        },
+        {
+          "at": 11.5,
+          "phase": "perched"
+        }
+      ]
+    },
+    {
+      "name": "鸣蝉",
+      "reducedMotion": "reduce",
+      "calm": true,
+      "weather": "fireflies",
+      "timeOfDay": "night",
+      "sounds": [],
+      "phases": [
+        {
+          "at": 0,
+          "phase": "perched"
+        },
+        {
+          "at": 0.5,
+          "phase": "perched"
+        },
+        {
+          "at": 1,
+          "phase": "perched"
+        },
+        {
+          "at": 1.5,
+          "phase": "perched"
+        },
+        {
+          "at": 2,
+          "phase": "perched"
+        },
+        {
+          "at": 2.5,
+          "phase": "perched"
+        },
+        {
+          "at": 3,
+          "phase": "perched"
+        },
+        {
+          "at": 3.5,
+          "phase": "perched"
+        },
+        {
+          "at": 4,
+          "phase": "perched"
+        },
+        {
+          "at": 4.5,
+          "phase": "perched"
+        },
+        {
+          "at": 5,
+          "phase": "perched"
+        },
+        {
+          "at": 5.5,
+          "phase": "perched"
+        },
+        {
+          "at": 6,
+          "phase": "perched"
+        },
+        {
+          "at": 6.5,
+          "phase": "perched"
+        },
+        {
+          "at": 7,
+          "phase": "perched"
+        },
+        {
+          "at": 7.5,
+          "phase": "perched"
+        },
+        {
+          "at": 8,
+          "phase": "perched"
+        },
+        {
+          "at": 8.5,
+          "phase": "perched"
+        },
+        {
+          "at": 9,
+          "phase": "perched"
+        },
+        {
+          "at": 9.5,
+          "phase": "perched"
+        },
+        {
+          "at": 10,
+          "phase": "perched"
+        },
+        {
+          "at": 10.5,
+          "phase": "perched"
+        },
+        {
+          "at": 11,
+          "phase": "perched"
+        },
+        {
+          "at": 11.5,
+          "phase": "perched"
+        }
+      ]
+    }
+  ],
+  "home": {
+    "localHour": 17,
+    "timeOfDay": "dusk"
+  },
+  "original": {
+    "fish": [
+      {
+        "seed": 91.68491775505049,
+        "honmei": true,
+        "origin": {
+          "stroke": [
+            [
+              0.2569,
+              0.2741,
+              0
+            ],
+            [
+              0.2648,
+              0.2758,
+              20
+            ],
+            [
+              0.2728,
+              0.2775,
+              40
+            ],
+            [
+              0.2808,
+              0.2791,
+              60
+            ],
+            [
+              0.2889,
+              0.2807,
+              80
+            ],
+            [
+              0.297,
+              0.2822,
+              100
+            ],
+            [
+              0.3053,
+              0.2836,
+              121
+            ],
+            [
+              0.3136,
+              0.2848,
+              142
+            ],
+            [
+              0.3221,
+              0.2859,
+              163
+            ],
+            [
+              0.3307,
+              0.2868,
+              185
+            ],
+            [
+              0.3394,
+              0.2874,
+              206
+            ],
+            [
+              0.3481,
+              0.2878,
+              228
+            ],
+            [
+              0.3569,
+              0.2879,
+              250
+            ],
+            [
+              0.3656,
+              0.2878,
+              272
+            ],
+            [
+              0.3744,
+              0.2874,
+              294
+            ],
+            [
+              0.383,
+              0.2868,
+              315
+            ],
+            [
+              0.3916,
+              0.2859,
+              337
+            ],
+            [
+              0.4001,
+              0.2848,
+              358
+            ],
+            [
+              0.4084,
+              0.2836,
+              379
+            ],
+            [
+              0.4167,
+              0.2822,
+              400
+            ],
+            [
+              0.4249,
+              0.2807,
+              420
+            ],
+            [
+              0.4329,
+              0.2791,
+              440
+            ],
+            [
+              0.441,
+              0.2775,
+              460
+            ],
+            [
+              0.4489,
+              0.2758,
+              480
+            ],
+            [
+              0.4569,
+              0.2741,
+              500
+            ]
+          ],
+          "speed": 0.4213,
+          "curviness": 0.2776,
+          "family": "calm",
+          "pointer": "keyboard",
+          "born": 1
+        }
+      },
+      {
+        "seed": 44.90810926839227,
+        "honmei": false,
+        "origin": {
+          "stroke": [
+            [
+              0.3342,
+              0.4077,
+              0
+            ],
+            [
+              0.3421,
+              0.4094,
+              20
+            ],
+            [
+              0.3501,
+              0.4111,
+              40
+            ],
+            [
+              0.3581,
+              0.4128,
+              60
+            ],
+            [
+              0.3662,
+              0.4144,
+              80
+            ],
+            [
+              0.3743,
+              0.4159,
+              100
+            ],
+            [
+              0.3826,
+              0.4173,
+              121
+            ],
+            [
+              0.391,
+              0.4185,
+              142
+            ],
+            [
+              0.3994,
+              0.4196,
+              163
+            ],
+            [
+              0.408,
+              0.4204,
+              185
+            ],
+            [
+              0.4167,
+              0.421,
+              206
+            ],
+            [
+              0.4254,
+              0.4214,
+              228
+            ],
+            [
+              0.4342,
+              0.4216,
+              250
+            ],
+            [
+              0.443,
+              0.4214,
+              272
+            ],
+            [
+              0.4517,
+              0.421,
+              294
+            ],
+            [
+              0.4604,
+              0.4204,
+              315
+            ],
+            [
+              0.4689,
+              0.4196,
+              337
+            ],
+            [
+              0.4774,
+              0.4185,
+              358
+            ],
+            [
+              0.4858,
+              0.4173,
+              379
+            ],
+            [
+              0.494,
+              0.4159,
+              400
+            ],
+            [
+              0.5022,
+              0.4144,
+              420
+            ],
+            [
+              0.5103,
+              0.4128,
+              440
+            ],
+            [
+              0.5183,
+              0.4111,
+              460
+            ],
+            [
+              0.5262,
+              0.4094,
+              480
+            ],
+            [
+              0.5342,
+              0.4077,
+              500
+            ]
+          ],
+          "speed": 0.4213,
+          "curviness": 0.2776,
+          "family": "calm",
+          "pointer": "keyboard",
+          "born": 2
+        }
+      }
+    ],
+    "moon": {
+      "x": 0.5396331478567722,
+      "y": 0.7916941630166682,
+      "r": 0.04987771103590225,
+      "phase": "full",
+      "dark": [
+        1,
+        0
+      ]
+    }
+  },
+  "book": {
+    "scrollTop": 0,
+    "pages": 14,
+    "painted": 0,
+    "text": "四时这个世界里的每一处景春柳晴光入柳，风过水明链接落花落花轻点一湖春链接虹雨后初晴，一虹过山链接夏荷接天莲叶无穷碧链接雷雨远山雷雨，近水听声链接惊鹊明月别枝惊鹊链接鸣蝉清风半夜鸣蝉链接萤火夏夜流萤，草间微光链接星河满船清梦压星河链接秋秋秋风过岸，落叶归水链接月月色入水，清辉满湖链接河灯一盏河灯，照见晚水链接冬流星流星过夜，水接微光链接雪月下飘雪，山水无声链接回到湖边"
+  },
+  "extra": {
+    "rainbow": {
+      "state": {
+        "timeOfDay": "night",
+        "weather": "rainbow",
+        "palette": "serene",
+        "wind": 0.25,
+        "intensity": 0.5
+      },
+      "day": 2.4313391526970544e-9,
+      "uRainbow": 0.9996345091567427
+    },
+    "ambient": {
+      "labels": [
+        "day",
+        "night",
+        "dusk"
+      ],
+      "insectTargets": [
+        0.6,
+        0.6,
+        0.18000000102116256
+      ]
+    },
+    "strikes": [
+      {
+        "calm": false,
+        "delay": 0.4990088067926024,
+        "initialFlash": 1,
+        "thunder": [
+          {
+            "kind": "thunder",
+            "t": 200.46098600005317,
+            "weather": "storm",
+            "opts": {
+              "pan": 0.011849453900144247,
+              "strength": 1.3
+            }
+          }
+        ]
+      },
+      {
+        "calm": true,
+        "delay": 2.8888384022264404,
+        "initialFlash": 0,
+        "thunder": [
+          {
+            "kind": "thunder",
+            "t": 246.96098600009017,
+            "weather": "storm",
+            "opts": {
+              "pan": 0.2894050187033659,
+              "strength": 0.6
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

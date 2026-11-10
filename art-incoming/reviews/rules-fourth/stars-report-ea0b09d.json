@@ -1,0 +1,16 @@
+{
+  "source": "ea0b09d",
+  "day": 0.645313507558382,
+  "dusk": 0.35468649244161843,
+  "light": "day",
+  "uniformDay": 0.645313507558382,
+  "nightSkyShows": 0,
+  "userStars": 0,
+  "actualRule": "SKY-3",
+  "method": "Same frame, first original shader then test-only disable the procedural base star contribution; no product files changed.",
+  "shaderTest": {
+    "onlyProceduralStarsDisabled": true,
+    "day": 0.645313507558382,
+    "time": 40.538785333332314
+  }
+}

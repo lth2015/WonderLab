@@ -1,0 +1,91 @@
+{
+  "source": "ea0b09d",
+  "method": "Actual engine/Voices with synthetic branch creation and direct scene moment; full undo sequence checked, no sound audition claim.",
+  "errors": [],
+  "branches": {
+    "singleUndoRestores": true,
+    "beforeCount": 12,
+    "afterSingleCount": 12,
+    "undoOriginals": [
+      {
+        "step": 0,
+        "count": 12
+      },
+      {
+        "step": 1,
+        "count": 11
+      },
+      {
+        "step": 2,
+        "count": 10
+      },
+      {
+        "step": 3,
+        "count": 9
+      },
+      {
+        "step": 4,
+        "count": 8
+      },
+      {
+        "step": 5,
+        "count": 7
+      },
+      {
+        "step": 6,
+        "count": 6
+      },
+      {
+        "step": 7,
+        "count": 5
+      },
+      {
+        "step": 8,
+        "count": 4
+      },
+      {
+        "step": 9,
+        "count": 3
+      },
+      {
+        "step": 10,
+        "count": 2
+      },
+      {
+        "step": 11,
+        "count": 1
+      },
+      {
+        "step": 12,
+        "count": 0
+      }
+    ],
+    "afterAll": []
+  },
+  "rainbow": {
+    "night": 0,
+    "day": 0.9999998664164433
+  },
+  "ambient": {
+    "labels": [
+      "day",
+      "night",
+      "dusk"
+    ],
+    "insectTargets": [
+      0.09000000000000341,
+      0.599999998760017,
+      0.18000000102116256
+    ]
+  },
+  "cicadas": [
+    {
+      "calm": false,
+      "events": 2
+    },
+    {
+      "calm": true,
+      "events": 2
+    }
+  ]
+}

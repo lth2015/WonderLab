@@ -1,0 +1,6 @@
+{
+  "region": "rows96:330, full width; excludes top controls and lower UI",
+  "changed_pixels_gt_2": 118,
+  "maximum_channel_difference": 58,
+  "method": "analysis of unchanged browser screenshots, no image editing"
+}

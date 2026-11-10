@@ -1,0 +1,17 @@
+{
+  "method": "head patch matching only; no image pixels moved; anatomical and engine motion review still required",
+  "sources": [
+    {
+      "file": "magpie-wing-down-source.png",
+      "head_patch_best_dx_source_px": 1,
+      "head_patch_best_dy_source_px": 0,
+      "head_patch_rgb_mse": 186.439
+    },
+    {
+      "file": "magpie-glide-source.png",
+      "head_patch_best_dx_source_px": 0,
+      "head_patch_best_dy_source_px": 0,
+      "head_patch_rgb_mse": 128.829
+    }
+  ]
+}

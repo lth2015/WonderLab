@@ -1,0 +1,61 @@
+{
+  "source": "a8c0f6d",
+  "method": "Actual Book button clicks. Engine is stepped deterministically to inspect rapid accepted inputs before they finish their queue; scene API unavailable locally, no actual AI request.",
+  "errors": [],
+  "cases": [
+    {
+      "name": "萤火",
+      "before": {
+        "timeOfDay": "day",
+        "day": 1,
+        "ownFish": 0,
+        "queued": 0,
+        "hasWillow": false
+      },
+      "after": {
+        "url": "/",
+        "timeOfDay": "dusk",
+        "weather": "fireflies",
+        "ownFish": 0,
+        "queued": 0,
+        "hasWillow": false
+      }
+    },
+    {
+      "name": "荷",
+      "before": {
+        "timeOfDay": "day",
+        "day": 1,
+        "ownFish": 1,
+        "queued": 2,
+        "hasWillow": false
+      },
+      "after": {
+        "url": "/",
+        "timeOfDay": "day",
+        "weather": "lotus",
+        "ownFish": 3,
+        "queued": 0,
+        "hasWillow": false
+      }
+    },
+    {
+      "name": "柳",
+      "before": {
+        "timeOfDay": "day",
+        "day": 1,
+        "ownFish": 1,
+        "queued": 2,
+        "hasWillow": false
+      },
+      "after": {
+        "url": "/%E6%9F%B3",
+        "timeOfDay": "day",
+        "weather": "clear",
+        "ownFish": 1,
+        "queued": 0,
+        "hasWillow": true
+      }
+    }
+  ]
+}

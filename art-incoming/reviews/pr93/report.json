@@ -1,0 +1,88 @@
+{
+  "source": "bda3711 (PR #93, implementation 2bec39a)",
+  "method": "Actual browser engine with deterministic 1/60 second updates and fixture placement; production files unchanged. Runtime reproduction, not real-device performance validation.",
+  "results": [
+    {
+      "reducedMotion": "no-preference",
+      "pageErrors": [],
+      "calm": false,
+      "companion": {
+        "before": {
+          "skyState": "forming",
+          "companionCount": 1
+        },
+        "afterOneFrame": {
+          "skyState": "forming",
+          "companionCount": 0
+        },
+        "afterFormation": {
+          "skyState": "swimming",
+          "companionCount": 0
+        }
+      },
+      "gold": {
+        "inside": 2.143928068333858,
+        "outside": 7.032864273640263e-60
+      },
+      "lightPref": {
+        "seed": 21.973268062672247,
+        "value": 0.44087562826524157,
+        "savedSeed": 21.973268062672247
+      },
+      "leafShade": {
+        "inside": true,
+        "outside": false,
+        "restFor": 3.379141091567206,
+        "cooldown": 22.780177081789176,
+        "samePassDidNotExtendRest": true
+      },
+      "lantern": {
+        "first": true,
+        "second": false,
+        "stir": 1,
+        "afterHalfSecond": 0.7
+      }
+    },
+    {
+      "reducedMotion": "reduce",
+      "pageErrors": [],
+      "calm": true,
+      "companion": {
+        "before": {
+          "skyState": "forming",
+          "companionCount": 1
+        },
+        "afterOneFrame": {
+          "skyState": "forming",
+          "companionCount": 0
+        },
+        "afterFormation": {
+          "skyState": "swimming",
+          "companionCount": 0
+        }
+      },
+      "gold": {
+        "inside": 2.143928068333858,
+        "outside": 7.032864273640263e-60
+      },
+      "lightPref": {
+        "seed": 19.002291280211125,
+        "value": 0.9756918900584022,
+        "savedSeed": 19.002291280211125
+      },
+      "leafShade": {
+        "inside": true,
+        "outside": false,
+        "restFor": 2.512990156695949,
+        "cooldown": 19.709244796561535,
+        "samePassDidNotExtendRest": true
+      },
+      "lantern": {
+        "first": true,
+        "second": false,
+        "stir": 1,
+        "afterHalfSecond": 0.7
+      }
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "kind": "browser layout and scale study, not engine validation",
+  "errors": [],
+  "checks": [
+    {
+      "case": "day near",
+      "readout": "可见宽度约 30.0px / 390px 画幅 · 身体位置 (0.65W, 0.19H) · 羽色明度 1.00",
+      "width": 35.21875,
+      "stageWidth": 390,
+      "light": "day",
+      "brightness": "brightness(1)",
+      "pose": "up"
+    },
+    {
+      "case": "day far button",
+      "readout": "可见宽度约 16.0px / 390px 画幅 · 身体位置 (0.17W, 0.26H) · 羽色明度 1.00",
+      "width": 18.78125,
+      "stageWidth": 390,
+      "light": "day",
+      "brightness": "brightness(1)",
+      "pose": "up"
+    },
+    {
+      "case": "moon downstroke",
+      "readout": "可见宽度约 16.0px / 390px 画幅 · 身体位置 (0.17W, 0.26H) · 羽色明度 0.58",
+      "width": 18.78125,
+      "stageWidth": 390,
+      "light": "moon",
+      "brightness": "brightness(0.58)",
+      "pose": "down"
+    },
+    {
+      "case": "moon near glide",
+      "readout": "可见宽度约 30.0px / 390px 画幅 · 身体位置 (0.65W, 0.19H) · 羽色明度 0.58",
+      "width": 35.21875,
+      "stageWidth": 390,
+      "light": "moon",
+      "brightness": "brightness(0.58)",
+      "pose": "glide"
+    },
+    {
+      "case": "responsive narrow viewport",
+      "readout": "可见宽度约 30.0px / 390px 画幅 · 身体位置 (0.65W, 0.19H) · 羽色明度 0.58",
+      "width": 31.609375,
+      "stageWidth": 350,
+      "light": "moon",
+      "brightness": "brightness(0.58)",
+      "pose": "glide"
+    }
+  ],
+  "result": "layout controls and image decoding passed"
+}

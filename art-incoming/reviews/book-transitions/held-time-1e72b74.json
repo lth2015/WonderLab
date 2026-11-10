@@ -1,0 +1,41 @@
+{
+  "source": "1e72b74",
+  "method": "Actual Book selection with synthetic local invite and intercepted mock API returning day; no external AI request or real credential. Checks explicit time and one-step undo.",
+  "errors": [],
+  "mockedRequests": 1,
+  "before": {
+    "state": {
+      "timeOfDay": "day",
+      "weather": "clear",
+      "palette": "serene",
+      "wind": 0.25,
+      "intensity": 0.5
+    },
+    "history": 0,
+    "build": {
+      "experiment": "dev",
+      "scene": "ai"
+    }
+  },
+  "afterAi": {
+    "state": {
+      "timeOfDay": "night",
+      "weather": "fireflies",
+      "palette": "serene",
+      "wind": 0.25,
+      "intensity": 0.7
+    },
+    "history": 1
+  },
+  "afterUndo": {
+    "state": {
+      "timeOfDay": "day",
+      "weather": "clear",
+      "palette": "serene",
+      "wind": 0.25,
+      "intensity": 0.5
+    },
+    "history": 0
+  },
+  "pass": true
+}
