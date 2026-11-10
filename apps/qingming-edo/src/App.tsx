@@ -24,6 +24,7 @@ import { Face } from './ui/Face';
 import { Shop } from './ui/Shop';
 import { Cg } from './ui/Cg';
 import { Epilogue } from './ui/Epilogue';
+import { PASSERS, passerName, passerRole } from './content/passers';
 import { ownsSlip, retitle, slipStyles } from './engine/shop';
 import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
@@ -243,6 +244,7 @@ export function App() {
       const lostStep = /^lost\.[a-z]+\.(hint|find|back)$/.exec(id)?.[1];
       if (lostStep && !inRecall) study.emit('play_detail', { what: 'lost', outcome: lostStep === 'hint' ? 'hinted' : lostStep === 'find' ? 'found' : 'returned' });
       if (lostStep === 'find' && !inRecall) sound.cue('find');
+      if (/^pass\.[a-z-]+\.\d$/.test(id)) study.emit('play_detail', { what: 'passer', outcome: 'asked' });
       // a passing moment (the cat leaping away): a note over the street, so the street stays in view
       if (n.brief && !inRecall) {
         if (next !== saveRef.current) setSave(next);
@@ -298,6 +300,8 @@ export function App() {
         // a passer-by spoken to stands still while the word is read
         setTimeout(() => setReacting((r) => ((r = new Set(r)), r.delete(id), r)), spot.walker ? 3200 : 1400);
         if (spot.walker) study.emit('play_detail', { what: 'passer', outcome: 'tapped' });
+        // 通りすがりの人と話す: they stop (the street holds still while the dialogue is open) and talk of their work
+        if (spot.walker && PASSERS[id]) return openNode(`pass.${id}`);
         // 町の写生: after the first page, some places can be drawn (once each)
         const k = sketchOfSpot(id);
         const cur = saveRef.current;
@@ -747,8 +751,8 @@ export function App() {
             {line.by !== 'narration' && <Face who={line.by} />}
             {line.by !== 'narration' && (
               <p className="speaker">
-                {characterById.get(line.by)?.displayName}
-                <small>{ROLES[line.by]}</small>
+                {characterById.get(line.by)?.displayName ?? passerName(line.by)}
+                <small>{ROLES[line.by] ?? passerRole(line.by)}</small>
               </p>
             )}
             <Glossed className={line.by === 'narration' ? 'narration' : 'said'} text={line.text} />
@@ -893,11 +897,13 @@ export function App() {
           <ul className="list compact">
             {spots
               // a lost thing is in the list once its owner has spoken of it (before that, only a sharp eye finds it)
-              .filter((s) => s.kind !== 'ambient' && !(s.targetId.startsWith('lost_') && !hasFlag(save, `lost_hint_${s.targetId.slice(5)}`)))
+              // a passer-by who talks can be called to from the list too (keyboard, reading aloud)
+              .filter((s) => (s.kind !== 'ambient' || (s.walker && PASSERS[s.targetId])) && !(s.targetId.startsWith('lost_') && !hasFlag(save, `lost_hint_${s.targetId.slice(5)}`)))
               .map((s) => (
                 <li key={s.id}>
                   <button type="button" onClick={() => goTo(s.id, true)}>
                     {spotLabel(s)}
+                    {s.kind === 'ambient' && '（呼び止めて話す）'}
                   </button>
                 </li>
               ))}

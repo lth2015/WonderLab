@@ -13,7 +13,7 @@ import { SESSION_MODE } from './session';
 // ww:qingming-edo:study:session until 「次の方へ」 (engine/session.ts).
 
 export const PLAY_WHAT = ['trace', 'ugoki', 'companion', 'weather', 'passer', 'nearby', 'nearby_more', 'chapter', 'map', 'lost', 'shop', 'talk', 'people', 'epilogue'] as const;
-export const PLAY_OUTCOME = ['traced', 'skipped', 'left', 'miss', 'caught', 'behind', 'arrived', 'rain', 'clear', 'tapped', 'opened', 'hinted', 'found', 'returned', 'bought', 'about', 'visit'] as const;
+export const PLAY_OUTCOME = ['traced', 'skipped', 'left', 'miss', 'caught', 'behind', 'arrived', 'rain', 'clear', 'tapped', 'opened', 'hinted', 'found', 'returned', 'bought', 'about', 'visit', 'asked'] as const;
 export type PlayWhat = (typeof PLAY_WHAT)[number];
 export type PlayOutcome = (typeof PLAY_OUTCOME)[number];
 
