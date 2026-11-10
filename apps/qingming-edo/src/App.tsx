@@ -24,7 +24,7 @@ import { Face } from './ui/Face';
 import { Shop } from './ui/Shop';
 import { Cg } from './ui/Cg';
 import { Epilogue } from './ui/Epilogue';
-import { PASSERS, passerFlag, passerName, passerRole } from './content/passers';
+import { PASSERS, glimpseNode, passerFlag, passerName, passerRole } from './content/passers';
 import { ownsSlip, retitle, slipStyles } from './engine/shop';
 import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
@@ -229,6 +229,9 @@ export function App() {
 
   const openNode = useCallback(
     (id: string) => {
+      // 落とし物を見かけたか: which thing a passer tells of depends on what still lies in the street
+      const seen = /^pass\.([a-z-]+)\.seen$/.exec(id);
+      if (seen) id = glimpseNode(saveRef.current, seen[1]);
       const n = NODES[id];
       if (!n) return setDialogue(null);
       const inRecall = !!recallRef.current;
