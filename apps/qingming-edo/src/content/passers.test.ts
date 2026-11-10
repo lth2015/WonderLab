@@ -76,7 +76,7 @@ describe('路人のちょっとした頼み', () => {
     const { entryFor } = await import('../engine/story');
     const done = (s: SaveData, ...qs: string[]) => apply(s, qs.flatMap((q) => questById.get(q)!.completionEffects));
     const favors = Object.entries(PASSERS).filter(([, p]) => p.favor);
-    expect(favors.length).toBeGreaterThanOrEqual(4);
+    expect(favors).toHaveLength(8); // 魚売り only sells
     for (const [id, p] of favors) {
       const f = p.favor!;
       expect(NODES[`pass.${id}.${f.after}`].next).toBe(`pass.${id}.favor`);

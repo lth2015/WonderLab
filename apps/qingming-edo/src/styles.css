@@ -2098,3 +2098,6 @@ button.term[aria-expanded="true"] {
   color: var(--ink-soft);
   font-size: 0.8125rem;
 }
+.passers-met small.favor-done {
+  color: var(--ink);
+}
