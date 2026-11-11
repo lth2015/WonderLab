@@ -10,7 +10,7 @@ import { STORIES } from './stories';
 import { RUMOR_RANK, RUMORS } from './rumors';
 import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
 import { TEA_PRICE } from './shop';
-import { NAZO, nazoFlag, nazoNodes } from './nazo';
+import { NAZO, NAZO_HINTS, NAZO_OPEN, NAZO_Q, nazoFlag, nazoNodes } from './nazo';
 import { GLIMPSE_Q, PASSERS, favorFlag, passerFlag } from './passers';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
@@ -363,7 +363,7 @@ NODES['kisuke.yube.after'].choices = [{ label: '少し話す', talk: true }, { l
 for (const id of ['seita.done', 'seita.again']) NODES[id].choices!.push({ label: '題箋を見る', shop: 'slips' });
 // 通りすがりの人と話す (content/passers.ts): a passer-by stops and talks about their work
 for (const [id, p] of Object.entries(PASSERS)) {
-  const ask: Choice[] = [...p.topics.map((t, i) => ({ label: t.q, next: `pass.${id}.${i}` })), { label: GLIMPSE_Q, next: `pass.${id}.seen` }, { label: '引き止めてごめんなさい', next: `pass.${id}.bye` }];
+  const ask: Choice[] = [...p.topics.map((t, i) => ({ label: t.q, next: `pass.${id}.${i}` })), { label: GLIMPSE_Q, next: `pass.${id}.seen` }, { label: NAZO_Q, next: `pass.${id}.nazo`, when: NAZO_OPEN }, { label: '引き止めてごめんなさい', next: `pass.${id}.bye` }];
   NODES[`pass.${id}`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.hello }], choices: ask, effects: [{ type: 'setFlag', flag: passerFlag(id) }] };
   // met again: they remember the player
   NODES[`pass.${id}.again`] = { lines: [{ by: 'narration', text: p.stop }, { by: id, text: p.again }], choices: ask };
@@ -381,6 +381,11 @@ for (const [id, p] of Object.entries(PASSERS)) {
   // 落とし物を見かけたか: App turns `.seen` into one of these as it opens (passers.ts glimpseNode)
   NODES[`pass.${id}.seen`] = { lines: [{ by: id, text: p.none }], next: `pass.${id}.more` };
   NODES[`pass.${id}.seen.none`] = NODES[`pass.${id}.seen`];
+  // 宗吉の謎を聞く: App turns `.nazo` into the hint or the 'cannot tell' (content/nazo.ts nazoHintNode)
+  const h = NAZO_HINTS[id];
+  NODES[`pass.${id}.nazo`] = { lines: [{ by: id, text: h.dunno }], next: `pass.${id}.more` };
+  NODES[`pass.${id}.nazo.dunno`] = NODES[`pass.${id}.nazo`];
+  NODES[`pass.${id}.nazo.hint`] = { lines: h.hint.map((text) => ({ by: id, text })), next: `pass.${id}.more` };
   for (const t of LOST)
     NODES[`pass.${id}.seen.${t.id}`] = { lines: [{ by: id, text: p.glimpse }, { by: 'narration', text: `${t.place}のあたりで、何か小さなものが光っていたそうだ。` }], next: `pass.${id}.more` };
 }

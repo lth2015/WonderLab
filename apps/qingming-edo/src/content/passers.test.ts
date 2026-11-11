@@ -25,7 +25,9 @@ describe('通りすがりの人と話す', () => {
     for (const id of Object.keys(PASSERS)) {
       const open = NODES[`pass.${id}`];
       expect(open.lines[0].by).toBe('narration');
-      expect(open.choices).toHaveLength(5);
+      // three about their work, lost things, 宗吉's riddle (only while one is open), goodbye
+      expect(open.choices).toHaveLength(6);
+      expect(open.choices!.filter((c) => c.when)).toHaveLength(1);
       for (let i = 0; i < 3; i++) expect(NODES[`pass.${id}.${i}`].next).toBe(PASSERS[id].favor?.after === i ? `pass.${id}.favor` : `pass.${id}.more`);
       expect(NODES[`pass.${id}.more`].choices).toEqual(open.choices);
       expect(NODES[`pass.${id}.bye`].lines[0].by).toBe(id);

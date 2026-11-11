@@ -1,4 +1,4 @@
-import type { SaveData } from '../contract';
+import type { Condition, SaveData } from '../contract';
 import { hasFlag } from '../engine/state';
 import type { DialogueNode, Line } from './types';
 
@@ -97,4 +97,66 @@ export function nazoNodes(): Record<string, DialogueNode> {
     };
   });
   return nodes;
+}
+
+// 路人に謎を聞く: while a riddle is open, a passer-by can be asked about it. Each knows one,
+// from their own work (the monk of still water, the carpenter of poles); of the others they
+// say they cannot tell. (App turns `pass.<id>.nazo` into one of these as it opens.)
+export const NAZO_Q = '宗吉さんの謎、わかりますか';
+
+/** A riddle is being worked on (told, not yet found). */
+export const NAZO_OPEN: Condition = { any: NAZO.map((_, i) => ({ all: [{ flag: nazoFlag('given', i) }, { not: { flag: nazoFlag('found', i) } }] })) };
+
+export const NAZO_HINTS: Record<string, { nazo: string; hint: string[]; dunno: string }> = {
+  'pass-samurai': {
+    nazo: 'nobori',
+    hint: ['背伸びして立ち、風が吹くたびうなずく者……。ははあ、戦場の旗指物を思い出すな。', '町でいえば、店先に立てる幟であろう。'],
+    dunno: '謎か。……わしは剣より頭が固くてな。ほかの者に聞いてみるとよい。',
+  },
+  'pass-monk': {
+    nazo: 'ike',
+    hint: ['鏡、でございますか。……禅の庭では、水を心の鏡にたとえます。', '静かな水ほど、よく空を映します。どこか、静かな庭の水をごらんなさい。'],
+    dunno: '……さて。拙僧には、解けそうにありません。歩きながら、考えておきましょう。',
+  },
+  'pass-fishmonger': {
+    nazo: 'ike',
+    hint: ['割れてもすぐ元に戻る鏡？ そりゃ水だろ。魚屋は水のことならわかるんだ。', 'もっとも、海でも堀でもねえ、波の立たねえ静かな水だな。庭の池でも見てきな。'],
+    dunno: 'わかんねえな。魚のことなら何でも聞いてくれ。',
+  },
+  'pass-apprentice': {
+    nazo: 'ai',
+    hint: ['青い川……。あっ、わかったかもしれません。', 'お店に布を納めに来る紺屋さんの裏、干し場に行くと、頭の上を青い布が川みたいに流れてるんです。'],
+    dunno: 'う、うーん……。旦那さまなら、わかるかもしれないんですけど。',
+  },
+  'pass-parasol': {
+    nazo: 'ike',
+    hint: ['割れても、すぐ元に戻る鏡……水じゃないかしら。', '日傘をさして歩くと、水たまりにも空が映るんですよ。きっと、お庭の池とか。'],
+    dunno: 'ごめんなさい、謎かけは苦手で……。',
+  },
+  'pass-porter': {
+    nazo: 'ai',
+    hint: ['水のねえ青い川だ？ そんなら知ってるぜ。', '紺屋の裏を荷をかついで通るとな、頭の上を藍の布がざあざあ流れてやがるんだ。'],
+    dunno: 'わからねえな。荷の重さなら、持ちゃあわかるんだが。',
+  },
+  'pass-hikyaku': {
+    nazo: 'nobori',
+    hint: ['走ってると、店の目印は幟でわかるんだ。', 'あいつら、風が吹きゃぺこぺこ頭を下げてらあ。竿の足もとでも見てみな。'],
+    dunno: 'わかんねえ。走りながら考えとくよ。じゃあな！',
+  },
+  'pass-daiku': {
+    nazo: 'nobori',
+    hint: ['一日じゅう背伸びして立ってる……そりゃ竿だな。店先の幟の竿だ。', '竿の足もとはな、倒れねえように石で押さえてあるもんだ。何か挟むなら、そこよ。'],
+    dunno: 'さあな。柱や梁のことなら、何でも答えてやるんだが。',
+  },
+  'pass-ameuri': {
+    nazo: 'ai',
+    hint: ['それなら、子どもらが言ってたよ。「空に青い川がある」って。', '紺屋の干し場のことさ。風が吹くと、本当に波みたいに揺れるんだ。'],
+    dunno: 'わかんないねえ。子どもらに聞いてみようか。',
+  },
+};
+
+/** The node a passer's answer opens: their hint if the open riddle is theirs, else their 'cannot tell'. */
+export function nazoHintNode(s: SaveData, id: string): string {
+  const i = nazoOpen(s);
+  return i >= 0 && NAZO_HINTS[id]?.nazo === NAZO[i].id ? `pass.${id}.nazo.hint` : `pass.${id}.nazo.dunno`;
 }

@@ -65,6 +65,20 @@ const LOST = ['netsuke', 'kanzashi', 'sensu', 'koma', 'kiseru', 'suzu'];
   // (it may open its sketch, if not drawn yet: that is all it does)
   const wrong = (await d.isVisible().catch(() => false)) ? await readAll() : '';
   ok(!/包み/.test(wrong), `the second answer finds nothing yet${wrong ? `: ${wrong.slice(0, 20)}…` : ''}`);
+  // passers-by can be asked: the fishmonger knows the first (water), the samurai cannot tell
+  const askPasser = async (re) => {
+    await call(re);
+    for (let i = 0; i < 6 && !(await d.locator('.choices').count()); i++) { await d.getByRole('button', { name: /^次へ$/ }).click(); await p.waitForTimeout(120); }
+    const q = d.locator('.choices button').filter({ hasText: '宗吉さんの謎' });
+    if (!(await q.count())) { await d.getByRole('button', { name: '町に戻る' }).click(); await p.waitForTimeout(250); return null; }
+    await q.click(); await p.waitForTimeout(200);
+    return readAll();
+  };
+  const fish = await askPasser(/^魚売り/);
+  ok(fish && /庭の池/.test(fish), `the fishmonger's hint: ${(fish ?? '(no question)').slice(0, 30)}…`);
+  if (SHOTS) await p.screenshot({ path: `${SHOTS}/nazo-hint.png` });
+  const sam = await askPasser(/^通りがかりの武士/);
+  ok(sam && /頭が固く/.test(sam), `the samurai cannot tell: ${(sam ?? '(no question)').slice(0, 24)}…`);
   const answers = [/^庭の池/, /^干された藍染/, /^店先の幟/];
   const next = [/青い川/, /店の名を背負って/, /三枚そろった/];
   for (let i = 0; i < 3; i++) {
@@ -76,6 +90,7 @@ const LOST = ['netsuke', 'kanzashi', 'sensu', 'koma', 'kiseru', 'suzu'];
     const shown = await toSokichi();
     ok(next[i].test(shown), `宗吉 sees it: ${shown.slice(0, 30)}…`);
   }
+  ok((await askPasser(/^魚売り/)) === null, 'with no riddle open, the question is not there');
   const last = await items();
   ok(/宗吉の若いころの下絵（三枚）/.test(last) && !/宗吉の謎/.test(last), '持ち物 keeps the three sketches');
   const again = await toSokichi();
