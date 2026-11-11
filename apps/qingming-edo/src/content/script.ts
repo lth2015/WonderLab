@@ -10,6 +10,7 @@ import { STORIES } from './stories';
 import { RUMOR_RANK, RUMORS } from './rumors';
 import { LOST, LOST_ALL_BACK, LOST_OPEN } from './lost';
 import { TEA_PRICE } from './shop';
+import { NAZO, nazoFlag, nazoNodes } from './nazo';
 import { GLIMPSE_Q, PASSERS, favorFlag, passerFlag } from './passers';
 import type { Rule } from './stories/types';
 import type { Line, Choice, DialogueNode } from './types';
@@ -328,7 +329,10 @@ for (const t of LOST) {
   NODES[`lost.${t.id}.find`] = { brief: true, effects: [{ type: 'setFlag', flag: `lost_found_${t.id}` }], lines: [{ by: 'narration', text: t.find }] };
   NODES[`lost.${t.id}.back`] = { effects: [{ type: 'setFlag', flag: `lost_back_${t.id}` }], lines: t.back };
 }
-NODES['lost.allback'] = { effects: [{ type: 'setFlag', flag: 'lost_allback' }], lines: LOST_ALL_BACK };
+NODES['lost.allback'] = { effects: [{ type: 'setFlag', flag: 'lost_allback' }], lines: LOST_ALL_BACK, next: 'nazo.start' };
+
+// 宗吉の謎かけ (content/nazo.ts): set after the last lost thing is back
+Object.assign(NODES, nazoNodes());
 
 // 町のうわさ (content/rumors.ts): each said once
 for (const r of RUMORS) NODES[`rumor.${r.id}`] = { effects: [{ type: 'setFlag', flag: `rumor_${r.id}` }], lines: r.lines };
@@ -502,6 +506,13 @@ export const ENTRIES: Record<string, { when?: Condition; node: string }[]> = (()
     all[`lost_${t.id}`] = [{ rank: 100, node: `lost.${t.id}.find` }];
   });
   all.sokichi = [...(all.sokichi ?? []), { rank: RUMOR_RANK.sokichi - 0.5, when: { all: [...LOST.map((t) => ({ flag: `lost_back_${t.id}` })), { not: { flag: 'lost_allback' } }] }, node: 'lost.allback' }];
+  // 宗吉の謎かけ: a sketch found is shown to him before anything else he says; the hunt starts
+  // right after the lost things (lost.allback goes on to it), or here for a save that read that already
+  all.sokichi = [
+    ...all.sokichi,
+    { rank: RUMOR_RANK.sokichi - 0.45, when: { all: [{ flag: 'lost_allback' }, { not: { flag: nazoFlag('given', 0) } }] }, node: 'nazo.start' },
+    ...NAZO.map((n, i) => ({ rank: RUMOR_RANK.sokichi - 0.6 + i / 100, when: { all: [{ flag: nazoFlag('found', i) }, { not: { flag: nazoFlag('shown', i) } }] } as Condition, node: `nazo.${n.id}.show` })),
+  ];
   // うわさ: after every request, before the person's everyday word (content/rumors.ts RUMOR_RANK)
   // a passer pointed to them comes by: they mention it once, among their rumors
   for (const [id, p] of Object.entries(PASSERS)) {

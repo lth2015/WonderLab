@@ -12,6 +12,7 @@ node apps/qingming-edo/e2e/people.cjs   http://localhost:4173/edo/ /tmp/edo-all.
 node apps/qingming-edo/e2e/passers.cjs  http://localhost:4173/edo/                        # 約 20 秒（新しい存档）
 node apps/qingming-edo/e2e/favors.cjs  http://localhost:4173/edo/ /tmp/edo-all.json   # 約 20 秒
 node apps/qingming-edo/e2e/lost.cjs     http://localhost:4173/edo/ /tmp/edo-all.json   # 約 1 分（三つ目に絵図の画面写しの置き場を渡せる）
+node apps/qingming-edo/e2e/nazo.cjs     http://localhost:4173/edo/ /tmp/edo-all.json   # 約 40 秒
 ```
 
 - `full-play.cjs`：新しい存档から十二の故事を章の順に終える。通りには触れず、一覧・対話のボタン・上の時刻と晴雨・矢印キーだけ（＝キーボードで遊べることの確認）。橋のたもとを一度「またにする」で断り、ほかの頼みが先に来ることも見る。最後の存档を書き出せる。
@@ -22,5 +23,6 @@ node apps/qingming-edo/e2e/lost.cjs     http://localhost:4173/edo/ /tmp/edo-all.
 - `passers.cjs`：新しい存档で、一覧から魚売りを呼び止めて仕事の話と落とし物のこと（最初の故事の前なので「見てねえ」）を聞き、通りを歩く武士を直接タップして、話す間は立ち止まり、別れるとまた歩き出すことを見る。
 - `favors.cjs`：その存档から、武士に国元へのお土産のことを聞くと名所絵を探していると頼まれ、青葉屋を教えると礼を言われ、二度は頼まれないこと、清太に会いに行くと、お侍さまが来たと一度だけ言うことを見る。
 - `lost.cjs`：その存档から、六つの探し物をたどる。持ち主に話しかけて落とし物の話を聞き、町の絵図に「？」が六つ出ること、一覧から拾えること、拾うと「？」が消えること、持ち主に返せること、六つとも返すと宗吉にひと言あることを見る。
+- `nazo.cjs`：その存档に落とし物を全部返した印をつけて、宗吉の謎かけをたどる。宗吉のひと言のあとに謎かけが始まり持ち物に謎が出ること、答えでない所では見つからないこと、答えの所で下絵が見つかり宗吉に見せると次の謎が出ること、三枚そろうと持ち物に下絵が残り、宗吉が同じことを繰り返さないことを見る。
 
 本番（https://edo.want.world/ や https://want.world/edo/）に向けても回せる。存档はそのブラウザの中だけで、ほかの人には影響しない。
