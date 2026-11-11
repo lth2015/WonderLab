@@ -3,7 +3,7 @@ import type { Effect, HotspotDef, SaveData } from './contract';
 import { NODES, ON_CLOSE, RECALL_START } from './content/script';
 import { AMBIENT_LABEL, ambientText, spotLabel, frameOf, GUIDE_STOPS, HOTSPOTS, UGOKI_PEOPLE, INKYO_BENCH, INKYO_STOPS, INKYO_WALK, ROLES, characterById, kazeComposition, sketchOfSpot, sketchPageId, type Subject } from './content/world';
 import { load, persist, type LoadResult } from './engine/save';
-import { addPage, addRecallPage, apply, hasFlag, questState } from './engine/state';
+import { addPage, addRecallPage, apply, hasFlag, questState, test } from './engine/state';
 import { entryFor, nearbyAll, visibleSpots } from './engine/story';
 import { openChapters } from './engine/chapters';
 import { rainOpen, raining, reachedTimes, TIMES, timeOf } from './engine/time';
@@ -28,7 +28,7 @@ import { PASSERS, favorNode, glimpseNode, passerFlag, passerName, passerRole } f
 import { ownsSlip, retitle, slipStyles } from './engine/shop';
 import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
-import { nazoAt, nazoCarried } from './content/nazo';
+import { nazoAt, nazoCarried, nazoHintNode } from './content/nazo';
 import { Talk } from './ui/Talk';
 import { Glossed } from './ui/Glossed';
 import { useModalFocus } from './ui/modalFocus';
@@ -236,6 +236,8 @@ export function App() {
       // a passer's small ask comes once the player knows who can help, until they have been pointed there
       const favor = /^pass\.([a-z-]+)\.favor$/.exec(id);
       if (favor) id = favorNode(saveRef.current, favor[1]);
+    const nazo = /^pass\.([a-z-]+)\.nazo$/.exec(id);
+    if (nazo) id = nazoHintNode(saveRef.current, nazo[1]);
       const n = NODES[id];
       if (!n) return setDialogue(null);
       const inRecall = !!recallRef.current;
@@ -772,11 +774,13 @@ export function App() {
           </div>
           {atLast && node.choices ? (
             <div className="choices">
-              {node.choices.map((c, i) => (
+              {node.choices.map((c, i) =>
+                test(save, c.when) && (
                 <button type="button" key={c.label} className="choice" onClick={() => choose(i)}>
                   {c.label}
                 </button>
-              ))}
+                ),
+              )}
             </div>
           ) : (
             <button type="button" className="primary next" onClick={advance} autoFocus>

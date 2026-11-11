@@ -1,4 +1,4 @@
-import type { Effect } from '../contract';
+import type { Condition, Effect } from '../contract';
 import type { Subject } from './world';
 
 // The shape of the script (台本): people's lines, choices and the nodes they make up.
@@ -10,6 +10,8 @@ export interface Line { by: Speaker; text: string; reward?: boolean }
 export interface Choice {
   label: string;
   next?: string;
+  /** Shown only while this holds (e.g. a passer asked about 宗吉's riddle while one is open). */
+  when?: Condition;
   effects?: Effect[];
   /** Opens the sketch for this subject (spec §9 一頁目). */
   sketch?: Subject;
