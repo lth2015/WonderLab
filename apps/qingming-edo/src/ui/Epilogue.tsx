@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SaveData } from '../contract';
 import { ABOUT } from '../content/about';
 import { LOST } from '../content/lost';
+import { NAZO, NAZO_DONE, nazoFlag } from '../content/nazo';
 import { NAJIMI, PROFILE } from '../content/people';
 import { characterById, PAGE_SLOTS, ROLES } from '../content/world';
 import { acquaintances } from '../engine/people';
@@ -27,6 +28,8 @@ export function Epilogue({ save, onJournal, onClose }: { save: SaveData; onJourn
   const passersAt = passers.length ? people.length + 1 : -1;
   const last = people.length + 1 + (passers.length ? 1 : 0); // 0: opening, 1..n: people, (n+1: passers-by), last: closing
   const helped = passers.filter(([id, p]) => p.favor && hasFlag(save, favorFlag(id)));
+  // 宗吉の謎かけ (content/nazo.ts): the sketches of his found so far
+  const sketches = NAZO.filter((_, i) => hasFlag(save, nazoFlag('found', i))).length;
   const returned = LOST.filter((t) => hasFlag(save, `lost_back_${t.id}`)).length;
   const p = at >= 1 && at <= people.length ? people[at - 1] : null;
 
@@ -94,11 +97,15 @@ export function Epilogue({ save, onJournal, onClose }: { save: SaveData; onJourn
             <p className="speaker">
               宗吉<small>{ROLES.sokichi}</small>
             </p>
-            <p className="said">町は、明日もこうして続いていく。描いた人たちも、描かなかった人たちもな。……また、歩きに来い。</p>
+            <p className="said">
+              {hasFlag(save, NAZO_DONE) && 'わしの若いころの下絵まで、見つけおって。……'}
+              町は、明日もこうして続いていく。描いた人たちも、描かなかった人たちもな。……また、歩きに来い。
+            </p>
           </div>
           <p className="small epi-sum">
             出会った人 {people.length + 1}人　絵巻帳 {save.journal.pages.length} / {PAGE_SLOTS} 頁{returned > 0 ? `　返した落とし物 ${returned}つ` : ''}
             {passers.length > 0 ? `　通りで話した人 ${passers.length}人` : ''}
+            {sketches > 0 ? `　見つけた宗吉の下絵 ${sketches} / ${NAZO.length}枚` : ''}
           </p>
         </div>
       )}
