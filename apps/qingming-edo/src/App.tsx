@@ -28,6 +28,7 @@ import { PASSERS, favorNode, glimpseNode, passerFlag, passerName, passerRole } f
 import { ownsSlip, retitle, slipStyles } from './engine/shop';
 import { SLIPS_FOR_SALE } from './content/shop';
 import { LOST } from './content/lost';
+import { nazoAt, nazoCarried } from './content/nazo';
 import { Talk } from './ui/Talk';
 import { Glossed } from './ui/Glossed';
 import { useModalFocus } from './ui/modalFocus';
@@ -308,6 +309,12 @@ export function App() {
         if (spot.walker) study.emit('play_detail', { what: 'passer', outcome: 'tapped' });
         // 通りすがりの人と話す: they stop (the street holds still while the dialogue is open) and talk of their work
         if (spot.walker && PASSERS[id]) return openNode(hasFlag(saveRef.current, passerFlag(id)) ? `pass.${id}.again` : `pass.${id}`);
+        // 宗吉の謎かけ: the thing the riddle speaks of hides his sketch
+        const nz = nazoAt(saveRef.current, id);
+        if (nz) {
+          sound.cue('find');
+          return openNode(nz);
+        }
         // 町の写生: after the first page, some places can be drawn (once each)
         const k = sketchOfSpot(id);
         const cur = saveRef.current;
@@ -834,6 +841,7 @@ export function App() {
               ...(hasFlag(save, 'dougu_carry') && questState(save, 'dougu') !== 'complete' ? ['お紺から預かった包み（金次さんの弁当箱・箸箱・砥石）'] : []),
               // 探し物: found, not yet given back
               ...LOST.filter((t) => hasFlag(save, `lost_found_${t.id}`) && !hasFlag(save, `lost_back_${t.id}`)).map((t) => `拾った${t.name}（${t.place}で）`),
+              ...nazoCarried(save),
             ];
             return carried.length ? (
               <ul className="list">
