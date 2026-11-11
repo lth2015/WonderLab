@@ -1,8 +1,11 @@
 import type { SaveData } from '../contract';
+import { CROWD, outAt, walkOf } from '../content/crowd';
 import { LOST } from '../content/lost';
+import { PASSERS, passerFlag } from '../content/passers';
 import { characterById, HOTSPOTS, ROLES } from '../content/world';
 import { acquaintances } from './people';
-import { hasFlag } from './state';
+import { hasFlag, test } from './state';
+import { timeOf } from './time';
 import { nearbyAll } from './story';
 
 // 町の絵図 (owner's demo feedback 2026-11-04: 「地图」): the whole roll folded into four rows,
@@ -15,12 +18,15 @@ export const MAP_PX_PER_UNIT = 0.2;
 export const MAP_ROW_H = 140; // 700 units
 
 export interface MapMark {
-  kind: 'ask' | 'lost' | 'person';
+  kind: 'ask' | 'lost' | 'person' | 'passer';
   x: number;
   y: number;
   label: string;
   /** For a person: who (their portrait is drawn). */
   who?: string;
+  /** For a passer-by: the stretch of road they walk to and fro, and whether they have been spoken to. */
+  span?: [number, number];
+  talked?: boolean;
 }
 
 /** Where someone has a request waiting (or a story under way), and where a lost thing is said to be. */
@@ -51,6 +57,20 @@ export function personMarks(s: SaveData): MapMark[] {
       const h = HOTSPOTS.find((x) => x.id === p.spotId)!;
       return { kind: 'person' as const, who: p.id, x: h.anchor.x, y: h.anchor.y, label: `${characterById.get(p.id)?.displayName ?? p.id}（${ROLES[p.id] ?? ''}）` };
     });
+}
+
+/** The passers-by out on the street now (time, weather), each in the middle of the stretch they walk. */
+export function passerMarks(s: SaveData): MapMark[] {
+  const tod = timeOf(s);
+  return Object.entries(PASSERS).flatMap(([id, p]) => {
+    const h = HOTSPOTS.find((x) => x.targetId === id);
+    const i = CROWD.findIndex((c) => c.id === h?.walker);
+    if (!h || i < 0 || !test(s, h.visibleWhen) || !outAt(tod, CROWD[i].id, i)) return [];
+    const c = CROWD[i];
+    const dx = walkOf(c, i).dx;
+    const talked = hasFlag(s, passerFlag(id));
+    return [{ kind: 'passer' as const, who: id, x: c.x + dx / 2, y: h.anchor.y, span: [Math.min(c.x, c.x + dx), Math.max(c.x, c.x + dx)] as [number, number], talked, label: `${p.name}（${talked ? '話したことがある' : 'まだ話していない'}）` }];
+  });
 }
 
 /** Map row and x/y in the map image (px) for a scene point. */

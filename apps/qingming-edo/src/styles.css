@@ -2009,6 +2009,33 @@ button.term[aria-expanded="true"] {
   vertical-align: -2px;
 }
 
+/* 通りの人: the passers-by out now, smaller, on the stretch they walk; not yet spoken to, a dashed ring */
+.map-passer line {
+  stroke: #6b5a3e;
+  stroke-width: 2.5;
+  stroke-dasharray: 3 4;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+.map-passer-bg {
+  fill: #fff6e2;
+  stroke: #6b5a3e;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2.5;
+}
+.map-passer.talked .map-passer-bg {
+  stroke-dasharray: none;
+}
+.map-key.passer {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px dashed #6b5a3e;
+  background: #fff6e2;
+  vertical-align: -1px;
+}
+
 /* ---------------------------------------------------------------- 今日の町をふりかえる */
 .epilogue .najimi {
   margin: 0;
