@@ -1,6 +1,6 @@
 import mapUrl from '../assets/map/edo-map.webp';
 import type { SaveData } from '../contract';
-import { MAP_PX_PER_UNIT, MAP_ROW_H, MAP_ROW_UNITS, MAP_ROWS, mapMarks, personMarks, toMap } from '../engine/townMap';
+import { MAP_PX_PER_UNIT, MAP_ROW_H, MAP_ROW_UNITS, MAP_ROWS, mapMarks, passerMarks, personMarks, toMap } from '../engine/townMap';
 import { faceUrl } from './Face';
 
 // 町の絵図: the roll folded into four rows. A tap on a row takes the street there.
@@ -15,6 +15,8 @@ export function TownMap({ save, view, onGo, onClose }: { save: SaveData; view: {
   // the people met, where they are now: drawn under the marks; a 依 at a person's spot sits on their shoulder
   const people = personMarks(save);
   const atPerson = (x: number, y: number) => people.some((p) => p.x === x && p.y === y);
+  // the passers-by out now, on the stretch of road they walk (drawn under the people met)
+  const passers = passerMarks(save);
   return (
     <div className="panel town-map" role="dialog" aria-labelledby="map-h">
       <h2 id="map-h">町の絵図</h2>
@@ -50,6 +52,24 @@ export function TownMap({ save, view, onGo, onClose }: { save: SaveData; view: {
               {view && vx1 > vx0 && (
                 <rect className="map-here" x={(vx0 - start) * MAP_PX_PER_UNIT} y={r * MAP_ROW_H + 3} width={(vx1 - vx0) * MAP_PX_PER_UNIT} height={MAP_ROW_H - 6} rx={4} />
               )}
+              {passers
+                .filter((m) => toMap(m.x, m.y).row === r)
+                .map((m) => {
+                  const p = toMap(m.x, m.y);
+                  const cy = r * MAP_ROW_H + Math.min(MAP_ROW_H - 18, Math.max(18, p.py - 10));
+                  const href = faceUrl(m.who!);
+                  return (
+                    <g key={m.who} className={`map-passer${m.talked ? ' talked' : ''}`}>
+                      <title>{m.label}</title>
+                      <line x1={(m.span![0] - start) * MAP_PX_PER_UNIT} x2={(m.span![1] - start) * MAP_PX_PER_UNIT} y1={cy + 12} y2={cy + 12} />
+                      <clipPath id={`mq-${m.who}`}>
+                        <circle cx={p.px} cy={cy} r={13} />
+                      </clipPath>
+                      <circle className="map-passer-bg" cx={p.px} cy={cy} r={15} />
+                      {href && <image href={href} x={p.px - 16} y={cy - 15} width={32} height={32} clipPath={`url(#mq-${m.who})`} />}
+                    </g>
+                  );
+                })}
               {people
                 .filter((m) => toMap(m.x, m.y).row === r)
                 .map((m) => {
@@ -91,19 +111,19 @@ export function TownMap({ save, view, onGo, onClose }: { save: SaveData; view: {
         })}
       </div>
       <p className="map-legend small">
-        <span className="map-key here" /> いま見ているところ　<span className="map-key person" /> 出会った人　<span className="map-key ask">依</span> 頼みごと　<span className="map-key lost">？</span> 落とし物のうわさ
+        <span className="map-key here" /> いま見ているところ　<span className="map-key person" /> 出会った人　<span className="map-key passer" /> 通りの人（いま出ている）　<span className="map-key ask">依</span> 頼みごと　<span className="map-key lost">？</span> 落とし物のうわさ
       </p>
-      {marks.length + people.length > 0 && (
+      {marks.length + people.length + passers.length > 0 && (
         // the marks as words too: for the keyboard and for reading aloud
         <details className="fold map-list">
           <summary>印と人のいるところ（文字で選ぶ）</summary>
           <ul className="list compact">
-            {[...marks, ...people]
+            {[...marks, ...people, ...passers]
               .sort((a, b) => b.x - a.x)
               .map((m, i) => (
                 <li key={i}>
                   <button type="button" onClick={() => onGo(m.x)}>
-                    {m.kind === 'ask' ? '依　' : m.kind === 'lost' ? '？　' : '人　'}
+                    {m.kind === 'ask' ? '依　' : m.kind === 'lost' ? '？　' : m.kind === 'passer' ? '通　' : '人　'}
                     {m.label}
                   </button>
                 </li>

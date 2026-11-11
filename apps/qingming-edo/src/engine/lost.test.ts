@@ -7,7 +7,9 @@ import { HOTSPOTS, SCENE_W } from '../content/world';
 import type { SaveData } from '../contract';
 import { apply, hasFlag, newSave } from './state';
 import { entryFor, visibleSpots } from './story';
-import { mapMarks, MAP_ROWS, MAP_ROW_UNITS, personMarks, toMap } from './townMap';
+import { mapMarks, MAP_ROWS, MAP_ROW_UNITS, passerMarks, personMarks, toMap } from './townMap';
+import { PASSERS } from '../content/passers';
+import { timeOf } from './time';
 import { questById } from '../content/world';
 
 const open = (s: SaveData, id: string) => (NODES[id].effects ? apply(s, NODES[id].effects!) : s);
@@ -96,5 +98,26 @@ describe('町の絵図', () => {
     const seita = personMarks(s).find((m) => m.who === 'seita')!;
     expect(seita.label).toContain('清太');
     expect(seita.x).toBe(HOTSPOTS.find((h) => h.id === 'h-seita')!.anchor.x);
+  });
+
+  it('shows the passers-by out now, on the stretch they walk; spoken to or not', () => {
+    // noon, fair: everyone is out
+    const noon = done(newSave(), 'kaze');
+    expect(timeOf(noon)).toBe('noon');
+    const all = passerMarks(noon);
+    expect(all.map((m) => m.who).sort()).toEqual(Object.keys(PASSERS).sort());
+    for (const m of all) {
+      expect(m.span![0]).toBeLessThan(m.x);
+      expect(m.span![1]).toBeGreaterThan(m.x);
+      expect(m.talked).toBe(false);
+      expect(m.label).toContain('まだ話していない');
+    }
+    const talked = passerMarks(apply(noon, NODES['pass.pass-monk'].effects!)).find((m) => m.who === 'pass-monk')!;
+    expect(talked.talked).toBe(true);
+    // in the rain no one walks; in the evening the carpenter has gone home
+    const rainy: SaveData = { ...done(noon, 'dougu', 'tenugui'), settings: { ...noon.settings, rain: true } };
+    expect(passerMarks(rainy)).toEqual([]);
+    const evening: SaveData = { ...done(noon, 'dougu', 'tenugui', 'yube'), settings: { ...noon.settings, timeChoice: 'evening' } };
+    if (timeOf(evening) === 'evening') expect(passerMarks(evening).map((m) => m.who)).not.toContain('pass-daiku');
   });
 });
